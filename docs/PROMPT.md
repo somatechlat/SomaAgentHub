@@ -10,6 +10,7 @@ Use this prompt to regain full project context after a reset. It captures the ar
 
 ## Repository Layout
 ```
+  libs/python/somagent_secrets/    # Secret loading helper (env/file)
 apps/
   admin-console/           # Vite + React + Storybook skeleton
     src/App.tsx            # Placeholder shell
@@ -147,3 +148,7 @@ Use this prompt to reload context, restore priorities, and continue execution wi
 - Helm/Terraform automation to deploy services with cert-secret mounts, config maps, autoscaling.
 - GitHub Actions pipeline: lint, tests, build, security scans, docker/helm publish.
 - Load/chaos tests (k6 stress tests, planned chaos scenarios).
+
+## Load & Chaos Testing
+- `tests/perf/k6_smoke.js` (smoke) and `tests/perf/k6_full.js` (mixed traffic) cover gateway + SLM endpoints.
+- `tests/chaos/README.md` + `tests/chaos/inject_faults.sh` outline fault scenarios (SLM outage, Kafka disruption, SomaBrain latency).

@@ -4,6 +4,8 @@ from functools import lru_cache
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
+from somagent_secrets import load_secret
+
 
 class Settings(BaseSettings):
     """Runtime settings."""
@@ -20,6 +22,11 @@ class Settings(BaseSettings):
     asr_url: str | None = None
     tts_url: str | None = None
     voice_api_key: str | None = None
+
+    def resolve_voice_api_key(self) -> str | None:
+        """Load voice API key via env or file."""
+
+        return load_secret("SOMAGENT_SLM_VOICE_API_KEY", file_env="SOMAGENT_SLM_VOICE_API_KEY_FILE", default=self.voice_api_key)
     model_config = SettingsConfigDict(env_prefix="SOMAGENT_SLM_", extra="allow")
 
 

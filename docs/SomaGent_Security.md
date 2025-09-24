@@ -62,7 +62,7 @@
 - **Tracing**: OpenTelemetry spans include capsule ID, persona, moderation results.
 - **Resilience Metrics**: Monitor Kafka/Postgres replication lag, Redis backlog depth, SomaBrain sync freshness, and consumer checkpoint age; alert when thresholds approach RPO budgets.
 - **Outage Playbooks**: Maintain tested runbooks for message replay, memory rebalance, cache rebuild, and regional failover; run quarterly chaos drills to validate steps.
-- **Incident Playbooks**: Document escalation paths for repeated abuse, adapter compromise, or token exhaustion. Store in `docs/runbooks/`.
+- **Incident Playbooks**: Document escalation paths for repeated abuse, adapter compromise, or token exhaustion. Store in `docs/runbooks/`. See `docs/runbooks/security.md` for mTLS and secret procedures.
 
 ---
 

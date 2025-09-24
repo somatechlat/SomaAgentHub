@@ -8,7 +8,7 @@
 - `design/UIX_Experience.md` – Front-end stack, notification system, and conversational UI blueprint.
 - `development/Developer_Setup.md` – Local environment setup, default URLs/ports, troubleshooting.
 - `design/` – Placeholder for forthcoming feature design notes.
-- `runbooks/` – Placeholder for operational playbooks.
+- `runbooks/` – Operational playbooks (see `runbooks/security.md`).
 - `diagrams/` – Placeholder for architecture diagrams.
 - `legal/SomaGent_Default_Terms.md` – Draft default terms of use (requires attorney review).
 - `development/Implementation_Roadmap.md` – Detailed workstreams, parallel tasks, and sprint plan toward SomaStack.

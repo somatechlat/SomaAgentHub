@@ -146,8 +146,9 @@ async def transcribe_audio(
         raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail="ASR provider not configured")
     payload = request.model_dump(mode="json")
     headers = {}
-    if settings.voice_api_key:
-        headers["Authorization"] = f"Bearer {settings.voice_api_key}"
+    voice_key = settings.resolve_voice_api_key()
+    if voice_key:
+        headers["Authorization"] = f"Bearer {voice_key}"
     start = time.perf_counter()
     async with httpx.AsyncClient(timeout=60.0) as client:
         resp = await client.post(settings.asr_url, json=payload, headers=headers)
@@ -170,8 +171,9 @@ async def synthesize_audio(
         raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail="TTS provider not configured")
     payload = request.model_dump(mode="json")
     headers = {}
-    if settings.voice_api_key:
-        headers["Authorization"] = f"Bearer {settings.voice_api_key}"
+    voice_key = settings.resolve_voice_api_key()
+    if voice_key:
+        headers["Authorization"] = f"Bearer {voice_key}"
     start = time.perf_counter()
     async with httpx.AsyncClient(timeout=60.0) as client:
         resp = await client.post(settings.tts_url, json=payload, headers=headers)

@@ -112,3 +112,16 @@ Repeat for other services, matching the ports above. A full docker-compose stack
 - Constitution fetch fails: verify SomaBrain is up and `SOMAGENT_CONSTITUTION_*` env vars point to the correct URL.
 
 Keep this document updated as ports or configurations change.
+
+## Kubernetes / Helm
+- Helm scaffold available at `infra/k8s/charts/somagent`.
+- Example: `helm install somagent infra/k8s/charts/somagent --set image.repository=<repo> --set image.tag=<tag>`.
+- Extend with secrets, ingress, autoscaling before production use.
+
+## Load & Chaos Testing
+- Run `k6 run tests/perf/k6_smoke.js` for smoke tests; `k6 run tests/perf/k6_full.js` for heavier mixed traffic.
+- Explore chaos scenarios documented in `tests/chaos/README.md`; use `tests/chaos/inject_faults.sh` to pause services locally.
+
+## Secrets
+- Use `somagent-secrets` helper to load values via env (`SOMAGENT_*_KEY`) or files (`SOMAGENT_*_KEY_FILE`).
+- For local testing, create `.env` or simple text files and export appropriate env vars.

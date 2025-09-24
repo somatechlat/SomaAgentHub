@@ -1,0 +1,5 @@
+apiVersion: v2
+name: somagent
+version: 0.1.0
+description: Helm chart skeleton for deploying SomaStack services
+appVersion: "1.0.1"

@@ -1,0 +1,37 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "somagent.fullname" . }}-gateway
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: {{ include "somagent.fullname" . }}-gateway
+  template:
+    metadata:
+      labels:
+        app: {{ include "somagent.fullname" . }}-gateway
+    spec:
+      containers:
+        - name: gateway
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          command: ["uvicorn", "services.gateway_api.app.main:app", "--host", "0.0.0.0", "--port", "8080"]
+          env:
+            - name: SOMAGENT_GATEWAY_ORCHESTRATOR_URL
+              value: "http://orchestrator:8100"
+          ports:
+            - containerPort: 8080
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "somagent.fullname" . }}-gateway
+spec:
+  type: {{ .Values.gateway.service.type }}
+  selector:
+    app: {{ include "somagent.fullname" . }}-gateway
+  ports:
+    - port: {{ .Values.gateway.service.port }}
+      targetPort: 8080
+      name: http

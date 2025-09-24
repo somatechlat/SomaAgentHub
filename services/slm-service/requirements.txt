@@ -4,3 +4,4 @@ pydantic-settings~=2.2
 redis~=5.0
 -e ../../libs/python/somagent_somabrain
 prometheus-client~=0.20
+-e ../../libs/python/somagent_secrets

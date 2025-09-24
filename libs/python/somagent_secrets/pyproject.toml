@@ -1,0 +1,14 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "somagent-secrets"
+version = "0.1.0"
+description = "Helpers for loading secrets from env or files"
+requires-python = ">=3.11"
+license = {text = "Apache-2.0"}
+readme = "README.md"
+
+[tool.hatch.build.targets.wheel]
+packages = ["somagent_secrets"]
