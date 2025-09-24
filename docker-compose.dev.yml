@@ -1,0 +1,52 @@
+version: "3.9"
+
+services:
+  gateway-api:
+    image: python:3.11-slim
+    working_dir: /app
+    volumes:
+      - ./services/gateway-api:/app
+    command: bash -c "pip install -r requirements.txt &>/tmp/install.log && uvicorn app.main:app --host 0.0.0.0 --port 8080"
+    environment:
+      SOMAGENT_GATEWAY_ORCHESTRATOR_URL: http://orchestrator:8100
+    ports:
+      - "8080:8080"
+
+  orchestrator:
+    image: python:3.11-slim
+    working_dir: /app
+    volumes:
+      - ./services/orchestrator:/app
+    command: bash -c "pip install -r requirements.txt &>/tmp/install.log && uvicorn app.main:app --host 0.0.0.0 --port 8100"
+    environment:
+      SOMAGENT_ORCHESTRATOR_POLICY_ENGINE_URL: http://policy-engine:8400
+      SOMAGENT_ORCHESTRATOR_SLM_SERVICE_URL: http://slm-service:8700
+    ports:
+      - "8100:8100"
+
+  policy-engine:
+    image: python:3.11-slim
+    working_dir: /app
+    volumes:
+      - ./services/policy-engine:/app
+    command: bash -c "pip install -r requirements.txt &>/tmp/install.log && uvicorn app.main:app --host 0.0.0.0 --port 8400"
+    ports:
+      - "8400:8400"
+
+  slm-service:
+    image: python:3.11-slim
+    working_dir: /app
+    volumes:
+      - ./services/slm-service:/app
+    command: bash -c "pip install -r requirements.txt &>/tmp/install.log && uvicorn app.main:app --host 0.0.0.0 --port 8700"
+    ports:
+      - "8700:8700"
+
+  memory-gateway:
+    image: python:3.11-slim
+    working_dir: /app
+    volumes:
+      - ./services/memory-gateway:/app
+    command: bash -c "pip install -r requirements.txt &>/tmp/install.log && uvicorn app.main:app --host 0.0.0.0 --port 8800"
+    ports:
+      - "8800:8800"

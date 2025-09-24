@@ -1,0 +1,18 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "somagent-somabrain"
+version = "0.1.0"
+description = "Async client for SomaBrain memory and constitution APIs"
+requires-python = ">=3.11"
+license = {text = "Apache-2.0"}
+readme = "README.md"
+dependencies = [
+    "httpx[http2]~=0.27",
+    "pydantic~=2.7"
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["somagent_somabrain"]

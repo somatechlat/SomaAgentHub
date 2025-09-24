@@ -1,0 +1,17 @@
+global:
+  scrape_interval: 15s
+
+scrape_configs:
+  - job_name: "somabrain"
+    static_configs:
+      - targets: ["somastack-somabrain:8000"]
+    metrics_path: /metrics
+  - job_name: "somagent-services"
+    static_configs:
+      - targets:
+          - "host.docker.internal:8300"
+          - "host.docker.internal:8400"
+          - "host.docker.internal:8500"
+          - "host.docker.internal:8700"
+    metrics_path: /metrics
+    honor_labels: true

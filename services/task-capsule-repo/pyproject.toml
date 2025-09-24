@@ -1,0 +1,26 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "somagent-task-capsule-repo"
+version = "0.1.0"
+description = "Task capsule repository service for SomaGent"
+requires-python = ">=3.11"
+license = {text = "Apache-2.0"}
+readme = "README.md"
+dependencies = [
+    "fastapi~=0.110",
+    "uvicorn[standard]~=0.29",
+    "pydantic-settings~=2.2",
+    "sqlalchemy[asyncio]~=2.0",
+    "asyncpg~=0.29",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest~=8.2",
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["app"]

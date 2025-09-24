@@ -1,0 +1,6 @@
+fastapi~=0.110
+uvicorn[standard]~=0.29
+pydantic-settings~=2.2
+redis~=5.0
+-e ../../libs/python/somagent_somabrain
+prometheus-client~=0.20

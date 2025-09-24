@@ -1,0 +1,17 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "somagent-eventbus"
+version = "0.1.0"
+description = "Kafka event schema helpers for SomaGent"
+requires-python = ">=3.11"
+license = {text = "Apache-2.0"}
+readme = "README.md"
+dependencies = [
+    "pydantic~=2.7",
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["somagent_eventbus"]
