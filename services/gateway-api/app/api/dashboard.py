@@ -6,10 +6,16 @@ from typing import Any, Dict
 
 import httpx
 from fastapi import APIRouter, Depends, HTTPException, status
+import os
 
 from ..dependencies import request_context_dependency
 from ..models.context import RequestContext
-from ..core.config import get_settings
+# --- configuration for external services (Kubernetes DNS names) ---
+SLM_HEALTH_URL = os.getenv("SLM_HEALTH_URL", "http://slm-service:8000/v1/health")
+SOMABRAIN_METRICS_URL = os.getenv("SOMABRAIN_METRICS_URL", "http://memory-gateway:9696/metrics")
+KAFKA_HOST = os.getenv("KAFKA_HOST", "kafka:9092")
+POSTGRES_HOST = os.getenv("POSTGRES_HOST", "postgres:5432")
+REDIS_HOST = os.getenv("REDIS_HOST", "redis:6379")
 
 router = APIRouter(prefix="/v1/dashboard", tags=["dashboard"])
 
@@ -24,9 +30,8 @@ async def fetch_json(url: str) -> Dict[str, Any]:
 
 @router.get("/health")
 async def dashboard_health(ctx: RequestContext = Depends(request_context_dependency)) -> Dict[str, Any]:
-    settings = get_settings()
     try:
-        slm_health = await fetch_json("http://localhost:8700/v1/health")
+        slm_health = await fetch_json(SLM_HEALTH_URL)
     except HTTPException as exc:
         slm_health = {"status": "error", "detail": exc.detail}
 
@@ -35,10 +40,10 @@ async def dashboard_health(ctx: RequestContext = Depends(request_context_depende
         "deployment_mode": ctx.deployment_mode,
         "services": {
             "slm": slm_health,
-            "somabrain": "http://localhost:9696/metrics",
-            "kafka": "localhost:9092",
-            "postgres": "localhost:5432",
-            "redis": "localhost:6379",
+            "somabrain": SOMABRAIN_METRICS_URL,
+            "kafka": KAFKA_HOST,
+            "postgres": POSTGRES_HOST,
+            "redis": REDIS_HOST,
         },
     }
     return data

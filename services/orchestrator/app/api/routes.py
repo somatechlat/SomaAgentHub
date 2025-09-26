@@ -1,6 +1,6 @@
 """HTTP routes exposed by the orchestrator."""
 
-from fastapi import APIRouter, BackgroundTasks, HTTPException
+from fastapi import APIRouter, BackgroundTasks, HTTPException, status
 from fastapi.responses import StreamingResponse
 import asyncio
 import os
@@ -196,3 +196,25 @@ async def get_job_status(job_id: str) -> dict:
     if job is None:
         raise HTTPException(status_code=404, detail="Job not found")
     return {"job_id": job_id, **job}
+
+# ---------------------------------------------------------------------------
+# New health check endpoint (Sprint 5 – Hardening & Launch Readiness)
+# ---------------------------------------------------------------------------
+@router.get("/healthz", status_code=status.HTTP_200_OK)
+async def health_check() -> dict:
+    """Simple liveness probe – returns OK if the app is running.
+    Future extensions may check DB/Kafka connectivity.
+    """
+    return {"status": "ok"}
+
+# ---------------------------------------------------------------------------
+# Analytics endpoint – capsule statistics (Sprint 7 – Analytics & Insights)
+# ---------------------------------------------------------------------------
+@router.get("/analytics/capsules")
+async def analytics_capsules() -> dict:
+    """Return basic analytics for the in‑memory capsule store.
+    For now we provide a simple count; later this can be expanded with
+    usage, performance, and billing metrics.
+    """
+    count = len(CAPSULES)
+    return {"total_capsules": count}
