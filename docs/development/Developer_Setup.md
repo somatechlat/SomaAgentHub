@@ -27,6 +27,7 @@ This guide captures default URLs/ports, quick-start commands, and tips for runni
 | Notification Orchestrator | http://localhost:8920 | WebSocket hub consuming Kafka notifications. |
 | Admin Console (dev) | http://localhost:3000 | React/Vite dev server. |
 | Benchmark Service | http://localhost:8925 | Triggers SLM benchmarks, stores results. |
+| Analytics Service | http://localhost:8930 | Capsule dashboards, persona regressions, governance reports. |
 
 Adjust ports via environment variables if needed; ensure no conflicts on your machine.
 
@@ -99,11 +100,20 @@ Repeat for other services, matching the ports above. A full docker-compose stack
 - Prometheus: http://localhost:9090 (if using provided docker-compose).
 - Grafana: http://localhost:3000 (default login admin/admin). Import dashboards for SomaBrain metrics and Agent One Sight.
 - Logs: use `uvicorn --reload --log-level info` to see structured logs during dev.
+- Analytics service includes KAMACHIQ endpoints:
+  - `POST /v1/kamachiq/runs` (invoked automatically by MAO).
+  - `POST /v1/kamachiq/blocked` records blocked deliverables from policy guardrails.
+  - `GET /v1/notifications` shows both run and blocked notifications.
+  - `POST /v1/kamachiq/resolved` logs manual or automated resolution events.
+- MAO exposes:
+  - `GET /v1/kamachiq/requeue` to list blocked deliverables.
+  - `POST /v1/kamachiq/requeue/{deliverable_id}/resolve` to re-run policy (or force allow) and reprovision.
 
 ## 8. Developer Tips
 - Use `scripts/dev/bootstrap_local_env.sh <service-path>` to create venvs quickly.
 - Add `/etc/hosts` entries if you prefer service aliases (e.g., `somabrain.local`).
 - When tests land, run `pytest` in each service. Linting (ruff/mypy) to be added per service.
+- Simulate KAMACHIQ provisioning with `scripts/kamachiq/provision_stack.sh --plan plan.json --tenant demo --region us-east-1` (dry-run logs only).
 
 ## 9. Troubleshooting
 - Port conflict? Adjust `--port` arguments or env vars; stop conflicting processes.
@@ -116,12 +126,20 @@ Keep this document updated as ports or configurations change.
 ## Kubernetes / Helm
 - Helm scaffold available at `infra/k8s/charts/somagent`.
 - Example: `helm install somagent infra/k8s/charts/somagent --set image.repository=<repo> --set image.tag=<tag>`.
+- A deny-by-default `NetworkPolicy` is enabled for the gateway; extend allowances by editing `gateway.networkPolicy.extraIngress|extraEgress` in your values file or disable temporarily with `gateway.networkPolicy.enabled=false` for local experiments.
 - Extend with secrets, ingress, autoscaling before production use.
 
 ## Load & Chaos Testing
 - Run `k6 run tests/perf/k6_smoke.js` for smoke tests; `k6 run tests/perf/k6_full.js` for heavier mixed traffic.
 - Explore chaos scenarios documented in `tests/chaos/README.md`; use `tests/chaos/inject_faults.sh` to pause services locally.
+- Quick latency profiling: `scripts/perf/profile_gateway.sh http://localhost:8080/v1/status` (requires `hey`).
+- Quick latency profiling: `scripts/perf/profile_gateway.sh http://localhost:8080/v1/status` (requires [`hey`](https://github.com/rakyll/hey`)).
 
 ## Secrets
 - Use `somagent-secrets` helper to load values via env (`SOMAGENT_*_KEY`) or files (`SOMAGENT_*_KEY_FILE`).
 - For local testing, create `.env` or simple text files and export appropriate env vars.
+
+## Authentication
+- Identity service issues JWTs via `/v1/tokens/issue`; configure `SOMAGENT_IDENTITY_JWT_SECRET` (or `_FILE`).
+- Gateway validates tokens using `SOMAGENT_GATEWAY_JWT_SECRET` (or `_FILE`).
+- MFA endpoints (`/v1/users/{id}/mfa/enroll|verify`) must be used before issuing tokens.

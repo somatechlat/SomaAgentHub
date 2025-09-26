@@ -1,1 +1,0 @@
-"""Constitution service package."""

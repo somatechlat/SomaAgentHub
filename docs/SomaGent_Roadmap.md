@@ -63,7 +63,7 @@ Each significant feature ships with a short design note in `docs/design/` review
 ## Phase 5 – Marketplace Backend & Security Hardening (Weeks 9–11)
 **Objectives**: Capsule publishing, moderation, strong security posture.
 - Capsule schema finalized; CLI + UI for authoring (convert training session → capsule).
-- Marketplace backend: package upload, signature verification, dependence check, moderation flows.
+- Marketplace backend: package upload, signature verification, dependence check, moderation flows. The `task-capsule-repo` service now stores submissions in Postgres with attestation hashes (`POST /v1/submissions`), exposes reviewer workflows (`POST /v1/submissions/{id}/review`), and returns compliance summaries so governance can approve packages before they appear in search results. MAO consumes those capsules directly via `POST /v1/templates/import`, converting workflow definitions into executable templates and optional schedules in a single call. Tenant installations are tracked via `/v1/installations` (with `/v1/installations/{id}/rollback` for reversions). Analytics now ingests per-capsule billing signals (`POST /v1/billing/events`) and surfaces aggregated ledgers/exports (`GET /v1/billing/ledgers`, `/v1/exports/billing-ledger`) for finance pipelines. Disaster recovery drills run through the `dr_failover_drill` capsule + `scripts/ops/run_failover_drill.sh`, recording outcomes via `/v1/drills/disaster` for RTO/RPO dashboards.
 - Security enhancements: SPIFFE/SPIRE mTLS across services, Vault/KMS secret rotation, workload attestation (Nitro/SEV where available).
 - Token anomaly alerts, Prometheus/Grafana dashboards for budgets.
 - Success metric: admin publishes capsule, another tenant installs; attestation evidence stored; alerts for token overruns.
@@ -99,12 +99,12 @@ Each significant feature ships with a short design note in `docs/design/` review
 - Capsule evolution suggestions: gather feedback from completed runs, propose template improvements (admin approval required).
 - Success metric: non-technical admin builds capsule via UI; training session automatically yields persona shot.
 
-## Phase 10 – Jarvis Mode (Weeks 24–30)
+## Phase 10 – KAMACHIQ Mode (Weeks 24–30)
 **Objectives**: Full autonomy vision.
 - High-level planner capsules (Project Bootstrapper) create entire project DAGs from roadmaps.
 - Self-provisioning infrastructure capsules: spin new SomaGent instances, configure identity/constitution, bootstrap knowledge.
 - Governance overlays: ethical modulators per industry, human override hooks, safe fallback modes.
-- Jarvis console: conversational interface to request complete projects (“Build SomaBrain-based mobile app”) and monitor progress.
+- KAMACHIQ console: conversational interface to request complete projects (“Build SomaBrain-based mobile app”) and monitor progress.
 - Success metric: End-to-end project executed by SomaGent with minimal human intervention, within budget & policy constraints.
 
 ---
@@ -151,10 +151,10 @@ Each significant feature ships with a short design note in `docs/design/` review
 - Phase-by-phase completion checks (above).
 - Token forecast accuracy > 85% confidence by Week 12.
 - Marketplace with > 10 curated capsules by Week 16.
-- Autonomous project completion (Jarvis mode) pilot by Week 30.
+- Autonomous project completion (KAMACHIQ mode) pilot by Week 30.
 - Community contributions: aim for external capsule/tool adapters by Week 24.
 
 ---
 
 ## Closing Vision
-SomaGent combines constitutional AI governance, Task Capsules, and real-world tool orchestration to create a “Jarvis-grade” assistant. From a single command, it can plan, build, and deploy entire projects across SaaS tools and infrastructure—open source, audited, and extensible. This roadmap lays the path to deliver it, while leaving room for innovation (capsule marketplaces, ethical overlays, agent negotiation) that pushes the industry forward.
+SomaGent combines constitutional AI governance, Task Capsules, and real-world tool orchestration to create a “KAMACHIQ-grade” assistant. From a single command, it can plan, build, and deploy entire projects across SaaS tools and infrastructure—open source, audited, and extensible. This roadmap lays the path to deliver it, while leaving room for innovation (capsule marketplaces, ethical overlays, agent negotiation) that pushes the industry forward.

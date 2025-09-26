@@ -10,6 +10,7 @@ class Settings(BaseSettings):
 
     service_name: str = "task-capsule-repo"
     postgres_url: str = "postgresql+asyncpg://somagent:somagent@postgres:5432/capsules"
+    capsule_dir: str = "capsules"
     model_config = SettingsConfigDict(env_prefix="SOMAGENT_CAPSULES_", extra="allow")
 
 

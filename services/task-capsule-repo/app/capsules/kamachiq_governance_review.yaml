@@ -1,0 +1,42 @@
+id: kamachiq_governance_review
+version: 0.1.0
+summary: Governance overlay capsule enforcing policy reviews and audit generation for KAMACHIQ runs.
+type: governance
+inputs:
+  - name: deliverable_summary
+    type: text
+    required: true
+  - name: budget_report
+    type: text
+    required: true
+  - name: risk_register
+    type: text
+    required: false
+outputs:
+  approval:
+    description: Governance verdict
+    schema:
+      - status: enum[approved,needs_revision,blocked]
+      - notes: text
+      - escalations: list
+  audit:
+    description: Audit artefacts to file via analytics-service
+    schema:
+      - report_id: string
+      - tenant_id: string
+      - findings: list
+      - follow_up_actions: list
+workflow:
+  steps:
+    - name: Constitution compliance check
+      action: policy-engine.evaluate
+      params:
+        threshold: 0.82
+    - name: Budget variance review
+      action: analytics-service.analyse_budget
+      params:
+        max_variance_percent: 15
+    - name: Human approval (optional)
+      action: notifications.request_approval
+      params:
+        channel: governance

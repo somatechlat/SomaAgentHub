@@ -1,0 +1,27 @@
+id: project_bootstrap_planner
+version: 0.1.0
+summary: Plan projects into executable task capsules with personas and budgets.
+type: planner
+inputs:
+  - name: project_brief
+    type: text
+    required: true
+  - name: constraints
+    type: text
+    required: false
+outputs:
+  deliverables:
+    description: List of capsule-ready deliverables
+    schema:
+      - id: string
+      - persona: string
+      - tools: list
+      - budget_tokens: integer
+      - dependencies: list
+planner:
+  prompt: |
+    You are the Project Bootstrap Planner. Break the provided project brief into actionable deliverables.
+    Each deliverable must map to an available persona and tool stack.
+  heuristics:
+    max_deliverables: 8
+    default_budget_tokens: 15000

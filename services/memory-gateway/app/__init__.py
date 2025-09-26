@@ -1,1 +1,0 @@
-"""Memory gateway service package."""

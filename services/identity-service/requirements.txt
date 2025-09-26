@@ -2,3 +2,5 @@ fastapi~=0.110
 uvicorn[standard]~=0.29
 pydantic-settings~=2.2
 redis~=5.0
+pyjwt~=2.9
+-e ../../libs/python/somagent_secrets

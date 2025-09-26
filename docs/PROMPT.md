@@ -109,6 +109,7 @@ inspiration/
 ## Docker Compose Stack
 - `docker-compose.stack.yml` launches Kafka/KRaft (9092), Postgres (5432), Redis (6379), SomaBrain (9696), Prometheus (9090), Grafana (3000).
 - Prometheus scrapes SomaBrain + placeholders for core services; Grafana login admin/admin.
+- Kubernetes Helm chart lives at `infra/k8s/charts/somagent` with regional overlays (`infra/k8s/overlays/`) and gateway HPA enabled by default.
 
 ## Key Integrations
 - **SomaBrain client** (`somagent_somabrain`) handles `/remember`, `/recall`, `/rag/retrieve`, `/link`, `/persona`, `/constitution/*` with tenant headers, async httpx.
@@ -116,14 +117,28 @@ inspiration/
 - **Constitution Service** caches `/constitution/version` via Redis, proxies `/validate` and `/checksum` with error handling.
 - **SLM Service** exposes `/v1/infer_sync`, `/v1/embedding`, `/v1/health`, pluggable provider registry (`StubProvider` default), Prometheus metrics for requests/latency.
 - **Gateway API** now has ContextMiddleware extracting tenant/user/capabilities/client-type/deployment-mode from headers; per-request context accessible via dependency.
+- **Gateway moderation / residency** adds kill-switch flag + Redis-backed strike counters before forwarding sessions; gateway now enforces region allowed-tenant lists so residency policies apply at ingress; metrics emitted for moderation decisions and orchestration latency.
+- **Tool service** executes adapters via sandbox runner with signed manifest verification (HMAC over manifest digest), rate limiting, and billing event emission to analytics based on adapter metadata; Prometheus + OTEL hooks in place.
+- **Disaster recovery automation** ships a failover capsule (`dr_failover_drill`), supporting script (`scripts/ops/run_failover_drill.sh`), and analytics endpoints (`/v1/drills/disaster`, `/v1/drills/disaster/summary`) to capture RTO/RPO metrics per drill and feed dashboards.
+- **Release readiness** documented in `docs/release/Release_Candidate_Playbook.md`; use `scripts/perf/profile_gateway.sh` + analytics dashboards during RC windows; KAMACHIQ KPIs available at `/v1/kamachiq/summary`.
+- **Onboarding**: `docs/Quickstart.md` walks through local setup, running a capsule, spinning up the admin console, and checking analytics.
+- **Settings service** now provides capsule attestation + compliance linting, approval/rejection, installation history with rollback, and billing ledger endpoints.
+- **MAO** supports reusable workflow templates, parameterized instantiation, scheduled runs, and one-shot capsule import (`POST /v1/templates/import`) that spins up templates/workflows directly from the marketplace.
+- **Analytics service** aggregates capsule telemetry, persona regressions, anomalies, governance reports, and billing ledgers; exposes `/v1/persona-regressions/transition` for automation, `/v1/anomalies/scan` for alerting, `/v1/dashboards/capsules?tenant_id=...&window_hours=...` for filtered dashboards, `/v1/billing/events`, `/v1/billing/ledgers`, and JSON exports (`/v1/exports/capsule-runs?tenant_id=...`, `/v1/exports/billing-ledger?tenant_id=...`).
+- **Task Capsule Repo** now supports marketplace installs (`POST /v1/installations`, `GET /v1/installations`, `POST /v1/installations/{id}/rollback`) with Postgres-backed tracking per tenant/environment.
+- Launch readiness assets: `scripts/perf/profile_gateway.sh`, `docs/runbooks/security_audit_checklist.md`, `docs/release/Release_Candidate_Playbook.md`, `docs/release/Launch_Readiness_Checklist.md`.
+- KAMACHIQ mode assets: `docs/KAMACHIQ_Mode_Blueprint.md`, planner/governance capsules (`kamachiq_*`) in the capsule repo, and `scripts/kamachiq/provision_stack.sh` prototype for self-provisioning.
+- Tool & analytics integration: MAO plan execution records KAMACHIQ runs (`analytics-service /v1/kamachiq/runs`), calls policy-engine `/v1/evaluate`, and hits tool-service `/v1/provision` (dry-run) for deliverable setup.
+- MAO exposes requeue controls (`GET /v1/kamachiq/requeue`, `POST /v1/kamachiq/requeue/{id}/resolve`) which re-check policy and notify analytics (`/v1/kamachiq/resolved`).
 
 ## Documentation Highlights
 - Architecture doc: describes SomaStack layers, data flow, infra requirements, deployment modes.
 - SLM Strategy: role-based models (dialogue, planning, code, embeddings, speech recognition/synthesis), scoring formula, audio vector modeling, pipeline steps, benchmark methodology.
 - UI/UX blueprint: conversational UI, Admin console, Agent One Sight dashboard, notification system, marketplace, responsive/theming, analytics.
 - Security playbook: identity, moderation, strike tracking, tool sandboxing, observability, governance workflows, testing, compliance.
+- Runbooks: `security.md`, `kill_switch.md`, `constitution_update.md`, `disaster_recovery.md`, `security_audit_checklist.md`.
 - Implementation roadmap: workstreams (memory, SLM, orchestration, settings/identity, UI, infra) with phased tasks and timeline.
-- Sprint milestones: Sprint 0 done, Sprints 1–4 planned with focus areas.
+- Sprint milestones: Sprint 0 done, Sprints 1–9 planned with focus areas (see `docs/development/Sprint_Milestones.md`).
 - Developer Setup: prerequisites, ports, compose usage, env vars, troubleshooting.
 
 ## Current State (Sprint 0 Complete)
@@ -152,3 +167,15 @@ Use this prompt to reload context, restore priorities, and continue execution wi
 ## Load & Chaos Testing
 - `tests/perf/k6_smoke.js` (smoke) and `tests/perf/k6_full.js` (mixed traffic) cover gateway + SLM endpoints.
 - `tests/chaos/README.md` + `tests/chaos/inject_faults.sh` outline fault scenarios (SLM outage, Kafka disruption, SomaBrain latency).
+- Upcoming: capability-scoped JWTs + MFA, moderation-before-orchestration, sandboxed tool adapters, NetworkPolicies, OpenTelemetry dashboards, kill-switch runbooks (Sprint 5), followed by marketplace automation (Sprint 6), analytics/insights (Sprint 7), multi-region scaling (Sprint 8), and launch readiness (Sprint 9).
+## Sprint Outlook
+- 0: Foundations
+- 1: Execution & policy
+- 2: Observability
+- 3: Orchestration & voice
+- 4: Hardening & deploy
+- 5: AppSec & compliance
+- 6: Marketplace & automation
+- 7: Analytics & insights
+- 8: Scalability & multi-region
+- 9: Launch readiness

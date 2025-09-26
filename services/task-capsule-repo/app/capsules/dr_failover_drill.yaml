@@ -1,0 +1,36 @@
+id: dr_failover_drill
+version: 0.1.0
+summary: Automates SomaStack regional failover drill and captures RTO/RPO metrics.
+type: composite
+inputs:
+  - name: primary_region
+    type: string
+    required: true
+  - name: failover_region
+    type: string
+    required: true
+  - name: rpo_seconds
+    type: integer
+    required: false
+outputs:
+  drill_report:
+    description: Analytics drill record identifier
+    schema:
+      - drill_id: string
+      - rto_seconds: number
+      - rpo_seconds: number
+workflow:
+  steps:
+    - name: Run failover drill script
+      action: shell.execute
+      params:
+        command: scripts/ops/run_failover_drill.sh
+        env:
+          PRIMARY_REGION: "{{primary_region}}"
+          FAILOVER_REGION: "{{failover_region}}"
+          RPO_SECONDS: "{{rpo_seconds | default(120)}}"
+    - name: Fetch drill summary
+      action: http.get
+      params:
+        url: http://analytics-service:8000/v1/drills/disaster
+        save_as: drill_report

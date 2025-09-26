@@ -195,3 +195,69 @@ Adjust timelines per capacity; each milestone maps to backlog items in the main 
 - Deployment automation (Helm charts, CI/CD pipelines).
 - Load/chaos tests across SomaStack (k6, fault injection).
 - Documentation polish and legal review.
+
+### Sprint 5 – Advanced Security & Observability
+- Ship capability-scoped JWTs and MFA enrollment flows; orchestrator enforces deny-by-default when claims missing.
+- Apply Kubernetes NetworkPolicies for deny-by-default service mesh; document tenant-specific exceptions.
+- Insert moderation-before-orchestration in gateway path with strike counters stored in Redis/Postgres.
+- Wrap tool adapters in sandboxed jobs (signed releases, per-adapter rate limits).
+- Enable OpenTelemetry + Prometheus dashboards covering compliance/audit KPIs.
+- Draft and test kill-switch/constitution-update runbooks (store in `docs/runbooks/`).
+
+### Sprint 6 – Marketplace & Automation
+- Harden capsule marketplace flows: submission attestation, compliance linting, reviewer approvals, and rejection workflows. (`POST /v1/submissions`, `GET /v1/submissions`, `POST /v1/submissions/{id}/review` now persist state in Postgres and surface compliance context in responses.)
+- Automate MAO template import: `POST /v1/templates/import` pulls approved capsules from the task-capsule-repo, converts workflow steps into template instructions, optionally instantiates default workflows, and wires recurring schedules in one call.
+- Automate workflow templates: MAO clones capsule graphs into tenant workflows, parameterizes steps, and stores recurring schedules.
+- Add billing hooks (per-token, per-capsule) with exportable ledgers for downstream billing lakes (`POST /v1/billing/events`, `GET /v1/billing/ledgers`, JSON export at `/v1/exports/billing-ledger`). Tool-service now posts billing events after adapter runs (using adapter billing metadata).
+- Expand tool adapter release verification with signed metadata (auto-generated connectors tracked separately). Tool registry entries now include signed manifests (`manifest` + `manifest_digest`) and the service verifies canonical digests before execution.
+- Ship install/update/rollback endpoints for marketplace capsules to back CLI or SDK flows (`POST /v1/installations`, `GET /v1/installations`, `POST /v1/installations/{id}/rollback`).
+
+### Sprint 7 – Analytics & Insights
+- Build capsule analytics dashboards (success rates, SLA, token cost, revision counts) via analytics-service `/v1/dashboards/capsules`.
+- Build capsule analytics dashboards (success rates, SLA, token cost, revision counts) via analytics-service `/v1/dashboards/capsules` (supports optional `tenant_id` + `window_hours` filters).
+- Implement persona regression automation endpoints to queue/execute regressions and surface notifications (`POST /v1/persona-regressions/transition`, `/v1/persona-regressions/run`, `/v1/persona-regressions/due`).
+- Add anomaly detection on capsule success rates with tenant alerts and notification feed exposure (triggered via `/v1/anomalies/scan`).
+- Introduce tenant-facing data export APIs (JSON) with scoped access for billing and analytics pipelines (e.g., `/v1/exports/capsule-runs?tenant_id=...`, `/v1/exports/billing-ledger?tenant_id=...`).
+- Publish governance reports (policy changes, constitutional updates, strike heatmaps) via analytics-service `/v1/governance/reports`.
+
+### Sprint 8 – Scalability & Multi-region
+- Deliver multi-region deployment manifests (Terraform + Helm) with active-active Postgres and SomaBrain replicas.
+- Deliver multi-region deployment manifests (Terraform skeleton in `infra/terraform/` + Helm overlays per region) with active-active Postgres and SomaBrain replicas.
+- Enforce data residency policies via partitioned schemas, per-region encryption keys, and residency-aware routing.
+- Enforce data residency policies via partitioned schemas, per-region encryption keys, and residency-aware routing (gateway enforces allowed tenant lists per region before forwarding requests).
+- Implement automated disaster recovery drills (capsule `dr_failover_drill`) and document RTO/RPO results via analytics-service `/v1/drills/disaster` + `/v1/drills/disaster/summary` and runbook script `scripts/ops/run_failover_drill.sh`.
+- Add autoscaling policies (KEDA/HPAs) tuned via load benchmarks; validate Quadrant/Redis sharding strategies.
+- Integrate cross-region observability (federated Prometheus, Tempo traces) with tenant-aware drill-downs.
+- Integrate cross-region observability (federated Prometheus, Tempo traces) with tenant-aware drill-downs (see `docs/runbooks/cross_region_observability.md`).
+
+### Sprint 9 – Launch Readiness
+- Execute end-to-end performance tuning using `scripts/perf/profile_gateway.sh` and profiling checklists; capture remediation items.
+- Complete external security audit prep (see `docs/runbooks/security_audit_checklist.md`) and collect evidence packages.
+- Polish documentation, samples, and onboarding flows (Quickstart capsules, SDK examples, legal artifacts).
+- Polish documentation, samples, and onboarding flows (Quickstart capsules, SDK examples, legal artifacts). Quickstart guide available at `docs/Quickstart.md`.
+- Run staged release candidates following `docs/release/Release_Candidate_Playbook.md`; finalize GA via launch readiness checklist.
+- Run staged release candidates following `docs/release/Release_Candidate_Playbook.md`; finalize GA via launch readiness checklist (`scripts/perf/profile_gateway.sh` for perf validation).
+- Prepare community enablement: contributor guidelines, template repos, marketing kit, and release notes template.
+
+### Sprint 10 – KAMACHIQ Mode Automation
+- Deliver KAMACHIQ-mode planner and governance capsules (`kamachiq_project_planner`, `kamachiq_governance_review`) in task capsule repo.
+- Implement planner blueprint (`docs/KAMACHIQ_Mode_Blueprint.md`) and provisioning harness (`scripts/kamachiq/provision_stack.sh`).
+- Extend MAO to support templated instantiation and schedule orchestration for planner outputs (automation harness example: `scripts/ops/schedule_dr_drill.py`).
+- Integrate governance overlays with policy engine/analytics (anomaly metrics, audit trails) and expose KAMACHIQ KPIs via `/v1/kamachiq/summary`.
+- Document KAMACHIQ operations and future roadmap for fully autonomous delivery.
+- Document KAMACHIQ operations and future roadmap for fully autonomous delivery (`docs/runbooks/kamachiq_operations.md`).
+
+### Comprehensive Sprint Plan
+
+| Sprint | Focus | Key Deliverables |
+|--------|-------|------------------|
+| 0 | Foundations | Repo scaffold, SomaBrain client, SLM fallback, gateway context, compose stack, basic docs |
+| 1 | Execution & Policy | Async SLM queue, provider adapters, policy engine MVP, identity/settings CRUD, Storybook atoms |
+| 2 | Observability | Benchmark service + scoring, Agent One Sight dashboard, notification orchestrator, metrics integrations |
+| 3 | Advanced Orchestration | MAO workflows, voice pipeline, marketplace builder alpha |
+| 4 | Hardening & Deploy | Security hardening (mTLS/secrets/Kafka ACLs), Helm scaffold, load & chaos scripts, runbooks |
+| 5 | AppSec & Compliance | Capability-scoped JWT + MFA, moderation-before-orchestration, sandboxed tool adapters, OTEL dashboards, kill-switch runbooks |
+| 6 | Marketplace & Automation | Capsule marketplace full CRUD with approvals, automated workflow templates, multi-tenant billing hooks |
+| 7 | Analytics & Insights | Capsule analytics dashboards, success metrics, persona regression automation, anomaly detection |
+| 8 | Scalability & Multi-region | Multi-region deployment scripts, data residency enforcement, auto-scaling policies, disaster recovery drills |
+| 9 | Launch Readiness | Performance tuning, security audits, documentation polish, release candidates, community onboarding |

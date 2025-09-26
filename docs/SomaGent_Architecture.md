@@ -1,6 +1,6 @@
 # SomaGent Architecture Blueprint
 
-This document captures the canonical, end-to-end architecture for SomaGent. It expands on the Master Plan, going deep on services, data flows, orchestration patterns, and the pathway to fully autonomous project execution ("Jarvis mode").
+This document captures the canonical, end-to-end architecture for SomaGent. It expands on the Master Plan, going deep on services, data flows, orchestration patterns, and the pathway to fully autonomous project execution ("KAMACHIQ mode").
 
 ---
 
@@ -97,6 +97,7 @@ All services are containerized, deployed on Kubernetes (or equivalent), communic
   4. **Workspace Management** – Provisions environment (VSCode dev containers, Git repos, design canvases).
   5. **Review Gates** – Pauses tasks pending approval (human or persona) when required.
   6. **Telemetry** – Streams task state to Kafka (`project.events`).
+  7. **Capsule Import** – `POST /v1/templates/import` fetches approved capsules from the marketplace, converts workflow steps into MAO templates, optionally instantiates tenant workflows, and seeds schedules in one pass.
 
 ### 2.6 Task Capsules Repository
 - Stored in SomaBrain (knowledge graph) with Postgres indices for quick lookup.
@@ -132,7 +133,13 @@ All services are containerized, deployed on Kubernetes (or equivalent), communic
 - Manage configuration data, marketplace listings, token budgets, persona installations.
 - Exposed to Admin UI; uses Postgres for persistence and Vault/KMS for secrets.
 
-### 2.11 Observability & Audit
+### 2.11 Analytics & Insights Service
+- Aggregates capsule execution metrics, persona regression results, and governance reports.
+- Exposes REST endpoints for dashboards (`/v1/dashboards/capsules`), anomaly detection, persona regression queues, and governance reporting.
+- Generates CSV exports for billing/analytics sinks and logs notifications for downstream channels.
+- Provides Prometheus metrics covering dashboard refresh latency and anomaly counts (planned) to power Agent One Sight.
+
+### 2.12 Observability & Audit
 - Kafka topics:
   - `constitution.updated`, `training.audit`, `persona.switch`
   - `agent.events`, `project.events`
@@ -246,7 +253,7 @@ execution:
 
 ---
 
-## 5. Autonomous Project Execution ("Jarvis Mode")
+## 5. Autonomous Project Execution ("KAMACHIQ Mode")
 
 Goal: allow an operator to say “Create the SomaBrain Mobile App according to this roadmap” and have SomaGent handle end-to-end execution.
 
@@ -323,7 +330,7 @@ All services consume the `SOMAGENT_DEPLOYMENT_MODE` environment variable so dock
 
 1. **Phase Alpha**: Manual capsule execution + MAO scheduling.
 2. **Phase Beta**: Autop-run workflows with optional human approvals.
-3. **Phase Gamma**: Fully autonomous Jarvis mode with self-improvement loops (capsule refinement suggestions, persona tuning), subject to constitution.
+3. **Phase Gamma**: Fully autonomous KAMACHIQ mode with self-improvement loops (capsule refinement suggestions, persona tuning), subject to constitution.
 4. **Phase Delta**: Marketplace-driven ecosystem—tenants/partners submit new capsules, tool adapters, persona shots.
 
 ---

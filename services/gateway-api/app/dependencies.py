@@ -3,6 +3,7 @@
 from fastapi import Depends, HTTPException, status
 
 from .core.context import get_request_context
+from .core.moderation import ModerationGuard, get_moderation_guard
 from .models.context import RequestContext
 
 
@@ -11,3 +12,7 @@ def request_context_dependency() -> RequestContext:
     if ctx is None:
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Request context missing")
     return ctx
+
+
+def moderation_guard_dependency() -> ModerationGuard:
+    return get_moderation_guard()

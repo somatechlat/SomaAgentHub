@@ -1,1 +1,0 @@
-"""SLM worker service package."""

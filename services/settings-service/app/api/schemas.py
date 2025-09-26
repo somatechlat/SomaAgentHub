@@ -2,7 +2,8 @@
 
 from __future__ import annotations
 
-from typing import Dict, List, Optional
+from datetime import datetime
+from typing import Any, Dict, List, Optional
 
 from pydantic import BaseModel, Field
 
@@ -42,3 +43,110 @@ class NotificationPreferences(BaseModel):
     user_id: Optional[str] = None
     quiet_hours: Optional[str] = None
     channels: List[NotificationChannel] = Field(default_factory=list)
+
+
+class AttestationRecord(BaseModel):
+    signer: str
+    signature: str
+    statement: str
+    issued_at: datetime
+
+
+class ComplianceIssue(BaseModel):
+    code: str
+    severity: str
+    message: str
+
+
+class ComplianceReport(BaseModel):
+    passed: bool
+    issues: List[ComplianceIssue] = Field(default_factory=list)
+
+
+class CapsuleSubmission(BaseModel):
+    id: str
+    version: str
+    summary: str
+    author: str
+    status: str = "pending_review"
+    attestation: AttestationRecord
+    compliance: ComplianceReport
+    submitted_at: datetime
+    metadata: Dict[str, Any] = Field(default_factory=dict)
+    approved_at: Optional[datetime] = None
+    approved_by: Optional[str] = None
+    rejection_reason: Optional[str] = None
+
+
+class CapsuleSubmissionRequest(BaseModel):
+    id: str
+    version: str
+    summary: str
+    author: str
+    attestation: AttestationRecord
+    metadata: Dict[str, Any] = Field(default_factory=dict)
+
+
+class CapsuleReviewRequest(BaseModel):
+    reviewer: str
+    notes: Optional[str] = None
+
+
+class CapsuleRejectionRequest(BaseModel):
+    reviewer: str
+    reason: str
+
+
+class CapsuleInstallRequest(BaseModel):
+    tenant_id: str
+    version: str
+    installed_by: str
+
+
+class CapsuleRollbackRequest(BaseModel):
+    tenant_id: str
+    requested_by: str
+
+
+class CapsuleInstallationRecord(BaseModel):
+    tenant_id: str
+    capsule_id: str
+    version: str
+    installed_by: str
+    installed_at: datetime
+    status: str = "active"
+    metadata: Dict[str, Any] = Field(default_factory=dict)
+
+
+class CapsuleInstallationState(BaseModel):
+    capsule_id: str
+    tenant_id: str
+    active_version: Optional[str] = None
+    history: List[CapsuleInstallationRecord] = Field(default_factory=list)
+
+
+class BillingRecordRequest(BaseModel):
+    tenant_id: str
+    capsule_id: Optional[str] = None
+    tokens: int
+    cost_usd: float
+    recorded_by: str
+    metadata: Dict[str, Any] = Field(default_factory=dict)
+
+
+class BillingEvent(BaseModel):
+    event_id: str
+    tenant_id: str
+    capsule_id: Optional[str] = None
+    tokens: int
+    cost_usd: float
+    recorded_at: datetime
+    recorded_by: str
+    metadata: Dict[str, Any] = Field(default_factory=dict)
+
+
+class BillingLedger(BaseModel):
+    tenant_id: str
+    total_tokens: int
+    total_cost_usd: float
+    events: List[BillingEvent] = Field(default_factory=list)

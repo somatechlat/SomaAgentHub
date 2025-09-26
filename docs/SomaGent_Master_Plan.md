@@ -4,7 +4,7 @@
 SomaGent is a constitutionally governed, multi-tenant agent platform built on top of SomaBrain. Instead of hardcoding dozens of rigid agents, we compose **dynamic agent instances** per task: personas, skills, and toolkits are loaded on demand ("Matrix uploads"). A single orchestrator can spawn multiple persona instances when needed. This keeps the system lean while allowing near-infinite specialization.
 
 > **Document map**
-> - `docs/SomaGent_Architecture.md` – deep dive into services, data flow, Task Capsules, and Jarvis-mode autonomy.
+> - `docs/SomaGent_Architecture.md` – deep dive into services, data flow, Task Capsules, and KAMACHIQ-mode autonomy.
 > - `docs/SomaGent_Roadmap.md` – execution plan with capability streams, vertical slices, and phase breakdowns.
 > - `docs/SomaGent_Security.md` – security & moderation playbook (identity, moderation strikes, sandboxed tools, compliance).
 > - `docs/design/` (future) – implementation notes for major features.

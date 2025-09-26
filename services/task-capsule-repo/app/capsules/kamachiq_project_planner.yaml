@@ -1,0 +1,35 @@
+id: kamachiq_project_planner
+version: 0.1.0
+summary: High-level planner capsule for KAMACHIQ mode; generates deliverable DAGs, budgets, and provisioning metadata.
+type: planner
+inputs:
+  - name: intent
+    type: text
+    required: true
+  - name: attachments
+    type: list
+    required: false
+outputs:
+  deliverables:
+    description: Deliverables to execute via MAO templates
+    schema:
+      - id: string
+      - persona: string
+      - tools: list
+      - budget_tokens: integer
+      - dependencies: list
+      - schedule: optional
+  provisioning:
+    description: Workspaces and integrations to provision
+    schema:
+      repositories: list
+      boards: list
+      environments: list
+planner:
+  prompt: |
+    You are the KAMACHIQ Planner. Given an operator intent, produce deliverables, budgets, and provisioning instructions.
+    Use concise identifiers, map each deliverable to a persona template, and include tool adapters required.
+  heuristics:
+    max_deliverables: 12
+    default_budget_tokens: 20000
+    prioritize_parallelism: true

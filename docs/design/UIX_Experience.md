@@ -38,7 +38,7 @@ This document captures the foundations for the user experience tier across the o
 
 ## 7. Next Steps
 1. Finalize high-fidelity design system in Figma mirroring Tailwind/Radix tokens.
-2. Scaffold Vite+React workspace under `apps/admin-console/` (or Next.js) with shared component library.
+2. Scaffold Vite+React workspace under `apps/admin-console/` (seed project committed).
 3. Implement notification orchestrator service (FastAPI) and WebSocket gateway; integrate with Kafka topic.
 4. Build conversation timeline prototype with WebSocket streaming and voice waveform preview.
 5. Wire notification preference CRUD endpoints in `settings-service` and corresponding UI forms.
