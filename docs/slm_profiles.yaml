@@ -1,0 +1,101 @@
+---
+# Machine-readable SLM profiles for SomaGent
+# role: logical role name used by orchestrator/settings
+# primary: primary model identifier
+# fallbacks: ordered list of fallback model identifiers
+# settings: recommended runtime settings
+# constraints: boolean flags for required checks
+profiles:
+  - role: dialogue_reasoning
+    primary: gpt-4o-mini
+    fallbacks:
+      - claude-3-5-sonnet
+      - mistral-large
+    settings:
+      temperature: 0.1
+      max_tokens: 2048
+      stream: true
+    constraints:
+      require_constitution_check: true
+      allow_tool_calls: true
+
+  - role: tool_call_planning
+    primary: gpt-4o-mini
+    fallbacks:
+      - llama-3-8b-instruct
+    settings:
+      temperature: 0.0
+      max_tokens: 512
+      output_schema: tool_invocation_v1
+    constraints:
+      schema_validation: true
+      policy_evaluate_before_call: true
+
+  - role: code_generation
+    primary: gpt-4o
+    fallbacks:
+      - claude-3-5-haiku
+      - codestral-latest
+    settings:
+      temperature: 0.0
+      max_tokens: 8192
+      run_linters: true
+    constraints:
+      auto_test_on_generate: true
+
+  - role: embeddings
+    primary: text-embedding-3-large
+    fallbacks:
+      - voyage-multilingual-2
+    settings:
+      dimension: auto
+      batch_size: 32
+    constraints:
+      encrypt_at_rest: true
+
+  - role: summarization
+    primary: claude-3-5-haiku
+    fallbacks:
+      - gpt-4o-mini
+    settings:
+      temperature: 0.0
+      max_tokens: 1024
+    constraints:
+      require_evidence_citation: true
+
+  - role: asr
+    primary: whisper-large-v3
+    fallbacks:
+      - deepgram-nova-2
+    settings:
+      streaming: true
+      vad: true
+      return_timestamps: true
+    constraints:
+      encrypt_raw_audio: true
+
+  - role: tts
+    primary: elevenlabs-conversational-v2
+    fallbacks:
+      - azure-neural-voices
+      - bark-large
+    settings:
+      streaming: true
+      codec: opus
+    constraints:
+      voice_impersonation_guardrails: true
+
+  - role: developer_light
+    primary: gpt-4o-mini
+    fallbacks:
+      - llama-3-8b-instruct
+    settings:
+      temperature: 0.6
+      max_tokens: 1024
+    constraints:
+      budget_friendly: true
+
+metadata:
+  generated_by: "automation:slm_profiles_v1"
+  generated_at: "2025-09-26T00:00:00Z"
+...

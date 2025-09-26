@@ -1,0 +1,18 @@
+[tool.poetry]
+name = "slm-service"
+version = "0.1.0"
+description = "SLM service: producer/consumer stubs for sprint 1"
+authors = ["SomaGent Team <dev@soma.gent>"]
+
+[tool.poetry.dependencies]
+python = "^3.11"
+aiokafka = "^0.8.0"
+uvicorn = "^0.22.0"
+fastapi = "^0.100.0"
+
+[tool.poetry.dev-dependencies]
+pytest = "^7.0"
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"

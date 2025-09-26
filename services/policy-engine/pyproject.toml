@@ -1,0 +1,17 @@
+[tool.poetry]
+name = "policy-engine"
+version = "0.1.0"
+description = "Policy Engine MVP for sprint 1"
+authors = ["SomaGent Team <dev@soma.gent>"]
+
+[tool.poetry.dependencies]
+python = "^3.11"
+fastapi = "^0.100.0"
+uvicorn = "^0.22.0"
+
+[tool.poetry.dev-dependencies]
+pytest = "^7.0"
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"

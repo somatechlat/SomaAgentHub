@@ -1,0 +1,45 @@
+name: CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    services:
+      kafka:
+        image: wurstmeister/kafka:2.13-2.8.0
+        ports:
+          - 9092:9092
+        env:
+          KAFKA_ADVERTISED_HOST_NAME: localhost
+          KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+        options: >
+          --health-cmd "nc -z localhost 9092" --health-interval 10s --health-timeout 5s --health-retries 5
+      zookeeper:
+        image: wurstmeister/zookeeper
+        ports:
+          - 2181:2181
+        options: >
+          --health-cmd "nc -z localhost 2181" --health-interval 10s --health-timeout 5s --health-retries 5
+    steps:
+      - uses: actions/checkout@v3
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r services/orchestrator/requirements.txt
+          pip install pytest httpx fastapi uvicorn[standard] aiokafka
+      - name: Start Orchestrator API
+        run: |
+          uvicorn services.orchestrator.app.main:app --host 0.0.0.0 --port 8000 &
+          sleep 5
+      - name: Run tests
+        run: |
+          pytest services/orchestrator/tests

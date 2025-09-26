@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Dict, List, Tuple
+from typing import Any, Dict, List, Tuple
 import uuid
 
 from fastapi import APIRouter, HTTPException, Query, status
@@ -37,6 +37,9 @@ NOTIFICATION_PREFS: Dict[str, NotificationPreferences] = {}
 CAPSULES: Dict[str, CapsuleSubmission] = {}
 INSTALLATIONS: Dict[Tuple[str, str], CapsuleInstallationState] = {}
 BILLING: Dict[str, BillingLedger] = {}
+
+# New in‑memory audit log for simplicity
+AUDIT_LOGS: List[Dict[str, Any]] = []
 
 
 def _tenant_or_404(tenant_id: str) -> TenantSettings:
@@ -72,10 +75,14 @@ def get_tenant(tenant_id: str) -> TenantSettings:
     return _tenant_or_404(tenant_id)
 
 
-@router.get("/tenants/{tenant_id}/model-profiles", response_model=ModelProfile)
-def get_model_profile(tenant_id: str) -> ModelProfile:
-    tenant = _tenant_or_404(tenant_id)
-    return MODEL_PROFILES.get(tenant.default_model_profile, MODEL_PROFILES["default"])
+@router.get("/tenants/{tenant_id}/model-profiles", response_model=List[ModelProfile])
+def list_model_profiles(tenant_id: str) -> List[ModelProfile]:
+    """Return all model profiles visible to the tenant.
+    Currently profiles are stored globally in ``MODEL_PROFILES``; a real implementation
+    would scope them per tenant and persist to a database.
+    """
+    _tenant_or_404(tenant_id)
+    return list(MODEL_PROFILES.values())
 
 
 @router.put("/tenants/{tenant_id}/model-profiles", response_model=ModelProfile)
@@ -83,6 +90,19 @@ def update_model_profile(tenant_id: str, profile: ModelProfile) -> ModelProfile:
     _tenant_or_404(tenant_id)
     MODEL_PROFILES[profile.name] = profile
     TENANTS[tenant_id].default_model_profile = profile.name
+    return profile
+
+
+@router.post("/tenants/{tenant_id}/model-profiles", response_model=ModelProfile, status_code=status.HTTP_201_CREATED)
+def create_model_profile(tenant_id: str, profile: ModelProfile) -> ModelProfile:
+    """Create a new model profile.
+    If a profile with the same name exists, a conflict is raised.
+    """
+    _tenant_or_404(tenant_id)
+    if profile.name in MODEL_PROFILES:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Model profile already exists")
+    MODEL_PROFILES[profile.name] = profile
+    AUDIT_LOGS.append({"action": "create_profile", "tenant": tenant_id, "profile": profile.name, "timestamp": datetime.utcnow()})
     return profile
 
 
@@ -317,3 +337,30 @@ def export_billing_ledger(tenant_id: str) -> PlainTextResponse:
         )
     csv = "\n".join(rows)
     return PlainTextResponse(content=csv)
+
+
+@router.get("/tenants/{tenant_id}/model-profiles/{profile_name}", response_model=ModelProfile)
+def get_model_profile_by_name(tenant_id: str, profile_name: str) -> ModelProfile:
+    """Return a specific model profile.
+
+    The profiles are stored globally in ``MODEL_PROFILES``; a real implementation
+    would scope them per tenant and fetch from a database.
+    """
+    _tenant_or_404(tenant_id)
+    profile = MODEL_PROFILES.get(profile_name)
+    if profile is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Model profile not found")
+    return profile
+
+
+@router.delete("/tenants/{tenant_id}/model-profiles/{profile_name}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_model_profile(tenant_id: str, profile_name: str) -> None:
+    """Delete a model profile.
+    Removes the profile from the in‑memory store and records an audit entry.
+    """
+    _tenant_or_404(tenant_id)
+    if profile_name not in MODEL_PROFILES:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Model profile not found")
+    del MODEL_PROFILES[profile_name]
+    AUDIT_LOGS.append({"action": "delete_profile", "tenant": tenant_id, "profile": profile_name, "timestamp": datetime.utcnow()})
+    # No content returned (204)
