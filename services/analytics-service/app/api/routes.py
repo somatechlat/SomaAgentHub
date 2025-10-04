@@ -17,6 +17,7 @@ from ..core.store import (
     DisasterRecoveryDrill,
     GovernanceReport,
     KamachiqRun,
+    BenchmarkResult,
     store,
 )
 from .schemas import (
@@ -39,9 +40,162 @@ from .schemas import (
     PersonaRegressionTransitionRequest,
     DisasterRecoveryDrillRequest,
     DisasterRecoveryDrillResponse,
+    BenchmarkRunRequest,
+    BenchmarkRunResponse,
+    BenchmarkCollectionResponse,
+    BenchmarkScoreboardEntry,
+    BenchmarkScoreboardResponse,
+    AgentOneSightDashboardResponse,
 )
 
 router = APIRouter(prefix="/v1", tags=["analytics"])
+
+
+def _calculate_benchmark_score(metrics: Dict[str, float]) -> float:
+    settings = get_settings()
+    latency = metrics.get("latency_p95_ms")
+    throughput = metrics.get("requests_per_second")
+    error_rate = metrics.get("error_rate")
+
+    latency_component = 1.0
+    if latency and latency > 0:
+        latency_component = min(settings.benchmark_latency_target_ms / latency, 2.0)
+
+    throughput_component = 0.0
+    if throughput and throughput > 0:
+        throughput_component = min(throughput / settings.benchmark_throughput_target_rps, 2.0)
+
+    error_component = 1.0
+    if error_rate is not None:
+        denominator = max(settings.benchmark_error_budget, 1e-6)
+        error_component = max(0.0, 1.0 - (error_rate / denominator))
+        error_component = min(error_component, 2.0)
+
+    score = (latency_component + throughput_component + error_component) / 3.0
+    return round(score, 4)
+
+
+@router.post("/benchmarks/run", response_model=BenchmarkRunResponse, status_code=status.HTTP_201_CREATED)
+def record_benchmark_run(payload: BenchmarkRunRequest) -> BenchmarkRunResponse:
+    metrics: Dict[str, float] = {}
+    for key, value in payload.metrics.items():
+        try:
+            metrics[key] = float(value)
+        except (TypeError, ValueError):
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Metric '{key}' must be numeric")
+
+    metadata = {key: str(value) for key, value in payload.metadata.items()}
+    benchmark = BenchmarkResult(
+        benchmark_id=str(uuid.uuid4()),
+        suite=payload.suite,
+        scenario=payload.scenario,
+        service=payload.service,
+        target=payload.target,
+        started_at=payload.started_at,
+        completed_at=payload.completed_at,
+        score=_calculate_benchmark_score(metrics),
+        metrics=metrics,
+        metadata=metadata,
+        tenant_id=payload.tenant_id,
+    )
+    store.record_benchmark(benchmark)
+    return BenchmarkRunResponse(
+        benchmark_id=benchmark.benchmark_id,
+        suite=benchmark.suite,
+        scenario=benchmark.scenario,
+        service=benchmark.service,
+        target=benchmark.target,
+        started_at=benchmark.started_at,
+        completed_at=benchmark.completed_at,
+        score=benchmark.score,
+        metrics=benchmark.metrics,
+        metadata=benchmark.metadata,
+        tenant_id=benchmark.tenant_id,
+    )
+
+
+@router.get("/benchmarks/latest", response_model=BenchmarkCollectionResponse)
+def latest_benchmarks(
+    suite: str | None = None,
+    scenario: str | None = None,
+    tenant_id: str | None = None,
+    limit: int = 20,
+) -> BenchmarkCollectionResponse:
+    results = store.list_benchmarks(suite=suite, scenario=scenario, tenant_id=tenant_id)
+    results.sort(key=lambda result: result.completed_at)
+    if limit and limit > 0:
+        results = results[-limit:]
+
+    payload = [
+        BenchmarkRunResponse(
+            benchmark_id=result.benchmark_id,
+            suite=result.suite,
+            scenario=result.scenario,
+            service=result.service,
+            target=result.target,
+            started_at=result.started_at,
+            completed_at=result.completed_at,
+            score=result.score,
+            metrics=result.metrics,
+            metadata=result.metadata,
+            tenant_id=result.tenant_id,
+        )
+        for result in results
+    ]
+    return BenchmarkCollectionResponse(results=payload)
+
+
+@router.get("/benchmarks/scoreboard", response_model=BenchmarkScoreboardResponse)
+def benchmark_scoreboard(
+    suite: str | None = None,
+    tenant_id: str | None = None,
+) -> BenchmarkScoreboardResponse:
+    entries = [
+        BenchmarkScoreboardEntry(**record)
+        for record in store.benchmark_scoreboard(suite=suite, tenant_id=tenant_id)
+    ]
+    return BenchmarkScoreboardResponse(scoreboard=entries)
+
+
+@router.get("/dashboards/agent-one-sight", response_model=AgentOneSightDashboardResponse)
+def agent_one_sight_dashboard(
+    tenant_id: str | None = None,
+    capsule_window_hours: int | None = None,
+    benchmark_suite: str | None = None,
+    notification_limit: int = 10,
+) -> AgentOneSightDashboardResponse:
+    capsule_data = capsule_dashboard(tenant_id=tenant_id, window_hours=capsule_window_hours)
+    anomaly_records = detect_anomalies().anomalies
+    if tenant_id:
+        anomaly_records = [record for record in anomaly_records if record.tenant_id == tenant_id]
+
+    benchmarks = [
+        BenchmarkScoreboardEntry(**entry)
+        for entry in store.benchmark_scoreboard(suite=benchmark_suite, tenant_id=tenant_id)
+    ]
+
+    ledger = billing_ledger(tenant_id=tenant_id)
+
+    notifications_raw = store.notifications[-notification_limit:] if notification_limit > 0 else store.notifications
+    notifications = [NotificationLog(**entry) for entry in notifications_raw[-notification_limit:]] if notification_limit > 0 else [NotificationLog(**entry) for entry in notifications_raw]
+
+    regressions = store.pending_regressions()
+    if tenant_id:
+        regressions = [reg for reg in regressions if reg.tenant_id == tenant_id]
+    regressions_due = [PersonaRegressionResponse(**reg.__dict__) for reg in regressions]
+
+    return AgentOneSightDashboardResponse(
+        generated_at=datetime.utcnow(),
+        tenant_id=tenant_id,
+        capsule_dashboard=capsule_data,
+        anomalies=anomaly_records,
+        benchmark_scoreboard=benchmarks,
+        billing_ledger=ledger,
+        kamachiq_summary=store.kamachiq_summary(),
+        disaster_summary=store.drill_summary(),
+        notifications=notifications,
+        regressions_due=regressions_due,
+    )
 
 
 @router.post("/capsule-runs", status_code=status.HTTP_202_ACCEPTED)

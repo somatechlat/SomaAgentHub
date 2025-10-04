@@ -1,2 +1,2 @@
 """SLM service package entry"""
-__all__ = ["producer"]
+__all__ = ["producer", "local_models"]

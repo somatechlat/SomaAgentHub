@@ -1,0 +1,12 @@
+apiVersion: v2
+name: soma-agent
+description: A Helm chart for deploying the Soma Agent microservices stack on Kubernetes with Kafka KRaft.
+type: application
+version: 0.1.0
+appVersion: "1.0"
+# Dependencies – Bitnami Kafka chart for KRaft mode
+dependencies:
+  - name: kafka
+    version: "~30.0.0"
+    repository: https://charts.bitnami.com/bitnami
+    condition: kafka.enabled

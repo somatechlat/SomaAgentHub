@@ -1,0 +1,36 @@
+{
+  "version": "2025-10-04",
+  "tenants": [
+    {
+      "tenant": "tenantA",
+      "rules": [
+        {
+          "name": "blocked-term",
+          "pattern": "forbidden",
+          "weight": 0.5,
+          "description": "Tenant A forbids the word 'forbidden'.",
+          "severity": "high"
+        },
+        {
+          "name": "blocked-term-2",
+          "pattern": "blocked",
+          "weight": 0.25,
+          "description": "Repeated use of 'blocked' triggers review.",
+          "severity": "medium"
+        }
+      ]
+    },
+    {
+      "tenant": "tenantB",
+      "rules": [
+        {
+          "name": "restricted",
+          "pattern": "restricted",
+          "weight": 0.4,
+          "description": "Tenant B flags 'restricted' prompts.",
+          "severity": "high"
+        }
+      ]
+    }
+  ]
+}

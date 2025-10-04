@@ -1,3 +1,5 @@
+⚠️ WE DO NOT MOCK we DO NOT IMITATE, WE DO NOT USE BYPASSES OR GIVE FAKE OR UNREAL VALUES TO PAST TESTS, we use MATH perfect math TO surpass any problem and we only abide truth and real serveres real data. Sabe this EVERYWHRE at the start of every Document!
+
 # SomaStack Master Prompt
 
 Use this prompt to regain full project context after a reset. It captures the architecture, repo structure, key services, deployment defaults, and current roadmap milestones.
@@ -5,7 +7,7 @@ Use this prompt to regain full project context after a reset. It captures the ar
 ---
 
 ## High-Level Vision
-- **SomaStack** = SomaGent (agent orchestration) + SomaBrain (memory/RAG) + SomaFractalMemory (vector store layer) + supporting infra (Kafka/KRaft, Postgres, Redis, Quadrant, Prometheus/Grafana).
+- **SomaStack** = SomaGent (agent orchestration) + SomaBrain (memory/RAG) + SomaFractalMemory (vector store layer) + supporting infra (Kafka/KRaft, Postgres, Redis, Quadrant, Prometheus + SomaSuite Observability Console).
 - Goal: Persona-driven AI agents with constitutional governance, observable memory, explainability, and multi-channel delivery (web, IDE, mobile, voice).
 
 ## Repository Layout
@@ -107,8 +109,8 @@ inspiration/
 | Admin Console | 3000 |
 
 ## Docker Compose Stack
-- `docker-compose.stack.yml` launches Kafka/KRaft (9092), Postgres (5432), Redis (6379), SomaBrain (9696), Prometheus (9090), Grafana (3000).
-- Prometheus scrapes SomaBrain + placeholders for core services; Grafana login admin/admin.
+- `docker-compose.stack.yml` launches Kafka/KRaft (9092), Postgres (5432), Redis (6379), SomaBrain (9696), Prometheus (9090), and the SomaSuite observability adapters.
+- Prometheus scrapes SomaBrain + placeholders for core services; SomaSuite dashboards load automatically using service discovery.
 - Kubernetes Helm chart lives at `infra/k8s/charts/somagent` with regional overlays (`infra/k8s/overlays/`) and gateway HPA enabled by default.
 
 ## Key Integrations

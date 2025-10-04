@@ -1,0 +1,114 @@
+# Default values for soma-agent Helm chart.
+# These values are used to render the templates under templates/.
+
+# Global settings
+global:
+  imagePullPolicy: IfNotPresent
+  namespace: soma-agent
+
+# Kafka (Bitnami) configuration – KRaft mode
+defaultKafka:
+  enabled: true
+  replicaCount: 3
+  ## Enable KRaft (no Zookeeper)
+  kraft:
+    enabled: true
+  resources:
+    limits:
+      cpu: "500m"
+      memory: "512Mi"
+    requests:
+      cpu: "250m"
+      memory: "256Mi"
+
+# Kafka KRaft configuration - disabled for local development
+kafka:
+  enabled: false
+  replicaCount: 3
+  kraft:
+    enabled: true
+  resources:
+    limits:
+      cpu: "500m"
+      memory: "512Mi"
+    requests:
+      cpu: "250m"
+      memory: "256Mi"
+  persistence:
+    enabled: false
+
+# Service definitions – each microservice can override these defaults
+services:
+  jobs:
+    enabled: true
+    replicaCount: 1
+    image: "ghcr.io/somatechlat/soma-jobs:80e1d6f"
+    imagePullPolicy: Never
+    port: 8000
+    resources:
+      limits:
+        cpu: "500m"
+        memory: "512Mi"
+      requests:
+        cpu: "250m"
+        memory: "256Mi"
+  slm-service:
+    enabled: true
+    replicaCount: 1
+    image: "ghcr.io/somatechlat/soma-slm-service:80e1d6f"
+    imagePullPolicy: Never
+    port: 8001
+  policy-engine:
+    enabled: true
+    replicaCount: 1
+    image: "ghcr.io/somatechlat/soma-policy-engine:80e1d6f"
+    imagePullPolicy: Never
+    port: 8100
+  memory-gateway:
+    enabled: true
+    replicaCount: 1
+    image: "ghcr.io/somatechlat/soma-memory-gateway:80e1d6f"
+    imagePullPolicy: Never
+    port: 9696
+  orchestrator:
+    enabled: true
+    replicaCount: 1
+    image: "ghcr.io/somatechlat/soma-orchestrator:80e1d6f"
+    imagePullPolicy: Never
+    port: 8002
+  settings-service:
+    enabled: true
+    replicaCount: 1
+    image: "ghcr.io/somatechlat/soma-settings-service:80e1d6f"
+    imagePullPolicy: Never
+    port: 8004
+  task-capsule-repo:
+    enabled: true
+    replicaCount: 1
+    image: "ghcr.io/somatechlat/soma-task-capsule-repo:80e1d6f"
+    imagePullPolicy: Never
+    port: 8005
+# Ingress configuration
+ingress:
+  enabled: true
+  className: nginx
+  annotations:
+    kubernetes.io/ingress.class: nginx
+    nginx.ingress.kubernetes.io/rewrite-target: /$2
+  hosts:
+    - host: soma-agent.local
+      paths:
+        - path: /jobs(/|$)(.*)
+          pathType: Prefix
+        - path: /slm(/|$)(.*)
+          pathType: Prefix
+        - path: /policy(/|$)(.*)
+          pathType: Prefix
+        - path: /memory(/|$)(.*)
+          pathType: Prefix
+        - path: /orchestrator(/|$)(.*)
+          pathType: Prefix
+        - path: /settings(/|$)(.*)
+          pathType: Prefix
+        - path: /capsules(/|$)(.*)
+          pathType: Prefix

@@ -13,6 +13,7 @@ This script is intentionally self-contained and uses PyYAML and requests when ne
 import argparse
 import json
 import sys
+import asyncio
 from pathlib import Path
 
 import yaml
@@ -55,13 +56,13 @@ async def upsert_postgres(seed: dict):
     """
     import os
     import asyncpg
-    # Use POSTGRES_URL if provided, otherwise fall back to defaults.
+    # Use the POSTGRES_URL env var if provided; otherwise fall back to localhost defaults.
     dsn = os.getenv("POSTGRES_URL")
     if dsn:
         conn = await asyncpg.connect(dsn)
     else:
         conn = await asyncpg.connect(
-            host="localhost",
+            host=os.getenv("POSTGRES_HOST", "localhost"),
             database="model_profiles",
             user="postgres",
             password="password",

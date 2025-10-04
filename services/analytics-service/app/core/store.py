@@ -5,6 +5,7 @@ from __future__ import annotations
 from collections import defaultdict, deque
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
+from statistics import fmean
 from typing import Any, Deque, Dict, List, Optional
 
 from ..core.config import get_settings
@@ -79,6 +80,21 @@ class DisasterRecoveryDrill:
     notes: str | None = None
 
 
+@dataclass
+class BenchmarkResult:
+    benchmark_id: str
+    suite: str
+    scenario: str
+    service: str
+    target: str
+    started_at: datetime
+    completed_at: datetime
+    score: float
+    metrics: Dict[str, float] = field(default_factory=dict)
+    metadata: Dict[str, str] = field(default_factory=dict)
+    tenant_id: Optional[str] = None
+
+
 class AnalyticsStore:
     """Simple in-memory analytics store."""
 
@@ -92,6 +108,7 @@ class AnalyticsStore:
         self.resolved_deliverables: Deque[Dict[str, str]] = deque(maxlen=200)
         self.billing_events: Deque[BillingEvent] = deque(maxlen=5000)
         self.drills: Deque[DisasterRecoveryDrill] = deque(maxlen=200)
+        self.benchmarks: Deque[BenchmarkResult] = deque(maxlen=500)
 
     def record_run(self, run: CapsuleRun) -> None:
         self.runs.append(run)
@@ -266,6 +283,69 @@ class AnalyticsStore:
             "last_drill": last_drill.__dict__,
             "success_rate": successes / len(drills),
         }
+
+    def record_benchmark(self, result: BenchmarkResult) -> None:
+        self.benchmarks.append(result)
+
+    def list_benchmarks(
+        self,
+        suite: Optional[str] = None,
+        scenario: Optional[str] = None,
+        tenant_id: Optional[str] = None,
+    ) -> List[BenchmarkResult]:
+        results = list(self.benchmarks)
+        if suite:
+            results = [item for item in results if item.suite == suite]
+        if scenario:
+            results = [item for item in results if item.scenario == scenario]
+        if tenant_id:
+            results = [item for item in results if item.tenant_id == tenant_id]
+        return results
+
+    def latest_benchmarks(self, limit: int = 20) -> List[BenchmarkResult]:
+        return list(self.benchmarks)[-limit:]
+
+    def benchmark_scoreboard(
+        self,
+        suite: Optional[str] = None,
+        tenant_id: Optional[str] = None,
+    ) -> List[Dict[str, Any]]:
+        results = self.list_benchmarks(suite=suite, tenant_id=tenant_id)
+        if not results:
+            return []
+
+        by_scenario: Dict[str, List[BenchmarkResult]] = defaultdict(list)
+        for result in results:
+            by_scenario[result.scenario].append(result)
+
+        scoreboard: List[Dict[str, Any]] = []
+        for scenario, items in by_scenario.items():
+            best = max(items, key=lambda item: item.score)
+            avg_latency = self._avg_metric(items, "latency_p95_ms")
+            avg_throughput = self._avg_metric(items, "requests_per_second")
+            avg_error_rate = self._avg_metric(items, "error_rate")
+            scoreboard.append(
+                {
+                    "scenario": scenario,
+                    "attempts": len(items),
+                    "best_service": best.service,
+                    "best_score": best.score,
+                    "best_benchmark_id": best.benchmark_id,
+                    "average_latency_p95_ms": avg_latency,
+                    "average_requests_per_second": avg_throughput,
+                    "average_error_rate": avg_error_rate,
+                }
+            )
+
+        scoreboard.sort(key=lambda entry: entry["best_score"], reverse=True)
+        return scoreboard
+
+    @staticmethod
+    def _avg_metric(items: List[BenchmarkResult], metric: str) -> float:
+        values = [item.metrics.get(metric) for item in items if item.metrics.get(metric) is not None]
+        if not values:
+            return 0.0
+        return round(fmean(values), 4)
 
     @staticmethod
     def _persona_key(persona_id: str, tenant_id: str) -> str:

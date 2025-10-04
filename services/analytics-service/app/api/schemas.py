@@ -158,3 +158,61 @@ class DisasterRecoveryDrillResponse(BaseModel):
     rpo_seconds: float
     succeeded: bool
     notes: Optional[str] = None
+
+
+class BenchmarkRunRequest(BaseModel):
+    suite: str
+    scenario: str
+    service: str
+    target: str
+    started_at: datetime
+    completed_at: datetime
+    metrics: Dict[str, Any] = Field(default_factory=dict)
+    metadata: Dict[str, Any] = Field(default_factory=dict)
+    tenant_id: Optional[str] = None
+
+
+class BenchmarkRunResponse(BaseModel):
+    benchmark_id: str
+    suite: str
+    scenario: str
+    service: str
+    target: str
+    started_at: datetime
+    completed_at: datetime
+    score: float
+    metrics: Dict[str, float]
+    metadata: Dict[str, str]
+    tenant_id: Optional[str] = None
+
+
+class BenchmarkCollectionResponse(BaseModel):
+    results: List[BenchmarkRunResponse]
+
+
+class BenchmarkScoreboardEntry(BaseModel):
+    scenario: str
+    attempts: int
+    best_service: str
+    best_score: float
+    best_benchmark_id: str
+    average_latency_p95_ms: float
+    average_requests_per_second: float
+    average_error_rate: float
+
+
+class BenchmarkScoreboardResponse(BaseModel):
+    scoreboard: List[BenchmarkScoreboardEntry]
+
+
+class AgentOneSightDashboardResponse(BaseModel):
+    generated_at: datetime
+    tenant_id: Optional[str]
+    capsule_dashboard: CapsuleDashboardResponse
+    anomalies: List[AnomalyRecord]
+    benchmark_scoreboard: List[BenchmarkScoreboardEntry]
+    billing_ledger: BillingLedgerResponse
+    kamachiq_summary: Dict[str, Any]
+    disaster_summary: Dict[str, Any]
+    notifications: List[NotificationLog]
+    regressions_due: List[PersonaRegressionResponse]

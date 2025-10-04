@@ -77,7 +77,7 @@ class CapsuleCatalogEntry(BaseModel):
     version: str
     summary: str | None = None
     type: str = "capsule"
-    source: Literal["filesystem", "marketplace"] = "marketplace"
+    source: Literal["filesystem", "marketplace"] = "filesystem"
 
 
 class CapsuleDetail(BaseModel):

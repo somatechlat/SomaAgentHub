@@ -2,7 +2,9 @@
 
 from functools import lru_cache
 import os
+from pathlib import Path
 
+from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -15,7 +17,17 @@ class Settings(BaseSettings):
     redis_url: str = os.getenv("REDIS_URL", "redis://redis:6379/0")
     cache_ttl_seconds: int = 30
     http_timeout_seconds: float = 30.0
+    data_dir: Path = Field(default_factory=lambda: Path(__file__).resolve().parent.parent / "data")
+    bundle_path: Path | None = None
+    public_key_path: Path | None = None
+    tenants: list[str] = Field(default_factory=lambda: ["somagent", "tenantA", "tenantB"])
     model_config = SettingsConfigDict(env_prefix="SOMAGENT_CONSTITUTION_", extra="allow")
+
+    def model_post_init(self, __context) -> None:  # pragma: no cover - simple config wiring
+        if self.bundle_path is None:
+            self.bundle_path = self.data_dir / "constitution_bundle.json"
+        if self.public_key_path is None:
+            self.public_key_path = self.data_dir / "constitution_public_key.pem"
 
 
 @lru_cache

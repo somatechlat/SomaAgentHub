@@ -1,6 +1,17 @@
+⚠️ WE DO NOT MOCK we DO NOT IMITATE, WE DO NOT USE BYPASSES OR GIVE FAKE OR UNREAL VALUES TO PAST TESTS, we use MATH perfect math TO surpass any problem and we only abide truth and real serveres real data. Sabe this EVERYWHRE at the start of every Document!
+
 # Detailed Sprint Plan
 
+**⚠️ DEPRECATED: This file is superseded by [CANONICAL_ROADMAP.md](CANONICAL_ROADMAP.md)**
+
+**Current Status:** Critical fixes implemented, rapid multi-sprint development activated under the [Parallel Sprint Execution Playbook](development/Parallel_Sprint_Execution.md).
+
 This file contains a sprint-by-sprint breakdown derived from the canonical roadmap. Each sprint is ~2 weeks. Owners and JIRA/GitHub issues can be linked per task.
+
+### Parallel Execution Overview
+- Sprints run in overlapping waves; squads follow the cadence defined in the Parallel Sprint Execution Playbook.
+- Design artifacts must land one sprint ahead and live in `docs/design/` per wave.
+- Integration days (weekly) ensure staging environments run the latest real services with no mocks, matching playbook exit criteria.
 
 ### Sprint 0 (Foundations) — Weeks 0–1
 - Repo scaffold, developer docs, docker-compose stack (Kafka/Redis/Postgres/SomaBrain), SomaBrain client library, SLM fallback HTTP endpoints.

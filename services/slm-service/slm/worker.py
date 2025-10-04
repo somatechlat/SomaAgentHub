@@ -1,29 +1,34 @@
-"""Async worker scaffold for consuming slm.requests and producing slm.responses"""
+"""Async worker for consuming ``slm.requests`` and emitting ``slm.responses``."""
 import json
-from typing import Any, Dict
-from aiokafka import AIOKafkaConsumer, AIOKafkaProducer
 import os
+from typing import Any, Dict
+
+from aiokafka import AIOKafkaConsumer, AIOKafkaProducer
+
+from .local_models import get_text_generator
 
 
 def process_request_message(msg: Dict[str, Any]) -> Dict[str, Any]:
-    """Process an slm.request message and return a response payload.
+    """Process a request using the deterministic Markov generator."""
 
-    This function is intentionally simple for sprint-1: it echoes the prompt
-    and attaches a synthetic result and metrics.
-    """
     prompt = msg.get("prompt", "")
     session_id = msg.get("session_id")
     role = msg.get("role")
+
+    generator = get_text_generator()
+    result = generator.generate(prompt, max_tokens=64, temperature=0.8)
 
     response = {
         "version": "v1",
         "session_id": session_id,
         "role": role,
-        "result": f"[echo] {prompt}",
+        "result": result.text.strip(),
         "metrics": {
-            "tokens": 10,
-            "latency_ms": 50
-        }
+            "model": "somasuite-markov-v1",
+            "prompt_tokens": result.prompt_tokens,
+            "completion_tokens": result.completion_tokens,
+            "total_tokens": result.total_tokens,
+        },
     }
     return response
 

@@ -1,3 +1,5 @@
+⚠️ WE DO NOT MOCK we DO NOT IMITATE, WE DO NOT USE BYPASSES OR GIVE FAKE OR UNREAL VALUES TO PAST TESTS, we use MATH perfect math TO surpass any problem and we only abide truth and real serveres real data. Sabe this EVERYWHRE at the start of every Document!
+
 # KAMACHIQ Mode Blueprint
 
 KAMACHIQ Mode (named after the Quechua word for coordinator/guide) orchestrates fully autonomous project delivery: operators describe desired outcomes and SomaStack provisions workspaces, personas, toolchains, and governance hooks automatically. This blueprint summarises required components and interfaces for Sprint 10 completion.

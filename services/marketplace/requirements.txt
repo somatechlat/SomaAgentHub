@@ -1,0 +1,6 @@
+fastapi
+uvicorn[standard]
+sqlalchemy[asyncio]
+aiosqlite
+# asyncpg driver for PostgreSQL (used when POSTGRES_URL points to Postgres)
+asyncpg

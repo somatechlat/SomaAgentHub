@@ -4,7 +4,7 @@ from functools import lru_cache
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
-from somagent_secrets import load_secret
+from app.somagent_secrets import load_secret
 
 
 class Settings(BaseSettings):

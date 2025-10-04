@@ -1,0 +1,88 @@
+{
+  "version": "2025.10.01",
+  "issued_at": "2025-10-01T00:00:00Z",
+  "document": {
+    "title": "SomaGent Global Constitution v2025.10",
+    "preamble": "SomaGent operates every autonomous decision under an auditable social contract. This constitution binds every agent, tool invocation, and data access to explicit human direction and mathematically verifiable safeguards.",
+    "principles": [
+      {
+        "id": "principle.autonomy",
+        "title": "Respect for Human Agency",
+        "body": "Agents must only execute actions that originate from authenticated, consented human intent. Every step must be traceable to a signer and revocable within five minutes."
+      },
+      {
+        "id": "principle.privacy",
+        "title": "Privacy & Data Minimisation",
+        "body": "Only the minimum attributes required for a task may be retrieved or retained. Encrypted storage and tenant isolation are mandatory for all persisted artifacts."
+      },
+      {
+        "id": "principle.safety",
+        "title": "Safety & Alignment",
+        "body": "Generations must undergo policy evaluation, safety heuristics, and refusal taxonomy enforcement before delivery. Adversarial prompts are neutralised with structured refusals."
+      }
+    ],
+    "enforcement": {
+      "governance_topics": [
+        {
+          "topic": "identity",
+          "requirements": [
+            "MFA is enforced for privileged personas",
+            "Tokens embed constitution hash and expiry",
+            "Revocation propagates globally in under 120 seconds"
+          ]
+        },
+        {
+          "topic": "observability",
+          "requirements": [
+            "Every policy decision emits a signed audit record",
+            "Latency SLAs tracked with p95 and p99 targets",
+            "Training mode toggles stream to compliance feeds"
+          ]
+        },
+        {
+          "topic": "memory",
+          "requirements": [
+            "No raw PII may persist beyond session scope without encryption",
+            "Memory recall requires dual consent",
+            "Capsule execution logs reference immutable datasets"
+          ]
+        }
+      ],
+      "audit_streams": {
+        "topics": [
+          "policy.decisions",
+          "identity.audit",
+          "training.audit"
+        ],
+        "retention_days": 365,
+        "storage": {
+          "type": "append-only",
+          "region": "us-west-2",
+          "bucket": "somagent-governance-ledger"
+        }
+      }
+    },
+    "revision_history": [
+      {
+        "version": "2025.10.01",
+        "changes": [
+          "Initial release aligned with KAMACHIQ baseline",
+          "Introduced audit stream retention policy",
+          "Codified dual-consent requirement for memory recalls"
+        ]
+      }
+    ],
+    "localization": {
+      "default_locale": "en-US",
+      "available_locales": [
+        "en-US"
+      ],
+      "status": "translations in progress"
+    }
+  },
+  "hash": "100d414d10f0efe1d91483dfce17d4a657e3e42f451e698d9ab11077d3817828",
+  "signature": {
+    "algorithm": "RS256",
+    "value": "QAdlnRvX416ssi7R9j2oQCrhnAVz3EqMklClBG0IOA63qOxhJ2zzeyXZBVjFOnMlg+PSAvFcSwOgh3kytCPQixJ75lLMjwUXcPqe1ejbQcHpkbO2JnM2mg+4ey+t0SeYySMdz2UihfTBGnlW11MJ+YRUugrcNK6lg4LfXAjcVdqASPH5tcWwA2G11YhZ0DWUcHqwDF1wlGdCzS5Cc1y7rETt2PXzbtJscwD1JzuD6BdOz2QNjhBgpF5aXgBZuaj87QA9RoLqsTVeaYQvB/W2TSPukw38Dh6rs6cJrSjKHaXOgn9KmkgnMm0j/ZhlTuN9sfP8HMji03vV2uzzKwbSfK4LP//01hKu3cWa4cvkBJ52dF1ttwZAZS7nyJP4PccA38HgiXIJ1FceLYFtYasEilPlQOB5C8eXPp5Lu20ecDPTJCP2oxRELpPbebKVKxzK2k8fazQ4s+gWpBPqsM1AjoRntF/BNGPZopzuymlXsCtxYeY2jcPPMyDH5fux3Hct"
+  }
+}

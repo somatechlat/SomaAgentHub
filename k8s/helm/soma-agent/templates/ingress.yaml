@@ -1,0 +1,64 @@
+{{- if .Values.ingress.enabled }}
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ .Chart.Name }}-ingress
+  namespace: {{ .Values.global.namespace | default .Release.Namespace }}
+  annotations:
+{{- toYaml .Values.ingress.annotations | nindent 4 }}
+spec:
+  ingressClassName: {{ .Values.ingress.className }}
+  rules:
+    - host: {{ (index .Values.ingress.hosts 0).host }}
+      http:
+        paths:
+          - path: /jobs(/|$)(.*)
+            pathType: Prefix
+            backend:
+              service:
+                name: jobs
+                port:
+                  number: {{ (index .Values.services "jobs").port }}
+          - path: /slm(/|$)(.*)
+            pathType: Prefix
+            backend:
+              service:
+                name: slm-service
+                port:
+                  number: {{ (index .Values.services "slm-service").port }}
+          - path: /policy(/|$)(.*)
+            pathType: Prefix
+            backend:
+              service:
+                name: policy-engine
+                port:
+                  number: {{ (index .Values.services "policy-engine").port }}
+          - path: /memory(/|$)(.*)
+            pathType: Prefix
+            backend:
+              service:
+                name: memory-gateway
+                port:
+                  number: {{ (index .Values.services "memory-gateway").port }}
+          - path: /orchestrator(/|$)(.*)
+            pathType: Prefix
+            backend:
+              service:
+                name: orchestrator
+                port:
+                  number: {{ (index .Values.services "orchestrator").port }}
+          - path: /settings(/|$)(.*)
+            pathType: Prefix
+            backend:
+              service:
+                name: settings-service
+                port:
+                  number: {{ (index .Values.services "settings-service").port }}
+          - path: /capsules(/|$)(.*)
+            pathType: Prefix
+            backend:
+              service:
+                name: task-capsule-repo
+                port:
+                  number: {{ (index .Values.services "task-capsule-repo").port }}
+{{- end }}

@@ -6,8 +6,8 @@ from fastapi.testclient import TestClient
 if "REDIS_URL" in os.environ:
     del os.environ["REDIS_URL"]
 
-from ..policy_app import app, EvalRequest, evaluate_sync
-from ..constitution_cache import get_cached_hash, invalidate_hash
+from app.policy_app import app, EvalRequest, evaluate_sync
+from app.constitution_cache import get_cached_hash, invalidate_hash
 
 client = TestClient(app)
 
@@ -24,7 +24,9 @@ def test_evaluate_allowed():
     assert response.status_code == 200
     data = response.json()
     assert data["allowed"] is True
+    assert data["severity"] == "low"
     assert "constitution_hash" in data["reasons"]
+    assert data["reasons"]["policy"] == []
 
 def test_evaluate_forbidden():
     payload = {
@@ -39,7 +41,10 @@ def test_evaluate_forbidden():
     assert response.status_code == 200
     data = response.json()
     assert data["allowed"] is False
-    assert "policy" in data["reasons"]
+    assert data["severity"] in {"medium", "high", "critical"}
+    assert data["reasons"]["policy"]
+    first_violation = data["reasons"]["policy"][0]
+    assert first_violation["pattern"] == "forbidden"
 
 def test_evaluate_sync_wrapper():
     req = EvalRequest(
@@ -54,6 +59,7 @@ def test_evaluate_sync_wrapper():
     # evaluate_sync runs the async endpoint via asyncio.run, returning the Pydantic model
     assert result.allowed is True
     assert isinstance(result.reasons, dict)
+    assert result.reasons["policy"] == []
 
 def test_evaluate_forbidden_term():
     payload = {
@@ -68,15 +74,17 @@ def test_evaluate_forbidden_term():
     assert response.status_code == 200
     data = response.json()
     assert data["allowed"] is False
-    assert "forbidden" in data["reasons"]["policy"]
+    patterns = [v["pattern"] for v in data["reasons"]["policy"]]
+    assert "forbidden" in patterns
 
 def test_list_policies():
     response = client.get("/v1/policies/tenantA")
     assert response.status_code == 200
     policies = response.json()
     assert isinstance(policies, list)
-    assert "forbidden" in policies
-    assert "blocked" in policies
+    patterns = [policy["pattern"] for policy in policies]
+    assert "forbidden" in patterns
+    assert "blocked" in patterns
 
 # Simple cache test – call get_cached_hash twice and ensure same result (placeholder)
 async def _run_cache_test():

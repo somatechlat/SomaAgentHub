@@ -1,3 +1,5 @@
+⚠️ WE DO NOT MOCK we DO NOT IMITATE, WE DO NOT USE BYPASSES OR GIVE FAKE OR UNREAL VALUES TO PAST TESTS, we use MATH perfect math TO surpass any problem and we only abide truth and real serveres real data. Sabe this EVERYWHRE at the start of every Document!
+
 # SomaGent Development Roadmap
 
 This roadmap merges everything discussed so far into a detailed execution plan. Each phase includes deliverables, success metrics, dependencies, and ideas for future expansion leveraging SomaBrain’s strengths.
@@ -65,7 +67,7 @@ Each significant feature ships with a short design note in `docs/design/` review
 - Capsule schema finalized; CLI + UI for authoring (convert training session → capsule).
 - Marketplace backend: package upload, signature verification, dependence check, moderation flows. The `task-capsule-repo` service now stores submissions in Postgres with attestation hashes (`POST /v1/submissions`), exposes reviewer workflows (`POST /v1/submissions/{id}/review`), and returns compliance summaries so governance can approve packages before they appear in search results. MAO consumes those capsules directly via `POST /v1/templates/import`, converting workflow definitions into executable templates and optional schedules in a single call. Tenant installations are tracked via `/v1/installations` (with `/v1/installations/{id}/rollback` for reversions). Analytics now ingests per-capsule billing signals (`POST /v1/billing/events`) and surfaces aggregated ledgers/exports (`GET /v1/billing/ledgers`, `/v1/exports/billing-ledger`) for finance pipelines. Disaster recovery drills run through the `dr_failover_drill` capsule + `scripts/ops/run_failover_drill.sh`, recording outcomes via `/v1/drills/disaster` for RTO/RPO dashboards.
 - Security enhancements: SPIFFE/SPIRE mTLS across services, Vault/KMS secret rotation, workload attestation (Nitro/SEV where available).
-- Token anomaly alerts, Prometheus/Grafana dashboards for budgets.
+- Token anomaly alerts, Prometheus + SomaSuite dashboards for budgets.
 - Success metric: admin publishes capsule, another tenant installs; attestation evidence stored; alerts for token overruns.
 
 ## Phase 6 – Validation, Runbooks & Launch (Weeks 11–12)

@@ -50,3 +50,23 @@ class TokenIssueRequest(BaseModel):
 class TokenResponse(BaseModel):
     token: str
     expires_in: int
+    token_type: str = "bearer"
+
+
+class TokenVerifyRequest(BaseModel):
+    token: str
+    required_capabilities: List[str] = Field(default_factory=list)
+
+
+class TokenVerifyResponse(BaseModel):
+    valid: bool
+    user_id: str
+    tenant_id: str
+    capabilities: List[str]
+    issued_at: datetime
+    expires_at: datetime
+    jti: str
+
+
+class TokenRevokeRequest(BaseModel):
+    token: str

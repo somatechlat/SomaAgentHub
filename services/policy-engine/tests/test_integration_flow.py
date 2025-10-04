@@ -6,11 +6,16 @@ Kafka producer/consumer and Redis client used by the Policy Engine.
 Replace the mocks with real testcontainers when you need a true end‑to‑end run.
 """
 
-import pytest
 import asyncio
 import os
+
+import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
+
+pytest.importorskip("testcontainers.redis")
+pytest.importorskip("testcontainers.kafka")
+
 from testcontainers.redis import RedisContainer
 from testcontainers.kafka import KafkaContainer
 

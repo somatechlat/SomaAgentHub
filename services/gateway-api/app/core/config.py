@@ -4,7 +4,22 @@ from functools import lru_cache
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
-from somagent_secrets import load_secret
+import os
+
+def load_secret(env_var: str, file_env: str = None, default: str = None) -> str:
+    """Load a secret from environment variable or file."""
+    value = os.getenv(env_var)
+    if value:
+        return value
+    if file_env:
+        file_path = os.getenv(file_env)
+        if file_path and os.path.exists(file_path):
+            try:
+                with open(file_path, 'r') as f:
+                    return f.read().strip()
+            except Exception:
+                pass
+    return default or ""
 
 
 class Settings(BaseSettings):

@@ -8,7 +8,9 @@ def test_process_request_message():
     msg = {"session_id": "s1", "role": "dialogue_reasoning", "prompt": "hello"}
     resp = process_request_message(msg)
     assert resp["session_id"] == "s1"
-    assert "[echo]" in resp["result"]
+    assert resp["result"]
+    assert resp["metrics"]["model"] == "somasuite-markov-v1"
+    assert resp["metrics"]["total_tokens"] >= resp["metrics"]["prompt_tokens"]
 
 
 async def async_get_messages(messages):

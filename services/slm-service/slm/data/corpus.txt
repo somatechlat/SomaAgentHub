@@ -1,0 +1,10 @@
+SomaGent is a multi-tenant agent platform that orchestrates real work for real teams.
+These agents coordinate policy enforcement, memory retrieval, and capsule execution without mocks.
+The SomaSuite observability console highlights token budgets, latency anomalies, and policy decisions.
+Developers collaborate with personas, capsules, and workflows that automate delivery from planning to release.
+When a session begins, the orchestrator streams directives, tool calls, and memory updates across Kafka topics.
+SomaBrain preserves long-term knowledge, while the SomaFractalMemory layer accelerates semantic recall.
+KAMACHIQ Mode accelerates programs by combining planners, reviewers, and tool specialists under a shared constitution.
+The notification service ensures important events reach operators in real-time with zero tolerance for fake data.
+Metrics, traces, and alerts are collected through Prometheus and rendered in the SomaSuite dashboards.
+Every deployment honours the absolute rule: no mocking, no bypass, only truthful server side execution.

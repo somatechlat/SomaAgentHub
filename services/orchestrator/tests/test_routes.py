@@ -1,78 +1,109 @@
-import os
-import pytest
-import json
 from fastapi import status
-from fastapi.testclient import TestClient
-from httpx import AsyncClient
 
-# Import the FastAPI app from the orchestrator package
-from services.orchestrator.app.main import app
+from services.orchestrator.app.core.config import settings
 
-client = TestClient(app)
 
-# Helper to build payload with required fields
-def build_payload():
-    return {
-        "session_id": "sess1",
-        "tenant": os.getenv("TEST_TENANT", "t1"),
-        "user": os.getenv("TEST_USER", "u1"),
-        "prompt": "test prompt",
-        "role": "user",
+def test_session_start_initiates_temporal_workflow(api_client):
+    client, fake_temporal = api_client
+    payload = {
+        "tenant": "tenant-123",
+        "user": "user-456",
+        "prompt": "hello orchestrator",
+        "model": "somagent-demo",
+        "metadata": {"session_id": "sess-001"},
     }
 
-def test_session_start_success():
-    """Integration test – hits real Policy Engine and Identity Service.
-    Assumes the services are reachable (via docker‑compose) at the URLs
-    configured in the orchestrator (env vars POLICY_ENGINE_URL and
-    IDENTITY_SERVICE_URL)."""
-    payload = build_payload()
     response = client.post("/v1/sessions/start", json=payload)
-    assert response.status_code == status.HTTP_200_OK
+
+    assert response.status_code == status.HTTP_202_ACCEPTED
     data = response.json()
-    # Verify the orchestrator returned the session id we sent
-    assert data["session_id"] == payload["session_id"]
-    # Policy result must be a dict with an "allowed" key
-    assert isinstance(data.get("policy"), dict)
-    assert "allowed" in data["policy"]
-    # Token response must contain a JWT
-    assert isinstance(data.get("token"), dict)
-    assert "token" in data["token"]
+    expected_workflow_id = "session-sess-001"
 
-@ pytest.mark.asyncio
-async def test_turn_stream():
-    async with AsyncClient(app=app, base_url="http://test") as ac:
-        async with ac.stream("GET", f"/v1/turn/{build_payload()['session_id']}") as resp:
-            assert resp.status_code == status.HTTP_200_OK
-            events = []
-            async for line in resp.aiter_lines():
-                if line.startswith("data:"):
-                    events.append(json.loads(line[5:].strip()))
-                if len(events) == 3:
-                    break
-            assert len(events) == 3
-            assert events[0]["event"] == "turn_started"
-            assert events[2]["event"] == "turn_completed"
+    assert data["workflow_id"] == expected_workflow_id
+    assert data["task_queue"] == settings.temporal_task_queue
+    assert data["session_id"] == "sess-001"
+    assert expected_workflow_id in fake_temporal.workflows
 
-def test_marketplace_publish_and_list():
-    payload = {"name": "test_capsule", "content": "dummy"}
-    resp = client.post("/v1/marketplace/publish", json=payload)
-    assert resp.status_code == status.HTTP_200_OK
-    capsule_id = resp.json()["capsule_id"]
-    list_resp = client.get("/v1/marketplace/capsules")
-    assert list_resp.status_code == status.HTTP_200_OK
-    caps = list_resp.json()
-    assert any(c["capsule_id"] == capsule_id for c in caps)
 
-def test_job_start_and_status():
-    payload = {"task": "example"}
-    start_resp = client.post("/v1/jobs/start", json=payload)
-    assert start_resp.status_code == status.HTTP_200_OK
-    job_id = start_resp.json()["job_id"]
-    status_resp = client.get(f"/v1/jobs/{job_id}")
+def test_session_status_returns_workflow_result(api_client):
+    client, _ = api_client
+    payload = {
+        "tenant": "tenant-abc",
+        "user": "user-def",
+        "prompt": "status please",
+        "metadata": {"session_id": "sess-xyz"},
+    }
+
+    start_resp = client.post("/v1/sessions/start", json=payload)
+    workflow_id = start_resp.json()["workflow_id"]
+
+    status_resp = client.get(f"/v1/sessions/{workflow_id}")
     assert status_resp.status_code == status.HTTP_200_OK
-    assert status_resp.json()["status"] == "running"
-    # Wait for background job to finish (2 s simulated)
-    import time
-    time.sleep(2.5)
-    final_resp = client.get(f"/v1/jobs/{job_id}")
-    assert final_resp.json()["status"] == "completed"
+    body = status_resp.json()
+
+    assert body["workflow_id"] == workflow_id
+    assert body["status"] == "completed"
+    assert body["result"] is not None
+    assert body["result"]["session_id"] == "sess-xyz"
+
+
+def test_session_status_not_found(api_client):
+    client, _ = api_client
+    resp = client.get("/v1/sessions/unknown-workflow")
+    assert resp.status_code == status.HTTP_404_NOT_FOUND
+
+
+def test_mao_start_initiates_workflow(api_client):
+    client, fake_temporal = api_client
+    payload = {
+        "tenant": "tenant-tenant",
+        "initiator": "ops",
+        "directives": [
+            {
+                "agent_id": "research",
+                "goal": "Collect intel",
+                "prompt": "Aggregate insight",
+                "metadata": {"model": "somagent-pro"},
+            },
+            {
+                "agent_id": "planner",
+                "goal": "Draft plan",
+                "prompt": "Draft go-to-market",
+            },
+        ],
+        "notification_channel": "ops",
+    }
+
+    response = client.post("/v1/mao/start", json=payload)
+
+    assert response.status_code == status.HTTP_202_ACCEPTED
+    body = response.json()
+    workflow_id = body["workflow_id"]
+    assert workflow_id in fake_temporal.workflows
+    assert body["task_queue"] == settings.temporal_task_queue
+
+
+def test_mao_status_returns_result(api_client):
+    client, _ = api_client
+    payload = {
+        "tenant": "tenant-zed",
+        "initiator": "lead",
+        "directives": [
+            {
+                "agent_id": "strategist",
+                "goal": "Plan",
+                "prompt": "Plan",
+            }
+        ],
+    }
+
+    start_resp = client.post("/v1/mao/start", json=payload)
+    workflow_id = start_resp.json()["workflow_id"]
+
+    status_resp = client.get(f"/v1/mao/{workflow_id}")
+    assert status_resp.status_code == status.HTTP_200_OK
+    body = status_resp.json()
+    assert body["workflow_id"] == workflow_id
+    assert body["result"] is not None
+    assert body["result"]["status"] == "completed"
+    assert body["result"]["agent_results"]
