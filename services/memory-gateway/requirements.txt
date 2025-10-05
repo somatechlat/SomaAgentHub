@@ -1,3 +1,4 @@
 fastapi
 uvicorn[standard]
 prometheus-client
+qdrant-client>=1.7.0

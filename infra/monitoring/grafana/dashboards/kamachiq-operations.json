@@ -1,0 +1,247 @@
+{
+  "dashboard": {
+    "title": "SomaGent KAMACHIQ Operations",
+    "tags": ["somagent", "kamachiq", "workflows", "temporal"],
+    "timezone": "browser",
+    "schemaVersion": 27,
+    "version": 1,
+    "refresh": "30s",
+    "panels": [
+      {
+        "id": 1,
+        "title": "Active Workflows",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "temporal_workflows_active{namespace=\"somagent\"}",
+            "refId": "A"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {
+                  "value": null,
+                  "color": "green"
+                },
+                {
+                  "value": 50,
+                  "color": "yellow"
+                },
+                {
+                  "value": 100,
+                  "color": "red"
+                }
+              ]
+            }
+          }
+        },
+        "gridPos": {
+          "h": 4,
+          "w": 6,
+          "x": 0,
+          "y": 0
+        }
+      },
+      {
+        "id": 2,
+        "title": "Workflow Completion Rate",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "rate(temporal_workflows_completed_total{namespace=\"somagent\"}[5m])",
+            "refId": "A",
+            "legendFormat": "Completed"
+          },
+          {
+            "expr": "rate(temporal_workflows_failed_total{namespace=\"somagent\"}[5m])",
+            "refId": "B",
+            "legendFormat": "Failed"
+          }
+        ],
+        "gridPos": {
+          "h": 8,
+          "w": 12,
+          "x": 6,
+          "y": 0
+        },
+        "yaxes": [
+          {
+            "label": "workflows/s",
+            "format": "short"
+          }
+        ]
+      },
+      {
+        "id": 3,
+        "title": "KAMACHIQ Agent Spawns",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "sum(rate(kamachiq_agent_spawn_total[5m])) by (capability)",
+            "refId": "A",
+            "legendFormat": "{{capability}}"
+          }
+        ],
+        "gridPos": {
+          "h": 8,
+          "w": 12,
+          "x": 0,
+          "y": 8
+        },
+        "yaxes": [
+          {
+            "label": "spawns/s",
+            "format": "short"
+          }
+        ]
+      },
+      {
+        "id": 4,
+        "title": "Task Execution Duration (p95)",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.95, sum(rate(task_execution_duration_seconds_bucket[5m])) by (le, task_type)) * 1000",
+            "refId": "A",
+            "legendFormat": "{{task_type}} p95"
+          }
+        ],
+        "gridPos": {
+          "h": 8,
+          "w": 12,
+          "x": 12,
+          "y": 8
+        },
+        "yaxes": [
+          {
+            "label": "duration (ms)",
+            "format": "ms"
+          }
+        ]
+      },
+      {
+        "id": 5,
+        "title": "Active KAMACHIQ Sessions",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "sum(kamachiq_sessions_active)",
+            "refId": "A"
+          }
+        ],
+        "gridPos": {
+          "h": 4,
+          "w": 6,
+          "x": 18,
+          "y": 0
+        }
+      },
+      {
+        "id": 6,
+        "title": "Session Collaboration Events",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "sum(rate(kamachiq_collaboration_events_total[5m])) by (event_type)",
+            "refId": "A",
+            "legendFormat": "{{event_type}}"
+          }
+        ],
+        "gridPos": {
+          "h": 8,
+          "w": 12,
+          "x": 0,
+          "y": 16
+        }
+      },
+      {
+        "id": 7,
+        "title": "Project Milestone Completion",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "sum(rate(kamachiq_milestone_completed_total[5m])) by (project_id)",
+            "refId": "A",
+            "legendFormat": "Project {{project_id}}"
+          }
+        ],
+        "gridPos": {
+          "h": 8,
+          "w": 12,
+          "x": 12,
+          "y": 16
+        }
+      },
+      {
+        "id": 8,
+        "title": "Workflow Task Queue Depth",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "temporal_task_queue_depth{namespace=\"somagent\"}",
+            "refId": "A",
+            "legendFormat": "{{task_queue}}"
+          }
+        ],
+        "gridPos": {
+          "h": 8,
+          "w": 12,
+          "x": 0,
+          "y": 24
+        },
+        "alert": {
+          "conditions": [
+            {
+              "evaluator": {
+                "params": [100],
+                "type": "gt"
+              },
+              "operator": {
+                "type": "and"
+              },
+              "query": {
+                "params": ["A", "5m", "now"]
+              },
+              "reducer": {
+                "params": [],
+                "type": "avg"
+              },
+              "type": "query"
+            }
+          ],
+          "executionErrorState": "alerting",
+          "frequency": "1m",
+          "handler": 1,
+          "name": "High Task Queue Depth",
+          "noDataState": "no_data",
+          "notifications": []
+        }
+      },
+      {
+        "id": 9,
+        "title": "Evolution Engine Mutations",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "sum(rate(evolution_mutations_applied_total[5m])) by (mutation_type)",
+            "refId": "A",
+            "legendFormat": "{{mutation_type}}"
+          }
+        ],
+        "gridPos": {
+          "h": 8,
+          "w": 12,
+          "x": 12,
+          "y": 24
+        }
+      }
+    ],
+    "time": {
+      "from": "now-1h",
+      "to": "now"
+    }
+  }
+}

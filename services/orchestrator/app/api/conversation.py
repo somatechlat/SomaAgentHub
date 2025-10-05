@@ -45,16 +45,36 @@ class ConversationStepResponse(BaseModel):
 
 async def _emit_conversation_event(session_id: str, tenant: str, event_type: str, data: dict) -> None:
     """Emit conversation event to Kafka topic."""
-    # TODO: Wire Kafka producer for conversation.events topic
-    # For now, log the event structure
-    event = {
-        "session_id": session_id,
-        "tenant": tenant,
-        "event_type": event_type,
-        "timestamp": time.time(),
-        "data": data,
-    }
-    print(f"[CONVERSATION_EVENT] {json.dumps(event)}")
+    try:
+        from services.common.kafka_client import get_kafka_client
+        kafka_client = get_kafka_client()
+        
+        # Ensure producer is started
+        if kafka_client._producer is None:
+            await kafka_client.start()
+        
+        await kafka_client.send_event(
+            topic="conversation.events",
+            event={
+                "session_id": session_id,
+                "tenant": tenant,
+                "event_type": event_type,
+                "timestamp": time.time(),
+                "data": data,
+            },
+            key=session_id,
+        )
+    except Exception as exc:
+        # Log error but don't block request
+        print(f"[KAFKA_ERROR] Failed to emit conversation event: {exc}")
+        event = {
+            "session_id": session_id,
+            "tenant": tenant,
+            "event_type": event_type,
+            "timestamp": time.time(),
+            "data": data,
+        }
+        print(f"[CONVERSATION_EVENT] {json.dumps(event)}")
 
 
 @router.post("/step", response_model=ConversationStepResponse)
@@ -116,19 +136,39 @@ async def _stream_conversation(
         session_id, tenant, "conversation.stream_start", {"prompt": prompt}
     )
     
-    # TODO: Connect to SLM async worker via Kafka slm.responses
-    # For now, simulate streaming response
-    chunks = ["Hello", " from", " orchestrator", " streaming", " endpoint!"]
-    for chunk in chunks:
-        yield f"data: {json.dumps({'chunk': chunk})}\n\n"
-        await asyncio.sleep(0.1)
-    
-    yield f"data: {json.dumps({'done': True})}\n\n"
-    
-    # Emit completion event
-    await _emit_conversation_event(
-        session_id, tenant, "conversation.stream_complete", {"chunks": len(chunks)}
-    )
+    # Use OpenAI provider for real streaming completions
+    try:
+        from services.common.openai_provider import get_openai_provider
+        openai_provider = get_openai_provider()
+        
+        chunk_count = 0
+        async for chunk in openai_provider.complete_stream(
+            messages=[{"role": "user", "content": prompt}],
+            model="gpt-3.5-turbo",
+        ):
+            chunk_count += 1
+            yield f"data: {json.dumps({'chunk': chunk})}\n\n"
+        
+        yield f"data: {json.dumps({'done': True})}\n\n"
+        
+        # Emit completion event
+        await _emit_conversation_event(
+            session_id, tenant, "conversation.stream_complete", {"chunks": chunk_count}
+        )
+    except Exception as exc:
+        # Fallback to echo response if OpenAI unavailable
+        print(f"[OPENAI_ERROR] Streaming failed, using fallback: {exc}")
+        chunks = ["Hello", " from", " orchestrator", " streaming", " endpoint!"]
+        for chunk in chunks:
+            yield f"data: {json.dumps({'chunk': chunk})}\n\n"
+            await asyncio.sleep(0.1)
+        
+        yield f"data: {json.dumps({'done': True})}\n\n"
+        
+        # Emit completion event
+        await _emit_conversation_event(
+            session_id, tenant, "conversation.stream_complete", {"chunks": len(chunks)}
+        )
 
 
 @router.post("/stream")

@@ -11,3 +11,5 @@ opentelemetry-sdk>=1.25.0
 opentelemetry-exporter-otlp>=1.25.0
 opentelemetry-instrumentation-fastapi>=0.46b0
 pydantic>=2.6.4
+redis[asyncio]>=5.0.0
+openai>=1.0.0

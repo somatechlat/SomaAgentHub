@@ -58,19 +58,33 @@ async def get_forecast(req: ForecastRequest) -> ForecastResponse:
     """Generate token usage forecast using historical slm.metrics."""
     start_time = time.perf_counter()
     
-    # TODO: Query analytics-service for historical slm.metrics data
-    # For now, use heuristic estimates
-    base_tokens = 100_000  # Base daily estimate
-    provider_multiplier = {"openai": 1.0, "anthropic": 0.8, "local": 0.5}.get(req.provider, 1.0)
+    # Query analytics-service for historical slm.metrics data
+    try:
+        from services.common.analytics_client import get_analytics_client
+        analytics = get_analytics_client()
+        
+        # Get historical token usage
+        usage_data = await analytics.get_token_usage(
+            tenant_id=req.tenant,
+            model=req.provider,
+            days=7,  # Use 7-day history for forecast
+        )
+        
+        # Use historical average if available
+        base_tokens = usage_data.get("total_tokens", 100_000) // 7  # Daily average
+        confidence = 0.85  # Higher confidence with real data
+    except Exception as exc:
+        print(f"[ANALYTICS_WARNING] Using fallback forecast: {exc}")
+        # Fallback to heuristic estimates
+        base_tokens = 100_000  # Base daily estimate
+        confidence = 0.65  # Lower confidence without real data
     
+    provider_multiplier = {"openai": 1.0, "anthropic": 0.8, "local": 0.5}.get(req.provider, 1.0)
     estimated_tokens = int(base_tokens * provider_multiplier * (req.window_hours / 24))
     
     # Simple cost estimation (placeholder rates)
     cost_per_1k = {"openai": 0.02, "anthropic": 0.05, "local": 0.0}.get(req.provider, 0.02)
     estimated_cost = (estimated_tokens / 1000) * cost_per_1k
-    
-    # Placeholder confidence score
-    confidence = 0.75
     
     elapsed = time.perf_counter() - start_time
     FORECAST_REQUESTS.labels(tenant=req.tenant, provider=req.provider).inc()

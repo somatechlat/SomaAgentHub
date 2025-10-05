@@ -1,0 +1,217 @@
+groups:
+  - name: somagent_services
+    interval: 30s
+    rules:
+      - alert: ServiceDown
+        expr: up{job=~".*somagent.*"} == 0
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Service {{ $labels.service }} is down"
+          description: "{{ $labels.service }} has been down for more than 2 minutes."
+
+      - alert: HighErrorRate
+        expr: |
+          sum(rate(http_requests_total{job=~".*somagent.*",status=~"5.."}[5m])) by (service)
+          /
+          sum(rate(http_requests_total{job=~".*somagent.*"}[5m])) by (service)
+          > 0.05
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High error rate on {{ $labels.service }}"
+          description: "{{ $labels.service }} has error rate above 5% (current: {{ $value | humanizePercentage }})."
+
+      - alert: HighLatency
+        expr: |
+          histogram_quantile(0.95,
+            sum(rate(http_request_duration_seconds_bucket{job=~".*somagent.*"}[5m])) by (le, service)
+          ) > 1.0
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High latency on {{ $labels.service }}"
+          description: "{{ $labels.service }} p95 latency is above 1s (current: {{ $value }}s)."
+
+      - alert: HighMemoryUsage
+        expr: |
+          process_resident_memory_bytes{job=~".*somagent.*"} / 1024 / 1024 > 512
+        for: 15m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High memory usage on {{ $labels.service }}"
+          description: "{{ $labels.service }} is using {{ $value | humanize }}MB of memory."
+
+  - name: somagent_infrastructure
+    interval: 30s
+    rules:
+      - alert: PostgreSQLDown
+        expr: up{job="postgresql"} == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "PostgreSQL is down"
+          description: "PostgreSQL database has been down for more than 1 minute."
+
+      - alert: PostgreSQLHighConnections
+        expr: |
+          pg_stat_database_numbackends{datname="somagent"}
+          /
+          pg_settings_max_connections
+          > 0.8
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "PostgreSQL connection pool near capacity"
+          description: "PostgreSQL is using {{ $value | humanizePercentage }} of max connections."
+
+      - alert: RedisDown
+        expr: up{job="redis"} == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Redis is down"
+          description: "Redis cache has been down for more than 1 minute."
+
+      - alert: RedisHighMemoryUsage
+        expr: |
+          redis_memory_used_bytes / redis_memory_max_bytes > 0.9
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Redis memory usage is high"
+          description: "Redis is using {{ $value | humanizePercentage }} of max memory."
+
+      - alert: RedisLowHitRate
+        expr: |
+          redis_keyspace_hits_total
+          /
+          (redis_keyspace_hits_total + redis_keyspace_misses_total)
+          < 0.7
+        for: 15m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Redis cache hit rate is low"
+          description: "Redis hit rate is {{ $value | humanizePercentage }}, below 70%."
+
+      - alert: KafkaConsumerLagHigh
+        expr: sum(kafka_consumer_lag) by (topic, consumer_group) > 1000
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Kafka consumer lag is high"
+          description: "Consumer {{ $labels.consumer_group }} on topic {{ $labels.topic }} has lag of {{ $value }} messages."
+
+      - alert: QdrantDown
+        expr: up{job="qdrant"} == 0
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Qdrant vector database is down"
+          description: "Qdrant has been down for more than 2 minutes."
+
+      - alert: ClickHouseDown
+        expr: up{job="clickhouse"} == 0
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "ClickHouse analytics database is down"
+          description: "ClickHouse has been down for more than 2 minutes."
+
+  - name: somagent_workflows
+    interval: 30s
+    rules:
+      - alert: TemporalDown
+        expr: up{job="temporal"} == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Temporal workflow engine is down"
+          description: "Temporal has been down for more than 1 minute."
+
+      - alert: HighWorkflowFailureRate
+        expr: |
+          sum(rate(temporal_workflows_failed_total{namespace="somagent"}[5m]))
+          /
+          sum(rate(temporal_workflows_completed_total{namespace="somagent"}[5m]))
+          > 0.1
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High workflow failure rate"
+          description: "Workflow failure rate is {{ $value | humanizePercentage }}, above 10%."
+
+      - alert: HighTaskQueueDepth
+        expr: temporal_task_queue_depth{namespace="somagent"} > 100
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High Temporal task queue depth"
+          description: "Task queue {{ $labels.task_queue }} has {{ $value }} pending tasks."
+
+  - name: somagent_cost
+    interval: 1m
+    rules:
+      - alert: BudgetExceeded
+        expr: |
+          (sum(increase(llm_cost_usd_total[30d])) / 1000) * 100 > 90
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Monthly budget exceeded"
+          description: "LLM costs have exceeded 90% of monthly budget ($1000)."
+
+      - alert: HighDailyCost
+        expr: sum(increase(llm_cost_usd_total[24h])) > 100
+        for: 1m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High daily LLM cost"
+          description: "Daily LLM costs are ${{ $value | humanize }}, above $100 threshold."
+
+  - name: somagent_security
+    interval: 30s
+    rules:
+      - alert: PolicyViolation
+        expr: sum(increase(policy_violations_total[5m])) by (policy_name) > 0
+        for: 1m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Policy violation detected"
+          description: "Policy {{ $labels.policy_name }} has been violated {{ $value }} times in the last 5 minutes."
+
+      - alert: AuthenticationFailures
+        expr: sum(increase(auth_failures_total[5m])) > 10
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High authentication failure rate"
+          description: "{{ $value }} authentication failures in the last 5 minutes."
+
+      - alert: TokenExpirationSoonMany
+        expr: sum(keycloak_token_expiring_soon) > 50
+        for: 5m
+        labels:
+          severity: info
+        annotations:
+          summary: "Many tokens expiring soon"
+          description: "{{ $value }} tokens will expire within the next hour."

@@ -1,3 +1,0 @@
-# This Docker‑Compose stack has been deprecated.
-# The Soma Agent is now deployed exclusively via the Helm chart in `k8s/helm/soma-agent`.
-# You may delete this file.
