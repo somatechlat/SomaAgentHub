@@ -1,17 +1,24 @@
-import os
 import asyncio
+import os
+
+import pytest
 from fastapi.testclient import TestClient
 
 # Ensure Redis fallback (no REDIS_URL) for deterministic behavior
 if "REDIS_URL" in os.environ:
     del os.environ["REDIS_URL"]
 
-from app.policy_app import app, EvalRequest, evaluate_sync
 from app.constitution_cache import get_cached_hash, invalidate_hash
+from app.policy_app import EvalRequest, app, evaluate_sync
 
-client = TestClient(app)
 
-def test_evaluate_allowed():
+@pytest.fixture()
+def client() -> TestClient:
+    with TestClient(app) as test_client:
+        yield test_client
+
+
+def test_evaluate_allowed(client: TestClient) -> None:
     payload = {
         "session_id": "s1",
         "tenant": "tenantA",
@@ -28,7 +35,7 @@ def test_evaluate_allowed():
     assert "constitution_hash" in data["reasons"]
     assert data["reasons"]["policy"] == []
 
-def test_evaluate_forbidden():
+def test_evaluate_forbidden(client: TestClient) -> None:
     payload = {
         "session_id": "s2",
         "tenant": "tenantA",  # tenantA has "forbidden" rule
@@ -46,7 +53,7 @@ def test_evaluate_forbidden():
     first_violation = data["reasons"]["policy"][0]
     assert first_violation["pattern"] == "forbidden"
 
-def test_evaluate_sync_wrapper():
+def test_evaluate_sync_wrapper() -> None:
     req = EvalRequest(
         session_id="s3",
         tenant="tenantC",
@@ -61,7 +68,7 @@ def test_evaluate_sync_wrapper():
     assert isinstance(result.reasons, dict)
     assert result.reasons["policy"] == []
 
-def test_evaluate_forbidden_term():
+def test_evaluate_forbidden_term(client: TestClient) -> None:
     payload = {
         "session_id": "sess1",
         "tenant": "tenantA",
@@ -77,7 +84,7 @@ def test_evaluate_forbidden_term():
     patterns = [v["pattern"] for v in data["reasons"]["policy"]]
     assert "forbidden" in patterns
 
-def test_list_policies():
+def test_list_policies(client: TestClient) -> None:
     response = client.get("/v1/policies/tenantA")
     assert response.status_code == 200
     policies = response.json()
@@ -98,3 +105,38 @@ async def _run_cache_test():
 
 def test_constitution_cache_behavior():
     asyncio.run(_run_cache_test())
+
+
+def test_deterministic_evaluation(client: TestClient) -> None:
+    payload = {
+        "session_id": "det-1",
+        "tenant": "tenantA",
+        "user": "user42",
+        "prompt": "Repeated prompt",
+        "role": "assistant",
+        "metadata": {},
+    }
+    first = client.post("/v1/evaluate", json=payload)
+    second = client.post("/v1/evaluate", json=payload)
+    assert first.status_code == second.status_code == 200
+    assert first.json() == second.json()
+
+
+def test_metrics_labels(client: TestClient) -> None:
+    payload = {
+        "session_id": "metrics-1",
+        "tenant": "tenantA",
+        "user": "user-metrics",
+        "prompt": "hello world",
+        "role": "assistant",
+        "metadata": {},
+    }
+    response = client.post("/v1/evaluate", json=payload)
+    assert response.status_code == 200
+
+    metrics_resp = client.get("/metrics")
+    content = metrics_resp.text
+    assert "policy_evaluations_total" in content
+    assert 'policy_evaluations_total{decision="allow",severity="low",tenant="tenantA"}' in content
+    assert 'policy_evaluation_latency_seconds_bucket{le="0.015",tenant="tenantA"}' in content
+    assert 'policy_evaluation_score_bucket{le="1.0",tenant="tenantA"}' in content

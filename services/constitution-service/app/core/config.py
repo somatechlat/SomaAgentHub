@@ -17,6 +17,8 @@ class Settings(BaseSettings):
     redis_url: str = os.getenv("REDIS_URL", "redis://redis:6379/0")
     cache_ttl_seconds: int = 30
     http_timeout_seconds: float = 30.0
+    sync_interval_seconds: float = 300.0
+    sync_enabled: bool = True
     data_dir: Path = Field(default_factory=lambda: Path(__file__).resolve().parent.parent / "data")
     bundle_path: Path | None = None
     public_key_path: Path | None = None

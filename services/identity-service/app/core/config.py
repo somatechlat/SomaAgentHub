@@ -15,6 +15,11 @@ class Settings(BaseSettings):
     jwk_set_url: str = "https://auth.example.com/.well-known/jwks.json"
     redis_url: str = "redis://redis:6379/0"
     jwt_secret: str | None = None
+    key_rotation_seconds: int = 3600
+    key_rotation_check_seconds: int = 60
+    key_namespace: str = "identity:keys"
+    audit_topic: str = "identity.audit"
+    audit_bootstrap_servers: str | None = None
     model_config = SettingsConfigDict(env_prefix="SOMAGENT_IDENTITY_", extra="allow")
 
     def resolve_jwt_secret(self) -> str:

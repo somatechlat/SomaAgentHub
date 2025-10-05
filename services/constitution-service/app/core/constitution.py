@@ -58,6 +58,13 @@ def _verify_signature(bundle: ConstitutionBundle, canonical_document: bytes, pub
         raise ConstitutionVerificationError("Signature verification failed") from exc
 
 
+def _build_verified(bundle: ConstitutionBundle, public_key_path: Path) -> VerifiedConstitution:
+    canonical_document = canonicalise_document(bundle)
+    _verify_hash(bundle, canonical_document)
+    _verify_signature(bundle, canonical_document, public_key_path)
+    return VerifiedConstitution(bundle=bundle, canonical_document=canonical_document)
+
+
 def load_verified_constitution(bundle_path: Path, public_key_path: Path) -> VerifiedConstitution:
     """Load, validate, and return the signed constitution bundle."""
 
@@ -67,16 +74,14 @@ def load_verified_constitution(bundle_path: Path, public_key_path: Path) -> Veri
         raise ConstitutionVerificationError(f"Constitution bundle not found at {bundle_path}") from exc
 
     bundle = ConstitutionBundle.model_validate(raw)
-    canonical_document = canonicalise_document(bundle)
-    _verify_hash(bundle, canonical_document)
-    _verify_signature(bundle, canonical_document, public_key_path)
+    verified = _build_verified(bundle, public_key_path)
     logger.info(
         "Loaded constitution bundle version=%s issued_at=%s hash=%s",
         bundle.version,
         bundle.issued_at.isoformat(),
         bundle.hash,
     )
-    return VerifiedConstitution(bundle=bundle, canonical_document=canonical_document)
+    return verified
 
 
 def normalise_tenant(tenant: str) -> str:
@@ -109,6 +114,15 @@ class ConstitutionRegistry:
     def get_hash(self, tenant: str) -> str:
         self.get_bundle(tenant)  # ensure tenant normalisation/logging
         return self._verified.hash
+
+    def update(self, verified: VerifiedConstitution) -> None:
+        self._verified = verified
+
+
+def build_verified_from_bundle(bundle: ConstitutionBundle, public_key_path: Path) -> VerifiedConstitution:
+    """Validate *bundle* and return a :class:`VerifiedConstitution`."""
+
+    return _build_verified(bundle, public_key_path)
 
 
 def verify_bundle(bundle: ConstitutionBundle, public_key_path: Path) -> None:

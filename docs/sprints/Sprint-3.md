@@ -50,3 +50,9 @@ Tasks
 Notes
 - Coordinate with Ops for Kafka topic provisioning (`conversation.events`, `training.audit`).
 - Ensure moderation middleware reuses existing refusal taxonomy from policy engine for consistent user messaging.
+
+## Parallel Coordination
+- **Wave Alignment:** Sprint-3 runs concurrently with `Sprint-2` (Governance Core) within Wave A and feeds results into `Sprint-4` (Experience & Ecosystem) starting Wave B.
+- **Integration Day Objectives:** Validate Gateway → Policy → Orchestrator streaming path with live constitution hash + policy headers supplied by Sprint-2.
+- **Shared Dependencies:** Kafka (`conversation.events`, `training.audit`), Redis locks (shared with Identity/Settings), Temporal workflow versions announced by Policy & Orchestration charter.
+- **Upcoming Hand-offs:** Surface streaming contract (`/v1/chat/stream`) recordings for Experience squad and provide telemetry dashboards for Infra team before Wave B kickoff.

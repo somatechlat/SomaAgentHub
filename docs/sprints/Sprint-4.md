@@ -29,3 +29,9 @@ Notes
 - Coordinate with Analytics team to access `slm.metrics` history for estimator inputs.
 - Ensure console integrates with SomaGent authentication (reuse Identity tokens from Sprint 2).
 - Target responsive layout so the console works on tablets for field operators.
+
+## Parallel Coordination
+- **Wave Alignment:** Sprint-4 launches as Wave B while Sprint-2 and Sprint-3 finish Wave A deliverables. Design wave stays +1 sprint ahead with component specs in `docs/design/`.
+- **Integration Day Objectives:** Consume real policy headers and streaming responses produced by Sprint-2/Sprint-3; demo admin console wired to live settings + forecast APIs.
+- **Shared Dependencies:** Identity tokens from Sprint-2, streaming endpoints from Sprint-3, analytics metrics from SLM Execution squad.
+- **Upstream Hand-offs Needed:** Recorded API contracts (`scripts/parallel/record_contracts.py`) from backend squads, notification feed topics from Infra crew, and capability taxonomy finalized by Identity & Settings.

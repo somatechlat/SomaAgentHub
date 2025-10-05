@@ -34,6 +34,9 @@ class IdentityStore:
     def _token_key(self, jti: str) -> str:
         return f"{self._ns}:token:{jti}"
 
+    def _constitution_key(self, tenant_id: str) -> str:
+        return f"constitution:{tenant_id}"
+
     # ------------------------------------------------------------------
     # User management
     # ------------------------------------------------------------------
@@ -94,6 +97,9 @@ class IdentityStore:
         if ttl is None or ttl < 0:
             return None
         return int(ttl)
+
+    async def get_constitution_hash(self, tenant_id: str) -> Optional[str]:
+        return await self._client.get(self._constitution_key(tenant_id))
 
     # ------------------------------------------------------------------
     async def ping(self) -> bool:

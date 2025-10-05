@@ -2,29 +2,73 @@
 
 from __future__ import annotations
 
-from contextlib import asynccontextmanager
+import asyncio
+from contextlib import asynccontextmanager, suppress
+from datetime import timedelta
+from typing import AsyncIterator
 
 from fastapi import FastAPI
 from fastapi.responses import Response
 from prometheus_client import CONTENT_TYPE_LATEST, generate_latest
-from redis.asyncio import from_url as redis_from_url
+from redis.asyncio import Redis, from_url as redis_from_url
 
 from .api.routes import router
+from .core.audit import AuditLogger
 from .core.config import settings
+from .core.key_manager import KeyManager
 from .core.storage import IdentityStore
 
 
+async def _rotation_worker(key_manager: KeyManager, interval: float, stop_event: asyncio.Event) -> None:
+    try:
+        while True:
+            await key_manager.rotate_if_due()
+            try:
+                await asyncio.wait_for(stop_event.wait(), timeout=interval)
+                return
+            except asyncio.TimeoutError:
+                continue
+    except asyncio.CancelledError:  # pragma: no cover - shutdown handling
+        raise
+
+
 @asynccontextmanager
-async def lifespan(app: FastAPI):
-    redis = redis_from_url(str(settings.redis_url), decode_responses=True)
+async def lifespan(app: FastAPI) -> AsyncIterator[None]:
+    redis: Redis = redis_from_url(str(settings.redis_url), decode_responses=True)
+    identity_store = IdentityStore(redis)
+    key_manager = KeyManager(
+        redis,
+        rotation_interval=timedelta(seconds=settings.key_rotation_seconds),
+        namespace=settings.key_namespace,
+        fallback_secret=settings.resolve_jwt_secret(),
+    )
+    await key_manager.start()
+
+    audit_logger = AuditLogger(settings.audit_bootstrap_servers, settings.audit_topic)
+    await audit_logger.start()
+
+    stop_event = asyncio.Event()
+    rotation_task = asyncio.create_task(
+        _rotation_worker(key_manager, max(1.0, float(settings.key_rotation_check_seconds)), stop_event)
+    )
+
     app.state.redis = redis
-    app.state.identity_store = IdentityStore(redis)
+    app.state.identity_store = identity_store
+    app.state.key_manager = key_manager
+    app.state.audit_logger = audit_logger
+    app.state._key_rotation_task = rotation_task
+    app.state._key_rotation_stop = stop_event
+
     try:
         yield
     finally:
-        store = getattr(app.state, "identity_store", None)
-        if store is not None:
-            await store.close()
+        stop_event.set()
+        rotation_task.cancel()
+        with suppress(asyncio.CancelledError):
+            await rotation_task
+        await key_manager.stop()
+        await audit_logger.stop()
+        await identity_store.close()
 
 
 def create_app() -> FastAPI:

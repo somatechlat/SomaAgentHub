@@ -52,3 +52,9 @@ Notes
 - Coordinate with Security guild for secret rotation cadence.
 - Reuse existing Prometheus registry; emit `policy_decision_total` counter with `decision`, `policy_id` labels.
 - Ensure identity tokens embed constitution hash to detect drift.
+
+## Parallel Coordination
+- **Wave Alignment:** Active Wave A sprint running in parallel with `Sprint-3` (Runtime & Training) and preparing hand-offs for Wave B (`Sprint-4`). See `Parallel_Wave_Schedule.md` for overlap timeline.
+- **Integration Day (Weekly Wednesday):** Deliver policy evaluation demo feeding live headers into Gateway + Orchestrator test harness owned by Sprint-3 crew.
+- **Shared Dependencies:** Kafka topics (`constitution.updated`, `identity.audit`), Redis cache readiness (Infra & Ops), Temporal workflow version notifications (Policy ↔ Orchestrator).
+- **Upcoming Hand-offs:** Provide signed constitution bundle + policy header contract to Experience squad by Wave B kickoff so UI can surface enforcement telemetry.

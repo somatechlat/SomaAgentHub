@@ -90,7 +90,8 @@ A sprint is only considered complete when:
 5. Billing and audit logs capture the new workflows end-to-end.
 
 ## Next Actions
-1. Instantiate squad charters in `docs/sprints/` with links to the parallel commitments table.
-2. Publish SomaSuite dashboards per squad using the `parallel_sprint_status` data source.
-3. Wire nightly benchmark + regression pipelines to post results into the notification feed tagged by squad.
-4. Audit current sprints to align with this wave structure and backfill any missing design artifacts.
+1. ✅ Instantiate squad charters in `docs/sprints/squads/` with links to the parallel commitments table.
+2. ✅ Consolidate live backlog across Sprint-2/3/4 in `docs/sprints/Parallel_Backlog.md` for multi-sprint tracking.
+3. ◻️ Publish SomaSuite dashboards per squad using the `parallel_sprint_status` data source.
+4. ◻️ Wire nightly benchmark + regression pipelines to post results into the notification feed tagged by squad.
+5. ◻️ Audit current sprints to align with this wave structure and backfill any missing design artifacts.

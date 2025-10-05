@@ -16,7 +16,13 @@ from ..core.config import settings
 from ..workflows.mao import AgentDirective, MAOStartInput
 from ..workflows.session import SessionStartInput
 
+# Import conversation and training endpoints
+from .conversation import router as conversation_router
+from .training import router as training_router
+
 router = APIRouter(prefix="/v1", tags=["orchestrator"])
+router.include_router(conversation_router)
+router.include_router(training_router)
 
 
 class SessionStartRequest(BaseModel):

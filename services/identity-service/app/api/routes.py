@@ -11,6 +11,8 @@ import jwt
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 
 from ..core.config import get_settings
+from ..core.key_manager import KeyManager
+from ..core.audit import AuditLogger
 from ..core.storage import IdentityStore, utc_from_timestamp
 from .schemas import (
     MFAEnrollResponse,
@@ -28,7 +30,7 @@ from .schemas import (
 router = APIRouter(prefix="/v1", tags=["identity"])
 
 settings = get_settings()
-JWT_SECRET = settings.resolve_jwt_secret()
+JWT_ALGORITHM = "HS256"
 JWT_EXP_SECONDS = 3600
 
 
@@ -50,6 +52,20 @@ async def get_store(request: Request) -> IdentityStore:
     if store is None:
         raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail="Store unavailable")
     return store
+
+
+async def get_key_manager(request: Request) -> KeyManager:
+    key_manager = getattr(request.app.state, "key_manager", None)
+    if key_manager is None:
+        raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail="Key manager unavailable")
+    return key_manager
+
+
+async def get_audit_logger(request: Request) -> AuditLogger:
+    audit_logger = getattr(request.app.state, "audit_logger", None)
+    if audit_logger is None:
+        raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail="Audit logger unavailable")
+    return audit_logger
 
 
 @router.get("/users", response_model=List[UserRecord])
@@ -99,7 +115,12 @@ async def verify_mfa(user_id: str, payload: MFAVerifyRequest, store: IdentitySto
 
 
 @router.post("/tokens/issue", response_model=TokenResponse)
-async def issue_token(payload: TokenIssueRequest, store: IdentityStore = Depends(get_store)) -> TokenResponse:
+async def issue_token(
+    payload: TokenIssueRequest,
+    store: IdentityStore = Depends(get_store),
+    key_manager: KeyManager = Depends(get_key_manager),
+    audit_logger: AuditLogger = Depends(get_audit_logger),
+) -> TokenResponse:
     user = await _fetch_user(store, payload.user_id)
     if not user.mfa_enabled:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="MFA not enabled")
@@ -114,6 +135,8 @@ async def issue_token(payload: TokenIssueRequest, store: IdentityStore = Depends
     issued_at = datetime.now(timezone.utc)
     expires_at = issued_at + timedelta(seconds=JWT_EXP_SECONDS)
     jti = uuid4().hex
+    signing_key = await key_manager.get_active()
+    constitution_hash = await store.get_constitution_hash(payload.tenant_id)
     claims = {
         "sub": user.user_id,
         "tenant_id": payload.tenant_id,
@@ -121,16 +144,46 @@ async def issue_token(payload: TokenIssueRequest, store: IdentityStore = Depends
         "exp": int(expires_at.timestamp()),
         "iat": int(issued_at.timestamp()),
         "jti": jti,
+        "kid": signing_key.kid,
     }
-    token = jwt.encode(claims, JWT_SECRET, algorithm="HS256")
+    if constitution_hash:
+        claims["constitution_hash"] = constitution_hash
+    token = jwt.encode(claims, signing_key.secret, algorithm=JWT_ALGORITHM, headers={"kid": signing_key.kid})
     await store.store_token_claims(jti, claims, JWT_EXP_SECONDS)
+    await audit_logger.emit(
+        "token.issued",
+        {
+            "user_id": user.user_id,
+            "tenant_id": payload.tenant_id,
+            "jti": jti,
+            "capabilities": claims["capabilities"],
+            "expires_at": expires_at.isoformat(),
+        },
+    )
     return TokenResponse(token=token, expires_in=JWT_EXP_SECONDS, token_type="bearer")
 
 
 @router.post("/tokens/verify", response_model=TokenVerifyResponse)
-async def verify_token(payload: TokenVerifyRequest, store: IdentityStore = Depends(get_store)) -> TokenVerifyResponse:
+async def verify_token(
+    payload: TokenVerifyRequest,
+    store: IdentityStore = Depends(get_store),
+    key_manager: KeyManager = Depends(get_key_manager),
+) -> TokenVerifyResponse:
     try:
-        claims = jwt.decode(payload.token, JWT_SECRET, algorithms=["HS256"])
+        header = jwt.get_unverified_header(payload.token)
+    except jwt.InvalidTokenError as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid token header") from exc
+
+    kid = header.get("kid")
+    if not kid:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Token missing kid")
+
+    signing_key = await key_manager.get_by_kid(kid)
+    if signing_key is None:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Unknown signing key")
+
+    try:
+        claims = jwt.decode(payload.token, signing_key.secret, algorithms=[JWT_ALGORITHM])
     except jwt.ExpiredSignatureError as exc:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Token expired") from exc
     except jwt.InvalidTokenError as exc:
@@ -140,6 +193,9 @@ async def verify_token(payload: TokenVerifyRequest, store: IdentityStore = Depen
     if not jti:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Token missing jti")
 
+    if claims.get("kid") and claims["kid"] != kid:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Token kid mismatch")
+
     stored = await store.get_token_claims(jti)
     if stored is None:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Token revoked")
@@ -148,6 +204,13 @@ async def verify_token(payload: TokenVerifyRequest, store: IdentityStore = Depen
         missing = [cap for cap in payload.required_capabilities if cap not in claims.get("capabilities", [])]
         if missing:
             raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=f"Missing capabilities: {missing}")
+
+    tenant_id = claims.get("tenant_id")
+    if tenant_id:
+        constitution_hash = claims.get("constitution_hash")
+        current_hash = await store.get_constitution_hash(tenant_id)
+        if current_hash and constitution_hash != current_hash:
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Constitution hash mismatch")
 
     expires_at = utc_from_timestamp(claims["exp"])
     issued_at = utc_from_timestamp(claims["iat"])
@@ -164,15 +227,51 @@ async def verify_token(payload: TokenVerifyRequest, store: IdentityStore = Depen
 
 
 @router.post("/tokens/revoke")
-async def revoke_token(payload: TokenRevokeRequest, store: IdentityStore = Depends(get_store)) -> dict[str, bool]:
+async def revoke_token(
+    payload: TokenRevokeRequest,
+    store: IdentityStore = Depends(get_store),
+    key_manager: KeyManager = Depends(get_key_manager),
+    audit_logger: AuditLogger = Depends(get_audit_logger),
+) -> dict[str, bool]:
     try:
-        claims = jwt.decode(payload.token, JWT_SECRET, algorithms=["HS256"], options={"verify_exp": False})
+        header = jwt.get_unverified_header(payload.token)
+    except jwt.InvalidTokenError as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid token header") from exc
+
+    kid = header.get("kid")
+    if not kid:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Token missing kid")
+
+    signing_key = await key_manager.get_by_kid(kid)
+    if signing_key is None:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Unknown signing key")
+
+    try:
+        claims = jwt.decode(
+            payload.token,
+            signing_key.secret,
+            algorithms=[JWT_ALGORITHM],
+            options={"verify_exp": False},
+        )
     except jwt.InvalidTokenError as exc:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid token") from exc
+
     jti = claims.get("jti")
     if not jti:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Token missing jti")
+
+    if claims.get("kid") and claims["kid"] != kid:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Token kid mismatch")
+
     await store.revoke_token(jti)
+    await audit_logger.emit(
+        "token.revoked",
+        {
+            "tenant_id": claims.get("tenant_id"),
+            "jti": jti,
+            "user_id": claims.get("sub"),
+        },
+    )
     return {"revoked": True}
 
 

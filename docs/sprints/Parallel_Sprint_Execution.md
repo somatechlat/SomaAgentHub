@@ -17,6 +17,11 @@
 
 All crews operate with dedicated QA + DevRel liaison to keep documentation live. Unlimited capacity assumption allows on-demand staffing from shared pool while preserving clear ownership per stream.
 
+## Related Artifacts
+- [Wave schedule](Parallel_Wave_Schedule.md) translating roadmap work into overlapping commitments and integration milestones.
+- Squad charters under `docs/sprints/squads/` detailing objectives, deliverables, dependencies, telemetry, and risks per squad.
+- Development playbook updates in `../development/Parallel_Sprint_Execution.md` tracking automation + dashboard follow-ups.
+
 ## Workflow Agreements
 - **Backlog slicing**: Each sprint board holds vertical slices with definition of done tying code, tests, runbooks, and telemetry.
 - **Branching model**: Feature branches per task, PRs require cross-stream reviewer for dependency awareness.
