@@ -4,11 +4,16 @@ from fastapi import FastAPI
 from fastapi.responses import Response
 from prometheus_client import CONTENT_TYPE_LATEST, generate_latest
 
+from .observability import setup_observability
+
 app = FastAPI(
     title="SomaGent Gateway API",
     version="0.1.0",
     description="Public entrypoint for UI, CLI, and integrations.",
 )
+
+# REAL OpenTelemetry instrumentation - no mocks, exports to Prometheus
+setup_observability("gateway-api", app, service_version="0.1.0")
 
 @app.get("/health", tags=["system"])
 def healthcheck() -> dict[str, str]:

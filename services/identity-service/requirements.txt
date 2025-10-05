@@ -6,3 +6,9 @@ pyjwt>=2.8.0
 cryptography>=42.0.0
 redis>=5.0.0
 fakeredis>=2.23.0
+
+# OpenTelemetry for real observability - Sprint-6
+opentelemetry-sdk>=1.25.0
+opentelemetry-exporter-prometheus>=0.46b0
+opentelemetry-exporter-otlp>=1.25.0
+opentelemetry-instrumentation-fastapi>=0.46b0

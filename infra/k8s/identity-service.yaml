@@ -1,0 +1,126 @@
+---
+# Real Kubernetes deployment for identity-service
+# Sprint-6: Production authentication and authorization
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: identity-service
+  namespace: somaagent
+  labels:
+    app: identity-service
+    component: identity
+    monitoring: enabled
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: identity-service
+  template:
+    metadata:
+      labels:
+        app: identity-service
+        component: identity
+        monitoring: enabled
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8002"
+        prometheus.io/path: "/metrics"
+    spec:
+      containers:
+      - name: identity-service
+        image: somaagent/identity-service:latest
+        imagePullPolicy: IfNotPresent
+        
+        ports:
+        - name: http
+          containerPort: 8002
+          protocol: TCP
+        - name: metrics
+          containerPort: 8002
+          protocol: TCP
+        
+        env:
+        # Real database
+        - name: DATABASE_URL
+          valueFrom:
+            secretKeyRef:
+              name: somaagent-secrets
+              key: identity-db-url
+        
+        # Real JWT secrets
+        - name: JWT_SECRET_KEY
+          valueFrom:
+            secretKeyRef:
+              name: somaagent-secrets
+              key: jwt-secret
+        - name: JWT_ALGORITHM
+          value: "HS256"
+        - name: JWT_EXPIRATION_MINUTES
+          value: "60"
+        
+        # Real observability
+        - name: OTEL_EXPORTER_OTLP_ENDPOINT
+          value: "http://prometheus-prometheus.observability:9090"
+        - name: OTEL_SERVICE_NAME
+          value: "identity-service"
+        - name: ENVIRONMENT
+          value: "production"
+        
+        resources:
+          requests:
+            cpu: "250m"
+            memory: "256Mi"
+          limits:
+            cpu: "1000m"
+            memory: "1Gi"
+        
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: http
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+        
+        readinessProbe:
+          httpGet:
+            path: /ready
+            port: http
+          initialDelaySeconds: 10
+          periodSeconds: 5
+          timeoutSeconds: 3
+          failureThreshold: 3
+        
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          runAsNonRoot: true
+          runAsUser: 1000
+          capabilities:
+            drop:
+            - ALL
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: identity-service
+  namespace: somaagent
+  labels:
+    app: identity-service
+    monitoring: enabled
+spec:
+  type: ClusterIP
+  ports:
+  - name: http
+    port: 8002
+    targetPort: http
+    protocol: TCP
+  - name: metrics
+    port: 8002
+    targetPort: metrics
+    protocol: TCP
+  selector:
+    app: identity-service

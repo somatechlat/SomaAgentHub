@@ -1,0 +1,118 @@
+---
+# Real Kubernetes deployment for gateway-api
+# Sprint-6: Production-ready API gateway with real monitoring
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: gateway-api
+  namespace: somaagent
+  labels:
+    app: gateway-api
+    component: api
+    monitoring: enabled
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: gateway-api
+  template:
+    metadata:
+      labels:
+        app: gateway-api
+        component: api
+        monitoring: enabled
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8080"
+        prometheus.io/path: "/metrics"
+    spec:
+      containers:
+      - name: gateway-api
+        image: somaagent/gateway-api:latest
+        imagePullPolicy: IfNotPresent
+        
+        ports:
+        - name: http
+          containerPort: 8080
+          protocol: TCP
+        - name: metrics
+          containerPort: 8080
+          protocol: TCP
+        
+        env:
+        # Real backend services
+        - name: ORCHESTRATOR_URL
+          value: "http://orchestrator:8000"
+        - name: POLICY_ENGINE_URL
+          value: "http://policy-engine:8001"
+        - name: IDENTITY_SERVICE_URL
+          value: "http://identity-service:8002"
+        - name: SLM_SERVICE_URL
+          value: "http://slm-service:8003"
+        
+        # Real observability
+        - name: OTEL_EXPORTER_OTLP_ENDPOINT
+          value: "http://prometheus-prometheus.observability:9090"
+        - name: OTEL_SERVICE_NAME
+          value: "gateway-api"
+        - name: ENVIRONMENT
+          value: "production"
+        
+        resources:
+          requests:
+            cpu: "1000m"
+            memory: "1Gi"
+          limits:
+            cpu: "4000m"
+            memory: "4Gi"
+        
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: http
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+        
+        readinessProbe:
+          httpGet:
+            path: /ready
+            port: http
+          initialDelaySeconds: 10
+          periodSeconds: 5
+          timeoutSeconds: 3
+          failureThreshold: 3
+        
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          runAsNonRoot: true
+          runAsUser: 1000
+          capabilities:
+            drop:
+            - ALL
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: gateway-api
+  namespace: somaagent
+  labels:
+    app: gateway-api
+    monitoring: enabled
+spec:
+  type: LoadBalancer
+  ports:
+  - name: http
+    port: 8080
+    targetPort: http
+    protocol: TCP
+  - name: metrics
+    port: 8080
+    targetPort: metrics
+    protocol: TCP
+  selector:
+    app: gateway-api

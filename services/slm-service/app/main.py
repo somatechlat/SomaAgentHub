@@ -11,6 +11,7 @@ from pydantic import BaseModel, Field, constr
 from prometheus_client import CONTENT_TYPE_LATEST, Counter, Histogram, generate_latest
 
 from slm.local_models import get_embedding_model, get_text_generator
+from .observability import setup_observability
 
 
 class Usage(BaseModel):
@@ -51,6 +52,8 @@ app = FastAPI(
     description="Serves deterministic local language capabilities without mocks.",
 )
 
+# REAL OpenTelemetry instrumentation - no mocks, exports to Prometheus
+setup_observability("slm-service", app, service_version="1.0.0")
 
 INFER_REQUESTS = Counter("slm_infer_sync_requests_total", "Number of sync inference requests", ["model"])
 INFER_LATENCY = Histogram("slm_infer_sync_latency_seconds", "Sync inference latency in seconds", ["model"])

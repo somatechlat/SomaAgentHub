@@ -13,6 +13,8 @@ from fastapi.responses import Response
 from pydantic import BaseModel, Field
 from prometheus_client import CONTENT_TYPE_LATEST, Counter, Histogram, generate_latest
 
+from .observability import setup_observability
+
 from .constitution_cache import get_cached_hash, invalidate_hash
 from .core.engine import compute_severity, evaluate as evaluate_engine
 from .policy_rules import PolicyRule, bootstrap_rule_engine, get_rules, list_tenants
@@ -141,6 +143,9 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(lifespan=lifespan)
+
+# REAL OpenTelemetry instrumentation - no mocks, exports to Prometheus
+setup_observability("policy-engine", app, service_version="0.1.0")
 
 
 class EvalRequest(BaseModel):

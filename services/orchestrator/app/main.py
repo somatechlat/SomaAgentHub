@@ -9,10 +9,14 @@ from temporalio import client as temporal_client
 
 from .api.routes import router as orchestrator_router
 from .core.config import settings
+from .observability import setup_observability
 
 
 def create_app() -> FastAPI:
     app = FastAPI(title="SomaGent Orchestrator", version="0.1.0")
+
+    # Sprint-6: Initialize OpenTelemetry instrumentation
+    setup_observability("orchestrator", app, service_version="0.1.0")
 
     @app.on_event("startup")
     async def _startup_temporal_client() -> None:

@@ -1,0 +1,132 @@
+---
+# Real Kubernetes deployment for analytics-service
+# Sprint-7: Production analytics with real ClickHouse
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: analytics-service
+  namespace: somaagent
+  labels:
+    app: analytics-service
+    component: analytics
+    monitoring: enabled
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: analytics-service
+  template:
+    metadata:
+      labels:
+        app: analytics-service
+        component: analytics
+        monitoring: enabled
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8005"
+        prometheus.io/path: "/metrics"
+    spec:
+      containers:
+      - name: analytics-service
+        image: somaagent/analytics-service:latest
+        imagePullPolicy: IfNotPresent
+        
+        ports:
+        - name: http
+          containerPort: 8005
+          protocol: TCP
+        - name: metrics
+          containerPort: 8005
+          protocol: TCP
+        
+        env:
+        # Real ClickHouse connection
+        - name: CLICKHOUSE_HOST
+          value: "clickhouse.somaagent"
+        - name: CLICKHOUSE_PORT
+          value: "9000"
+        - name: CLICKHOUSE_DATABASE
+          value: "somaagent"
+        - name: CLICKHOUSE_USER
+          valueFrom:
+            secretKeyRef:
+              name: somaagent-secrets
+              key: clickhouse-user
+        - name: CLICKHOUSE_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: somaagent-secrets
+              key: clickhouse-password
+        
+        # Real observability
+        - name: OTEL_EXPORTER_OTLP_ENDPOINT
+          value: "http://prometheus-prometheus.observability:9090"
+        - name: OTEL_SERVICE_NAME
+          value: "analytics-service"
+        - name: ENVIRONMENT
+          value: "production"
+        
+        # Real batch processing
+        - name: BATCH_SIZE
+          value: "1000"
+        - name: FLUSH_INTERVAL_SECONDS
+          value: "60"
+        
+        resources:
+          requests:
+            cpu: "500m"
+            memory: "512Mi"
+          limits:
+            cpu: "2000m"
+            memory: "2Gi"
+        
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: http
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+        
+        readinessProbe:
+          httpGet:
+            path: /ready
+            port: http
+          initialDelaySeconds: 10
+          periodSeconds: 5
+          timeoutSeconds: 3
+          failureThreshold: 3
+        
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          runAsNonRoot: true
+          runAsUser: 1000
+          capabilities:
+            drop:
+            - ALL
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: analytics-service
+  namespace: somaagent
+  labels:
+    app: analytics-service
+    monitoring: enabled
+spec:
+  type: ClusterIP
+  ports:
+  - name: http
+    port: 8005
+    targetPort: http
+    protocol: TCP
+  - name: metrics
+    port: 8005
+    targetPort: metrics
+    protocol: TCP
+  selector:
+    app: analytics-service

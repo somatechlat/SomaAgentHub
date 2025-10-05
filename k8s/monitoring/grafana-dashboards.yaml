@@ -1,0 +1,657 @@
+# Grafana Dashboard ConfigMap for SomaAgent Services
+# Apply with: kubectl apply -f grafana-dashboards.yaml
+# These dashboards will auto-load into Grafana via sidecar
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: somaagent-dashboards
+  namespace: observability
+  labels:
+    grafana_dashboard: "1"  # Sidecar will auto-discover this
+data:
+  somaagent-overview.json: |
+    {
+      "dashboard": {
+        "title": "SomaAgent - Service Overview",
+        "uid": "somaagent-overview",
+        "tags": ["somaagent", "overview"],
+        "timezone": "browser",
+        "schemaVersion": 16,
+        "version": 1,
+        "refresh": "10s",
+        "panels": [
+          {
+            "id": 1,
+            "title": "Service Health (Up/Down)",
+            "type": "stat",
+            "gridPos": {"h": 8, "w": 12, "x": 0, "y": 0},
+            "targets": [
+              {
+                "expr": "up{job=~\"orchestrator|gateway|policy-engine|identity-service|slm-service\"}",
+                "legendFormat": "{{job}}",
+                "refId": "A"
+              }
+            ],
+            "options": {
+              "reduceOptions": {
+                "values": false,
+                "calcs": ["lastNotNull"]
+              }
+            },
+            "fieldConfig": {
+              "defaults": {
+                "thresholds": {
+                  "mode": "absolute",
+                  "steps": [
+                    {"value": 0, "color": "red"},
+                    {"value": 1, "color": "green"}
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "id": 2,
+            "title": "Request Rate (req/s)",
+            "type": "graph",
+            "gridPos": {"h": 8, "w": 12, "x": 12, "y": 0},
+            "targets": [
+              {
+                "expr": "rate(http_requests_total{job=~\"orchestrator|gateway|policy-engine\"}[5m])",
+                "legendFormat": "{{job}} - {{method}} {{endpoint}}",
+                "refId": "A"
+              }
+            ],
+            "yaxes": [
+              {"format": "reqps", "label": "Requests/sec"},
+              {"format": "short"}
+            ]
+          },
+          {
+            "id": 3,
+            "title": "P95 Latency",
+            "type": "graph",
+            "gridPos": {"h": 8, "w": 12, "x": 0, "y": 8},
+            "targets": [
+              {
+                "expr": "histogram_quantile(0.95, rate(http_request_duration_seconds_bucket{job=~\"orchestrator|gateway|policy-engine\"}[5m]))",
+                "legendFormat": "{{job}} P95",
+                "refId": "A"
+              }
+            ],
+            "yaxes": [
+              {"format": "s", "label": "Latency"},
+              {"format": "short"}
+            ],
+            "alert": {
+              "name": "High P95 Latency",
+              "conditions": [
+                {
+                  "evaluator": {"params": [0.5], "type": "gt"},
+                  "query": {"params": ["A", "5m", "now"]},
+                  "reducer": {"params": [], "type": "avg"},
+                  "type": "query"
+                }
+              ],
+              "executionErrorState": "alerting",
+              "frequency": "1m",
+              "handler": 1,
+              "message": "P95 latency exceeded 500ms threshold",
+              "noDataState": "no_data",
+              "notifications": []
+            }
+          },
+          {
+            "id": 4,
+            "title": "Error Rate (5xx)",
+            "type": "graph",
+            "gridPos": {"h": 8, "w": 12, "x": 12, "y": 8},
+            "targets": [
+              {
+                "expr": "rate(http_requests_total{job=~\"orchestrator|gateway|policy-engine\",status=~\"5..\"}[5m]) / rate(http_requests_total{job=~\"orchestrator|gateway|policy-engine\"}[5m])",
+                "legendFormat": "{{job}} error rate",
+                "refId": "A"
+              }
+            ],
+            "yaxes": [
+              {"format": "percentunit", "label": "Error Rate"},
+              {"format": "short"}
+            ]
+          },
+          {
+            "id": 5,
+            "title": "Memory Usage (MB)",
+            "type": "graph",
+            "gridPos": {"h": 8, "w": 12, "x": 0, "y": 16},
+            "targets": [
+              {
+                "expr": "process_resident_memory_bytes{job=~\"orchestrator|gateway|policy-engine|slm-service\"} / 1024 / 1024",
+                "legendFormat": "{{job}}",
+                "refId": "A"
+              }
+            ],
+            "yaxes": [
+              {"format": "decmbytes", "label": "Memory"},
+              {"format": "short"}
+            ]
+          },
+          {
+            "id": 6,
+            "title": "CPU Usage",
+            "type": "graph",
+            "gridPos": {"h": 8, "w": 12, "x": 12, "y": 16},
+            "targets": [
+              {
+                "expr": "rate(process_cpu_seconds_total{job=~\"orchestrator|gateway|policy-engine|slm-service\"}[5m])",
+                "legendFormat": "{{job}}",
+                "refId": "A"
+              }
+            ],
+            "yaxes": [
+              {"format": "percentunit", "label": "CPU"},
+              {"format": "short"}
+            ]
+          }
+        ]
+      }
+    }
+
+  kamachiq-workflows.json: |
+    {
+      "dashboard": {
+        "title": "KAMACHIQ - Workflow Execution",
+        "uid": "kamachiq-workflows",
+        "tags": ["kamachiq", "temporal", "sprint-5"],
+        "timezone": "browser",
+        "schemaVersion": 16,
+        "version": 1,
+        "refresh": "10s",
+        "panels": [
+          {
+            "id": 1,
+            "title": "Workflow Execution Success Rate",
+            "type": "stat",
+            "gridPos": {"h": 8, "w": 8, "x": 0, "y": 0},
+            "targets": [
+              {
+                "expr": "(sum(kamachiq_workflow_completed_total) / sum(kamachiq_workflow_started_total)) * 100",
+                "legendFormat": "Success Rate",
+                "refId": "A"
+              }
+            ],
+            "options": {
+              "reduceOptions": {
+                "values": false,
+                "calcs": ["lastNotNull"]
+              }
+            },
+            "fieldConfig": {
+              "defaults": {
+                "unit": "percent",
+                "thresholds": {
+                  "mode": "absolute",
+                  "steps": [
+                    {"value": 0, "color": "red"},
+                    {"value": 90, "color": "yellow"},
+                    {"value": 95, "color": "green"}
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "id": 2,
+            "title": "Active Workflows",
+            "type": "stat",
+            "gridPos": {"h": 8, "w": 8, "x": 8, "y": 0},
+            "targets": [
+              {
+                "expr": "kamachiq_workflow_active",
+                "legendFormat": "Active",
+                "refId": "A"
+              }
+            ]
+          },
+          {
+            "id": 3,
+            "title": "Workflow Duration (avg)",
+            "type": "stat",
+            "gridPos": {"h": 8, "w": 8, "x": 16, "y": 0},
+            "targets": [
+              {
+                "expr": "avg(kamachiq_workflow_duration_seconds)",
+                "legendFormat": "Average",
+                "refId": "A"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "unit": "s"
+              }
+            }
+          },
+          {
+            "id": 4,
+            "title": "Project Decomposition Time",
+            "type": "graph",
+            "gridPos": {"h": 8, "w": 12, "x": 0, "y": 8},
+            "targets": [
+              {
+                "expr": "histogram_quantile(0.95, rate(kamachiq_project_decomposition_seconds_bucket[5m]))",
+                "legendFormat": "P95",
+                "refId": "A"
+              },
+              {
+                "expr": "avg(rate(kamachiq_project_decomposition_seconds_sum[5m]) / rate(kamachiq_project_decomposition_seconds_count[5m]))",
+                "legendFormat": "Average",
+                "refId": "B"
+              }
+            ],
+            "yaxes": [
+              {"format": "s", "label": "Time"},
+              {"format": "short"}
+            ],
+            "alert": {
+              "name": "Slow Project Decomposition",
+              "conditions": [
+                {
+                  "evaluator": {"params": [30], "type": "gt"},
+                  "query": {"params": ["A", "5m", "now"]},
+                  "reducer": {"params": [], "type": "avg"},
+                  "type": "query"
+                }
+              ],
+              "message": "Project decomposition taking >30 seconds",
+              "frequency": "1m"
+            }
+          },
+          {
+            "id": 5,
+            "title": "Agent Spawning Rate",
+            "type": "graph",
+            "gridPos": {"h": 8, "w": 12, "x": 12, "y": 8},
+            "targets": [
+              {
+                "expr": "rate(kamachiq_agent_spawned_total[5m])",
+                "legendFormat": "Agents/sec",
+                "refId": "A"
+              }
+            ],
+            "yaxes": [
+              {"format": "ops", "label": "Agents/sec"},
+              {"format": "short"}
+            ]
+          },
+          {
+            "id": 6,
+            "title": "Quality Gate Auto-Approval Rate",
+            "type": "graph",
+            "gridPos": {"h": 8, "w": 12, "x": 0, "y": 16},
+            "targets": [
+              {
+                "expr": "(sum(rate(kamachiq_quality_gate_auto_approved_total[5m])) / sum(rate(kamachiq_quality_gate_total[5m]))) * 100",
+                "legendFormat": "Auto-Approval Rate",
+                "refId": "A"
+              }
+            ],
+            "yaxes": [
+              {"format": "percent", "label": "Approval Rate"},
+              {"format": "short"}
+            ]
+          },
+          {
+            "id": 7,
+            "title": "Workflow Errors (by type)",
+            "type": "graph",
+            "gridPos": {"h": 8, "w": 12, "x": 12, "y": 16},
+            "targets": [
+              {
+                "expr": "rate(kamachiq_workflow_failed_total[5m])",
+                "legendFormat": "{{error_type}}",
+                "refId": "A"
+              }
+            ]
+          }
+        ]
+      }
+    }
+
+  production-sla.json: |
+    {
+      "dashboard": {
+        "title": "Production - SLA Monitoring",
+        "uid": "production-sla",
+        "tags": ["production", "sla", "sprint-6"],
+        "timezone": "browser",
+        "schemaVersion": 16,
+        "version": 1,
+        "refresh": "10s",
+        "panels": [
+          {
+            "id": 1,
+            "title": "Overall Availability (99.9% target)",
+            "type": "stat",
+            "gridPos": {"h": 8, "w": 8, "x": 0, "y": 0},
+            "targets": [
+              {
+                "expr": "(sum(rate(http_requests_total{job=~\"orchestrator|gateway\",status!~\"5..\"}[1h])) / sum(rate(http_requests_total{job=~\"orchestrator|gateway\"}[1h]))) * 100",
+                "legendFormat": "Availability",
+                "refId": "A"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "unit": "percent",
+                "decimals": 3,
+                "thresholds": {
+                  "mode": "absolute",
+                  "steps": [
+                    {"value": 0, "color": "red"},
+                    {"value": 99, "color": "yellow"},
+                    {"value": 99.9, "color": "green"}
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "id": 2,
+            "title": "P95 Latency (<500ms target)",
+            "type": "stat",
+            "gridPos": {"h": 8, "w": 8, "x": 8, "y": 0},
+            "targets": [
+              {
+                "expr": "histogram_quantile(0.95, rate(http_request_duration_seconds_bucket{job=\"gateway\"}[5m])) * 1000",
+                "legendFormat": "P95 (ms)",
+                "refId": "A"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "unit": "ms",
+                "thresholds": {
+                  "mode": "absolute",
+                  "steps": [
+                    {"value": 0, "color": "green"},
+                    {"value": 500, "color": "yellow"},
+                    {"value": 1000, "color": "red"}
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "id": 3,
+            "title": "Error Budget Remaining",
+            "type": "stat",
+            "gridPos": {"h": 8, "w": 8, "x": 16, "y": 0},
+            "targets": [
+              {
+                "expr": "((sum(rate(http_requests_total{job=\"gateway\",status!~\"5..\"}[1h])) / sum(rate(http_requests_total{job=\"gateway\"}[1h]))) - 0.999) / (1 - 0.999) * 100",
+                "legendFormat": "Budget %",
+                "refId": "A"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "unit": "percent",
+                "thresholds": {
+                  "mode": "absolute",
+                  "steps": [
+                    {"value": 0, "color": "red"},
+                    {"value": 25, "color": "yellow"},
+                    {"value": 50, "color": "green"}
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "id": 4,
+            "title": "Request Volume (1000 concurrent target)",
+            "type": "graph",
+            "gridPos": {"h": 8, "w": 12, "x": 0, "y": 8},
+            "targets": [
+              {
+                "expr": "sum(rate(http_requests_total{job=~\"orchestrator|gateway\"}[5m]))",
+                "legendFormat": "Total req/s",
+                "refId": "A"
+              }
+            ],
+            "yaxes": [
+              {"format": "reqps", "label": "Requests/sec"},
+              {"format": "short"}
+            ]
+          },
+          {
+            "id": 5,
+            "title": "Pod Restarts (Last 24h)",
+            "type": "graph",
+            "gridPos": {"h": 8, "w": 12, "x": 12, "y": 8},
+            "targets": [
+              {
+                "expr": "increase(kube_pod_container_status_restarts_total{namespace=\"soma-agent\"}[24h])",
+                "legendFormat": "{{pod}}",
+                "refId": "A"
+              }
+            ],
+            "alert": {
+              "name": "Frequent Pod Restarts",
+              "conditions": [
+                {
+                  "evaluator": {"params": [3], "type": "gt"},
+                  "query": {"params": ["A", "24h", "now"]},
+                  "reducer": {"params": [], "type": "max"},
+                  "type": "query"
+                }
+              ],
+              "message": "Pod restarting more than 3 times in 24 hours"
+            }
+          },
+          {
+            "id": 6,
+            "title": "Database Connection Pool",
+            "type": "graph",
+            "gridPos": {"h": 8, "w": 12, "x": 0, "y": 16},
+            "targets": [
+              {
+                "expr": "pg_stat_database_numbackends{datname=\"somaagent\"}",
+                "legendFormat": "Active connections",
+                "refId": "A"
+              }
+            ]
+          },
+          {
+            "id": 7,
+            "title": "Kafka Consumer Lag",
+            "type": "graph",
+            "gridPos": {"h": 8, "w": 12, "x": 12, "y": 16},
+            "targets": [
+              {
+                "expr": "kafka_consumer_lag",
+                "legendFormat": "{{topic}} - {{partition}}",
+                "refId": "A"
+              }
+            ],
+            "alert": {
+              "name": "High Consumer Lag",
+              "conditions": [
+                {
+                  "evaluator": {"params": [1000], "type": "gt"},
+                  "query": {"params": ["A", "5m", "now"]},
+                  "reducer": {"params": [], "type": "max"},
+                  "type": "query"
+                }
+              ],
+              "message": "Kafka consumer lag exceeds 1000 messages"
+            }
+          }
+        ]
+      }
+    }
+
+  marketplace-analytics.json: |
+    {
+      "dashboard": {
+        "title": "Marketplace - Analytics & Revenue",
+        "uid": "marketplace-analytics",
+        "tags": ["marketplace", "analytics", "sprint-7"],
+        "timezone": "browser",
+        "schemaVersion": 16,
+        "version": 1,
+        "refresh": "30s",
+        "panels": [
+          {
+            "id": 1,
+            "title": "Capsule Executions (24h)",
+            "type": "stat",
+            "gridPos": {"h": 8, "w": 6, "x": 0, "y": 0},
+            "targets": [
+              {
+                "expr": "sum(increase(capsule_execution_total[24h]))",
+                "legendFormat": "Executions",
+                "refId": "A"
+              }
+            ]
+          },
+          {
+            "id": 2,
+            "title": "Revenue (24h)",
+            "type": "stat",
+            "gridPos": {"h": 8, "w": 6, "x": 6, "y": 0},
+            "targets": [
+              {
+                "expr": "sum(increase(capsule_revenue_total[24h]))",
+                "legendFormat": "Revenue",
+                "refId": "A"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "unit": "currencyUSD"
+              }
+            }
+          },
+          {
+            "id": 3,
+            "title": "Active Capsules",
+            "type": "stat",
+            "gridPos": {"h": 8, "w": 6, "x": 12, "y": 0},
+            "targets": [
+              {
+                "expr": "count(capsule_info{status=\"active\"})",
+                "legendFormat": "Active",
+                "refId": "A"
+              }
+            ]
+          },
+          {
+            "id": 4,
+            "title": "Marketplace Search Latency",
+            "type": "stat",
+            "gridPos": {"h": 8, "w": 6, "x": 18, "y": 0},
+            "targets": [
+              {
+                "expr": "histogram_quantile(0.95, rate(marketplace_search_duration_seconds_bucket[5m])) * 1000",
+                "legendFormat": "P95 (ms)",
+                "refId": "A"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "unit": "ms",
+                "thresholds": {
+                  "mode": "absolute",
+                  "steps": [
+                    {"value": 0, "color": "green"},
+                    {"value": 500, "color": "yellow"},
+                    {"value": 1000, "color": "red"}
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "id": 5,
+            "title": "Top 10 Capsules by Execution",
+            "type": "graph",
+            "gridPos": {"h": 8, "w": 12, "x": 0, "y": 8},
+            "targets": [
+              {
+                "expr": "topk(10, sum by (capsule_id) (rate(capsule_execution_total[1h])))",
+                "legendFormat": "{{capsule_id}}",
+                "refId": "A"
+              }
+            ]
+          },
+          {
+            "id": 6,
+            "title": "Revenue by Capsule",
+            "type": "graph",
+            "gridPos": {"h": 8, "w": 12, "x": 12, "y": 8},
+            "targets": [
+              {
+                "expr": "topk(10, sum by (capsule_id) (rate(capsule_revenue_total[1h])))",
+                "legendFormat": "{{capsule_id}}",
+                "refId": "A"
+              }
+            ],
+            "yaxes": [
+              {"format": "currencyUSD"},
+              {"format": "short"}
+            ]
+          },
+          {
+            "id": 7,
+            "title": "Analytics Event Ingestion Rate",
+            "type": "graph",
+            "gridPos": {"h": 8, "w": 12, "x": 0, "y": 16},
+            "targets": [
+              {
+                "expr": "rate(analytics_events_ingested_total[5m])",
+                "legendFormat": "{{event_type}}",
+                "refId": "A"
+              }
+            ],
+            "yaxes": [
+              {"format": "ops", "label": "Events/sec"},
+              {"format": "short"}
+            ]
+          },
+          {
+            "id": 8,
+            "title": "ClickHouse Query Performance",
+            "type": "graph",
+            "gridPos": {"h": 8, "w": 12, "x": 12, "y": 16},
+            "targets": [
+              {
+                "expr": "histogram_quantile(0.95, rate(clickhouse_query_duration_seconds_bucket[5m]))",
+                "legendFormat": "P95",
+                "refId": "A"
+              }
+            ],
+            "yaxes": [
+              {"format": "s", "label": "Query Time"},
+              {"format": "short"}
+            ],
+            "alert": {
+              "name": "Slow ClickHouse Queries",
+              "conditions": [
+                {
+                  "evaluator": {"params": [1], "type": "gt"},
+                  "query": {"params": ["A", "5m", "now"]},
+                  "reducer": {"params": [], "type": "avg"},
+                  "type": "query"
+                }
+              ],
+              "message": "ClickHouse query latency exceeds 1 second"
+            }
+          }
+        ]
+      }
+    }
+---
+# Auto-apply to Grafana: kubectl apply -f grafana-dashboards.yaml
+# Dashboards will appear in Grafana under "General" folder
+# Access: http://localhost:30080 (admin/admin)

@@ -1,0 +1,169 @@
+---
+# Real Kubernetes deployment for orchestrator service
+# Sprint-6: Production-ready with real monitoring, health checks, resource limits
+# NO MOCKS - This is actual production configuration
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: orchestrator
+  namespace: somaagent
+  labels:
+    app: orchestrator
+    component: orchestration
+    monitoring: enabled
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: orchestrator
+  template:
+    metadata:
+      labels:
+        app: orchestrator
+        component: orchestration
+        monitoring: enabled
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8000"
+        prometheus.io/path: "/metrics"
+    spec:
+      containers:
+      - name: orchestrator
+        image: somaagent/orchestrator:latest
+        imagePullPolicy: IfNotPresent
+        
+        ports:
+        - name: http
+          containerPort: 8000
+          protocol: TCP
+        - name: metrics
+          containerPort: 8000
+          protocol: TCP
+        
+        env:
+        # Real service discovery
+        - name: POLICY_ENGINE_URL
+          value: "http://policy-engine:8001"
+        - name: SLM_SERVICE_URL
+          value: "http://slm-service:8003"
+        - name: GATEWAY_API_URL
+          value: "http://gateway-api:8080"
+        - name: IDENTITY_SERVICE_URL
+          value: "http://identity-service:8002"
+        
+        # Real Temporal connection
+        - name: TEMPORAL_HOST
+          value: "temporal.observability:7233"
+        - name: TEMPORAL_NAMESPACE
+          value: "somaagent"
+        - name: TEMPORAL_TASK_QUEUE
+          value: "kamachiq-tasks"
+        
+        # Real observability
+        - name: OTEL_EXPORTER_OTLP_ENDPOINT
+          value: "http://prometheus-prometheus.observability:9090"
+        - name: OTEL_SERVICE_NAME
+          value: "orchestrator"
+        - name: ENVIRONMENT
+          value: "production"
+        
+        # Real logging
+        - name: LOG_LEVEL
+          value: "INFO"
+        - name: LOG_FORMAT
+          value: "json"
+        
+        # Real resource limits
+        resources:
+          requests:
+            cpu: "500m"
+            memory: "512Mi"
+          limits:
+            cpu: "2000m"
+            memory: "2Gi"
+        
+        # Real health checks
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: http
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+        
+        readinessProbe:
+          httpGet:
+            path: /ready
+            port: http
+          initialDelaySeconds: 10
+          periodSeconds: 5
+          timeoutSeconds: 3
+          failureThreshold: 3
+        
+        # Real security context
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          runAsNonRoot: true
+          runAsUser: 1000
+          capabilities:
+            drop:
+            - ALL
+        
+        # Real volume mounts
+        volumeMounts:
+        - name: tmp
+          mountPath: /tmp
+        - name: cache
+          mountPath: /app/cache
+      
+      volumes:
+      - name: tmp
+        emptyDir: {}
+      - name: cache
+        emptyDir: {}
+      
+      # Real pod security
+      securityContext:
+        fsGroup: 1000
+        runAsNonRoot: true
+      
+      # Real scheduling
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            podAffinityTerm:
+              labelSelector:
+                matchExpressions:
+                - key: app
+                  operator: In
+                  values:
+                  - orchestrator
+              topologyKey: kubernetes.io/hostname
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: orchestrator
+  namespace: somaagent
+  labels:
+    app: orchestrator
+    monitoring: enabled
+spec:
+  type: ClusterIP
+  ports:
+  - name: http
+    port: 8000
+    targetPort: http
+    protocol: TCP
+  - name: metrics
+    port: 8000
+    targetPort: metrics
+    protocol: TCP
+  selector:
+    app: orchestrator
+  sessionAffinity: ClientIP

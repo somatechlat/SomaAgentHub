@@ -5,3 +5,9 @@ prometheus-client>=0.20.0
 aiokafka>=0.11.0
 scikit-learn>=1.4.0
 numpy>=1.26.0
+
+# OpenTelemetry for real observability - Sprint-6
+opentelemetry-sdk>=1.25.0
+opentelemetry-exporter-prometheus>=0.46b0
+opentelemetry-exporter-otlp>=1.25.0
+opentelemetry-instrumentation-fastapi>=0.46b0

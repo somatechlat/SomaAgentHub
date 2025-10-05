@@ -17,6 +17,7 @@ from .core.audit import AuditLogger
 from .core.config import settings
 from .core.key_manager import KeyManager
 from .core.storage import IdentityStore
+from .observability import setup_observability
 
 
 async def _rotation_worker(key_manager: KeyManager, interval: float, stop_event: asyncio.Event) -> None:
@@ -94,6 +95,10 @@ def create_app() -> FastAPI:
         return {"message": "SomaGent Identity Service"}
 
     app.include_router(router)
+    
+    # REAL OpenTelemetry instrumentation - no mocks, exports to Prometheus
+    setup_observability("identity-service", app, service_version="0.2.0")
+    
     return app
 
 
