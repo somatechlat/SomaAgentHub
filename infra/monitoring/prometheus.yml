@@ -1,0 +1,208 @@
+# Prometheus Monitoring Configuration for SomaGent
+
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+  external_labels:
+    cluster: 'somagent-production'
+    environment: 'production'
+
+# Alertmanager configuration
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets:
+            - alertmanager:9093
+
+# Load rules once and periodically evaluate them
+rule_files:
+  - "/etc/prometheus/alerting-rules.yml"
+  - "/etc/prometheus/recording-rules.yml"
+
+# Scrape configurations
+scrape_configs:
+  # ============================================================================
+  # GATEWAY API
+  # ============================================================================
+  - job_name: 'gateway-api'
+    static_configs:
+      - targets: ['gateway-api:8000']
+    metrics_path: '/metrics'
+    scrape_interval: 10s
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: instance
+        regex: '([^:]+)(?::\d+)?'
+        replacement: '${1}'
+
+  # ============================================================================
+  # ORCHESTRATOR SERVICE
+  # ============================================================================
+  - job_name: 'orchestrator'
+    static_configs:
+      - targets: ['orchestrator:8001']
+    metrics_path: '/metrics'
+    scrape_interval: 10s
+
+  # ============================================================================
+  # MULTI-AGENT ORCHESTRATOR (MAO)
+  # ============================================================================
+  - job_name: 'mao-service'
+    static_configs:
+      - targets: ['mao-service:8002']
+    metrics_path: '/metrics'
+    scrape_interval: 10s
+    metric_relabel_configs:
+      - source_labels: [__name__]
+        regex: 'mao_workflow_(duration|tasks|status).*'
+        action: keep
+
+  # ============================================================================
+  # TOOL SERVICE (with all adapters)
+  # ============================================================================
+  - job_name: 'tool-service'
+    static_configs:
+      - targets: ['tool-service:8003']
+    metrics_path: '/metrics'
+    scrape_interval: 10s
+    metric_relabel_configs:
+      - source_labels: [__name__]
+        regex: 'tool_(invocation|latency|errors|registry).*'
+        action: keep
+
+  # ============================================================================
+  # KAMACHIQ CONSOLE
+  # ============================================================================
+  - job_name: 'kamachiq-service'
+    static_configs:
+      - targets: ['kamachiq-service:8004']
+    metrics_path: '/metrics'
+    scrape_interval: 10s
+    metric_relabel_configs:
+      - source_labels: [__name__]
+        regex: 'kamachiq_(projects|sessions|governance).*'
+        action: keep
+
+  # ============================================================================
+  # MEMORY GATEWAY
+  # ============================================================================
+  - job_name: 'memory-gateway'
+    static_configs:
+      - targets: ['memory-gateway:8005']
+    metrics_path: '/metrics'
+    scrape_interval: 10s
+
+  # ============================================================================
+  # CONSTITUTION SERVICE
+  # ============================================================================
+  - job_name: 'constitution-service'
+    static_configs:
+      - targets: ['constitution-service:8006']
+    metrics_path: '/metrics'
+    scrape_interval: 15s
+
+  # ============================================================================
+  # POLICY ENGINE
+  # ============================================================================
+  - job_name: 'policy-engine'
+    static_configs:
+      - targets: ['policy-engine:8007']
+    metrics_path: '/metrics'
+    scrape_interval: 10s
+
+  # ============================================================================
+  # BILLING SERVICE
+  # ============================================================================
+  - job_name: 'billing-service'
+    static_configs:
+      - targets: ['billing-service:8008']
+    metrics_path: '/metrics'
+    scrape_interval: 30s
+
+  # ============================================================================
+  # MARKETPLACE SERVICE
+  # ============================================================================
+  - job_name: 'marketplace-service'
+    static_configs:
+      - targets: ['marketplace-service:8009']
+    metrics_path: '/metrics'
+    scrape_interval: 30s
+
+  # ============================================================================
+  # INFRASTRUCTURE - PostgreSQL
+  # ============================================================================
+  - job_name: 'postgres-exporter'
+    static_configs:
+      - targets: ['postgres-exporter:9187']
+    scrape_interval: 30s
+
+  # ============================================================================
+  # INFRASTRUCTURE - Redis
+  # ============================================================================
+  - job_name: 'redis-exporter'
+    static_configs:
+      - targets: ['redis-exporter:9121']
+    scrape_interval: 30s
+
+  # ============================================================================
+  # INFRASTRUCTURE - Kafka
+  # ============================================================================
+  - job_name: 'kafka-exporter'
+    static_configs:
+      - targets: ['kafka-exporter:9308']
+    scrape_interval: 30s
+
+  # ============================================================================
+  # INFRASTRUCTURE - Temporal
+  # ============================================================================
+  - job_name: 'temporal'
+    static_configs:
+      - targets: ['temporal:9090']
+    scrape_interval: 30s
+
+  # ============================================================================
+  # INFRASTRUCTURE - Kubernetes (if deployed on K8s)
+  # ============================================================================
+  - job_name: 'kubernetes-nodes'
+    kubernetes_sd_configs:
+      - role: node
+    relabel_configs:
+      - source_labels: [__address__]
+        regex: '(.*):10250'
+        replacement: '${1}:9100'
+        target_label: __address__
+      - action: labelmap
+        regex: __meta_kubernetes_node_label_(.+)
+
+  - job_name: 'kubernetes-pods'
+    kubernetes_sd_configs:
+      - role: pod
+    relabel_configs:
+      - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_scrape]
+        action: keep
+        regex: true
+      - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_path]
+        action: replace
+        target_label: __metrics_path__
+        regex: (.+)
+      - source_labels: [__address__, __meta_kubernetes_pod_annotation_prometheus_io_port]
+        action: replace
+        regex: ([^:]+)(?::\d+)?;(\d+)
+        replacement: $1:$2
+        target_label: __address__
+      - action: labelmap
+        regex: __meta_kubernetes_pod_label_(.+)
+      - source_labels: [__meta_kubernetes_namespace]
+        action: replace
+        target_label: kubernetes_namespace
+      - source_labels: [__meta_kubernetes_pod_name]
+        action: replace
+        target_label: kubernetes_pod_name
+
+  # ============================================================================
+  # PROMETHEUS SELF-MONITORING
+  # ============================================================================
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+    scrape_interval: 30s

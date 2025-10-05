@@ -1,0 +1,320 @@
+# Prometheus Alerting Rules for SomaGent
+# ⚠️ REAL production alerts - no fake thresholds
+
+groups:
+  # ============================================================================
+  # TOOL ADAPTER ALERTS
+  # ============================================================================
+  - name: tool_adapters
+    interval: 30s
+    rules:
+      - alert: ToolInvocationLatencyHigh
+        expr: histogram_quantile(0.95, rate(tool_invocation_duration_seconds_bucket[5m])) > 0.2
+        for: 5m
+        labels:
+          severity: warning
+          component: tool-service
+        annotations:
+          summary: "Tool invocation P95 latency exceeds 200ms"
+          description: "{{ $labels.tool }} has P95 latency of {{ $value }}s (threshold: 0.2s)"
+      
+      - alert: ToolInvocationFailureRateHigh
+        expr: rate(tool_invocation_errors_total[5m]) / rate(tool_invocation_total[5m]) > 0.05
+        for: 3m
+        labels:
+          severity: critical
+          component: tool-service
+        annotations:
+          summary: "Tool invocation failure rate > 5%"
+          description: "{{ $labels.tool }} has {{ $value | humanizePercentage }} failure rate"
+      
+      - alert: ToolAdapterDown
+        expr: up{job="tool-service"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          component: tool-service
+        annotations:
+          summary: "Tool service is down"
+          description: "Tool service at {{ $labels.instance }} is unreachable"
+      
+      - alert: GitHubRateLimitApproaching
+        expr: github_rate_limit_remaining / github_rate_limit_total < 0.1
+        for: 5m
+        labels:
+          severity: warning
+          component: github-adapter
+        annotations:
+          summary: "GitHub API rate limit approaching"
+          description: "Only {{ $value | humanizePercentage }} of rate limit remaining"
+
+  # ============================================================================
+  # MAO (MULTI-AGENT ORCHESTRATOR) ALERTS
+  # ============================================================================
+  - name: mao_workflows
+    interval: 30s
+    rules:
+      - alert: MAOWorkflowFailureRateHigh
+        expr: rate(mao_workflow_failures_total[10m]) / rate(mao_workflow_total[10m]) > 0.1
+        for: 5m
+        labels:
+          severity: critical
+          component: mao-service
+        annotations:
+          summary: "MAO workflow failure rate > 10%"
+          description: "{{ $value | humanizePercentage }} of workflows are failing"
+      
+      - alert: MAOWorkflowDurationHigh
+        expr: histogram_quantile(0.95, rate(mao_workflow_duration_seconds_bucket[10m])) > 300
+        for: 10m
+        labels:
+          severity: warning
+          component: mao-service
+        annotations:
+          summary: "MAO workflow P95 duration > 5 minutes"
+          description: "Workflows taking {{ $value }}s to complete (threshold: 300s)"
+      
+      - alert: MAOTaskQueueBacklog
+        expr: mao_task_queue_depth > 100
+        for: 5m
+        labels:
+          severity: warning
+          component: mao-service
+        annotations:
+          summary: "MAO task queue has significant backlog"
+          description: "{{ $value }} tasks waiting in queue"
+      
+      - alert: TemporalWorkflowStuck
+        expr: increase(temporal_workflow_stuck_total[15m]) > 5
+        for: 5m
+        labels:
+          severity: critical
+          component: temporal
+        annotations:
+          summary: "Temporal workflows are getting stuck"
+          description: "{{ $value }} workflows stuck in last 15 minutes"
+
+  # ============================================================================
+  # KAMACHIQ CONSOLE ALERTS
+  # ============================================================================
+  - name: kamachiq
+    interval: 30s
+    rules:
+      - alert: KAMACHIQProjectCreationFailureRateHigh
+        expr: rate(kamachiq_project_creation_failures_total[10m]) / rate(kamachiq_project_creation_total[10m]) > 0.15
+        for: 5m
+        labels:
+          severity: critical
+          component: kamachiq-service
+        annotations:
+          summary: "KAMACHIQ project creation failure rate > 15%"
+          description: "{{ $value | humanizePercentage }} of autonomous projects failing"
+      
+      - alert: KAMACHIQGovernanceViolationsHigh
+        expr: rate(kamachiq_governance_violations_total[10m]) > 10
+        for: 5m
+        labels:
+          severity: warning
+          component: kamachiq-service
+        annotations:
+          summary: "High rate of governance violations detected"
+          description: "{{ $value }} violations per second"
+      
+      - alert: KAMACHIQAutoRemediationFailing
+        expr: kamachiq_auto_remediation_success_rate < 0.8
+        for: 10m
+        labels:
+          severity: warning
+          component: kamachiq-service
+        annotations:
+          summary: "Auto-remediation success rate < 80%"
+          description: "Only {{ $value | humanizePercentage }} remediations successful"
+
+  # ============================================================================
+  # TOKEN & BUDGET ALERTS
+  # ============================================================================
+  - name: token_budgets
+    interval: 60s
+    rules:
+      - alert: TokenBudgetExceeded
+        expr: billing_token_usage_total > billing_token_budget_total
+        for: 1m
+        labels:
+          severity: critical
+          component: billing-service
+        annotations:
+          summary: "Token budget exceeded for tenant"
+          description: "Tenant {{ $labels.tenant }} used {{ $value }} tokens (budget: {{ $labels.budget }})"
+      
+      - alert: TokenBudgetApproaching
+        expr: billing_token_usage_total / billing_token_budget_total > 0.8
+        for: 5m
+        labels:
+          severity: warning
+          component: billing-service
+        annotations:
+          summary: "Token budget 80% consumed"
+          description: "Tenant {{ $labels.tenant }} at {{ $value | humanizePercentage }} of budget"
+      
+      - alert: TokenCostAnomalyDetected
+        expr: abs(rate(billing_token_usage_total[1h]) - avg_over_time(rate(billing_token_usage_total[24h])[7d:1h])) > 2 * stddev_over_time(rate(billing_token_usage_total[24h])[7d:1h])
+        for: 10m
+        labels:
+          severity: warning
+          component: billing-service
+        annotations:
+          summary: "Abnormal token usage pattern detected"
+          description: "Tenant {{ $labels.tenant }} usage deviating from 7-day baseline"
+
+  # ============================================================================
+  # INFRASTRUCTURE ALERTS
+  # ============================================================================
+  - name: infrastructure
+    interval: 30s
+    rules:
+      - alert: PostgreSQLDown
+        expr: up{job="postgres-exporter"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          component: postgresql
+        annotations:
+          summary: "PostgreSQL is down"
+          description: "PostgreSQL database is unreachable"
+      
+      - alert: PostgreSQLConnectionPoolExhausted
+        expr: pg_stat_database_numbackends / pg_settings_max_connections > 0.8
+        for: 5m
+        labels:
+          severity: warning
+          component: postgresql
+        annotations:
+          summary: "PostgreSQL connection pool 80% utilized"
+          description: "{{ $value | humanizePercentage }} of max connections in use"
+      
+      - alert: RedisDown
+        expr: up{job="redis-exporter"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          component: redis
+        annotations:
+          summary: "Redis is down"
+          description: "Redis cache is unreachable"
+      
+      - alert: RedisMemoryHigh
+        expr: redis_memory_used_bytes / redis_memory_max_bytes > 0.9
+        for: 5m
+        labels:
+          severity: warning
+          component: redis
+        annotations:
+          summary: "Redis memory usage > 90%"
+          description: "{{ $value | humanizePercentage }} of Redis memory used"
+      
+      - alert: KafkaConsumerLag
+        expr: kafka_consumergroup_lag > 10000
+        for: 5m
+        labels:
+          severity: warning
+          component: kafka
+        annotations:
+          summary: "Kafka consumer lag is high"
+          description: "Consumer group {{ $labels.consumergroup }} has lag of {{ $value }} messages"
+      
+      - alert: KafkaDown
+        expr: up{job="kafka-exporter"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          component: kafka
+        annotations:
+          summary: "Kafka is down"
+          description: "Kafka broker is unreachable"
+
+  # ============================================================================
+  # SERVICE HEALTH ALERTS
+  # ============================================================================
+  - name: service_health
+    interval: 30s
+    rules:
+      - alert: ServiceDown
+        expr: up == 0
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Service {{ $labels.job }} is down"
+          description: "{{ $labels.instance }} has been down for 2 minutes"
+      
+      - alert: HighErrorRate
+        expr: rate(http_requests_total{status=~"5.."}[5m]) / rate(http_requests_total[5m]) > 0.05
+        for: 3m
+        labels:
+          severity: critical
+        annotations:
+          summary: "High error rate on {{ $labels.job }}"
+          description: "{{ $value | humanizePercentage }} of requests are 5xx errors"
+      
+      - alert: HighLatency
+        expr: histogram_quantile(0.95, rate(http_request_duration_seconds_bucket[5m])) > 1.0
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High request latency on {{ $labels.job }}"
+          description: "P95 latency is {{ $value }}s (threshold: 1.0s)"
+      
+      - alert: MemoryPressure
+        expr: container_memory_usage_bytes / container_spec_memory_limit_bytes > 0.9
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Container memory usage > 90%"
+          description: "{{ $labels.container }} using {{ $value | humanizePercentage }} of memory limit"
+      
+      - alert: CPUThrottling
+        expr: rate(container_cpu_cfs_throttled_seconds_total[5m]) > 0.5
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Container CPU is being throttled"
+          description: "{{ $labels.container }} throttled {{ $value }}s in last 5min"
+
+  # ============================================================================
+  # SECURITY ALERTS
+  # ============================================================================
+  - name: security
+    interval: 60s
+    rules:
+      - alert: UnauthorizedAccessAttempts
+        expr: rate(http_requests_total{status="401"}[5m]) > 10
+        for: 3m
+        labels:
+          severity: warning
+          component: security
+        annotations:
+          summary: "High rate of unauthorized access attempts"
+          description: "{{ $value }} 401 errors per second on {{ $labels.job }}"
+      
+      - alert: GovernancePolicyViolation
+        expr: rate(policy_violations_total[10m]) > 5
+        for: 5m
+        labels:
+          severity: critical
+          component: policy-engine
+        annotations:
+          summary: "High rate of policy violations"
+          description: "{{ $value }} policy violations per second"
+      
+      - alert: CertificateExpiringSoon
+        expr: (spire_svid_expiry_timestamp - time()) < 86400
+        for: 1h
+        labels:
+          severity: warning
+          component: spire
+        annotations:
+          summary: "SPIRE SVID certificate expiring soon"
+          description: "Certificate for {{ $labels.spiffe_id }} expires in {{ $value | humanizeDuration }}"
