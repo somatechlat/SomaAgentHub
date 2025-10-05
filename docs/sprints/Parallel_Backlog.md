@@ -11,20 +11,20 @@ All Wave A and Wave B squads are live. This backlog consolidates top deliverable
 
 | Squad / Sprint | Epic | Key Tasks | Owner | Status |
 | --- | --- | --- | --- | --- |
-| Sprint-2 — Governance Core | Policy Engine | Finalize rule model + deterministic evaluator, emit `policy_decision_total` metrics | Policy Lead (Ada) | 🟧 In Progress |
+| Sprint-2 — Governance Core | Policy Engine | Finalize rule model + deterministic evaluator, emit `policy_decision_total` metrics | Policy Lead (Ada) | � Complete |
 | | Constitution Sync | Redis cache warmers, SomaBrain signature verification, Prometheus gauges | Memory Liaison (Ravi) | 🟥 Not Started |
-| | Identity Enhancements | `/v1/tokens/issue` rotation hooks, `identity.audit` Kafka emission | Identity Anchor (Leah) | 🟧 In Progress |
+| | Identity Enhancements | `/v1/tokens/issue` rotation hooks, `identity.audit` Kafka emission | Identity Anchor (Leah) | � Complete |
 | | Gateway Enforcement | Middleware enforcing policy headers + telemetry | Gateway Partner (Noah) | 🟥 Not Started |
 | | Governance Runbook | Update `docs/runbooks/security.md` with rotation cadence + rollback | Security Guild (Mai) | 🟥 Not Started |
-| Sprint-3 — Runtime & Training | Orchestrator Runtime | `/v1/conversation/step` + `/v1/conversation/stream`, SSE bridge, `conversation.events` | Runtime Lead (Kai) | 🟧 In Progress |
-| | Training Mode Control | Redis-backed lock, admin enforcement, `training.audit` topic | Training Owner (Zara) | 🟥 Not Started |
+| Sprint-3 — Runtime & Training | Orchestrator Runtime | `/v1/conversation/step` + `/v1/conversation/stream`, SSE bridge, `conversation.events` | Runtime Lead (Kai) | � Complete |
+| | Training Mode Control | Redis-backed lock, admin enforcement, `training.audit` topic | Training Owner (Zara) | � Complete |
 | | Gateway Handshake | Streaming handshake, moderation integration, trace propagation | Gateway Partner (Noah) | 🟥 Not Started |
 | | Observability | Metrics (`orchestrator_requests_total`, `training_mode_state`), structured logs | Observability Pod (Lina) | 🟥 Not Started |
 | | Integration Tests | End-to-end chat flow with fakeredis + aiokafka fixtures | QA Owner (Milo) | 🟥 Not Started |
-| Sprint-4 — Experience & Ecosystem | Admin Console Shell | Scaffold layout, routing, design tokens | Frontend Lead (Mira) | 🟥 Not Started |
+| Sprint-4 — Experience & Ecosystem | Admin Console Shell | Scaffold layout, routing, design tokens | Frontend Lead (Mira) | � Complete |
 | | Models & Providers Tab | Live settings API integration, token forecasts | UI Engineer (Theo) | 🟥 Not Started |
 | | Marketplace Tab | Capsule list with compliance + token summaries | UI Engineer (Ava) | 🟥 Not Started |
-| | Token Estimator Service | FastAPI service with heuristics, metrics | Backend Partner (Jules) | 🟥 Not Started |
+| | Token Estimator Service | FastAPI service with heuristics, metrics | Backend Partner (Jules) | � Complete |
 | | Marketplace Backend | Extend attestation schema, reviewer workflow, compliance notes | Marketplace Ops (Eli) | 🟥 Not Started |
 | | Docs Refresh | Quickstart + roadmap updates with new UI flows | DevRel Liaison (Nia) | 🟥 Not Started |
 

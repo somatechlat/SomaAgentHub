@@ -106,3 +106,45 @@
 ---
 
 By layering moderation filters, constitutional enforcement, strike tracking, sandboxed tools, and exhaustive observability, SomaGent remains safe and trustworthy—even at internet scale. This playbook should be revisited periodically as new threats emerge.
+
+---
+
+## Cryptography & Security Controls
+
+### Guiding Principles
+- **Defense in depth** – Multiple layers (auth, transport, signing)
+- **Deterministic math** – Reproducible hashes/HMACs for tamper detection
+- **Residency & isolation** – Tenant-region policy enforcement at ingress
+- **Forward-compatible** – Support for key rotation, mTLS upgrades
+
+### Component Security Details
+
+#### Gateway API
+- **JWT verification** using HMAC-SHA256 or issuer algorithm
+- **Residency enforcement** via allow-list; mismatch = 403 before orchestration
+- **Context integrity** using `contextvars` to prevent cross-request leakage
+
+#### Tool Service
+- **Release signing**: Canonical JSON manifests hashed (SHA-256) + HMAC-SHA256
+- **Validation**: Constant-time comparison of recomputed digests
+- **Billing telemetry**: Only trusted metadata posts to analytics
+
+#### Marketplace Capsule Repository
+- **Submission integrity**: Attestation hash required on POST
+- **Installation audit**: Full tenant/environment tracking for compliance
+
+#### Analytics Service
+- **Secure exports**: JSON-only with optional filters
+- **Audit trails**: Persona automation, anomaly scans maintain full history
+- **DR metrics**: Failover drills tracked with RTO/RPO measurements
+
+### Future Enhancements
+1. **mTLS + SPIFFE** for inter-service authentication
+2. **Immutable analytics ledger** using Merkle chains
+3. **Signed exports** with Ed25519/PGP signatures
+4. **Key rotation automation** via Vault/KMS
+5. **Row-level HMACs** in Postgres for analytics data
+
+---
+
+**Last Updated:** October 4, 2025

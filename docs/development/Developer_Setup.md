@@ -145,3 +145,92 @@ Keep this document updated as ports or configurations change.
 - Identity service issues JWTs via `/v1/tokens/issue`; configure `SOMAGENT_IDENTITY_JWT_SECRET` (or `_FILE`).
 - Gateway validates tokens using `SOMAGENT_GATEWAY_JWT_SECRET` (or `_FILE`).
 - MFA endpoints (`/v1/users/{id}/mfa/enroll|verify`) must be used before issuing tokens.
+
+---
+
+## Local Development: Orchestrator Service
+
+### Running Temporal-Backed Orchestrator Locally
+
+This section covers running the orchestrator service with real infrastructure components.
+
+#### Environment Variables
+
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `TEMPORAL_TARGET_HOST` | Temporal frontend host:port | `temporal:7233` |
+| `TEMPORAL_NAMESPACE` | Temporal namespace | `default` |
+| `TEMPORAL_TASK_QUEUE` | Task queue for worker | `somagent.session.workflows` |
+| `POLICY_ENGINE_URL` | Policy engine endpoint | `http://policy-engine:8000/v1/evaluate` |
+| `IDENTITY_SERVICE_URL` | Identity service endpoint | `http://identity-service:8000/v1/tokens/issue` |
+| `KAFKA_BOOTSTRAP_SERVERS` | Kafka brokers | _unset_ |
+| `RAY_ADDRESS` | Ray cluster address | `auto` |
+| `OTEL_EXPORTER_OTLP_ENDPOINT` | OTLP collector | _unset_ |
+
+#### Start Dependencies
+
+1. **Temporal Server:**
+   ```bash
+   temporal server start-dev --ip 0.0.0.0 --port 7233
+   ```
+
+2. **Kafka Cluster:**
+   ```bash
+   # Use docker-compose.stack.yml or connect to integration environment
+   docker-compose -f docker-compose.stack.yml up -d kafka
+   ```
+
+3. **Ray Runtime (optional for SLM):**
+   ```bash
+   ray start --head --port=6379
+   ```
+
+#### Run Orchestrator API
+
+```bash
+uvicorn services.orchestrator.app.main:app --host 0.0.0.0 --port 8090 --reload
+```
+
+**Endpoints:**
+- `POST /v1/sessions/start` – Start session workflow
+- `GET /v1/sessions/{workflow_id}` – Get workflow status
+- `GET /health` – Health check
+- `GET /metrics` – Prometheus metrics
+
+#### Start Temporal Worker
+
+```bash
+python -m services.orchestrator.app.worker
+```
+
+**Registered Activities:**
+- `evaluate-policy` – Policy engine HTTP call
+- `issue-identity-token` – JWT from identity service
+- `run-slm-completion` – Ray remote function
+- `emit-audit-event` – Kafka audit events
+
+#### Smoke Test
+
+```bash
+curl -X POST http://localhost:8090/v1/sessions/start \
+  -H 'Content-Type: application/json' \
+  -d '{
+        "tenant": "tenant-demo",
+        "user": "user-demo",
+        "prompt": "kick off a demo",
+        "metadata": {"session_id": "sess-local"}
+      }'
+
+# Check status
+curl http://localhost:8090/v1/sessions/session-sess-local
+```
+
+**Troubleshooting:**
+- Ensure Temporal server is running and accessible
+- Verify Kafka brokers are reachable if audit events expected
+- Check worker logs for activity execution errors
+- Validate policy engine and identity service are available
+
+---
+
+**Last Updated:** October 4, 2025

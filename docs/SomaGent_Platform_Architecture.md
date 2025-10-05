@@ -333,3 +333,91 @@ soma_gent:
       - name: autonomy_expansion
         focus: kamachiq_multi_agent
 ```
+
+---
+
+## 9. Task Capsule Architecture (Detailed)
+
+### 9.1 Philosophy: Dynamic Agent Composition
+SomaGent does **not** maintain a zoo of permanent agents. Instead, we use **Task Capsules** — portable, versioned packages that describe complete jobs with persona templates, tool stacks, memory snapshots, and guardrails. The orchestrator instantiates capsules on-demand, creating ephemeral agent instances that dissolve after completion.
+
+**Why Capsules beat "lots of agents":**
+- **Scale** – Launch thousands of capsule instances in parallel without overhead of persistent processes
+- **Updatability** – Modify capsule template once, all future runs benefit instantly
+- **Marketplace ready** – Capsules become shareable marketplace assets
+- **Explainability** – Versioned like code, easy to audit execution history
+
+### 9.2 Capsule Lifecycle States
+
+```
+Authoring → Storage → Discovery → Installation → Instantiation → Execution → Completion → Learning
+```
+
+**Key Benefits:**
+1. Reusable across projects
+2. Version-controlled and auditable
+3. Marketplace-ready for sharing
+4. Constitutional compliance enforced
+5. Self-improving via execution metrics
+
+---
+
+## 10. KAMACHIQ Autonomous Mode
+
+### 10.1 Vision
+KAMACHIQ mode enables fully autonomous project execution with minimal human intervention.
+
+**Autonomy Levels:**
+- Level 1: Supervised (human approves each step)
+- Level 2: Semi-Autonomous (approval for high-risk only)
+- Level 3: Autonomous (review at milestones)
+- Level 4: KAMACHIQ (fully autonomous + self-improvement)
+
+**Safety Mechanisms:**
+- Constitutional enforcement at every step
+- Budget limits with automatic pause
+- Human override and kill switch
+- Complete audit trail
+
+### 10.2 KAMACHIQ Execution Phases
+
+1. **Intent Capture** - Parse high-level request
+2. **Planning** - Decompose into deliverables
+3. **Workspace Provisioning** - Setup Git/tools/boards
+4. **Parallel Execution** - Multi-capsule orchestration
+5. **Review & Integration** - Quality gates
+6. **Deployment** - Staging → Production
+7. **Knowledge Sync** - Update SomaBrain
+8. **Self-Improvement** - Analyze and optimize
+
+---
+
+## 11. Deployment Modes
+
+| Mode | Use Case | Training | Enforcement |
+|------|----------|----------|-------------|
+| developer-light | Quick spikes | Enabled | Permissive |
+| developer-full | Integration testing | Opt-in | Relaxed |
+| test | CI pipelines | Frozen | Deterministic |
+| staging | Pre-prod validation | Admin-controlled | Production-like |
+| production | Live deployment | Closed | Strict |
+
+**State Synchronization:**
+- Transactional outbox pattern for events
+- RPO: <1 minute, RTO: <15 minutes
+- Exactly-once message delivery
+
+---
+
+## 12. Reference Documentation
+
+**Architecture:** CANONICAL_ROADMAP.md, KAMACHIQ_Mode_Blueprint.md, SomaGent_Security.md  
+**Development:** Gap_Analysis_Report.md, Implementation_Roadmap.md, Developer_Setup.md  
+**Operations:** runbooks/{disaster_recovery, constitution_update, kamachiq_operations}.md  
+**Sprints:** sprints/{Parallel_Backlog, Parallel_Wave_Schedule, Command_Center}.md
+
+---
+
+**Last Updated:** October 4, 2025  
+**Status:** Living Document (bi-weekly review)  
+**Maintained By:** Architecture Team
