@@ -1,0 +1,87 @@
+# Temporal Dynamic Configuration for Development
+# This file configures runtime behavior without redeploying
+
+# Frontend service limits
+frontend.rps:
+  - value: 2400
+    constraints: {}
+
+# History service limits  
+history.rps:
+  - value: 3000
+    constraints: {}
+
+# Matching service limits
+matching.rps:
+  - value: 2400
+    constraints: {}
+
+# Worker service limits
+worker.rps:
+  - value: 1200
+    constraints: {}
+
+# Workflow execution timeouts
+system.defaultWorkflowExecutionTimeout:
+  - value: "24h"
+    constraints: {}
+
+system.defaultWorkflowRunTimeout:
+  - value: "24h"
+    constraints: {}
+
+system.defaultWorkflowTaskTimeout:
+  - value: "30s"
+    constraints: {}
+
+# Activity execution timeouts
+system.defaultActivityScheduleToStartTimeout:
+  - value: "1m"
+    constraints: {}
+
+system.defaultActivityScheduleToCloseTimeout:
+  - value: "1h"
+    constraints: {}
+
+system.defaultActivityStartToCloseTimeout:
+  - value: "1h"
+    constraints: {}
+
+# Retention period for closed workflows
+system.defaultWorkflowRetentionTTL:
+  - value: "168h"  # 7 days
+    constraints: {}
+
+# Enable advanced visibility (required for search)
+system.enableReadFromSecondaryAdvancedVisibility:
+  - value: true
+    constraints: {}
+
+# History archival
+history.archivalStatus:
+  - value: "disabled"
+    constraints: {}
+
+# Namespace cache refresh
+system.forceSearchAttributesCacheRefreshOnRead:
+  - value: false
+    constraints: {}
+
+# Workflow task processing
+matching.numTaskqueueReadPartitions:
+  - value: 4
+    constraints: {}
+
+matching.numTaskqueueWritePartitions:
+  - value: 4
+    constraints: {}
+
+# Persistence limits
+limit.maxIDLength:
+  - value: 1000
+    constraints: {}
+
+# Worker build id versioning
+worker.buildIdScavengerEnabled:
+  - value: true
+    constraints: {}

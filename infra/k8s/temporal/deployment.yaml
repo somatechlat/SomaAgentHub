@@ -1,0 +1,196 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: temporal-server
+  namespace: temporal
+  labels:
+    app: temporal-server
+    component: workflow-engine
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: temporal-server
+  template:
+    metadata:
+      labels:
+        app: temporal-server
+        version: v1.22.4
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "9090"
+        prometheus.io/path: "/metrics"
+    spec:
+      serviceAccountName: temporal-server
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        fsGroup: 1000
+      
+      initContainers:
+      - name: wait-for-postgres
+        image: postgres:15-alpine
+        command:
+          - sh
+          - -c
+          - |
+            until pg_isready -h temporal-postgres -U temporal; do
+              echo "Waiting for PostgreSQL..."
+              sleep 2
+            done
+        env:
+        - name: PGPASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: temporal-secrets
+              key: postgres-password
+      
+      containers:
+      - name: temporal
+        image: temporalio/server:1.22.4
+        imagePullPolicy: IfNotPresent
+        ports:
+        - name: grpc
+          containerPort: 7233
+          protocol: TCP
+        - name: metrics
+          containerPort: 9090
+          protocol: TCP
+        
+        env:
+        - name: DB
+          value: "postgresql"
+        - name: DB_PORT
+          value: "5432"
+        - name: POSTGRES_USER
+          value: "temporal"
+        - name: POSTGRES_PWD
+          valueFrom:
+            secretKeyRef:
+              name: temporal-secrets
+              key: postgres-password
+        - name: POSTGRES_SEEDS
+          value: "temporal-postgres"
+        - name: DYNAMIC_CONFIG_FILE_PATH
+          value: "/etc/temporal/config/dynamicconfig/development-sql.yaml"
+        - name: ENABLE_ES
+          value: "false"
+        - name: LOG_LEVEL
+          value: "info"
+        - name: SERVICES
+          value: "history,matching,frontend,worker"
+        - name: NUM_HISTORY_SHARDS
+          value: "512"
+        - name: PROMETHEUS_ENDPOINT
+          value: "0.0.0.0:9090"
+        
+        volumeMounts:
+        - name: dynamic-config
+          mountPath: /etc/temporal/config/dynamicconfig
+          readOnly: true
+        
+        resources:
+          requests:
+            cpu: 500m
+            memory: 1Gi
+          limits:
+            cpu: 2000m
+            memory: 4Gi
+        
+        livenessProbe:
+          exec:
+            command:
+            - /bin/sh
+            - -c
+            - temporal workflow list --namespace default --limit 1
+          initialDelaySeconds: 60
+          periodSeconds: 30
+          timeoutSeconds: 10
+          failureThreshold: 3
+        
+        readinessProbe:
+          exec:
+            command:
+            - /bin/sh
+            - -c
+            - temporal workflow list --namespace default --limit 1
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+      
+      volumes:
+      - name: dynamic-config
+        configMap:
+          name: temporal-dynamic-config
+      
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            podAffinityTerm:
+              labelSelector:
+                matchExpressions:
+                - key: app
+                  operator: In
+                  values:
+                  - temporal-server
+              topologyKey: kubernetes.io/hostname
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: temporal-ui
+  namespace: temporal
+  labels:
+    app: temporal-ui
+    component: web-ui
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: temporal-ui
+  template:
+    metadata:
+      labels:
+        app: temporal-ui
+        version: v2.22.3
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+      containers:
+      - name: ui
+        image: temporalio/ui:2.22.3
+        imagePullPolicy: IfNotPresent
+        ports:
+        - name: http
+          containerPort: 8080
+          protocol: TCP
+        env:
+        - name: TEMPORAL_ADDRESS
+          value: "temporal-frontend:7233"
+        - name: TEMPORAL_CORS_ORIGINS
+          value: "http://localhost:3000,https://somagent.ai"
+        - name: TEMPORAL_NOTIFY_ON_NEW_VERSION
+          value: "false"
+        resources:
+          requests:
+            cpu: 100m
+            memory: 256Mi
+          limits:
+            cpu: 500m
+            memory: 512Mi
+        livenessProbe:
+          httpGet:
+            path: /
+            port: 8080
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /
+            port: 8080
+          initialDelaySeconds: 10
+          periodSeconds: 5
