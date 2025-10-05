@@ -1,0 +1,58 @@
+# Temporal Quick Start Configuration for Sprint-5
+# Using embedded Postgres for rapid development
+# Will migrate to external Postgres in Sprint-6 (Production Hardening)
+
+server:
+  replicaCount: 1
+  resources:
+    requests:
+      cpu: 200m
+      memory: 512Mi
+    limits:
+      cpu: 1000m
+      memory: 2Gi
+
+web:
+  enabled: true
+  replicaCount: 1
+  service:
+    type: NodePort
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      cpu: 200m
+      memory: 512Mi
+
+# Use embedded PostgreSQL for quick setup
+postgresql:
+  enabled: true
+  auth:
+    username: temporal
+    password: temporal
+    database: temporal
+  primary:
+    resources:
+      requests:
+        cpu: 100m
+        memory: 256Mi
+      limits:
+        cpu: 200m
+        memory: 512Mi
+
+# Disable external dependencies for now
+cassandra:
+  enabled: false
+
+elasticsearch:
+  enabled: false
+
+mysql:
+  enabled: false
+
+prometheus:
+  enabled: false
+
+grafana:
+  enabled: false

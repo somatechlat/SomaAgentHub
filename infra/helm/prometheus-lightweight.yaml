@@ -1,0 +1,59 @@
+# Lightweight Prometheus Configuration for Sprint-6
+# Minimal setup to get observability running quickly
+
+# Prometheus
+prometheus:
+  enabled: true
+  prometheusSpec:
+    retention: 7d
+    scrapeInterval: 30s
+    resources:
+      requests:
+        cpu: 100m
+        memory: 256Mi
+      limits:
+        cpu: 300m
+        memory: 512Mi
+    serviceMonitorSelectorNilUsesHelmValues: false
+
+# Grafana
+grafana:
+  enabled: true
+  adminPassword: "admin"
+  service:
+    type: NodePort
+    nodePort: 30080
+  resources:
+    requests:
+      cpu: 50m
+      memory: 128Mi
+    limits:
+      cpu: 100m
+      memory: 256Mi
+
+# Alertmanager
+alertmanager:
+  enabled: false  # Not needed for Sprint-5
+
+# Keep only essential exporters
+nodeExporter:
+  enabled: true
+
+kubeStateMetrics:
+  enabled: true
+
+# Disable heavy components
+kubeApiServer:
+  enabled: false
+kubelet:
+  enabled: false
+kubeControllerManager:
+  enabled: false
+kubeScheduler:
+  enabled: false
+kubeProxy:
+  enabled: false
+kubeEtcd:
+  enabled: false
+coreDns:
+  enabled: false

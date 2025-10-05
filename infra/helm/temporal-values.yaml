@@ -1,0 +1,92 @@
+# Temporal Helm Chart Values for SomaAgent Sprint-5
+# Deploy lightweight Temporal for KAMACHIQ autonomous workflows
+# Using auto-setup mode for easier deployment
+
+# Enable schema auto-setup
+schema:
+  setup:
+    enabled: true
+  update:
+    enabled: true
+
+server:
+  replicaCount: 1
+  
+  resources:
+    requests:
+      cpu: 200m
+      memory: 512Mi
+    limits:
+      cpu: 500m
+      memory: 1Gi
+  
+  # Use existing Postgres from soma-memory namespace
+  config:
+    persistence:
+      default:
+        driver: "sql"
+        sql:
+          driver: "postgres12"
+          host: "soma-memory-somafractalmemory-postgres.soma-memory.svc.cluster.local"
+          port: 5432
+          database: "temporal"
+          user: "temporal"
+          password: "temporal"  # TODO: Use Vault in Sprint-6
+          maxConns: 20
+          maxIdleConns: 20
+      
+      visibility:
+        driver: "sql"
+        sql:
+          driver: "postgres12"
+          host: "soma-memory-somafractalmemory-postgres.soma-memory.svc.cluster.local"
+          port: 5432
+          database: "temporal_visibility"
+          user: "temporal"
+          password: "temporal"  # TODO: Use Vault in Sprint-6
+          maxConns: 10
+          maxIdleConns: 10
+
+# Web UI for workflow debugging
+web:
+  enabled: true
+  replicaCount: 1
+  
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      cpu: 200m
+      memory: 512Mi
+  
+  service:
+    type: NodePort
+    port: 8080
+
+# Admin tools
+admintools:
+  enabled: false  # Disable to avoid image pull issues
+
+# Grafana dashboards (will integrate with Sprint-6 observability stack)
+grafana:
+  enabled: false  # Using our own Grafana in Sprint-6
+
+prometheus:
+  enabled: false  # Using our own Prometheus in Sprint-6
+
+# Cassandra not needed - using Postgres
+cassandra:
+  enabled: false
+
+# Elasticsearch not needed - using Postgres for visibility
+elasticsearch:
+  enabled: false
+
+# MySQL not needed - using Postgres
+mysql:
+  enabled: false
+
+# PostgreSQL - use external (soma-memory)
+postgresql:
+  enabled: false

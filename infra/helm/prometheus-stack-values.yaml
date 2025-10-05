@@ -1,0 +1,93 @@
+# Prometheus Stack Values for Sprint-6 Observability
+# Includes Prometheus, Grafana, Alertmanager
+
+# Prometheus configuration
+prometheus:
+  enabled: true
+  prometheusSpec:
+    retention: 30d
+    scrapeInterval: 15s
+    resources:
+      requests:
+        cpu: 200m
+        memory: 512Mi
+      limits:
+        cpu: 500m
+        memory: 2Gi
+    
+    # Service discovery for all namespaces
+    serviceMonitorSelectorNilUsesHelmValues: false
+    podMonitorSelectorNilUsesHelmValues: false
+    
+    # Storage
+    storageSpec:
+      volumeClaimTemplate:
+        spec:
+          accessModes: ["ReadWriteOnce"]
+          resources:
+            requests:
+              storage: 10Gi
+
+# Grafana configuration
+grafana:
+  enabled: true
+  adminPassword: "admin"  # Change in production (Sprint-6 Vault)
+  service:
+    type: NodePort
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      cpu: 200m
+      memory: 512Mi
+  
+  # Pre-configure datasources
+  datasources:
+    datasources.yaml:
+      apiVersion: 1
+      datasources:
+        - name: Prometheus
+          type: prometheus
+          url: http://prometheus-kube-prometheus-prometheus:9090
+          access: proxy
+          isDefault: true
+
+# Alertmanager configuration
+alertmanager:
+  enabled: true
+  alertmanagerSpec:
+    resources:
+      requests:
+        cpu: 50m
+        memory: 128Mi
+      limits:
+        cpu: 100m
+        memory: 256Mi
+
+# Node exporter for infrastructure metrics
+nodeExporter:
+  enabled: true
+
+# Kube-state-metrics for Kubernetes object metrics
+kubeStateMetrics:
+  enabled: true
+
+# Disable some components for lightweight deployment
+kubeApiServer:
+  enabled: true
+
+kubelet:
+  enabled: true
+
+kubeControllerManager:
+  enabled: false  # Not available in Kind/Docker Desktop
+
+kubeScheduler:
+  enabled: false  # Not available in Kind/Docker Desktop
+
+kubeProxy:
+  enabled: false
+
+kubeEtcd:
+  enabled: false  # Not available in Kind/Docker Desktop
