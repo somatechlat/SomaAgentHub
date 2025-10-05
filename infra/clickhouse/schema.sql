@@ -1,7 +1,6 @@
 -- ClickHouse Schema for SomaAgent Analytics - Sprint-7
--- Real database schema for real analytics - NO MOCKS!
 -- 
--- This creates production-ready tables for:
+-- Tables for:
 -- 1. Capsule execution tracking
 -- 2. Conversation analytics
 -- 3. Policy decision logging
@@ -25,7 +24,7 @@ CREATE TABLE IF NOT EXISTS capsule_executions (
     user_id String,
     session_id String,
     
-    -- Timing (Real timestamps, not mocked!)
+    -- Timing
     started_at DateTime64(3) DEFAULT now64(3),
     completed_at DateTime64(3),
     duration_ms UInt32,
@@ -35,7 +34,7 @@ CREATE TABLE IF NOT EXISTS capsule_executions (
     exit_code Int32,
     error_message String,
     
-    -- Resource usage (Real metrics from containers)
+    -- Resource usage (metrics from containers)
     cpu_time_ms UInt32,
     memory_peak_mb UInt32,
     network_bytes_sent UInt64,
@@ -140,7 +139,7 @@ CREATE TABLE IF NOT EXISTS policy_decisions (
     prompt_hash String,  -- For deduplication
     role String,
     
-    -- Decision (Real policy evaluation, not fake!)
+    -- Decision (policy evaluation, not fake!)
     allowed Boolean,
     score Float32,      -- 0.0 to 1.0
     severity Enum8('safe' = 1, 'low' = 2, 'medium' = 3, 'high' = 4, 'critical' = 5),
@@ -187,7 +186,7 @@ CREATE TABLE IF NOT EXISTS marketplace_transactions (
     -- Transaction type
     type Enum8('purchase' = 1, 'subscription' = 2, 'usage_fee' = 3, 'tip' = 4),
     
-    -- Amounts (Real money, not fake!)
+    -- Amounts (money, not fake!)
     amount_usd Decimal(10, 6),
     platform_fee_usd Decimal(10, 6),
     author_revenue_usd Decimal(10, 6),
@@ -242,7 +241,7 @@ CREATE TABLE IF NOT EXISTS workflow_executions (
     tasks_completed UInt16,
     tasks_failed UInt16,
     
-    -- Quality metrics (Real automated review scores)
+    -- Quality metrics (automated review scores)
     quality_score Float32,
     auto_approved Boolean,
     

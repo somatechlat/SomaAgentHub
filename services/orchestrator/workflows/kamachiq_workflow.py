@@ -1,6 +1,6 @@
 """
-Real Temporal workflow definitions for KAMACHIQ autonomous mode.
-Sprint-5: No mocks, no stubs - real Temporal workflows.
+Temporal workflow definitions for KAMACHIQ autonomous mode.
+Sprint-5: Autonomous project orchestration.
 """
 
 from __future__ import annotations
@@ -26,15 +26,12 @@ with workflow.unsafe.imports_passed_through():
 @workflow.defn
 class KAMACHIQProjectWorkflow:
     """
-    Main KAMACHIQ workflow for autonomous project execution.
+    KAMACHIQ autonomous project execution workflow.
     
-    This is a REAL Temporal workflow that orchestrates:
-    1. Project decomposition into tasks
-    2. Multi-agent task execution
-    3. Quality gate reviews
-    4. Result aggregation
+    Orchestrates the complete lifecycle of a project from
+    decomposition through execution to completion.
     
-    No mocks, no stubs - real distributed workflow execution.
+    Uses Temporal for distributed workflow execution.
     """
 
     @workflow.run
@@ -52,7 +49,7 @@ class KAMACHIQProjectWorkflow:
         """
         workflow.logger.info(f"Starting KAMACHIQ project workflow: {project_description[:50]}...")
         
-        # Step 1: Decompose project into executable tasks (REAL activity)
+        # Step 1: Decompose project into executable tasks (activity)
         task_breakdown = await workflow.execute_activity(
             decompose_project,
             args=[project_description, user_id],
@@ -66,7 +63,7 @@ class KAMACHIQProjectWorkflow:
         
         workflow.logger.info(f"Project decomposed into {len(task_breakdown['tasks'])} tasks")
         
-        # Step 2: Create execution plan with dependencies (REAL activity)
+        # Step 2: Create execution plan with dependencies (activity)
         execution_plan = await workflow.execute_activity(
             create_task_plan,
             args=[task_breakdown],
@@ -74,12 +71,12 @@ class KAMACHIQProjectWorkflow:
             retry_policy=RetryPolicy(maximum_attempts=2),
         )
         
-        # Step 3: Execute tasks in parallel where possible (REAL parallel execution)
+        # Step 3: Execute tasks in parallel where possible (parallel execution)
         task_results = []
         for wave in execution_plan['waves']:
             workflow.logger.info(f"Executing wave {wave['wave_number']} with {len(wave['tasks'])} tasks")
             
-            # Execute all tasks in this wave in parallel (REAL concurrency)
+            # Execute all tasks in this wave in parallel (concurrency)
             wave_results = await workflow.execute_activity(
                 execute_task_wave,
                 args=[wave['tasks'], session_id],
@@ -89,7 +86,7 @@ class KAMACHIQProjectWorkflow:
             
             task_results.extend(wave_results)
         
-        # Step 4: Quality gate review (REAL automated review)
+        # Step 4: Quality gate review (automated review)
         review_result = await workflow.execute_activity(
             review_output,
             args=[task_results, project_description],
@@ -99,7 +96,7 @@ class KAMACHIQProjectWorkflow:
         
         workflow.logger.info(f"Quality review: {review_result['status']} (score: {review_result['score']})")
         
-        # Step 5: Aggregate final results (REAL aggregation)
+        # Step 5: Aggregate final results (aggregation)
         final_result = await workflow.execute_activity(
             aggregate_results,
             args=[task_results, review_result],
@@ -142,14 +139,14 @@ class AgentTaskWorkflow:
         """
         workflow.logger.info(f"Agent starting task: {task['name']}")
         
-        # Spawn agent for this task (REAL activity)
+        # Spawn agent for this task (activity)
         agent = await workflow.execute_activity(
             spawn_agent,
             args=[task['type'], task['requirements']],
             start_to_close_timeout=timedelta(seconds=5),
         )
         
-        # Execute task (REAL activity with retries)
+        # Execute task (activity with retries)
         result = await workflow.execute_activity(
             execute_task,
             args=[agent['agent_id'], task, context],
@@ -176,8 +173,12 @@ async def execute_task_wave(tasks: List[Dict[str, Any]], session_id: str) -> Lis
     """
     Execute multiple tasks in parallel using child workflows.
     
-    This is a REAL activity that spawns child workflows for parallel execution.
+    This is a activity that spawns child workflows for parallel execution.
     """
-    # This will be implemented as a real Temporal activity
+    return result
+
+
+@workflow.defn
+class AgentTaskWorkflow:
     # For now, this is the interface definition
     pass

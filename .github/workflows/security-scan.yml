@@ -1,0 +1,126 @@
+name: Security Scan
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+  schedule:
+    # Run daily at 2 AM UTC
+    - cron: '0 2 * * *'
+
+jobs:
+  vulnerability-scan:
+    name: Container Vulnerability Scan
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+    
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v2
+    
+    - name: Build images for scanning
+      run: |
+        docker build -t somaagent/orchestrator:scan -f services/orchestrator/Dockerfile .
+        docker build -t somaagent/gateway-api:scan -f services/gateway-api/Dockerfile .
+        docker build -t somaagent/policy-engine:scan -f services/policy-engine/Dockerfile .
+    
+    - name: Run Trivy vulnerability scanner
+      uses: aquasecurity/trivy-action@master
+      with:
+        scan-type: 'image'
+        image-ref: 'somaagent/orchestrator:scan'
+        format: 'sarif'
+        output: 'trivy-orchestrator.sarif'
+        severity: 'CRITICAL,HIGH'
+    
+    - name: Upload Trivy results to GitHub Security
+      uses: github/codeql-action/upload-sarif@v2
+      with:
+        sarif_file: 'trivy-orchestrator.sarif'
+    
+    - name: Scan all images
+      run: |
+        chmod +x scripts/scan-vulnerabilities.sh
+        ./scripts/scan-vulnerabilities.sh
+  
+  secrets-scan:
+    name: Secrets Scanning
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+      with:
+        fetch-depth: 0
+    
+    - name: Run Gitleaks
+      uses: gitleaks/gitleaks-action@v2
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  
+  dependency-check:
+    name: Dependency Vulnerability Check
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+    
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+    
+    - name: Install dependencies
+      run: |
+        pip install safety pip-audit
+    
+    - name: Run Safety check
+      run: |
+        find services -name requirements.txt -exec safety check --file {} \;
+    
+    - name: Run pip-audit
+      run: |
+        find services -name requirements.txt -exec pip-audit -r {} \;
+  
+  sbom-generation:
+    name: Generate SBOM
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+    
+    - name: Generate SBOM
+      run: |
+        chmod +x scripts/generate-sbom.sh
+        ./scripts/generate-sbom.sh
+    
+    - name: Upload SBOM artifacts
+      uses: actions/upload-artifact@v3
+      with:
+        name: sbom-files
+        path: sbom/*.json
+        retention-days: 30
+  
+  policy-check:
+    name: Policy as Code Check
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+    
+    - name: Run OPA tests
+      run: |
+        # Install OPA
+        curl -L -o opa https://openpolicyagent.org/downloads/latest/opa_linux_amd64
+        chmod +x opa
+        
+        # Test policies if they exist
+        if [ -d "services/policy-engine/policies" ]; then
+          ./opa test services/policy-engine/policies/
+        fi

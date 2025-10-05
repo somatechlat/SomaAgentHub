@@ -1,6 +1,6 @@
 """
-Real Temporal activities for KAMACHIQ workflows.
-Sprint-5: No mocks - real implementations that call real services.
+Temporal activities for KAMACHIQ workflows.
+Sprint-5: HTTP service integrations for autonomous execution.
 """
 
 from __future__ import annotations
@@ -19,18 +19,23 @@ GATEWAY_API_URL = "http://gateway-api:8080"
 
 
 @activity.defn
-async def decompose_project(project_description: str, user_id: str) -> Dict[str, Any]:
+async def decompose_project(project_description: str, user_id: str) -> List[Dict[str, Any]]:
     """
-    Decompose project into executable tasks using REAL SLM service.
+    Decompose project into executable tasks.
     
-    This is a REAL activity that calls the real SLM service to analyze
-    the project description and generate a task breakdown.
+    Calls the SLM service to analyze the project description
+    and generate a task breakdown.
     
-    No mocks, no stubs - real HTTP calls to real services.
+    Args:
+        project_description: Natural language project requirements
+        user_id: User initiating the project
+        
+    Returns:
+        List of task dictionaries with dependencies
     """
     activity.logger.info(f"Decomposing project for user {user_id}")
     
-    # REAL prompt for project decomposition
+    # Prompt for project decomposition
     decomposition_prompt = f"""
     Analyze this project and break it down into concrete, executable tasks:
     
@@ -46,7 +51,7 @@ async def decompose_project(project_description: str, user_id: str) -> Dict[str,
     Output as structured JSON.
     """
     
-    # REAL HTTP call to SLM service
+    # HTTP call to SLM service
     async with httpx.AsyncClient() as client:
         try:
             response = await client.post(
@@ -117,20 +122,20 @@ async def create_task_plan(task_breakdown: Dict[str, Any]) -> Dict[str, Any]:
     """
     Create execution plan with dependency-based waves.
     
-    REAL activity that analyzes task dependencies and creates
+    activity that analyzes task dependencies and creates
     an execution plan with parallel waves.
     """
     activity.logger.info("Creating task execution plan")
     
     tasks = task_breakdown["tasks"]
     
-    # Build dependency graph (REAL algorithm)
+    # Build dependency graph (algorithm)
     task_by_id = {t["id"]: t for t in tasks}
     waves = []
     completed_tasks = set()
     
     while len(completed_tasks) < len(tasks):
-        # Find tasks with all dependencies satisfied (REAL logic)
+        # Find tasks with all dependencies satisfied (logic)
         ready_tasks = [
             t for t in tasks
             if t["id"] not in completed_tasks
@@ -163,7 +168,7 @@ async def spawn_agent(agent_type: str, requirements: Dict[str, Any]) -> Dict[str
     """
     Spawn a new agent instance for task execution.
     
-    REAL activity that creates an agent with specific capabilities.
+    activity that creates an agent with specific capabilities.
     In production, this would allocate resources, load models, etc.
     """
     activity.logger.info(f"Spawning {agent_type} agent")
@@ -188,21 +193,29 @@ async def spawn_agent(agent_type: str, requirements: Dict[str, Any]) -> Dict[str
 
 @activity.defn
 async def execute_task(
-    agent_id: str,
     task: Dict[str, Any],
-    context: Dict[str, Any]
+    agent_instance: Dict[str, Any],
+    user_id: str,
 ) -> Dict[str, Any]:
     """
-    Execute a task with the specified agent.
+    Execute a single task with policy checks.
     
-    REAL activity that runs the task using real services.
-    Calls policy engine for validation, SLM for execution.
+    Runs the task using the SLM service after policy validation.
+    
+    Args:
+        task: Task specification with id, description, type
+        agent_instance: Spawned agent instance details
+        user_id: User context for policy checks
+        
+    Returns:
+        Task execution results with output and metrics
     """
+    agent_id = agent_instance["agent_id"]
     activity.logger.info(f"Agent {agent_id} executing task {task['id']}")
     
     start_time = datetime.utcnow()
     
-    # Step 1: Policy check (REAL call to policy engine)
+    # Step 1: Policy check (call to policy engine)
     async with httpx.AsyncClient() as client:
         try:
             policy_response = await client.post(
@@ -229,7 +242,7 @@ async def execute_task(
                     "duration_ms": 0,
                 }
             
-            # Step 2: Execute task logic (REAL SLM call)
+            # Step 2: Execute task logic (SLM call)
             task_prompt = f"""
             Execute this task:
             
@@ -282,18 +295,18 @@ async def review_output(
     """
     Quality gate review of task outputs.
     
-    REAL activity that analyzes outputs for quality and completeness.
+    activity that analyzes outputs for quality and completeness.
     """
     activity.logger.info(f"Reviewing {len(task_results)} task outputs")
     
-    # Calculate quality metrics (REAL logic)
+    # Calculate quality metrics (logic)
     completed_tasks = sum(1 for r in task_results if r["status"] == "completed")
     failed_tasks = sum(1 for r in task_results if r["status"] == "failed")
     blocked_tasks = sum(1 for r in task_results if r["status"] == "blocked")
     
     success_rate = completed_tasks / len(task_results) if task_results else 0
     
-    # Quality score (REAL calculation)
+    # Quality score (calculation)
     quality_score = success_rate * 100
     
     # Determine approval status
@@ -324,14 +337,14 @@ async def aggregate_results(
     """
     Aggregate task results into final project output.
     
-    REAL activity that combines outputs and creates deliverables.
+    activity that combines outputs and creates deliverables.
     """
     activity.logger.info("Aggregating final project results")
     
-    # Collect all outputs (REAL aggregation)
+    # Collect all outputs (aggregation)
     outputs = [r.get("output", "") for r in task_results if r["status"] == "completed"]
     
-    # Calculate total execution metrics (REAL metrics)
+    # Calculate total execution metrics (metrics)
     total_duration_ms = sum(r.get("duration_ms", 0) for r in task_results)
     total_tokens = sum(r.get("tokens_used", 0) for r in task_results)
     

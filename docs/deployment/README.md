@@ -1,8 +1,6 @@
-# SomaAgent Production Deployment Guide
+# SomaAgent Deployment Guide
 
-**Real Production Deployment - No Mocks, No Bypasses**
-
-This guide covers deploying SomaAgent to a real Kubernetes cluster with full observability, security, and production-grade infrastructure.
+Production deployment to Kubernetes with observability, security, and monitoring.
 
 ## Prerequisites
 
@@ -78,7 +76,7 @@ k9s version
 │  │ (Metrics)  │  │ (Dashboards)│  │  (PagerDuty)│       │
 │  └────────────┘  └────────────┘  └────────────┘        │
 │                                                          │
-│  11 ServiceMonitors → Real-time metrics collection      │
+│  11 ServiceMonitors → Metrics collection      │
 │  4 Dashboards → System, Policy, SLM, KAMACHIQ          │
 └─────────────────────────────────────────────────────────┘
 ```
@@ -120,7 +118,7 @@ docker push your-registry.com/somaagent/policy-engine:latest
 **⚠️ CRITICAL: Change all default passwords in production!**
 
 ```bash
-# Create real secrets file (DO NOT commit!)
+# Create secrets file (DO NOT commit!)
 cat > secrets.env << EOF
 IDENTITY_DB_URL=postgresql://somaagent:$(openssl rand -hex 32)@postgres:5432/identity
 JWT_SECRET=$(openssl rand -hex 64)
@@ -233,7 +231,7 @@ kubectl port-forward -n observability svc/prometheus-grafana 3000:80
 # Navigate to SomaAgent dashboards
 ```
 
-### Test Real Execution
+### Test Execution
 
 ```bash
 # Run KAMACHIQ workflow
@@ -262,7 +260,7 @@ asyncio.run(test())
 
 ## Monitoring
 
-### Real-time Logs
+### Logs
 ```bash
 # All services
 stern -n somaagent .

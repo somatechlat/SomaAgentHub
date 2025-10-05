@@ -1,6 +1,6 @@
 """
-Real Temporal worker for KAMACHIQ workflows.
-Sprint-5: Connects to real Temporal server, executes real workflows.
+Temporal worker for KAMACHIQ workflows.
+Sprint-5: Executes autonomous project orchestration workflows.
 """
 
 import asyncio
@@ -32,19 +32,16 @@ async def run_worker(
     namespace: str = "default",
 ):
     """
-    Run real Temporal worker that executes KAMACHIQ workflows.
-    
-    This is NOT a mock - it connects to a real Temporal server
-    and executes real workflows with real activities.
+    Run Temporal worker that executes KAMACHIQ workflows.
     
     Args:
-        temporal_host: Real Temporal server address
-        task_queue: Real task queue name
-        namespace: Real Temporal namespace
+        temporal_host: Temporal server address
+        task_queue: Task queue name
+        namespace: Temporal namespace
     """
-    logger.info(f"Connecting to REAL Temporal server at {temporal_host}")
+    logger.info(f"Connecting to Temporal server at {temporal_host}")
     
-    # Connect to REAL Temporal server
+    # Connect to Temporal server
     client = await Client.connect(
         temporal_host,
         namespace=namespace,
@@ -53,7 +50,7 @@ async def run_worker(
     logger.info(f"Connected to Temporal namespace: {namespace}")
     logger.info(f"Listening on task queue: {task_queue}")
     
-    # Create REAL worker with real workflows and activities
+    # Create worker with workflows and activities
     worker = Worker(
         client,
         task_queue=task_queue,
@@ -71,12 +68,12 @@ async def run_worker(
         ],
     )
     
-    logger.info("✅ Temporal worker started with REAL workflows")
+    logger.info("✅ Temporal worker started")
     logger.info("   - KAMACHIQProjectWorkflow: Autonomous project execution")
     logger.info("   - AgentTaskWorkflow: Individual agent task execution")
-    logger.info("   - 6 real activities registered")
+    logger.info("   - 6 activities registered")
     
-    # Run worker (REAL execution loop)
+    # Run worker execution loop
     await worker.run()
 
 
@@ -86,15 +83,15 @@ async def start_workflow_example(
     user_id: str = "demo_user",
 ):
     """
-    Example: Start a real KAMACHIQ workflow.
+    Example: Start a KAMACHIQ workflow.
     
-    This demonstrates how to trigger a real workflow execution.
+    Demonstrates workflow execution.
     """
     workflow_id = f"kamachiq-project-{user_id}-{int(asyncio.get_event_loop().time())}"
     
-    logger.info(f"Starting REAL workflow: {workflow_id}")
+    logger.info(f"Starting workflow: {workflow_id}")
     
-    # Start REAL workflow
+    # Start workflow
     handle = await client.start_workflow(
         KAMACHIQProjectWorkflow.run,
         args=[project_description, user_id, workflow_id],
@@ -105,10 +102,10 @@ async def start_workflow_example(
     logger.info(f"Workflow started: {handle.id}")
     logger.info("Waiting for completion...")
     
-    # Wait for REAL result
+    # Wait for result
     result = await handle.result()
     
-    logger.info(f"✅ Workflow completed successfully!")
+    logger.info("✅ Workflow completed successfully!")
     logger.info(f"   Project ID: {result['project_id']}")
     logger.info(f"   Tasks: {result['task_count']}")
     logger.info(f"   Quality Score: {result['quality_score']}%")
@@ -156,7 +153,7 @@ async def main():
 
 if __name__ == "__main__":
     """
-    Run the real Temporal worker.
+    Run Temporal worker.
     
     Usage:
         # Start worker (connects to local Temporal server)

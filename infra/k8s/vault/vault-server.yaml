@@ -1,0 +1,137 @@
+---
+# HashiCorp Vault Server
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: vault
+  namespace: vault
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: vault-config
+  namespace: vault
+data:
+  vault.hcl: |
+    ui = true
+    
+    listener "tcp" {
+      address = "0.0.0.0:8200"
+      tls_disable = 1
+    }
+    
+    storage "file" {
+      path = "/vault/data"
+    }
+    
+    api_addr = "http://vault:8200"
+    cluster_addr = "https://vault:8201"
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: vault
+  namespace: vault
+  labels:
+    app: vault
+spec:
+  serviceName: vault
+  replicas: 1
+  selector:
+    matchLabels:
+      app: vault
+  template:
+    metadata:
+      labels:
+        app: vault
+    spec:
+      serviceAccountName: vault
+      containers:
+      - name: vault
+        image: hashicorp/vault:1.15
+        args:
+          - server
+          - -config=/vault/config/vault.hcl
+        ports:
+        - containerPort: 8200
+          name: http
+        - containerPort: 8201
+          name: cluster
+        env:
+        - name: VAULT_ADDR
+          value: "http://127.0.0.1:8200"
+        - name: VAULT_API_ADDR
+          value: "http://vault:8200"
+        - name: SKIP_SETCAP
+          value: "true"
+        volumeMounts:
+        - name: vault-config
+          mountPath: /vault/config
+        - name: vault-data
+          mountPath: /vault/data
+        securityContext:
+          capabilities:
+            add:
+              - IPC_LOCK
+        livenessProbe:
+          httpGet:
+            path: /v1/sys/health?standbyok=true
+            port: 8200
+            scheme: HTTP
+          initialDelaySeconds: 60
+          periodSeconds: 5
+        readinessProbe:
+          httpGet:
+            path: /v1/sys/health?standbyok=true&sealedcode=204&uninitcode=204
+            port: 8200
+            scheme: HTTP
+          initialDelaySeconds: 5
+          periodSeconds: 5
+      volumes:
+      - name: vault-config
+        configMap:
+          name: vault-config
+  volumeClaimTemplates:
+  - metadata:
+      name: vault-data
+    spec:
+      accessModes:
+        - ReadWriteOnce
+      resources:
+        requests:
+          storage: 10Gi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: vault
+  namespace: vault
+  labels:
+    app: vault
+spec:
+  type: ClusterIP
+  ports:
+    - name: http
+      port: 8200
+      targetPort: 8200
+    - name: cluster
+      port: 8201
+      targetPort: 8201
+  selector:
+    app: vault
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: vault-ui
+  namespace: vault
+  labels:
+    app: vault
+spec:
+  type: LoadBalancer
+  ports:
+    - name: http
+      port: 8200
+      targetPort: 8200
+  selector:
+    app: vault

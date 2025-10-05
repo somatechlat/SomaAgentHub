@@ -1,0 +1,129 @@
+---
+# Vault Auto-Unsealer (for development)
+# In production, use cloud KMS for auto-unseal
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: vault-init
+  namespace: vault
+spec:
+  template:
+    spec:
+      serviceAccountName: vault
+      restartPolicy: Never
+      containers:
+      - name: vault-init
+        image: hashicorp/vault:1.15
+        env:
+        - name: VAULT_ADDR
+          value: "http://vault:8200"
+        command:
+        - /bin/sh
+        - -c
+        - |
+          set -e
+          
+          # Wait for Vault to be ready
+          until vault status 2>/dev/null; do
+            echo "Waiting for Vault..."
+            sleep 2
+          done
+          
+          # Check if already initialized
+          if vault status | grep -q "Initialized.*true"; then
+            echo "Vault already initialized"
+            exit 0
+          fi
+          
+          # Initialize Vault
+          echo "Initializing Vault..."
+          vault operator init \
+            -key-shares=5 \
+            -key-threshold=3 \
+            -format=json > /tmp/vault-init.json
+          
+          # Extract keys and root token
+          cat /tmp/vault-init.json | jq -r '.unseal_keys_b64[]' > /tmp/unseal-keys.txt
+          cat /tmp/vault-init.json | jq -r '.root_token' > /tmp/root-token.txt
+          
+          # Unseal Vault (use first 3 keys)
+          for i in {1..3}; do
+            KEY=$(sed -n "${i}p" /tmp/unseal-keys.txt)
+            vault operator unseal "$KEY"
+          done
+          
+          # Store credentials in Kubernetes Secret
+          kubectl create secret generic vault-keys \
+            --from-file=unseal-keys=/tmp/unseal-keys.txt \
+            --from-file=root-token=/tmp/root-token.txt \
+            --namespace=vault \
+            --dry-run=client -o yaml | kubectl apply -f -
+          
+          echo "Vault initialized and unsealed"
+---
+# Vault Unseal CronJob (runs every 5 minutes)
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: vault-unseal
+  namespace: vault
+spec:
+  schedule: "*/5 * * * *"
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          serviceAccountName: vault
+          restartPolicy: OnFailure
+          containers:
+          - name: vault-unseal
+            image: hashicorp/vault:1.15
+            env:
+            - name: VAULT_ADDR
+              value: "http://vault:8200"
+            command:
+            - /bin/sh
+            - -c
+            - |
+              set -e
+              
+              # Check if Vault is sealed
+              if vault status | grep -q "Sealed.*false"; then
+                echo "Vault is already unsealed"
+                exit 0
+              fi
+              
+              # Get unseal keys from secret
+              kubectl get secret vault-keys -n vault -o jsonpath='{.data.unseal-keys}' | base64 -d > /tmp/unseal-keys.txt
+              
+              # Unseal with first 3 keys
+              for i in {1..3}; do
+                KEY=$(sed -n "${i}p" /tmp/unseal-keys.txt)
+                vault operator unseal "$KEY" || true
+              done
+              
+              echo "Vault unsealed"
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: vault-secret-manager
+  namespace: vault
+rules:
+- apiGroups: [""]
+  resources: ["secrets"]
+  verbs: ["get", "create", "update", "patch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: vault-secret-manager
+  namespace: vault
+subjects:
+- kind: ServiceAccount
+  name: vault
+  namespace: vault
+roleRef:
+  kind: Role
+  name: vault-secret-manager
+  apiGroup: rbac.authorization.k8s.io

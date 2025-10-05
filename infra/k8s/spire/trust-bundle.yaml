@@ -1,0 +1,10 @@
+---
+# Trust Bundle ConfigMap (populated by SPIRE server)
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: spire-bundle
+  namespace: spire
+data:
+  bundle.crt: |
+    # This will be populated by SPIRE server notifier plugin

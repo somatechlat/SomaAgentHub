@@ -1,0 +1,71 @@
+---
+# Vault Policy for SomaAgent services
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: vault-policies
+  namespace: vault
+data:
+  somaagent-policy.hcl: |
+    # KV v2 secrets
+    path "secret/data/somaagent/*" {
+      capabilities = ["create", "read", "update", "delete", "list"]
+    }
+    
+    path "secret/metadata/somaagent/*" {
+      capabilities = ["list", "read", "delete"]
+    }
+    
+    # Database dynamic credentials
+    path "database/creds/somaagent-*" {
+      capabilities = ["read"]
+    }
+    
+    # Transit encryption
+    path "transit/encrypt/somaagent" {
+      capabilities = ["update"]
+    }
+    
+    path "transit/decrypt/somaagent" {
+      capabilities = ["update"]
+    }
+    
+    # Token management
+    path "auth/token/renew-self" {
+      capabilities = ["update"]
+    }
+    
+    path "auth/token/lookup-self" {
+      capabilities = ["read"]
+    }
+  
+  orchestrator-policy.hcl: |
+    # Orchestrator-specific secrets
+    path "secret/data/somaagent/orchestrator/*" {
+      capabilities = ["read"]
+    }
+    
+    path "database/creds/orchestrator" {
+      capabilities = ["read"]
+    }
+  
+  gateway-policy.hcl: |
+    # Gateway API secrets
+    path "secret/data/somaagent/gateway/*" {
+      capabilities = ["read"]
+    }
+    
+    # JWT signing keys
+    path "secret/data/somaagent/jwt-keys" {
+      capabilities = ["read"]
+    }
+  
+  policy-engine-policy.hcl: |
+    # Policy engine secrets
+    path "secret/data/somaagent/policy-engine/*" {
+      capabilities = ["read"]
+    }
+    
+    path "database/creds/policy-engine" {
+      capabilities = ["read"]
+    }
