@@ -1,25 +1,25 @@
 ---
-# Real Kubernetes deployment for slm-service
-# Sprint-6: Production SLM inference with real models
+# Real Kubernetes deployment for SomaLLM provider
+# Sprint-6: Production SomaLLM inference with real models
 
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: slm-service
+  name: somallm-provider
   namespace: somaagent
   labels:
-    app: slm-service
+    app: somallm-provider
     component: inference
     monitoring: enabled
 spec:
   replicas: 2
   selector:
     matchLabels:
-      app: slm-service
+      app: somallm-provider
   template:
     metadata:
       labels:
-        app: slm-service
+        app: somallm-provider
         component: inference
         monitoring: enabled
       annotations:
@@ -28,8 +28,8 @@ spec:
         prometheus.io/path: "/metrics"
     spec:
       containers:
-      - name: slm-service
-        image: somaagent/slm-service:latest
+      - name: somallm-provider
+        image: somaagent/somallm-provider:latest
         imagePullPolicy: IfNotPresent
         
         ports:
@@ -57,7 +57,7 @@ spec:
         - name: OTEL_EXPORTER_OTLP_ENDPOINT
           value: "http://prometheus-prometheus.observability:9090"
         - name: OTEL_SERVICE_NAME
-          value: "slm-service"
+          value: "somallm-provider"
         - name: ENVIRONMENT
           value: "production"
         
@@ -108,7 +108,7 @@ spec:
       volumes:
       - name: models
         persistentVolumeClaim:
-          claimName: slm-models
+          claimName: somallm-models
       - name: cache
         emptyDir: {}
 
@@ -116,10 +116,10 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: slm-service
+  name: somallm-provider
   namespace: somaagent
   labels:
-    app: slm-service
+    app: somallm-provider
     monitoring: enabled
 spec:
   type: ClusterIP
@@ -133,14 +133,14 @@ spec:
     targetPort: metrics
     protocol: TCP
   selector:
-    app: slm-service
+    app: somallm-provider
 
 ---
 # Real PVC for model storage
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
-  name: slm-models
+  name: somallm-models
   namespace: somaagent
 spec:
   accessModes:

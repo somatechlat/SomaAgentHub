@@ -83,6 +83,7 @@ Located in `sprints/` folder:
 | **Sprint-5** | Redis Locks | ✅ Complete | [Sprint-5.md](sprints/Sprint-5.md) |
 | **Sprint-6** | Qdrant Vector DB | ✅ Complete | [Sprint-6.md](sprints/Sprint-6.md) |
 | **Sprint-7** | Analytics Integration | ✅ Complete | [Sprint-7.md](sprints/Sprint-7.md) |
+| **Sprint Wave 4** | SomaBrain Experience Marketplace (parallel) | 🚀 Initiated | [Sprint_Wave_4_SomaBrain_Experience_Marketplace.md](sprints/Sprint_Wave_4_SomaBrain_Experience_Marketplace.md) |
 
 ### Sprint Reports
 - **[WAVE_2_SPRINT_COMPLETION_REPORT.md](sprints/WAVE_2_SPRINT_COMPLETION_REPORT.md)** - Wave 2 sprints (OpenAI, Redis, Qdrant, Analytics)

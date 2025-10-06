@@ -7,7 +7,7 @@ Tracks availability, latency, and error rate SLOs.
 import logging
 from typing import Dict, List, Optional
 from dataclasses import dataclass
-from datetime import datetime, timedelta
+from datetime import datetime
 from enum import Enum
 
 logger = logging.getLogger(__name__)
@@ -68,7 +68,7 @@ SERVICE_SLOS: List[SLO] = [
     # SLM Service
     SLO(
         name="slm_availability",
-        service="slm-service",
+        service="somallm-provider",
         metric="availability",
         target=99.5,  # 99.5% uptime
         window="30d",
@@ -76,7 +76,7 @@ SERVICE_SLOS: List[SLO] = [
     ),
     SLO(
         name="slm_latency_p99",
-        service="slm-service",
+        service="somallm-provider",
         metric="latency_p99",
         target=2000.0,  # 2s p99 latency
         window="24h",

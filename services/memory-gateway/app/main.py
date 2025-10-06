@@ -58,7 +58,7 @@ async def remember(payload: RememberRequest):
         text_to_embed = json.dumps(payload.value) if not isinstance(payload.value, str) else payload.value
         
         try:
-            slm_url = os.getenv("SLM_SERVICE_URL", "http://localhost:8003")
+            slm_url = os.getenv("SOMALLM_PROVIDER_URL") or os.getenv("SLM_SERVICE_URL", "http://localhost:8003")
             async with httpx.AsyncClient(timeout=10.0) as client:
                 response = await client.post(
                     f"{slm_url}/v1/embeddings",
@@ -68,7 +68,7 @@ async def remember(payload: RememberRequest):
                 data = response.json()
                 vector = data["vectors"][0]["embedding"]
         except Exception as exc:
-            print(f"[SLM_WARNING] Embedding generation failed, using zero vector: {exc}")
+            print(f"[SOMALLM_WARNING] Embedding generation failed, using zero vector: {exc}")
             vector = [0.0] * 768  # Fallback to zero vector
         
         await _qdrant_client.upsert_points(
@@ -108,7 +108,7 @@ async def rag(request: RAGRequest):
         import os
         
         try:
-            slm_url = os.getenv("SLM_SERVICE_URL", "http://localhost:8003")
+            slm_url = os.getenv("SOMALLM_PROVIDER_URL") or os.getenv("SLM_SERVICE_URL", "http://localhost:8003")
             async with httpx.AsyncClient(timeout=10.0) as client:
                 response = await client.post(
                     f"{slm_url}/v1/embeddings",
@@ -118,7 +118,7 @@ async def rag(request: RAGRequest):
                 data = response.json()
                 query_vector = data["vectors"][0]["embedding"]
         except Exception as exc:
-            print(f"[SLM_WARNING] Query embedding failed, using zero vector: {exc}")
+            print(f"[SOMALLM_WARNING] Query embedding failed, using zero vector: {exc}")
             query_vector = [0.0] * 768  # Fallback to zero vector
         
         results = await _qdrant_client.search(

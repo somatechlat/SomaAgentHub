@@ -23,6 +23,7 @@ from .core.constitution import (
     load_verified_constitution,
 )
 from .core.models import ConstitutionBundle
+from .core.signing import ManifestSigningError, ManifestSigner, load_signer_from_env
 
 logger = logging.getLogger(__name__)
 
@@ -57,6 +58,12 @@ def create_app() -> FastAPI:
         registry = ConstitutionRegistry(verified, tenants=settings.tenants)
         app.state.redis_client = redis_client
         app.state.constitution_registry = registry
+        signer: ManifestSigner | None = None
+        try:
+            signer = load_signer_from_env()
+        except ManifestSigningError as exc:
+            logger.warning("Manifest signing disabled: %s", exc)
+        app.state.manifest_signer = signer
         for tenant in settings.tenants:
             _record_sync_metrics(tenant, verified.hash)
 

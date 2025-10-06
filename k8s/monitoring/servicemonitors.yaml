@@ -83,15 +83,15 @@ spec:
 apiVersion: monitoring.coreos.com/v1
 kind: ServiceMonitor
 metadata:
-  name: slm-service-metrics
+  name: somallm-provider-metrics
   namespace: observability
   labels:
-    app: slm-service
+    app: somallm-provider
     release: prometheus
 spec:
   selector:
     matchLabels:
-      app: slm-service
+      app: somallm-provider
   endpoints:
     - port: metrics
       path: /metrics

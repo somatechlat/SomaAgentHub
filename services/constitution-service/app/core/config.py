@@ -22,6 +22,7 @@ class Settings(BaseSettings):
     data_dir: Path = Field(default_factory=lambda: Path(__file__).resolve().parent.parent / "data")
     bundle_path: Path | None = None
     public_key_path: Path | None = None
+    private_key_path: Path | None = None
     tenants: list[str] = Field(default_factory=lambda: ["somagent", "tenantA", "tenantB"])
     model_config = SettingsConfigDict(env_prefix="SOMAGENT_CONSTITUTION_", extra="allow")
 
@@ -30,6 +31,8 @@ class Settings(BaseSettings):
             self.bundle_path = self.data_dir / "constitution_bundle.json"
         if self.public_key_path is None:
             self.public_key_path = self.data_dir / "constitution_public_key.pem"
+        if self.private_key_path is None:
+            self.private_key_path = self.data_dir / "constitution_private_key.pem"
 
 
 @lru_cache

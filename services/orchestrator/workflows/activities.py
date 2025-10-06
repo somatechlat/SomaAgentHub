@@ -5,16 +5,17 @@ Sprint-5: HTTP service integrations for autonomous execution.
 
 from __future__ import annotations
 
-import asyncio
 import httpx
 from datetime import datetime
 from typing import List, Dict, Any
 
 from temporalio import activity
 
+from ..core.config import settings
+
 # Real service endpoints (configured via environment)
-POLICY_ENGINE_URL = "http://policy-engine:8001"
-SLM_SERVICE_URL = "http://slm-service:8003"
+POLICY_ENGINE_URL = str(settings.policy_engine_url)
+SOMALLM_PROVIDER_URL = str(settings.somallm_provider_url)
 GATEWAY_API_URL = "http://gateway-api:8080"
 
 
@@ -23,7 +24,7 @@ async def decompose_project(project_description: str, user_id: str) -> List[Dict
     """
     Decompose project into executable tasks.
     
-    Calls the SLM service to analyze the project description
+    Calls the SomaLLMProvider service to analyze the project description
     and generate a task breakdown.
     
     Args:
@@ -51,11 +52,11 @@ async def decompose_project(project_description: str, user_id: str) -> List[Dict
     Output as structured JSON.
     """
     
-    # HTTP call to SLM service
+    # HTTP call to SomaLLMProvider service
     async with httpx.AsyncClient() as client:
         try:
             response = await client.post(
-                f"{SLM_SERVICE_URL}/v1/infer/sync",
+                f"{SOMALLM_PROVIDER_URL}/v1/infer/sync",
                 json={
                     "prompt": decomposition_prompt,
                     "max_tokens": 200,
@@ -66,7 +67,7 @@ async def decompose_project(project_description: str, user_id: str) -> List[Dict
             response.raise_for_status()
             
             result = response.json()
-            activity.logger.info(f"SLM decomposition completed: {result['model']}")
+            activity.logger.info(f"SomaLLMProvider decomposition completed: {result['model']}")
             
             # Parse the completion into structured tasks
             # In production, this would use proper JSON parsing
@@ -130,7 +131,6 @@ async def create_task_plan(task_breakdown: Dict[str, Any]) -> Dict[str, Any]:
     tasks = task_breakdown["tasks"]
     
     # Build dependency graph (algorithm)
-    task_by_id = {t["id"]: t for t in tasks}
     waves = []
     completed_tasks = set()
     
@@ -200,7 +200,7 @@ async def execute_task(
     """
     Execute a single task with policy checks.
     
-    Runs the task using the SLM service after policy validation.
+    Runs the task using the SomaLLMProvider service after policy validation.
     
     Args:
         task: Task specification with id, description, type
@@ -218,12 +218,13 @@ async def execute_task(
     # Step 1: Policy check (call to policy engine)
     async with httpx.AsyncClient() as client:
         try:
+            session_id = agent_instance.get("session_id", f"task-{task['id']}")
             policy_response = await client.post(
-                f"{POLICY_ENGINE_URL}/v1/evaluate",
+                POLICY_ENGINE_URL,
                 json={
-                    "session_id": context.get("session_id", "default"),
+                    "session_id": session_id,
                     "tenant": "global",
-                    "user": context.get("user_id", "kamachiq_system"),
+                    "user": user_id or "kamachiq_system",
                     "prompt": task["description"],
                     "role": "agent",
                     "metadata": {"task_id": task["id"], "agent_id": agent_id},
@@ -242,7 +243,7 @@ async def execute_task(
                     "duration_ms": 0,
                 }
             
-            # Step 2: Execute task logic (SLM call)
+            # Step 2: Execute task logic (SomaLLMProvider call)
             task_prompt = f"""
             Execute this task:
             
@@ -253,8 +254,8 @@ async def execute_task(
             Provide the implementation or result.
             """
             
-            slm_response = await client.post(
-                f"{SLM_SERVICE_URL}/v1/infer/sync",
+            llm_response = await client.post(
+                f"{SOMALLM_PROVIDER_URL}/v1/infer/sync",
                 json={
                     "prompt": task_prompt,
                     "max_tokens": 150,
@@ -262,8 +263,8 @@ async def execute_task(
                 },
                 timeout=60.0,
             )
-            slm_response.raise_for_status()
-            slm_result = slm_response.json()
+            llm_response.raise_for_status()
+            llm_result = llm_response.json()
             
             duration_ms = int((datetime.utcnow() - start_time).total_seconds() * 1000)
             
@@ -271,9 +272,9 @@ async def execute_task(
             
             return {
                 "status": "completed",
-                "output": slm_result["completion"],
-                "model_used": slm_result["model"],
-                "tokens_used": slm_result["usage"]["total_tokens"],
+                "output": llm_result["completion"],
+                "model_used": llm_result["model"],
+                "tokens_used": llm_result["usage"]["total_tokens"],
                 "duration_ms": duration_ms,
                 "policy_score": policy_result["score"],
             }

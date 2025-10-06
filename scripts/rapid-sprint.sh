@@ -59,7 +59,7 @@ task_update_helm_values() {
     echo "📝 Updating Helm values..."
     
     # Update image tags in values.yaml
-    for service in jobs memory-gateway orchestrator policy-engine settings-service task-capsule-repo slm-service; do
+    for service in jobs memory-gateway orchestrator policy-engine settings-service task-capsule-repo somallm-provider; do
         sed -i.bak "s|ghcr.io/somatechlat/soma-${service}:latest|ghcr.io/somatechlat/soma-${service}:${TAG}|g" k8s/helm/soma-agent/values.yaml
     done
     

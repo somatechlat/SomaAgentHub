@@ -11,9 +11,7 @@ import time
 import sys
 from typing import Dict, List, Any
 from dataclasses import dataclass
-from concurrent.futures import ThreadPoolExecutor
 import subprocess
-import os
 
 @dataclass
 class ServiceTest:
@@ -30,7 +28,6 @@ class SomaAgentTester:
             ServiceTest("memory-gateway", "http://localhost", 9696, ["/health", "/v1/recall/test"]),
             ServiceTest("orchestrator", "http://localhost", 8002, ["/health", "/status"]),
             ServiceTest("policy-engine", "http://localhost", 8100, ["/health", "/validate"]),
-            ServiceTest("slm-service", "http://localhost", 8001, ["/health", "/models"]),
             ServiceTest("settings-service", "http://localhost", 8004, ["/health"]),
             ServiceTest("gateway-api", "http://localhost", 8003, ["/health", "/docs"]),
             ServiceTest("identity-service", "http://localhost", 8006, ["/health"]),

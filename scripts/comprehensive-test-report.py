@@ -150,7 +150,7 @@ class SomaAgentTestReporter:
         
         services = [
             "jobs", "memory-gateway", "orchestrator", "policy-engine", 
-            "slm-service", "settings-service", "gateway-api", "identity-service", 
+            "somallm-provider", "settings-service", "gateway-api", "identity-service", 
             "constitution-service", "analytics-service", "billing-service", "task-capsule-repo"
         ]
         
@@ -249,16 +249,16 @@ class SomaAgentTestReporter:
         k8s = self.report["kubernetes_status"]
         ci = self.report["ci_tests"]
         
-        print(f"🏗️ KUBERNETES DEPLOYMENT:")
+        print("🏗️ KUBERNETES DEPLOYMENT:")
         print(f"   • Pods Running: {k8s.get('running_pods', 0)}/{k8s.get('total_pods', 0)}")
         print(f"   • Services Created: {k8s.get('total_services', 0)}")
         print(f"   • Success Rate: {k8s.get('deployment_success_rate', 0):.1f}%")
         
-        print(f"\n🔄 CI/CD PIPELINE:")
+        print("\n🔄 CI/CD PIPELINE:")
         print(f"   • Tests Passed: {ci.get('passed', 0)}/{ci.get('total', 0)}")
         print(f"   • Success Rate: {ci.get('success_rate', 0):.1f}%")
         
-        print(f"\n🏥 SERVICE HEALTH:")
+        print("\n🏥 SERVICE HEALTH:")
         health_summary = {}
         for service, data in self.report["service_health"].items():
             if "server_started" in data.get("issues", []):
@@ -272,20 +272,20 @@ class SomaAgentTestReporter:
         print(f"   • Services with Issues: {health_summary.get('issues', 0)}")
         print(f"   • Unknown Status: {health_summary.get('unknown', 0)}")
         
-        print(f"\n💡 KEY RECOMMENDATIONS:")
+        print("\n💡 KEY RECOMMENDATIONS:")
         for rec in self.report["recommendations"]:
             print(f"   {rec}")
         
         # Overall assessment
         if (k8s.get("deployment_success_rate", 0) >= 100 and 
             ci.get("success_rate", 0) >= 80):
-            print(f"\n🎯 OVERALL ASSESSMENT: 🚀 PLATFORM READY FOR DEVELOPMENT!")
+            print("\n🎯 OVERALL ASSESSMENT: 🚀 PLATFORM READY FOR DEVELOPMENT!")
             return True
         elif (k8s.get("deployment_success_rate", 0) >= 50):
-            print(f"\n🎯 OVERALL ASSESSMENT: ⚠️ PLATFORM PARTIALLY OPERATIONAL")
+            print("\n🎯 OVERALL ASSESSMENT: ⚠️ PLATFORM PARTIALLY OPERATIONAL")
             return False
         else:
-            print(f"\n🎯 OVERALL ASSESSMENT: ❌ PLATFORM NEEDS ATTENTION")
+            print("\n🎯 OVERALL ASSESSMENT: ❌ PLATFORM NEEDS ATTENTION")
             return False
     
     def run_full_test_suite(self):

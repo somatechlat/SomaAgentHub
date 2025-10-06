@@ -1,6 +1,8 @@
-# SLM Service
+# SomaLLMProvider Service
 
-The SLM service now ships with deterministic local language models that power
+# Overview
+
+The SomaLLMProvider service ships with deterministic local language models that power
 synchronous inference and embedding endpoints without external dependencies.
 
 ## Quick start

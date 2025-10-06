@@ -23,9 +23,9 @@ spec:
             pathType: Prefix
             backend:
               service:
-                name: slm-service
+                name: somallm-provider
                 port:
-                  number: {{ (index .Values.services "slm-service").port }}
+                  number: {{ (index .Values.services "somallm-provider").port }}
           - path: /policy(/|$)(.*)
             pathType: Prefix
             backend:

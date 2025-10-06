@@ -199,6 +199,57 @@
 
 ### Medium Term (Weeks 3-6)
 1. **KAMACHIQ Implementation** - Autonomous project execution
+
+### ⚡ WAVE 4: SomaBrain Experience Marketplace (Oct-Nov 2025) — INITIATED
+
+**Mission:** Convert SomaBrain’s cognitive stack (see `SomaBrain_Canonical_Mathematics.md`), SomaFractal Memory, and the SLM model-box catalog into shareable, monetizable expert personas while preserving constitutional guarantees.
+
+**Start Date:** October 6, 2025 (parallel execution; unlimited capacity)  
+**Success Criteria:**
+- Persona capsules can be exported/imported with signed manifests, memory snapshots, and tool manifests.
+- Marketplace surfaces SomaModelBox presets alongside third-party boxes with billing + entitlement controls.
+- Training mode lifecycle supports “publish-ready” reviews, and governance telemetry proves reward/audit invariants remain intact.
+- Observability charts track utility, token spend, rental SLAs, and marketplace conversions.
+
+**Key Dependencies:** Existing Marketplace backend API, Identity/OPA enforcement, Memory Gateway (Qdrant), SLM service, Kafka audit streams.
+
+#### Parallel Sprint Tracks (Wave 4)
+
+1. **Sprint Ω-A: SomaBrain Memory Amplification**  
+  - Implement geodesic similarity + bridge planning (Docs §2, §10) in `somabrain/memory_client.py` and `transport/bridge.py`.  
+  - Activate FRGO transport learning with guardrails + telemetry (`transport/flow_opt.py`).  
+  - Ship density-matrix cleanup + anomaly dashboards for memory integrity.  
+  - Deliver property-based tests + SPC monitors for the new retrieval math.
+
+2. **Sprint Ω-B: Persona Capsule Packaging**  
+  - Define `capsules/persona_manifest.yaml` schema (model box ref, memory bundle, tool ACL, constitution hash).  
+  - Build export/import pipelines leveraging training-mode snapshots + MinIO artifact storage.  
+  - Attach evaluation harness + scoring rubric to every capsule (reward gating invariant).  
+  - Provide developer CLI (`cli/soma persona publish`) with integrity verification.
+
+3. **Sprint Ω-C: Marketplace Commerce & Rentals**  
+  - Extend Marketplace service with listings for persona/model boxes, pricing tiers (purchase, subscription, timed rental).  
+  - Integrate entitlement + billing events (token estimator, cost analytics) and expose `/v1/marketplace/personas/rent`.  
+  - Implement rental session orchestration (timeboxed access, auto off-boarding, cost quotas).  
+  - Surface storefront UI/CLI metadata so agents can discover available boxes programmatically.
+
+4. **Sprint Ω-D: Governance, Trust & Operations**  
+  - Harden training-mode workflow: approval queue, audit events, kill-switch, and constitution signature checks.  
+  - Add Ed25519 manifest signing + verification pipeline for persona exports.  
+  - Create marketplace moderation playbook + automated policy checks (OPA policies for knowledge sharing).  
+  - Expand Grafana with Marketplace/Persona dashboards (utility, rentals, SLA adherence) and alerting on policy breaches.
+
+**Milestones:**
+- **T+7 days:** Wave 4 design reviews + manifest schema frozen.  
+- **T+14 days:** First internal persona capsule (SomaModelBox_PM) published + rented via staging.  
+- **T+21 days:** Marketplace rentals live with billing + observability.  
+- **T+28 days:** Public launch readiness review; governance sign-off and documentation complete.
+
+**Cross-Cutting Actions:**
+- Update runbooks (`docs/runbooks/kamachiq_operations.md`, new marketplace ops guide).  
+- Refresh constitution & policy docs with marketplace clauses.  
+- Align legal/contracts on persona/IP sharing and rental SLAs.  
+- Prepare marketing/demo assets highlighting “rent a specialist” storyline.
 2. **Multi-tenancy** - Complete tenant isolation and billing
 3. **Security Hardening** - mTLS, RBAC, and audit compliance
 4. **Performance Optimization** - Load testing and scaling

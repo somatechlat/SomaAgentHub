@@ -21,17 +21,22 @@ SERVICES=(
     "gateway-api"
     "policy-engine"
     "identity-service"
-    "slm-service"
+    "somallm-provider"
     "analytics-service"
 )
 
 for service in "${SERVICES[@]}"; do
     echo "📦 Building $service..."
+
+    build_dir="$service"
+    if [[ "$service" == "somallm-provider" ]]; then
+        build_dir="somallm-provider"
+    fi
     
     docker build \
         -t "$REGISTRY/$service:$TAG" \
-        -f "$SERVICES_DIR/$service/Dockerfile" \
-        "$SERVICES_DIR/$service/"
+        -f "$SERVICES_DIR/$build_dir/Dockerfile" \
+        "$SERVICES_DIR/$build_dir/"
     
     echo "   ✓ $REGISTRY/$service:$TAG"
     echo ""
@@ -47,7 +52,7 @@ echo "  docker push $REGISTRY/orchestrator:$TAG"
 echo "  docker push $REGISTRY/gateway-api:$TAG"
 echo "  docker push $REGISTRY/policy-engine:$TAG"
 echo "  docker push $REGISTRY/identity-service:$TAG"
-echo "  docker push $REGISTRY/slm-service:$TAG"
+echo "  docker push $REGISTRY/somallm-provider:$TAG"
 echo "  docker push $REGISTRY/analytics-service:$TAG"
 echo ""
 echo "Or run:"

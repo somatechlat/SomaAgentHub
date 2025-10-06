@@ -7,12 +7,17 @@ and retrieve user information. It uses the python-keycloak library.
 from __future__ import annotations
 
 import os
+import sys
 from typing import Any, Dict, Optional
 from functools import lru_cache
 
 from keycloak import KeycloakOpenID
 from keycloak.exceptions import KeycloakError
 from fastapi import HTTPException, status
+
+
+# Ensure module can be accessed via both 'keycloak_client' and 'services.common.keycloak_client' for testing patches
+sys.modules.setdefault('services.common.keycloak_client', sys.modules[__name__])
 
 
 class KeycloakClient:

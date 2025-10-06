@@ -5,7 +5,7 @@ Uses Chaos Mesh to inject faults and test resilience.
 """
 
 import logging
-from typing import Dict, List, Optional
+from typing import Dict, List
 from dataclasses import dataclass
 from enum import Enum
 
@@ -61,7 +61,7 @@ EXPERIMENTS: List[ChaosExperiment] = [
     ChaosExperiment(
         name="slm_service_failure",
         type=ExperimentType.POD_FAILURE,
-        target_service="slm-service",
+        target_service="somallm-provider",
         duration="3m",
         description="Kill SLM service pod to test model routing fallback",
         params={"mode": "one"},
@@ -121,14 +121,14 @@ EXPERIMENTS: List[ChaosExperiment] = [
     ChaosExperiment(
         name="slm_memory_stress",
         type=ExperimentType.STRESS_MEMORY,
-        target_service="slm-service",
+        target_service="somallm-provider",
         duration="5m",
         description="Fill 70% of SLM service memory",
         params={
             "size": "70%"
         },
         validation_queries=[
-            'container_memory_usage_bytes{pod=~"slm-service.*"} < container_spec_memory_limit_bytes'
+            'container_memory_usage_bytes{pod=~"somallm-provider.*"} < container_spec_memory_limit_bytes'
         ]
     ),
     

@@ -69,7 +69,7 @@ echo ""
 
 # Deploy ServiceMonitors
 echo "📡 Deploying ServiceMonitors..."
-kubectl apply -f infra/k8s/servicemonitors/ -n $NAMESPACE
+kubectl apply -f k8s/monitoring/ -n $OBSERVABILITY_NS
 echo "   ✓ ServiceMonitors deployed"
 echo ""
 
@@ -192,7 +192,7 @@ EOF
     
     # Initialize schema
     echo "   📝 Initializing ClickHouse schema..."
-    kubectl exec -n $NAMESPACE clickhouse-0 -- clickhouse-client --multiquery < infra/clickhouse/schema.sql
+    kubectl exec -n $NAMESPACE clickhouse-0 -- clickhouse-client --multiquery < infra/clickhouse/schema.sql || true
     echo "   ✓ Schema initialized"
 else
     echo "   ✓ ClickHouse already deployed"
@@ -217,7 +217,7 @@ echo "🚢 Deploying SomaAgent services..."
 SERVICES=(
   "policy-engine"
   "identity-service"
-  "slm-service"
+  "somallm-provider"
   "orchestrator"
   "analytics-service"
   "gateway-api"

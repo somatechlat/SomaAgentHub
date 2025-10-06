@@ -6,6 +6,7 @@ application and Temporal workers consume the same values.
 
 from __future__ import annotations
 
+import os
 from functools import lru_cache
 from typing import Optional
 
@@ -40,6 +41,30 @@ class Settings(BaseSettings):
         alias="NOTIFICATION_SERVICE_URL",
     )
 
+    # SomaLLM provider (formerly SLM service)
+    somallm_provider_url: AnyUrl = Field(
+        default="http://somallm-provider-service:8003",
+        alias="SOMALLM_PROVIDER_URL",
+    )
+    somallm_provider_health_url: AnyUrl = Field(
+        default="http://somallm-provider-service:8003/health",
+        alias="SOMALLM_PROVIDER_HEALTH_URL",
+    )
+
+    # Constitution service manifest signing
+    constitution_service_url: AnyUrl = Field(
+        default="http://constitution-service:8007/v1",
+        alias="CONSTITUTION_SERVICE_URL",
+    )
+    manifest_signing_enabled: bool = Field(
+        default=True,
+        alias="MANIFEST_SIGNING_ENABLED",
+    )
+    manifest_signing_timeout_seconds: float = Field(
+        default=10.0,
+        alias="MANIFEST_SIGNING_TIMEOUT_SECONDS",
+    )
+
     # Ray runtime (can be local or remote cluster)
     ray_address: Optional[str] = Field(default="auto", alias="RAY_ADDRESS")
     ray_namespace: str = Field(default="somagent", alias="RAY_NAMESPACE")
@@ -52,6 +77,16 @@ class Settings(BaseSettings):
         "env_file_encoding": "utf-8",
         "case_sensitive": False,
     }
+
+    def model_post_init(self, __context) -> None:
+        # Support legacy SLM environment variables for backwards compatibility.
+        legacy_base = os.getenv("SLM_SERVICE_URL")
+        legacy_health = os.getenv("SLM_HEALTH_URL")
+        if legacy_base and not os.getenv("SOMALLM_PROVIDER_URL"):
+            object.__setattr__(self, "somallm_provider_url", legacy_base)
+        if legacy_health and not os.getenv("SOMALLM_PROVIDER_HEALTH_URL"):
+            object.__setattr__(self, "somallm_provider_health_url", legacy_health)
+        super().model_post_init(__context)
 
 
 @lru_cache

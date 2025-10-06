@@ -95,7 +95,7 @@ async def test_qdrant_client():
                     }
                 ],
             )
-            print(f"✓ Upserted test point")
+            print("✓ Upserted test point")
             
             # Search
             results = await qdrant_client.search(

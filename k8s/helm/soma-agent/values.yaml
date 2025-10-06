@@ -52,10 +52,10 @@ services:
       requests:
         cpu: "250m"
         memory: "256Mi"
-  slm-service:
+  somallm-provider:
     enabled: true
     replicaCount: 1
-    image: "ghcr.io/somatechlat/soma-slm-service:80e1d6f"
+    image: "ghcr.io/somatechlat/soma-somallm-provider:80e1d6f"
     imagePullPolicy: Never
     port: 8001
   policy-engine:
@@ -130,8 +130,6 @@ ingress:
     - host: soma-agent.local
       paths:
         - path: /jobs(/|$)(.*)
-          pathType: Prefix
-        - path: /slm(/|$)(.*)
           pathType: Prefix
         - path: /policy(/|$)(.*)
           pathType: Prefix

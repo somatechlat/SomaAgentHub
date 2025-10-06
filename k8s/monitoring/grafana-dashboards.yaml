@@ -28,7 +28,7 @@ data:
             "gridPos": {"h": 8, "w": 12, "x": 0, "y": 0},
             "targets": [
               {
-                "expr": "up{job=~\"orchestrator|gateway|policy-engine|identity-service|slm-service\"}",
+                "expr": "up{job=~\"orchestrator|gateway|policy-engine|identity-service|somallm-provider\"}",
                 "legendFormat": "{{job}}",
                 "refId": "A"
               }
@@ -126,7 +126,7 @@ data:
             "gridPos": {"h": 8, "w": 12, "x": 0, "y": 16},
             "targets": [
               {
-                "expr": "process_resident_memory_bytes{job=~\"orchestrator|gateway|policy-engine|slm-service\"} / 1024 / 1024",
+                "expr": "process_resident_memory_bytes{job=~\"orchestrator|gateway|policy-engine|somallm-provider\"} / 1024 / 1024",
                 "legendFormat": "{{job}}",
                 "refId": "A"
               }
@@ -143,7 +143,7 @@ data:
             "gridPos": {"h": 8, "w": 12, "x": 12, "y": 16},
             "targets": [
               {
-                "expr": "rate(process_cpu_seconds_total{job=~\"orchestrator|gateway|policy-engine|slm-service\"}[5m])",
+                "expr": "rate(process_cpu_seconds_total{job=~\"orchestrator|gateway|policy-engine|somallm-provider\"}[5m])",
                 "legendFormat": "{{job}}",
                 "refId": "A"
               }
@@ -435,6 +435,15 @@ data:
                 "legendFormat": "{{pod}}",
                 "refId": "A"
               }
+              },
+              {
+                "expr": "up{job=~\"orchestrator|gateway|policy-engine|somallm-provider\"}",
+              },
+              {
+                "expr": "process_resident_memory_bytes{job=~\"orchestrator|gateway|policy-engine|somallm-provider\"} / 1024 / 1024",
+              },
+              {
+                "expr": "rate(process_cpu_seconds_total{job=~\"orchestrator|gateway|policy-engine|somallm-provider\"}[5m])",
             ],
             "alert": {
               "name": "Frequent Pod Restarts",

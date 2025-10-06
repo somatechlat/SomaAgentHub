@@ -13,7 +13,7 @@ SERVICES=(
     "policy-engine"
     "settings-service"
     "task-capsule-repo"
-    "slm-service"
+    "somallm-provider"
     "gateway-api"
     "identity-service"
     "constitution-service"

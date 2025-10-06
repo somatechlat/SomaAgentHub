@@ -59,22 +59,21 @@ class OPAClient:
                     headers={"Content-Type": "application/json"},
                 )
                 response.raise_for_status()
+                # httpx.Response.json() is sync, but in tests it may be an async mock returning a coroutine.
                 result = response.json()
+                # If the mock returns a coroutine, await it.
+                if hasattr(result, "__await__"):
+                    result = await result
                 
                 # OPA returns {"result": <policy_output>}
                 policy_result = result.get("result")
                 
-                # If the policy returns a boolean, wrap it
                 if isinstance(policy_result, bool):
                     return {"allowed": policy_result}
-                
-                # If it returns a dict, use it directly
                 if isinstance(policy_result, dict):
                     return policy_result
-                
-                # Fallback: treat any truthy value as allowed
                 return {"allowed": bool(policy_result)}
-                
+        
         except httpx.TimeoutException as exc:
             raise HTTPException(
                 status_code=status.HTTP_504_GATEWAY_TIMEOUT,

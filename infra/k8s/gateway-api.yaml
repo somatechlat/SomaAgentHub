@@ -48,8 +48,8 @@ spec:
           value: "http://policy-engine:8001"
         - name: IDENTITY_SERVICE_URL
           value: "http://identity-service:8002"
-        - name: SLM_SERVICE_URL
-          value: "http://slm-service:8003"
+        - name: SOMALLM_PROVIDER_URL
+          value: "http://somallm-provider:8003"
         
         # Real observability
         - name: OTEL_EXPORTER_OTLP_ENDPOINT

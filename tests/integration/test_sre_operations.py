@@ -2,8 +2,7 @@
 Integration tests for SRE operations.
 """
 
-import pytest
-from services.common.slo_tracker import SLOTracker, SLO, SLOStatus
+from services.common.slo_tracker import SLOTracker, SLO
 from services.common.chaos_experiments import ChaosRunner, ChaosExperiment, ExperimentType
 
 
@@ -81,7 +80,7 @@ class TestChaosEngineering:
         experiment = ChaosExperiment(
             name="test_pod_failure",
             type=ExperimentType.POD_FAILURE,
-            target_service="gateway-api",
+            target_service="somallm-provider",
             duration="1m",
             description="Test pod failure",
             params={"mode": "one"}
@@ -100,7 +99,7 @@ class TestChaosEngineering:
         experiment = ChaosExperiment(
             name="test_network_delay",
             type=ExperimentType.NETWORK_DELAY,
-            target_service="slm-service",
+            target_service="somallm-provider",
             duration="2m",
             description="Test network delay",
             params={

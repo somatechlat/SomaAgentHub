@@ -17,7 +17,7 @@ SERVICES=(
     "policy-engine"
     "settings-service"
     "task-capsule-repo"
-    "slm-service"
+    "somallm-provider"
     "gateway-api"
     "identity-service"
     "constitution-service"
@@ -28,7 +28,11 @@ SERVICES=(
 # Function to build and push a single service
 build_service() {
     local service=$1
-    local service_dir="services/${service}"
+    local build_dir="$service"
+    if [ "$service" = "somallm-provider" ]; then
+        build_dir="slm-service"
+    fi
+    local service_dir="services/${build_dir}"
     
     if [ ! -d "$service_dir" ]; then
         echo "⚠️  Skipping ${service} - directory not found"
