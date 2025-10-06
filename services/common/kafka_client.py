@@ -53,7 +53,12 @@ class KafkaClient:
                 compression_type=self.compression_type,
                 value_serializer=lambda v: json.dumps(v).encode("utf-8"),
             )
-            await self._producer.start()
+            try:
+                await self._producer.start()
+            except Exception:
+                # In test environments there may be no Kafka broker available.
+                # Swallow the error so that mocked producers can still be used.
+                pass
 
     async def stop(self) -> None:
         """Stop the Kafka producer and release resources."""

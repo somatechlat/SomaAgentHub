@@ -21,10 +21,27 @@ TEST_CONFIG = {
 
 
 @pytest.fixture
-async def http_client():
-    """Create async HTTP client."""
-    async with httpx.AsyncClient(timeout=10.0) as client:
+def http_client():
+    """Create async HTTP client.
+
+    Returns an ``httpx.AsyncClient`` instance. The client is closed after the
+    test finishes to avoid resource leaks.
+    """
+    client = httpx.AsyncClient(timeout=10.0)
+    try:
         yield client
+    finally:
+        # Ensure the async client is properly closed. Since this fixture is
+        # synchronous, we run the coroutine to close the client in the event
+        # loop.
+        import asyncio
+        loop = asyncio.get_event_loop()
+        if loop.is_running():
+            # If an event loop is already running (e.g., when used with
+            # ``pytest-asyncio``), schedule the close coroutine.
+            loop.create_task(client.aclose())
+        else:
+            loop.run_until_complete(client.aclose())
 
 
 class TestHealthEndpoints:
