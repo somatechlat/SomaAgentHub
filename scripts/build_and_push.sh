@@ -64,7 +64,7 @@ EOF
     docker build -t "${REGISTRY}/soma-${service}:${TAG}" -t "${REGISTRY}/soma-${service}:latest" "${service_dir}"
     
     # Load image into Kind cluster if it exists
-    if kind get clusters | grep -q "soma-agent"; then
+    if kind get clusters | grep -q "soma-agent-hub"; then
         echo "📥 Loading ${service} into Kind cluster..."
         kind load docker-image "${REGISTRY}/soma-${service}:${TAG}" --name soma-agent-hub
         kind load docker-image "${REGISTRY}/soma-${service}:latest" --name soma-agent-hub
