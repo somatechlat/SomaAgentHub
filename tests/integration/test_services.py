@@ -6,17 +6,16 @@ Sprint-6: Test service health, readiness, and basic functionality.
 import pytest
 import httpx
 import asyncio
-from typing import Dict, Any
 
 
 # Test configuration
 TEST_CONFIG = {
-    "orchestrator": "http://localhost:8000",
-    "gateway_api": "http://localhost:8080",
-    "policy_engine": "http://localhost:8001",
-    "identity_service": "http://localhost:8002",
-    "slm_service": "http://localhost:8003",
-    "analytics_service": "http://localhost:8005",
+    "orchestrator": "http://localhost:1004",
+    "gateway_api": "http://localhost:10000",
+    "policy_engine": "http://localhost:1002",
+    "identity_service": "http://localhost:1007",
+    "slm_service": "http://localhost:10000",  # hub (somallm-provider) same as gateway
+    "analytics_service": "http://localhost:1009",
 }
 
 

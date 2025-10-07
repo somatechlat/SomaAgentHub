@@ -24,7 +24,7 @@ spec:
         monitoring: enabled
       annotations:
         prometheus.io/scrape: "true"
-        prometheus.io/port: "8001"
+        prometheus.io/port: "1002"
         prometheus.io/path: "/metrics"
     spec:
       containers:
@@ -34,10 +34,10 @@ spec:
         
         ports:
         - name: http
-          containerPort: 8001
+          containerPort: 1002
           protocol: TCP
         - name: metrics
-          containerPort: 8100
+          containerPort: 1102
           protocol: TCP
         
         env:
@@ -51,7 +51,7 @@ spec:
         
         # Real constitution service
         - name: CONSTITUTION_SERVICE_URL
-          value: "http://constitution-service:8004"
+          value: "http://constitution-service:1008"
         
         # Real observability
         - name: OTEL_EXPORTER_OTLP_ENDPOINT
@@ -115,11 +115,11 @@ spec:
   type: ClusterIP
   ports:
   - name: http
-    port: 8001
+    port: 1002
     targetPort: http
     protocol: TCP
   - name: metrics
-    port: 8100
+    port: 1102
     targetPort: metrics
     protocol: TCP
   selector:

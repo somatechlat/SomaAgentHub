@@ -19,7 +19,7 @@ spec:
                 name: jobs
                 port:
                   number: {{ (index .Values.services "jobs").port }}
-          - path: /slm(/|$)(.*)
+          - path: /somallm-provider(/|$)(.*)
             pathType: Prefix
             backend:
               service:

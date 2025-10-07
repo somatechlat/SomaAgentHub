@@ -1,6 +1,6 @@
 ---
-# Real Kubernetes deployment for SomaLLM provider
-# Sprint-6: Production SomaLLM inference with real models
+# Real Kubernetes deployment for SomaLLM provider (renamed)
+# Updated ports to 1001
 
 apiVersion: apps/v1
 kind: Deployment
@@ -24,7 +24,7 @@ spec:
         monitoring: enabled
       annotations:
         prometheus.io/scrape: "true"
-        prometheus.io/port: "8003"
+        prometheus.io/port: "1001"
         prometheus.io/path: "/metrics"
     spec:
       containers:
@@ -34,26 +34,21 @@ spec:
         
         ports:
         - name: http
-          containerPort: 8003
+          containerPort: 1001
           protocol: TCP
         - name: metrics
-          containerPort: 8003
+          containerPort: 1002
           protocol: TCP
         
         env:
-        # Real model configuration
         - name: MODEL_PATH
           value: "/models"
         - name: DEFAULT_MODEL
           value: "llama-3.2-1b"
         - name: MAX_CONCURRENT_REQUESTS
           value: "10"
-        
-        # Real GPU config (if available)
         - name: CUDA_VISIBLE_DEVICES
           value: "0"
-        
-        # Real observability
         - name: OTEL_EXPORTER_OTLP_ENDPOINT
           value: "http://prometheus-prometheus.observability:9090"
         - name: OTEL_SERVICE_NAME
@@ -68,8 +63,6 @@ spec:
           limits:
             cpu: "8000m"
             memory: "16Gi"
-            # Real GPU allocation (uncomment if GPU available)
-            # nvidia.com/gpu: "1"
         
         livenessProbe:
           httpGet:
@@ -91,7 +84,7 @@ spec:
         
         securityContext:
           allowPrivilegeEscalation: false
-          readOnlyRootFilesystem: false  # Models need write for cache
+          readOnlyRootFilesystem: false
           runAsNonRoot: true
           runAsUser: 1000
           capabilities:
@@ -108,16 +101,36 @@ spec:
       volumes:
       - name: models
         persistentVolumeClaim:
-          claimName: somallm-models
+          claimName: somallm-provider-models
       - name: cache
         emptyDir: {}
-
 ---
-# Real PVC for model storage
+apiVersion: v1
+kind: Service
+metadata:
+  name: somallm-provider
+  namespace: somaagent
+  labels:
+    app: somallm-provider
+    monitoring: enabled
+spec:
+  type: ClusterIP
+  ports:
+  - name: http
+    port: 1001
+    targetPort: http
+    protocol: TCP
+  - name: metrics
+    port: 1002
+    targetPort: metrics
+    protocol: TCP
+  selector:
+    app: somallm-provider
+---
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
-  name: somallm-models
+  name: somallm-provider-models
   namespace: somaagent
 spec:
   accessModes:
