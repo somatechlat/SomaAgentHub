@@ -250,7 +250,7 @@ TOTAL:        116,470+ lines of production code
 
 ### Infrastructure as Code
 - ✅ **Kubernetes** - All services containerized
-- ✅ **Helm Charts** - `k8s/helm/soma-agent/`
+- ✅ **Helm Charts** - `k8s/helm/soma-agent-hub/`
 - ✅ **Terraform** - AWS infrastructure (VPC, EKS, RDS, S3)
 - ✅ **GitOps** - Argo CD for deployment automation
 

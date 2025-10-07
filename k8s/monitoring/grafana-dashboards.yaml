@@ -431,7 +431,7 @@ data:
             "gridPos": {"h": 8, "w": 12, "x": 12, "y": 8},
             "targets": [
               {
-                "expr": "increase(kube_pod_container_status_restarts_total{namespace=\"soma-agent\"}[24h])",
+                "expr": "increase(kube_pod_container_status_restarts_total{namespace=\"soma-agent-hub\"}[24h])",
                 "legendFormat": "{{pod}}",
                 "refId": "A"
               }

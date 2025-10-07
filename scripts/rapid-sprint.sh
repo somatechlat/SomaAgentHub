@@ -10,8 +10,8 @@ echo "========================================"
 # Configuration
 REGISTRY="ghcr.io/somatechlat"
 TAG=$(git rev-parse --short HEAD)
-CLUSTER_NAME="soma-agent"
-NAMESPACE="soma-agent"
+CLUSTER_NAME="soma-agent-hub"   # renamed from soma-agent
+NAMESPACE="soma-agent-hub"       # renamed from soma-agent
 
 # Function to run tasks in parallel
 run_parallel() {
@@ -89,8 +89,8 @@ task_deploy_infrastructure() {
 task_validate_deployment() {
     echo "🔍 Validating deployment..."
     
-    # Wait for pods to be ready
-    kubectl wait --for=condition=Ready pod -l app.kubernetes.io/part-of=soma-agent \
+    # Wait for pods to be ready (updated selector)
+    kubectl wait --for=condition=Ready pod -l app.kubernetes.io/part-of=soma-agent-hub \
         -n "$NAMESPACE" --timeout=300s >/dev/null 2>&1
     
     # Run integration tests

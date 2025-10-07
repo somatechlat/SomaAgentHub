@@ -1,39 +1,22 @@
 #!/bin/bash
-# Rapid Multi-Service Deployment Script
-# Deploy each service individually to bypass YAML parsing issues
+# Simple deployment script for SomaAgent platform
+# Uses Helm to install/upgrade the entire chart in one step.
 
 set -e
 
-echo "🚀 DEPLOYING ALL 12 SOMAAGENT SERVICES INDIVIDUALLY"
+CHART_DIR="./k8s/helm/soma-agent"
+RELEASE_NAME="soma-agent-hub"   # renamed from soma-agent
+NAMESPACE="soma-agent-hub"      # renamed from soma-agent
+IMAGE_TAG="80e1d6f"
 
-SERVICES=(
-    "jobs"
-    "memory-gateway" 
-    "orchestrator"
-    "policy-engine"
-    "settings-service"
-    "task-capsule-repo"
-    "somallm-provider"
-    "gateway-api"
-    "identity-service"
-    "constitution-service"
-    "analytics-service"
-    "billing-service"
-)
+# Create namespace if it does not exist
+kubectl get namespace $NAMESPACE >/dev/null 2>&1 || kubectl create namespace $NAMESPACE
 
-for service in "${SERVICES[@]}"; do
-    echo "⚡ Deploying $service..."
-    
-    # Generate deployment for this specific service
-    helm template soma-agent ./k8s/helm/soma-agent --set global.imageTag=80e1d6f --namespace soma-agent | \
-        grep -A 100 "name: $service" | \
-        grep -B 100 "^---$" | \
-        head -n -1 | \
-        kubectl apply -f - || echo "❌ Failed to deploy $service"
-    
-    echo "✅ $service deployment attempted"
-done
+# Deploy or upgrade the release
+helm upgrade --install $RELEASE_NAME $CHART_DIR \
+    --namespace $NAMESPACE \
+    --set global.imageTag=$IMAGE_TAG \
+    --wait
 
-echo "🎉 ALL DEPLOYMENTS COMPLETED!"
-echo "Checking status..."
-kubectl get deployments -n soma-agent
+echo "✅ Deployment completed. Checking pod status..."
+kubectl get pods -n $NAMESPACE

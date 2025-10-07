@@ -4,7 +4,7 @@ set -euo pipefail
 # Integration test script for SomaAgent services
 # Validates that all services are running and responding correctly
 
-NAMESPACE=${1:-"soma-agent"}
+NAMESPACE=${1:-"soma-agent-hub"}   # default namespace updated
 TIMEOUT=${2:-300}
 
 echo "🧪 Running SomaAgent Integration Tests in namespace: $NAMESPACE"
@@ -188,6 +188,6 @@ else
     done
     echo ""
     echo "Check pod logs for more details:"
-    echo "  kubectl logs -n $NAMESPACE -l app.kubernetes.io/part-of=soma-agent"
+    echo "  kubectl logs -n $NAMESPACE -l app.kubernetes.io/part-of=soma-agent-hub"
     exit 1
 fi

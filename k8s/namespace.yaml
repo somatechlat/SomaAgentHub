@@ -1,7 +1,7 @@
 apiVersion: v1
 kind: Namespace
 metadata:
-  name: soma-agent
+  name: soma-agent-hub   # renamed from soma-agent-hub
   labels:
-    app.kubernetes.io/name: soma-agent
-    app.kubernetes.io/part-of: soma-agent
+    app.kubernetes.io/name: soma-agent-hub
+    app.kubernetes.io/part-of: soma-agent-hub

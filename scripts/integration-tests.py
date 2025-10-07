@@ -45,7 +45,7 @@ class SomaAgentTester:
         
         for service in self.services:
             try:
-                cmd = f"kubectl port-forward -n soma-agent svc/{service.name} {service.port}:{service.port}"
+                cmd = f"kubectl port-forward -n soma-agent-hub svc/{service.name} {service.port}:{service.port}"
                 proc = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
                 self.port_forwards.append(proc)
                 print(f"   ✓ {service.name}:{service.port}")
@@ -173,7 +173,7 @@ class SomaAgentTester:
         try:
             # Get pod status
             result = subprocess.run(
-                ["kubectl", "get", "pods", "-n", "soma-agent", "-o", "json"],
+                ["kubectl", "get", "pods", "-n", "soma-agent-hub", "-o", "json"],
                 capture_output=True, text=True, check=True
             )
             
@@ -214,7 +214,7 @@ class SomaAgentTester:
         print("=" * 50)
         
         tests = [
-            ("Helm Template Validation", "helm template soma-agent ./k8s/helm/soma-agent --dry-run"),
+            ("Helm Template Validation", "helm template soma-agent-hub ./k8s/helm/soma-agent --dry-run"),
             ("Kubernetes Resource Validation", "kubectl apply --dry-run=client -f k8s/"),
             ("Docker Image Availability", "docker images | grep soma"),
         ]

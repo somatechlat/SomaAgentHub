@@ -26,7 +26,7 @@ class SomaAgentTestReporter:
         try:
             # Get all pods
             result = subprocess.run(
-                ["kubectl", "get", "pods", "-n", "soma-agent", "-o", "json"],
+                ["kubectl", "get", "pods", "-n", "soma-agent-hub", "-o", "json"],
                 capture_output=True, text=True, check=True
             )
             pods_data = json.loads(result.stdout)
@@ -60,7 +60,7 @@ class SomaAgentTestReporter:
             
             # Get services
             svc_result = subprocess.run(
-                ["kubectl", "get", "svc", "-n", "soma-agent", "-o", "json"],
+                ["kubectl", "get", "svc", "-n", "soma-agent-hub", "-o", "json"],
                 capture_output=True, text=True, check=True
             )
             services_data = json.loads(svc_result.stdout)
@@ -87,7 +87,7 @@ class SomaAgentTestReporter:
         tests = [
             {
                 "name": "Helm Template Validation",
-                "command": ["helm", "template", "soma-agent", "./k8s/helm/soma-agent", "--dry-run"],
+                "command": ["helm", "template", "soma-agent-hub", "./k8s/helm/soma-agent", "--dry-run"],
                 "description": "Validates Helm chart templates"
             },
             {
@@ -160,7 +160,7 @@ class SomaAgentTestReporter:
             try:
                 # Get recent logs
                 log_result = subprocess.run(
-                    ["kubectl", "logs", "-n", "soma-agent", f"deployment/{service}", "--tail=5"],
+                    ["kubectl", "logs", "-n", "soma-agent-hub", f"deployment/{service}", "--tail=5"],
                     capture_output=True, text=True, timeout=10
                 )
                 

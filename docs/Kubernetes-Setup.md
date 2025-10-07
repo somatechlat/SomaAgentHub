@@ -2,7 +2,7 @@
 
 # Kubernetes Setup for Soma Agent
 
-This guide explains how to deploy the **Soma Agent** micro‑service stack on a Kubernetes cluster using the Helm chart located in `k8s/helm/soma-agent`.
+This guide explains how to deploy the **Soma Agent** micro‑service stack on a Kubernetes cluster using the Helm chart located in `k8s/helm/soma-agent-hub`.
 
 ## Prerequisites
 
@@ -20,7 +20,7 @@ The chart declares a dependency on the Bitnami Kafka chart with KRaft mode enabl
 
 ## 2. Prepare the Helm chart
 ```bash
-cd k8s/helm/soma-agent
+cd k8s/helm/soma-agent-hub
 # Pull the Kafka dependency and render the final chart
 helm dependency update .
 ```
@@ -30,7 +30,7 @@ You will see a `charts/` folder containing the Kafka chart.
 Edit `values.yaml` to set:
 * **Image registry** – replace `your-registry/...` with the actual image locations.
 * **Replica counts**, **resource limits**, and **Kafka** settings (replicaCount, kraft.enabled).
-* **Ingress host** – change `soma-agent.local` to the DNS name you will expose.
+* **Ingress host** – change `soma-agent-hub.local` to the DNS name you will expose.
 
 ## 4. Deploy the chart
 ```bash
@@ -38,8 +38,8 @@ Edit `values.yaml` to set:
 kubectl apply -f ../../namespace.yaml
 
 # Install/upgrade the release
-helm upgrade --install soma-agent . \
-  --namespace soma-agent \
+helm upgrade --install soma-agent-hub . \
+  --namespace soma-agent-hub \
   --create-namespace
 ```
 All services (jobs, slm‑service, policy‑engine, memory‑gateway, orchestrator, settings‑service, task‑capsule‑repo) and the Kafka KRaft cluster will be created.
@@ -47,23 +47,23 @@ All services (jobs, slm‑service, policy‑engine, memory‑gateway, orchestrat
 ## 5. Verify the deployment
 ```bash
 # Check pods
-kubectl get pods -n soma-agent
+kubectl get pods -n soma-agent-hub
 
 # Check services
-kubectl get svc -n soma-agent
+kubectl get svc -n soma-agent-hub
 
 # Check ingress (if enabled)
-kubectl get ingress -n soma-agent
+kubectl get ingress -n soma-agent-hub
 ```
 The health endpoints (`/health`) of each service can be used as **readiness** and **liveness** probes in your production manifests.
 
 ## 6. Local integration testing (Kind)
 ```bash
 # Create a Kind cluster
-kind create cluster --name soma-agent
+kind create cluster --name soma-agent-hub
 
 # Deploy the chart into the Kind cluster
-helm upgrade --install soma-agent . --namespace soma-agent --create-namespace
+helm upgrade --install soma-agent-hub . --namespace soma-agent-hub --create-namespace
 
 # Run the test suite against the services
 pytest

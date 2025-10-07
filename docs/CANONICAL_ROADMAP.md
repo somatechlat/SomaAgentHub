@@ -293,8 +293,8 @@ chmod +x scripts/*.sh
 ./scripts/dev-deploy.sh
 
 # Validate deployment
-kubectl get pods -n soma-agent
-kubectl get svc -n soma-agent
+kubectl get pods -n soma-agent-hub
+kubectl get svc -n soma-agent-hub
 
 # Run integration tests
 pytest tests/integration/
@@ -307,10 +307,10 @@ pytest tests/integration/
 ./scripts/build_and_push.sh
 
 # 3. Deploy updates  
-helm upgrade soma-agent ./k8s/helm/soma-agent --namespace soma-agent
+helm upgrade soma-agent-hub ./k8s/helm/soma-agent-hub --namespace soma-agent-hub
 
 # 4. Validate changes
-kubectl rollout status deployment -n soma-agent
+kubectl rollout status deployment -n soma-agent-hub
 ```
 
 ---

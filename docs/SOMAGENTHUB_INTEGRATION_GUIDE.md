@@ -2935,7 +2935,7 @@ async def execute_agent(agent_id: str, prompt: str):
 kubectl create namespace somaagent
 
 # 2. Install via Helm
-cd k8s/helm/soma-agent
+cd k8s/helm/soma-agent-hub
 helm install somaagent . \
   --namespace somaagent \
   --values values.yaml \

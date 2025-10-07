@@ -31,7 +31,7 @@
 **Solution:** Real service images configured with health probes
 
 **Changes Made:**
-- Updated `k8s/helm/soma-agent/values.yaml` with proper GHCR images
+- Updated `k8s/helm/soma-agent-hub/values.yaml` with proper GHCR images
 - Added liveness/readiness probes to `templates/deployment.yaml`
 - Configured proper health check endpoints (`/health`)
 

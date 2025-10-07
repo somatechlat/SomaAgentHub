@@ -25,7 +25,7 @@ The codebase contains **12 FastAPI microservices** with varying levels of implem
 ### 1. Kafka Infrastructure Missing
 **Roadmap Expectation:** Sprint 1A - Kafka/KRaft deployment with Helm charts  
 **Current State:** 
-- ✅ Helm chart exists (`k8s/helm/soma-agent`) with Kafka dependency declared
+- ✅ Helm chart exists (`k8s/helm/soma-agent-hub`) with Kafka dependency declared
 - ✅ `aiokafka` dependency in 5 service requirements.txt files
 - ❌ **Kafka disabled in `values.yaml`** (`kafka.enabled: false`)
 - ❌ No running Kafka cluster (local or K8s)
@@ -46,7 +46,7 @@ The codebase contains **12 FastAPI microservices** with varying levels of implem
 
 **Fix Required:**
 1. Enable Kafka in Helm `values.yaml` (`kafka.enabled: true`)
-2. Deploy Kafka via Helm: `helm install soma k8s/helm/soma-agent -n soma-agent`
+2. Deploy Kafka via Helm: `helm install soma k8s/helm/soma-agent-hub -n soma-agent-hub`
 3. Wire producers in Orchestrator, Identity, Policy Engine to brokers
 4. Validate topics auto-create or provision schemas
 
@@ -213,7 +213,7 @@ async def start_mao_workflow(request: MultiAgentStartRequest):
 ```
 
 **Fix Required:**
-1. Add Temporal Helm subchart to `k8s/helm/soma-agent/Chart.yaml`
+1. Add Temporal Helm subchart to `k8s/helm/soma-agent-hub/Chart.yaml`
 2. Define workflows in `services/orchestrator/app/workflows/mao.py`
 3. Implement activities for tool execution, approval gates
 4. Wire `/mao/start` to `temporal.start_workflow()`
@@ -429,8 +429,8 @@ $ grep -r "@router" services/settings-service/app/
 
 1. **Enable Kafka in Helm** (2 days)
    - Set `kafka.enabled: true` in `values.yaml`
-   - Deploy: `helm install soma k8s/helm/soma-agent -n soma-agent --create-namespace`
-   - Validate: `kubectl exec -n soma-agent kafka-0 -- kafka-topics.sh --list`
+   - Deploy: `helm install soma k8s/helm/soma-agent-hub -n soma-agent-hub --create-namespace`
+   - Validate: `kubectl exec -n soma-agent-hub kafka-0 -- kafka-topics.sh --list`
    - Create topics: `conversation.events`, `slm.inference.requests`, `audit.identity`
 
 2. **Add Redis to Helm Chart** (1 day)

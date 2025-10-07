@@ -75,7 +75,7 @@ curl -sf http://localhost:8005/health
 curl -sf http://localhost:8000/metrics | head -20
 ```
 
-If any service is missing, consult `scripts/dev-deploy.sh` or the Helm chart (`k8s/helm/soma-agent/`).
+If any service is missing, consult `scripts/dev-deploy.sh` or the Helm chart (`k8s/helm/soma-agent-hub/`).
 
 ### 4.3 Verify Authentication
 

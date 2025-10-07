@@ -195,7 +195,7 @@ somagent/
 │   └── terraform/
 ├── k8s/
 │   ├── namespace.yaml
-│   └── helm/soma-agent/           # Main Helm chart
+│   └── helm/soma-agent-hub/           # Main Helm chart
 ├── scripts/                       # Deployment automation
 │   ├── dev-deploy.sh
 │   ├── rapid-deploy-all.sh

@@ -117,7 +117,7 @@ setup_observability("orchestrator", app)
 
 **Capabilities:**
 - ✅ Helm repo setup (prometheus-community, temporalio, bitnami)
-- ✅ Namespace creation (observability, temporal, soma-agent)
+- ✅ Namespace creation (observability, temporal, soma-agent-hub)
 - ✅ Prometheus stack deployment (lightweight config)
 - ✅ ServiceMonitor application
 - ✅ Grafana dashboard ConfigMap application

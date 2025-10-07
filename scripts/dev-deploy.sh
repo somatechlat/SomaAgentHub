@@ -19,38 +19,37 @@ sed -i.bak "s|ghcr.io/somatechlat/soma-.*:latest|ghcr.io/somatechlat/soma-jobs:$
 
 # 3. Deploy to Kind cluster
 echo "🎯 Deploying to Kubernetes..."
-if ! kind get clusters | grep -q soma-agent; then
+if ! kind get clusters | grep -q soma-agent-hub; then
     echo "Creating Kind cluster..."
-    kind create cluster --name soma-agent
+    kind create cluster --name soma-agent-hub
 fi
 
 # Set kubectl context
-kubectl config use-context kind-soma-agent
+kubectl config use-context kind-soma-agent-hub
 
-# Apply namespace
+# Apply namespace (updated file already reflects new name)
 kubectl apply -f k8s/namespace.yaml
 
-# Deploy with Helm
-helm upgrade --install soma-agent ./k8s/helm/soma-agent \
-    --namespace soma-agent \
+# Deploy with Helm using new release name and namespace
+helm upgrade --install soma-agent-hub ./k8s/helm/soma-agent \
+    --namespace soma-agent-hub \
     --create-namespace \
     --set global.imageTag="$TAG" \
     --wait \
     --timeout=300s
 
-# 4. Wait for deployment
-echo "⏳ Waiting for pods to be ready..."
-kubectl wait --for=condition=Ready pod -l app.kubernetes.io/part-of=soma-agent \
-    -n soma-agent --timeout=300s
+# 4. Wait for pods
+kubectl wait --for=condition=Ready pod -l app.kubernetes.io/part-of=soma-agent-hub \
+    -n soma-agent-hub --timeout=300s
 
 # 5. Show status
 echo "📊 Deployment Status:"
-kubectl get pods -n soma-agent
-kubectl get svc -n soma-agent
+kubectl get pods -n soma-agent-hub
+kubectl get svc -n soma-agent-hub
 
 echo ""
 echo "✅ Deployment complete!"
 echo "🔗 Access services via port-forward:"
-echo "  kubectl port-forward -n soma-agent svc/jobs 8000:8000"
-echo "  kubectl port-forward -n soma-agent svc/memory-gateway 9696:9696"
-echo "  kubectl port-forward -n soma-agent svc/orchestrator 8002:8002"
+echo "  kubectl port-forward -n soma-agent-hub svc/jobs 8000:8000"
+echo "  kubectl port-forward -n soma-agent-hub svc/memory-gateway 9696:9696"
+echo "  kubectl port-forward -n soma-agent-hub svc/orchestrator 8002:8002"

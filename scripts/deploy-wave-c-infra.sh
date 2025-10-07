@@ -19,7 +19,7 @@ NC='\033[0m' # No Color
 # Configuration
 NAMESPACE_OBSERVABILITY="observability"
 NAMESPACE_TEMPORAL="temporal"
-NAMESPACE_SOMA="soma-agent"
+NAMESPACE_SOMA="soma-agent-hub"
 
 # Function to print status
 print_status() {
@@ -127,4 +127,3 @@ echo ""
 echo "📄 Documentation:"
 echo "  → Wave C Progress: docs/sprints/Wave_C_Progress_Oct5.md"
 echo "  → Sprint Plans: docs/sprints/Sprint-{5,6,7}.md"
-echo ""

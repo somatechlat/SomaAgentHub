@@ -193,7 +193,7 @@ apiVersion: v1
 kind: Service
 metadata:
   name: gateway-api
-  namespace: soma-agent
+  namespace: soma-agent-hub
   labels:
     app: gateway-api
     monitoring: enabled  # ← Prometheus auto-discovers this!

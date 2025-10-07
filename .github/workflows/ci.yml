@@ -67,9 +67,9 @@ jobs:
       - name: Deploy and test Helm chart
         run: |
           helm dependency update ./k8s/helm/soma-agent
-          helm install soma-agent ./k8s/helm/soma-agent --namespace soma-agent --create-namespace --wait --timeout=300s
-          kubectl wait --for=condition=Ready pod -l app.kubernetes.io/part-of=soma-agent -n soma-agent --timeout=300s || true
-          helm test soma-agent --namespace soma-agent || echo "Helm tests not yet implemented"
+          helm install soma-agent-hub ./k8s/helm/soma-agent --namespace soma-agent-hub --create-namespace --wait --timeout=300s
+          kubectl wait --for=condition=Ready pod -l app.kubernetes.io/part-of=soma-agent-hub -n soma-agent-hub --timeout=300s || true
+          helm test soma-agent-hub --namespace soma-agent-hub || echo "Helm tests not yet implemented"
       - name: Install Helm
         run: |
           curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash

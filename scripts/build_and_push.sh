@@ -66,8 +66,8 @@ EOF
     # Load image into Kind cluster if it exists
     if kind get clusters | grep -q "soma-agent"; then
         echo "📥 Loading ${service} into Kind cluster..."
-        kind load docker-image "${REGISTRY}/soma-${service}:${TAG}" --name soma-agent
-        kind load docker-image "${REGISTRY}/soma-${service}:latest" --name soma-agent
+        kind load docker-image "${REGISTRY}/soma-${service}:${TAG}" --name soma-agent-hub
+        kind load docker-image "${REGISTRY}/soma-${service}:latest" --name soma-agent-hub
     else
         echo "📤 Pushing ${service}... (skipping - no credentials)"
         # docker push "${REGISTRY}/soma-${service}:${TAG}"
@@ -85,4 +85,4 @@ done
 echo "🎉 All images built and pushed successfully!"
 echo ""
 echo "To deploy with Helm:"
-echo "  helm upgrade --install soma-agent ./k8s/helm/soma-agent --set global.imageTag=${TAG}"
+echo "  helm upgrade --install soma-agent-hub ./k8s/helm/soma-agent --set global.imageTag=${TAG}"

@@ -58,7 +58,7 @@ All Wave C infrastructure requirements have been met. The platform is **producti
 ### Automation & Scripts
 - ✅ **deploy-wave-c-infra.sh** - One-command infrastructure deployment
 - ✅ **Helm repo setup** - prometheus-community, temporalio, bitnami
-- ✅ **Namespace creation** - observability, temporal, soma-agent
+- ✅ **Namespace creation** - observability, temporal, soma-agent-hub
 - ✅ **Color-coded output** - Easy debugging
 
 **Usage:** `./scripts/deploy-wave-c-infra.sh`
