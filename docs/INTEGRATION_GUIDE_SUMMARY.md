@@ -19,7 +19,8 @@ The **SOMAGENTHUB_INTEGRATION_GUIDE.md** is now a comprehensive, production-read
    - `/v1/sessions` - Session management with state persistence
    
 2. **Orchestrator Service (Port 8001)** - 4 endpoints fully documented
-   - `/v1/workflows/start` - Start workflows with 12+ workflow types
+   - `/v1/sessions/start` - Start single-agent conversation workflows
+   - `/v1/mao/start` - Launch multi-agent orchestration workflows
    - `/v1/workflows/{run_id}` - Status tracking with progress monitoring
    - `/v1/workflows/{run_id}/cancel` - Graceful workflow cancellation
    - `/v1/workflows` - List/filter workflows with pagination

@@ -5,29 +5,22 @@
 This guide captures default URLs/ports, quick-start commands, and tips for running the full SomaGent stack locally.
 
 ## 1. Prerequisites
-- Docker / Docker Compose
 - Python 3.11+
+- Docker (optional; only needed for backing services such as Redis, Kafka, or Temporal)
 - Node.js 18+ (for admin console prototypes)
 - Make (optional but convenient)
 
-## 2. Core Services & Default Ports
-| Service | Default URL | Notes |
-|---------|-------------|-------|
-| Memory Gateway | http://localhost:9696 | Memory/RAG backend. Exposes `/docs` and `/metrics`. |
-| SLM HTTP fallback | http://localhost:9697 | Sync inference & embeddings (`/infer_sync`, `/embedding`, `/health`). |
-| Gateway API | http://localhost:8080 | Entry point for clients. |
-| Orchestrator | http://localhost:8100 | Conversation loop + policy enforcement. |
-| Multi-Agent Orchestrator | http://localhost:8200 | Temporal/Argo workflows (planned). |
-| Constitution Service | http://localhost:8300 | Fetch/validate signed constitutions. |
-| Policy Engine | http://localhost:8400 | Scores actions against constraints. |
-| Settings Service | http://localhost:8500 | Tenant configs, model profiles, notification prefs. |
-| Identity Service | http://localhost:8600 | Auth/capability claims, training locks. |
-| SLM Service | http://localhost:8700 | Async workers + HTTP fallback integration. |
-| Jobs Service | http://localhost:8000 | Background job processing and status tracking. |
-| Tool Service | http://localhost:8900 | Tool adapters (Plane, GitHub, etc.). |
-| Task Capsule Repo | http://localhost:8005 | Stores capsule templates and marketplace. |
-| Analytics Service | http://localhost:8930 | Capsule dashboards, persona regressions, governance reports. |
-| Admin Console (dev) | http://localhost:3000 | React/Vite dev server. |
+## 2. Core Services & Suggested Ports
+| Service | Suggested URL | Notes |
+|---------|---------------|-------|
+| Gateway API | http://localhost:8000 | Entry point for clients. Launch with `cd services/gateway-api && uvicorn app.main:app --reload --port 8000`. |
+| Orchestrator API | http://localhost:8100 | Session and multi-agent workflows (`services/orchestrator/app/api`). |
+| Identity Service | http://localhost:8600 | Token issuance, MFA, and capability endpoints. Requires Redis reachable at `REDIS_URL`. |
+| Tool Service | http://localhost:8900 | Adapter execution and provisioning (`services/tool-service/app/api/routes.py`). |
+| Memory Gateway | http://localhost:9696 | Memory and RAG entrypoints. Falls back to in-memory storage if Qdrant is unavailable. |
+| Task Capsule Repository | http://localhost:8005 | Placeholder capsule registry for demos. |
+| Jobs Service | http://localhost:8800 | Simulated job execution API. |
+| Admin Console (dev) | http://localhost:3000 | React/Vite dev server (optional). |
 
 Adjust ports via environment variables if needed; ensure no conflicts on your machine.
 
@@ -47,33 +40,17 @@ Verify:
 
 ### Compose bundle
 
-To launch Kafka, Postgres, Redis, SomaBrain, Prometheus, and the SomaSuite observability adapters together:
+A combined Docker Compose stack is no longer supplied. Start only the dependencies you need:
 
 ```
-# Note: Docker Compose is deprecated - use Kubernetes deployment
-# For legacy development only:
-# docker compose -f docker-compose.stack.yml up -d
+# Example: run Redis for the identity service
+docker run --rm --name somagent-redis -p 6379:6379 redis:7
+
+# Example: run Kafka if you plan to test streaming integrations
+docker run --rm -d --name somagent-kafka -p 9092:9092 bitnami/kafka:latest
 ```
 
-Endpoints:
-- Kafka: `PLAINTEXT://localhost:9092`
-- Postgres: `postgresql://somagent:somagent@localhost:5432/somagent`
-- Redis: `redis://localhost:6379/0`
-- SomaBrain: `http://localhost:9696`
-- Prometheus: `http://localhost:9090`
-- SomaSuite dashboards: rendered automatically via the web UI bundle once Prometheus discovers services.
-
-Stop the legacy stack with `docker compose -f docker-compose.stack.yml down -v`. **Recommended: Use Kubernetes deployment instead.**
-
-Run benchmark service (requires Postgres running):
-
-```bash
-cd services/benchmark-service
-python -m venv .venv
-source .venv/bin/activate
-pip install -r requirements.txt
-uvicorn app.main:app --reload --port 8925
-```
+Adjust connection strings in service environment variables to match any containers you launch.
 
 ## 4. SomaGent Services (local)
 ```
@@ -134,8 +111,7 @@ Keep this document updated as ports or configurations change.
 ## Load & Chaos Testing
 - Run `k6 run tests/perf/k6_smoke.js` for smoke tests; `k6 run tests/perf/k6_full.js` for heavier mixed traffic.
 - Explore chaos scenarios documented in `tests/chaos/README.md`; use `tests/chaos/inject_faults.sh` to pause services locally.
-- Quick latency profiling: `scripts/perf/profile_gateway.sh http://localhost:8080/v1/status` (requires `hey`).
-- Quick latency profiling: `scripts/perf/profile_gateway.sh http://localhost:8080/v1/status` (requires [`hey`](https://github.com/rakyll/hey`)).
+- Quick latency profiling: `scripts/perf/profile_gateway.sh http://localhost:8000/v1/status` (requires [`hey`](https://github.com/rakyll/hey)).
 
 ## Secrets
 - Use `somagent-secrets` helper to load values via env (`SOMAGENT_*_KEY`) or files (`SOMAGENT_*_KEY_FILE`).
@@ -176,8 +152,8 @@ This section covers running the orchestrator service with real infrastructure co
 
 2. **Kafka Cluster:**
    ```bash
-   # Use docker-compose.stack.yml or connect to integration environment
-   docker-compose -f docker-compose.stack.yml up -d kafka
+  # Launch Kafka only when needed (example image shown below)
+  docker run --rm -d --name somagent-kafka -p 9092:9092 bitnami/kafka:latest
    ```
 
 3. **Ray Runtime (optional for SLM):**

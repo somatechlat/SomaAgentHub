@@ -44,7 +44,7 @@ print('✅ All frameworks installed successfully!')
 ### **Use Case**: Multiple agents discussing a topic
 
 ```python
-# File: examples/group_chat_example.py
+# File: services/orchestrator/app/integrations/autogen_adapter.py
 
 from app.integrations.autogen_adapter import run_autogen_group_chat
 
@@ -97,7 +97,7 @@ print(f"Conversation: {result['conversation']}")
 ### **Use Case**: Manager coordinating team of workers
 
 ```python
-# File: examples/delegation_example.py
+# File: services/orchestrator/app/integrations/crewai_adapter.py
 
 from app.integrations.crewai_adapter import run_crewai_delegation
 
@@ -170,7 +170,7 @@ print(f"Result: {result['result']}")
 ### **Use Case**: Route requests to specialist agents
 
 ```python
-# File: examples/routing_example.py
+# File: services/orchestrator/app/integrations/langgraph_adapter.py
 
 from app.integrations.langgraph_adapter import run_langgraph_routing
 
@@ -246,7 +246,7 @@ print(f"Output: {result['output']}")
 ### **One Call, All Patterns**
 
 ```python
-# File: examples/unified_example.py
+# File: services/orchestrator/app/workflows/unified_multi_agent.py
 
 from app.workflows.unified_multi_agent import UnifiedMultiAgentWorkflow
 

@@ -10,6 +10,7 @@ class MultiAgentPattern(str, Enum):
     GROUP_CHAT = "group_chat"
     TASK_DELEGATION = "task_delegation"
     STATE_MACHINE_ROUTING = "state_machine_routing"
+    A2A = "a2a"
 
 
 class FrameworkRouter:
@@ -28,6 +29,9 @@ class FrameworkRouter:
 
         if payload.get("graph"):
             return MultiAgentPattern.STATE_MACHINE_ROUTING
+        # Detect A2A messaging pattern via presence of target_agent_id
+        if payload.get("target_agent_id"):
+            return MultiAgentPattern.A2A
 
         has_manager = bool(payload.get("manager"))
         has_workers = bool(payload.get("workers"))
@@ -46,6 +50,7 @@ class FrameworkRouter:
             MultiAgentPattern.GROUP_CHAT: "autogen-group-chat",
             MultiAgentPattern.TASK_DELEGATION: "crewai-delegation",
             MultiAgentPattern.STATE_MACHINE_ROUTING: "langgraph-routing",
+            MultiAgentPattern.A2A: "a2a-message",
         }
         try:
             return mapping[pattern]

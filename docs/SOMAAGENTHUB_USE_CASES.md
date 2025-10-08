@@ -1,7 +1,7 @@
 # SomaAgentHub Operational Use Cases
 
-**Version:** 1.0.0  
-**Last Updated:** October 5, 2025  
+**Version:** 1.1.0  
+**Last Updated:** October 8, 2025  
 **Audience:** Operators, automation agents, and developers orchestrating end-to-end workflows on SomaAgentHub.
 
 This guide packages ready-to-run scenarios that demonstrate how to combine SomaAgentHub services (Gateway API, Orchestrator, Memory Gateway, Tool Service, Marketplace Capsules, and observability stack) to deliver real outcomes. Each use case lists prerequisites, step-by-step execution, validation checkpoints, and extensibility tips.
@@ -32,7 +32,7 @@ This guide packages ready-to-run scenarios that demonstrate how to combine SomaA
 - Content repository (GitHub or GitLab) seeded with landing page templates.
 
 ### Execution Steps
-1. **Kick off workflow**: `POST /v1/workflows/start` with capsule `marketing_campaign_v1`, target launch date, personas, and distribution targets.
+1. **Kick off workflow**: `POST /v1/mao/start` with directives referencing the `marketing_campaign_v1` capsule metadata. Include tenant, initiator, and agent directives drawn from `services/orchestrator/workflows/`.
 2. **Gather research**: Strategist agent invokes Tool Service `notion.search_database` and `plane.create_cycle` to pull backlog context and allocate sprint capacity.
 3. **Draft messaging**: Writer agent queries Memory Gateway (`/v1/rag/retrieve`) for brand voice, then calls `/v1/chat/completions` to generate copy variations.
 4. **Design assets**: Designer agent hits `figma.render_component` (custom capability) to duplicate templates, updating color palette and export variants.
@@ -41,7 +41,7 @@ This guide packages ready-to-run scenarios that demonstrate how to combine SomaA
 7. **Activate analytics**: Register campaign metadata in Memory Gateway for later attribution (e.g., `campaign:2025q4-launch`).
 
 ### Validation Checklist
-- ✔️ Workflow run status transitions to `completed` with `success=true` payload.  
+- ✔️ Orchestration status (`GET /v1/mao/{workflow_id}`) transitions to `completed` with the expected result payload.  
 - ✔️ All Tool Service calls return `200` and persisted assets exist (Figma file links, PR merged).  
 - ✔️ Campaign metadata stored via `/v1/remember` and retrievable.  
 - ✔️ Observability: Grafana dashboard `Marketing Ops` shows traffic spike once live.
@@ -64,7 +64,7 @@ This guide packages ready-to-run scenarios that demonstrate how to combine SomaA
 - Helm chart or k8s manifests under `infra/k8s/marketing-site/`.
 
 ### Execution Steps
-1. **Initiate project**: `POST /v1/workflows/start` referencing `marketing_site_v2`, providing site goals and design brief IDs.
+1. **Initiate project**: `POST /v1/mao/start` referencing the `marketing_site_v2` capsule in the metadata payload, specifying directives for product, engineering, QA, and DevOps agents.
 2. **Requirement intake**: Product Manager agent retrieves Memory Gateway entries for tone/style; logs decisions back via `/v1/remember`.
 3. **Repo scaffolding**: Coder agent calls `github.create_repository` (or `gitlab.create_project`), then commits starter code using `github.create_file` API for CI pipeline.
 4. **Implementation**: For each page module, coder agent invokes SLM completions to draft React/Vue components, pushes branches, and opens PRs (`github.create_pull_request`).
@@ -96,15 +96,14 @@ This guide packages ready-to-run scenarios that demonstrate how to combine SomaA
 - Marketplace capsule `weekly_insights_v1` with cron trigger (e.g., every Monday 09:00 UTC).
 
 ### Execution Steps
-1. **Schedule workflow**: Register recurring Temporal schedule targeting `weekly_insights_v1` via `POST /v1/workflows/schedules`.
+1. **Schedule workflow**: Use your scheduler (Cron, Temporal CLI, or external service) to trigger `POST /v1/mao/start` with the `weekly_insights_v1` directives at the desired cadence. The repo does not ship a `/v1/workflows/schedules` endpoint.
 2. **Extract metrics**: Data Analyst agent invokes Tool Service `clickhouse.query` to pull product usage tables; caches raw results in Memory Gateway with TTL.
 3. **Generate charts**: Agent uses Analytics Service endpoints (`/v1/analytics/charts`) to render PNG/SVG assets, storing URIs in report context.
 4. **Draft narrative**: Narrator agent calls `/v1/chat/completions` with metrics, prior week summary from Memory Gateway, and tone guidelines to produce executive summary.
 5. **Compile report**: Use `notion.create_page` to publish, embedding chart URLs. Simultaneously, `github.create_issue` can track follow-up actions.
 6. **Stakeholder distribution**: Post highlights in Slack channel via `slack.send_message`, attaching Notion link and key KPIs.
 
-### Validation Checklist
-- ✔️ Workflow run logs stored; history accessible via `/v1/workflows/{run_id}`.  
+- ✔️ Workflow run logs stored; history accessible via `/v1/mao/{workflow_id}`.  
 - ✔️ Notion page published with correct metadata.  
 - ✔️ Slack notification delivered; Memory Gateway contains archived summary for continuity.
 

@@ -8,7 +8,12 @@ from typing import Any, Dict
 from temporalio import workflow
 
 from ..core.framework_router import FrameworkRouter, MultiAgentPattern
-from ..integrations import run_autogen_group_chat, run_crewai_delegation, run_langgraph_routing
+from ..integrations import (
+    run_autogen_group_chat,
+    run_crewai_delegation,
+    run_langgraph_routing,
+    run_a2a_message,
+)
 from ..workflows.session import PolicyEvaluationContext, evaluate_policy, emit_audit_event
 
 
@@ -62,6 +67,12 @@ class UnifiedMultiAgentWorkflow:
                 run_crewai_delegation,
                 request,
                 start_to_close_timeout=timedelta(minutes=15),
+            )
+        elif pattern is MultiAgentPattern.A2A:
+            result = await workflow.execute_activity(
+                run_a2a_message,
+                request,
+                start_to_close_timeout=timedelta(minutes=5),
             )
         else:
             result = await workflow.execute_activity(

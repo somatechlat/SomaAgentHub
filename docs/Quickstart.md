@@ -2,7 +2,7 @@
 
 # SomaStack Quickstart
 
-Follow these steps to bring up a development environment, run a capsule, and validate analytics.
+Follow these steps to bring up the live services and validate end-to-end flows. Every command maps to code that exists in this repository today.
 
 ## 1. Clone & Bootstrap
 ```
@@ -11,46 +11,77 @@ cd somaagent
 python -m venv .venv
 source .venv/bin/activate
 pip install -r services/gateway-api/requirements.txt
-npm install --prefix apps/admin-console
-```
-(Repeat dependency install for services you touch; see `docs/development/Developer_Setup.md`.)
-
-## 2. Start Core Services
-```
-docker compose -f docker-compose.stack.yml up -d
-```
-This launches Kafka, Postgres, Redis, SomaBrain, Prometheus, and the SomaSuite observability adapters.
-
-## 3. Run Gateway, Tool Service, and Admin Console locally
-```
-uvicorn services.gateway_api.app.main:app --reload --port 8080
-uvicorn services.tool_service.app.main:app --reload --port 8900
-npm run --prefix apps/admin-console dev
+pip install -r services/orchestrator/requirements.txt
+pip install -r services/tool-service/requirements.txt
+pip install -r services/memory-gateway/requirements.txt
 ```
 
-## 4. Acquire Token & Call Gateway
+## 2. Launch Core APIs (separate shells)
 ```
-TOKEN=$(curl -s http://localhost:8600/v1/tokens/issue -d '{"tenant_id":"demo","capabilities":["sessions:start"]}')
-```
-Use `Bearer $TOKEN` to call orchestrator endpoints via gateway.
-
-## 5. Execute Sample Capsule
-```
-curl -X POST http://localhost:8210/v1/plans/execute \
-  -H "Authorization: Bearer $TOKEN" \
-  -H "Content-Type: application/json" \
-  -d '{"tenant_id":"demo","name":"quickstart","deliverables":[{"id":"docs","persona":"educator","tools":["github"],"budget_tokens":5000}]}'
+cd services/gateway-api && uvicorn app.main:app --reload --port 8000
+cd services/orchestrator && uvicorn app.main:app --reload --port 8100
+cd services/identity-service && uvicorn app.main:app --reload --port 8600
+cd services/tool-service && uvicorn app.main:app --reload --port 8900
+cd services/memory-gateway && uvicorn app.main:app --reload --port 9696
 ```
 
-## 6. Check Analytics
-```
-curl http://localhost:8930/v1/kamachiq/summary
-curl http://localhost:8930/v1/exports/capsule-runs?tenant_id=demo
-```
+Identity service requires Redis (check `services/identity-service/app/core/config.py` for defaults) and falls back to errors if it cannot reach it. All other services run standalone.
 
-## 7. Shutdown
+## 3. Issue an Access Token
 ```
-docker compose -f docker-compose.stack.yml down -v
-```
+http POST http://localhost:8600/v1/tokens/issue \
+  user_id=="demo-user" \
+  tenant_id=="demo" \
+  mfa_code=="<mfa-secret>"
 
-Refer to runbooks in `docs/runbooks/` for security, DR, and KAMACHIQ operations.
+export SOMAAGENT_API_KEY="<token-from-response>"
+```
+If the user does not exist, create it via `PUT /v1/users/demo-user` and enrol MFA using the Identity API.
+
+## 4. Call the Gateway Stub
+```
+http POST http://localhost:8000/v1/chat/completions \
+  "Authorization:Bearer $SOMAAGENT_API_KEY" \
+  model=="somaagent-demo" \
+  messages:='[{"role":"user","content":"Hello"}]'
+```
+The FastAPI handler in `services/gateway-api/app/main.py` returns a static response; update it when you integrate a real model backend.
+
+## 5. Start a Session Workflow
+```
+http POST http://localhost:8100/v1/sessions/start \
+  tenant=="demo" \
+  user=="researcher" \
+  prompt=="Onboarding summary" \
+  model=="somaagent-demo"
+
+http GET http://localhost:8100/v1/sessions/<workflow_id>
+```
+Routes and payloads are defined in `services/orchestrator/app/api/routes.py`.
+
+## 6. Exercise Tool Adapters
+```
+http GET http://localhost:8900/v1/adapters
+
+http POST http://localhost:8900/v1/adapters/github/execute \
+  "X-Tenant-ID:demo" \
+  action=="create_repository" \
+  arguments:='{"name":"sandbox-repo"}'
+```
+Adapter contracts live under `services/tool-service/adapters/`. Provide tokens in `arguments` when required.
+
+## 7. Store and Retrieve Memory
+```
+http POST http://localhost:9696/v1/remember \
+  key=="support:faq:pricing" \
+  value:='{"tier":"Pro","price":99}'
+
+http GET http://localhost:9696/v1/recall/support:faq:pricing
+```
+Memory Gateway uses Qdrant when available; otherwise it persists data in-process.
+
+## 8. Stop Services
+
+Use `Ctrl+C` in each terminal to stop the uvicorn processes. If you started Redis or other dependencies with Docker, stop them manually.
+
+Refer to runbooks in `docs/runbooks/` for security, DR, and maintenance procedures.
