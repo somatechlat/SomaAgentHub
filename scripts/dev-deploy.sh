@@ -9,22 +9,22 @@ TAG=$(git rev-parse --short HEAD)
 
 echo "🚀 SomaAgent Quick Deploy - Tag: ${TAG}"
 
-# 1. Build and push images (if registry is available)
-echo "📦 Building images..."
-./scripts/build_and_push.sh "$REGISTRY" "$TAG"
-
-# 2. Update Helm values with new tag
-echo "📝 Updating Helm values..."
-sed -i.bak "s|ghcr.io/somatechlat/soma-.*:latest|ghcr.io/somatechlat/soma-jobs:${TAG}|g" k8s/helm/soma-agent/values.yaml
-
-# 3. Deploy to Kind cluster
-echo "🎯 Deploying to Kubernetes..."
-if ! kind get clusters | grep -q soma-agent-hub; then
+# 1. Ensure Kind cluster exists before building images
+if ! kind get clusters | grep -q "soma-agent-hub"; then
     echo "Creating Kind cluster..."
     kind create cluster --name soma-agent-hub
 fi
 
-# Set kubectl context
+# 2. Build and push images (if registry is available)
+echo "📦 Building images..."
+./scripts/build_and_push.sh "$REGISTRY" "$TAG"
+
+# 3. Update Helm values with new tag
+echo "📝 Updating Helm values..."
+sed -i.bak "s|ghcr.io/somatechlat/soma-.*:latest|ghcr.io/somatechlat/soma-jobs:${TAG}|g" k8s/helm/soma-agent/values.yaml
+
+# 4. Deploy to Kind cluster
+echo "🎯 Deploying to Kubernetes..."
 kubectl config use-context kind-soma-agent-hub
 
 # Apply namespace (updated file already reflects new name)
@@ -38,11 +38,11 @@ helm upgrade --install soma-agent-hub ./k8s/helm/soma-agent \
     --wait \
     --timeout=300s
 
-# 4. Wait for pods
+# 5. Wait for pods
 kubectl wait --for=condition=Ready pod -l app.kubernetes.io/part-of=soma-agent-hub \
     -n soma-agent-hub --timeout=300s
 
-# 5. Show status
+# 6. Show status
 echo "📊 Deployment Status:"
 kubectl get pods -n soma-agent-hub
 kubectl get svc -n soma-agent-hub

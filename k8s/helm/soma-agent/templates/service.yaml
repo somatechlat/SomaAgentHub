@@ -10,11 +10,17 @@ metadata:
     app.kubernetes.io/name: {{ $name }}
     app.kubernetes.io/part-of: {{ $.Chart.Name }}
 spec:
+{{- if eq $name "gateway-api" }}
+  type: NodePort
+{{- end }}
   selector:
     app.kubernetes.io/name: {{ $name }}
   ports:
     - protocol: TCP
       port: {{ $svc.port }}
       targetPort: {{ $svc.port }}
+{{- if eq $name "gateway-api" }}
+      nodePort: {{ $svc.nodePort }}
+{{- end }}
 {{- end }}
 {{- end }}

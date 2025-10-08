@@ -5,9 +5,10 @@
 global:
   imagePullPolicy: IfNotPresent
   namespace: soma-agent-hub   # renamed from soma-agent-hub
+  imageTag: "029a130"
 
 # Default hub port for gateway-api (used in service definition)
-hubPort: 10000
+hubPort: 60000
 
 # Kafka (Bitnami) configuration – KRaft mode
 defaultKafka:
@@ -43,97 +44,36 @@ kafka:
 # Service definitions – each microservice can override these defaults
 services:
   jobs:
-    enabled: true
-    replicaCount: 1
-    image: "ghcr.io/somatechlat/soma-jobs:80e1d6f"
-    imagePullPolicy: Never
-    port: 1000
+    enabled: false
   somallm-provider:
-    enabled: true
-    replicaCount: 1
-    image: "ghcr.io/somatechlat/soma-somallm-provider:80e1d6f"
-    imagePullPolicy: Never
-    port: 1001
+    enabled: false
   policy-engine:
-    enabled: true
-    replicaCount: 1
-    image: "ghcr.io/somatechlat/soma-policy-engine:80e1d6f"
-    imagePullPolicy: Never
-    port: 1002
+    enabled: false
   memory-gateway:
-    enabled: true
-    replicaCount: 1
-    image: "ghcr.io/somatechlat/soma-memory-gateway:80e1d6f"
-    imagePullPolicy: Never
-    port: 1003
+    enabled: false
   orchestrator:
-    enabled: true
-    replicaCount: 1
-    image: "ghcr.io/somatechlat/soma-orchestrator:80e1d6f"
-    imagePullPolicy: Never
-    port: 1004
+    enabled: false
   settings-service:
-    enabled: true
-    replicaCount: 1
-    image: "ghcr.io/somatechlat/soma-settings-service:80e1d6f"
-    imagePullPolicy: Never
-    port: 1005
+    enabled: false
   task-capsule-repo:
-    enabled: true
-    replicaCount: 1
-    image: "ghcr.io/somatechlat/soma-task-capsule-repo:80e1d6f"
-    imagePullPolicy: Never
-    port: 1006
+    enabled: false
   gateway-api:
     enabled: true
     replicaCount: 1
-    image: "ghcr.io/somatechlat/soma-gateway-api:80e1d6f"
+    image: "ghcr.io/somatechlat/soma-gateway-api:029a130"
     imagePullPolicy: Never
-    port: 10000   # hub on 10000
+    port: 60000
+    nodePort: 30080
   identity-service:
-    enabled: true
-    replicaCount: 1
-    image: "ghcr.io/somatechlat/soma-identity-service:80e1d6f"
-    imagePullPolicy: Never
-    port: 1007
+    enabled: false
   constitution-service:
-    enabled: true
-    replicaCount: 1
-    image: "ghcr.io/somatechlat/soma-constitution-service:80e1d6f"
-    imagePullPolicy: Never
-    port: 1008
+    enabled: false
   analytics-service:
-    enabled: true
-    replicaCount: 1
-    image: "ghcr.io/somatechlat/soma-analytics-service:80e1d6f"
-    imagePullPolicy: Never
-    port: 1009
+    enabled: false
   billing-service:
-    enabled: true
-    replicaCount: 1
-    image: "ghcr.io/somatechlat/soma-billing-service:80e1d6f"
-    imagePullPolicy: Never
-    port: 1010
+    enabled: false
 
 # Ingress configuration
 ingress:
-  enabled: true
-  className: nginx
-  annotations:
-    kubernetes.io/ingress.class: nginx
-    nginx.ingress.kubernetes.io/rewrite-target: /$2
-  hosts:
-    - host: soma-agent-hub.local   # updated ingress host
-      paths:
-        - path: /jobs(/|$)(.*)
-          pathType: Prefix
-        - path: /policy(/|$)(.*)
-          pathType: Prefix
-        - path: /memory(/|$)(.*)
-          pathType: Prefix
-        - path: /orchestrator(/|$)(.*)
-          pathType: Prefix
-        - path: /settings(/|$)(.*)
-          pathType: Prefix
-        - path: /capsules(/|$)(.*)
-          pathType: Prefix
+  enabled: false
+  # other ingress fields left unchanged but will be ignored when disabled
