@@ -621,74 +621,67 @@ spec:
 
 ## 🔌 API REFERENCE
 
-### Start Campaign Workflow
+### Start Campaign Orchestration
 
 ```bash
-POST /v1/wizards/{wizard_id}/approve
+POST /v1/mao/start
 
-# Triggers MarketingCampaignWorkflow via Temporal
+# Launches the marketing orchestration workflow via Temporal
 ```
 
-**Response:**
+**Minimal Request Body:**
 ```json
 {
-  "workflow_id": "campaign-q4-launch-1728294645",
-  "run_id": "abc123",
-  "status": "running"
-}
-```
-
-### Query Progress
-
-```bash
-GET /v1/workflows/{workflow_id}/progress
-
-# Calls workflow.query("get_progress")
-```
-
-**Response:**
-```json
-{
-  "progress_percentage": 65,
-  "current_phase": "design",
-  "started_at": "2025-10-07T10:30:00Z",
-  "elapsed_seconds": 480
-}
-```
-
-### Send Approval Signal
-
-```bash
-POST /v1/workflows/{workflow_id}/signals/approve
-
-# Calls workflow.signal("approve_campaign")
-```
-
-**Response:**
-```json
-{
-  "status": "signal_sent"
-}
-```
-
-### Update Content Signal
-
-```bash
-POST /v1/workflows/{workflow_id}/signals/update_content
-
-Body:
-{
-  "content_id": "email_subject",
-  "new_content": "Updated subject line"
+    "tenant": "marketing",
+    "initiator": "campaign-lead",
+    "directives": [
+        {
+            "agent_id": "research",
+            "goal": "Collect competitive positioning",
+            "prompt": "Audit top three competitors for the Q4 launch"
+        },
+        {
+            "agent_id": "writer",
+            "goal": "Draft announcement copy",
+            "prompt": "Generate customer-ready messaging using research findings"
+        }
+    ],
+    "metadata": {
+        "campaign_id": "q4-launch"
+    }
 }
 ```
 
 **Response:**
 ```json
 {
-  "status": "content_updated"
+    "workflow_id": "mao-q4-launch",
+    "run_id": "abc123",
+    "orchestration_id": "mao-q4-launch",
+    "task_queue": "somagent-orchestrator"
 }
 ```
+
+### Check Orchestration Status
+
+```bash
+GET /v1/mao/{workflow_id}
+
+# Returns Temporal status and result payload when complete
+```
+
+**Response:**
+```json
+{
+    "workflow_id": "mao-q4-launch",
+    "run_id": "abc123",
+    "status": "running",
+    "history_length": 42,
+    "result": null
+}
+```
+
+> Approval and content-update signals are not exposed over HTTP yet. Use the Temporal CLI (`temporal workflow signal ...`) if you need to inject runtime signals into the orchestration today.
 
 ---
 

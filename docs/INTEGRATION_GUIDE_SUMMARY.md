@@ -20,10 +20,9 @@ The **SOMAGENTHUB_INTEGRATION_GUIDE.md** is now a comprehensive, production-read
    
 2. **Orchestrator Service (Port 8001)** - 4 endpoints fully documented
    - `/v1/sessions/start` - Start single-agent conversation workflows
+   - `/v1/sessions/{workflow_id}` - Inspect session workflow status
    - `/v1/mao/start` - Launch multi-agent orchestration workflows
-   - `/v1/workflows/{run_id}` - Status tracking with progress monitoring
-   - `/v1/workflows/{run_id}/cancel` - Graceful workflow cancellation
-   - `/v1/workflows` - List/filter workflows with pagination
+   - `/v1/mao/{workflow_id}` - Inspect multi-agent workflow status
 
 3. **SLM Service (Port 8003)** - 2 endpoints fully documented
    - `/v1/infer/sync` - Local text generation (50-80ms latency)
@@ -45,11 +44,10 @@ Each service includes 3-5 complete, copy-paste ready examples:
 - Model discovery and validation
 
 **Orchestrator Examples:**
-- Data processing pipeline
-- Multi-agent research workflow (4 agents)
-- Approval workflow with human-in-the-loop
-- Polling workflow status with timeout
-- Dashboard view with statistics
+- Kick off a session workflow with metadata overrides
+- Poll session status until Temporal completion
+- Launch a multi-agent orchestration with directives
+- Reuse the status poller to monitor MAO workflows
 
 **SLM Service Examples:**
 - CodeGenerator class for deterministic code generation

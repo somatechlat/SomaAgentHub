@@ -1,4 +1,46 @@
-# 🚀 Multi-Agent Implementation Sprint Plan
+# Multi-Agent Reality Check — October 8, 2025
+
+## Snapshot
+
+- **Adapters in place:** AutoGen (group chat), CrewAI (delegation), LangGraph (state machine), and A2A messaging activities are live in `services/orchestrator/app/integrations/`.
+- **Router & workflow:** `FrameworkRouter` and `UnifiedMultiAgentWorkflow` route requests across implemented patterns; returns include `activity`/`pattern` fields.
+- **Not yet built:** Role templates, blackboard/shared memory, consensus workflows, pipeline APIs, workflow chains, and extended coordination patterns remain conceptual only.
+- **Tests/telemetry:** No automated test coverage, benchmarks, or observability hooks exist for the adapters or router.
+
+## Outstanding Work
+
+1. Author pytest coverage for adapters, router, and unified workflow (Temporal test harness).
+2. Implement additional patterns (pipeline, consensus, role playing, workflow chains) or remove them from near-term roadmap.
+3. Provide shared abstractions (Agent/Roles/Termination) if we continue with in-house implementations instead of framework adapters.
+4. Add adapter/runbook documentation and SDK usage examples aligned with `/v1/sessions` and `/v1/mao` endpoints.
+5. Coordinate with observability track for tracing, cost attribution, and alerting once instrumentation primitives exist.
+
+## Deliverables Checklist (Current)
+
+- [x] Framework adapters for AutoGen, CrewAI, LangGraph, A2A.
+- [x] Router + unified Temporal workflow dispatch foundation.
+- [ ] Agent/role abstractions and templates.
+- [ ] Pipeline, role playing, consensus, blackboard, workflow-chain implementations.
+- [ ] A2A registry persistence + discovery beyond in-memory store.
+- [ ] Documentation covering adapter usage and limitations.
+- [ ] Benchmarks + load tests.
+- [ ] Observability (metrics/tracing) for multi-agent executions.
+
+## Next Steps
+
+1. Decide whether to continue leaning on framework adapters or invest in in-house abstractions listed in the archived plan.
+2. Build testing + telemetry foundations before adding additional patterns.
+3. Trim roadmap items that are out of scope for Q4 to avoid overpromising.
+4. Align SDK, CLI, and docs with the unified session/MAO APIs now in production.
+5. Update backlog tracking to reflect that only four patterns are implemented today.
+
+---
+
+## Archived Plan (October 2025)
+
+> **Note:** The archived content below represents the original aspirational sprint blueprint. It has **not** been implemented; retain for reference only.
+
+### 🚀 Multi-Agent Implementation Sprint Plan (Archived)
 
 **Project**: SomaAgentHub - Integration Architecture  
 **Timeline**: 3 Weeks (Integration) + 1 Week (Custom Features)  

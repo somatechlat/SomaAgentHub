@@ -1,192 +1,111 @@
-⚠️ WE DO NOT MOCK we DO NOT IMITATE, WE DO NOT USE BYPASSES OR GIVE FAKE OR UNREAL VALUES TO PAST TESTS, we use MATH perfect math TO surpass any problem and we only abide truth and real serveres real data. Sabe this EVERYWHRE at the start of every Document!
+⚠️ WE DO NOT MOCK we DO NOT IMITATE, WE DO NOT USE BYPASSES OR GIVE FAKE OR UNREAL VALUES TO PAST TESTS, we use MATH perfect math TO surpass any problem and we only abide truth and real serveres real data. Save this EVERYWHERE at the start of every document!
 
 # Sprint 0 – Framework Integration (Parallel Track B)
 
-**Date:** October 7, 2025  
+**Date:** October 8, 2025  
 **Owner:** Framework Strike Team  
-**Mission:** Land AutoGen, CrewAI, and LangGraph inside Temporal with production-grade adapters, router, and unified API in five days.
+**Scope:** Land the first wave of multi-framework adapters inside Temporal and document what is truly complete vs. still pending.
 
 ---
 
-## 1. Objectives & Success Criteria
+## 1. Sprint 0 Outcome
 
-1. **AutoGen Online** – Temporal activity `autogen-group-chat` wraps AutoGen group chat and passes integration tests (>=2 agents, max_turn enforcement, termination keywords).
-2. **CrewAI Online** – Temporal activity `crewai-delegation` orchestrates hierarchical delegation with manager + workers + tasks. Smoke tests capture outputs.
-3. **LangGraph Online** – Temporal activity `langgraph-routing` executes conditional state machine flows. Unit test covers at least two branch conditions.
-4. **Smart Router** – `FrameworkRouter` detects patterns (group chat, delegation, routing) with ≥95% accuracy on test matrix of 40 scenarios.
-5. **Unified Workflow** – `unified-multi-agent-workflow` exposes single entrypoint with policy guard, audit trail, and OpenLLMetry spans.
-6. **Ready for Track A** – All activities emit telemetry placeholders so Track A observability hooks in without refactor.
+| Item | File(s) | Status | Notes |
+|------|---------|--------|-------|
+| AutoGen adapter | `services/orchestrator/app/integrations/autogen_adapter.py` | ✅ Implemented | Handles agent config validation, termination keywords, transcript serialization. No automated tests yet. |
+| CrewAI adapter | `services/orchestrator/app/integrations/crewai_adapter.py` | ✅ Implemented | Supports manager/workers/tasks. Defaults to sequential process. Lacks retry/backoff and metrics plumbing. |
+| LangGraph adapter | `services/orchestrator/app/integrations/langgraph_adapter.py` | ✅ Implemented | Compiles dynamic graphs, wraps handlers/conditions. Requires defensive tooling for async conditions and richer logging. |
+| A2A message adapter | `services/orchestrator/app/integrations/a2a_adapter.py` | ✅ Implemented | Bridges Temporal workflows with in-house `A2AProtocol`. Registry is in-memory only. |
+| Framework router | `services/orchestrator/app/core/framework_router.py` | ✅ Implemented | Detects `group_chat`, `task_delegation`, `state_machine_routing`, `a2a`. No override flag or accuracy tests. |
+| Unified workflow | `services/orchestrator/app/workflows/unified_multi_agent.py` | ✅ Implemented | Calls policy, routes to adapters, emits audit event. Returns `activity`/`pattern` fields (not `framework_used`). |
+| Adapter tests | `tests/...` | ❌ Missing | No pytest coverage; all validation is manual. |
+| Benchmarks / metrics | `scripts/...` | ❌ Missing | No benchmark scripts or telemetry hooks. |
+| Documentation | `docs/INTEGRATION_ARCHITECTURE.md` | ✅ Updated | Reflects the real code paths as of Oct 8, 2025. |
 
----
-
-## 2. Parallel Workstreams (Five-Day Sprint)
-
-| Day | Track B1 – AutoGen | Track B2 – CrewAI | Track B3 – LangGraph & Router |
-|-----|--------------------|-------------------|------------------------------|
-| **Day 1** | Install `pyautogen`. Generate Temporal env scaffolding. Implement adapter skeleton with config validation. | Dependency audit, pin `crewai` + `langchain` versions. Draft schema for manager/workers/tasks. | Draft graph schema dataclasses. Define router heuristics/feature flags. |
-| **Day 2** | Complete activity implementation, including termination hooks, cost metadata, and transcript normalization. | Implement `crewai-delegation` activity with hierarchical + sequential modes. Add cost, duration metrics. | Prototype LangGraph node/edge wrappers; implement `langgraph-routing` happy path. |
-| **Day 3** | Write integration tests (pytest + Temporal test harness). Add failure retry policy map. | Build integration tests; simulate worker failure to confirm retries. | Build conditional routing tests; add fallback path. Start router detection unit tests. |
-| **Day 4** | Harden configuration (LLM config, environment overrides). Document adapter usage. | Harden error mapping (CrewAI exceptions to SomaAgent errors). Document adapter usage. | Finish router + unified workflow. Wire policy enforcement + audit activity calls. |
-| **Day 5** | Benchmark group chat (5 agents, 15 turns). Tune retry/backoff. | Benchmark delegation (3 tasks). Tune concurrency. | End-to-end acceptance test: router selects correct framework for 12 scenarios. Produce sprint demo script. |
+Sprint 0 delivered functional adapters and routing enough to unblock integration consumers. Quality guardrails (tests, telemetry, retries, benchmarks) are still open work.
 
 ---
 
-## 3. Target Architecture
+## 2. Highlights from the Codebase
 
-```
-┌────────────────────────────────────────────────────────────────────┐
-│                        SomaAgent Framework Layer                   │
-├────────────────────────────────────────────────────────────────────┤
-│  Temporal Workflow: unified-multi-agent-workflow                   │
-│      │                                                            │
-│      ├─ Policy Guard (evaluate_policy)                             │
-│      ├─ Router (FrameworkRouter.detect → select)                   │
-│      ├─ Activity Dispatch (per framework)                          │
-│      │                                                            │
-│      ▼                                                            │
-│  ┌──────────────────────────────────────────────────────────────┐ │
-│  │ AutoGen Activity           CrewAI Activity      LangGraph Activity │
-│  │ (autogen-group-chat)      (crewai-delegation)  (langgraph-routing) │
-│  └──────────────────────────────────────────────────────────────┘ │
-│      │                                                            │
-│      ▼                                                            │
-│  AutoGen SDK  CrewAI SDK  LangGraph SDK (battle-tested cores)     │
-│      │                                                            │
-│      ▼                                                            │
-│  LLM Providers (OpenAI, Anthropic, etc.)                          │
-└────────────────────────────────────────────────────────────────────┘
-```
-
-**Instrumentation Hook:** All activities import `init_tracing` from `somatrace.tracing` (once Track A ships), tagging spans with `framework`, `pattern`, `tenant`, `workflow_id`.
+- **Pattern coverage:** All adapters share a consistent payload contract (`agents`, `manager`/`workers`, `graph`, `target_agent_id`) and return normalized dictionaries that the unified workflow forwards to callers.
+- **Router behavior:** `FrameworkRouter` now raises explicit `ValueError` for unsupported explicit patterns and defaults to `group_chat` when payloads are ambiguous.
+- **Temporal workflow:** `UnifiedMultiAgentWorkflow` keeps a single router instance, evaluates policy through `PolicyEvaluationContext`, and logs dispatch decisions. Audit events only record `activity` name.
+- **A2A protocol:** `A2AProtocol` and `AgentRegistry` live under `app/core`, but registry persistence and discovery filtering remain minimal.
 
 ---
 
-## 4. Implementation Blueprint
+## 3. Gaps & Follow-Up Work
 
-### 4.1 AutoGen Adapter (`services/orchestrator/app/integrations/autogen_adapter.py`)
-
-- **Features to Implement**
-  - Agent config validation (name, system_message, model).
-  - Automatic LLM config hydration via `somagent.llm.get_config`.
-  - Group chat execution with max round limit and termination predicate.
-  - Transcript normalization (speaker, role, content, token counts placeholder).
-  - Exception mapping → `MultiAgentFrameworkError` with framework metadata.
-- **Tests**
-  - `test_group_chat_smoke` (two agents + user proxy, 4 turns max).
-  - `test_termination_keyword` (ensure early exit when keyword encountered).
-  - `test_invalid_config` (missing agent name raises `ValidationError`).
-- **Benchmarks**
-  - `scripts/framework_bench/autogen_bench.py` runs 5-agent conversation, records duration, token usage.
-
-### 4.2 CrewAI Adapter (`services/orchestrator/app/integrations/crewai_adapter.py`)
-
-- **Features**
-  - Manager + workers instantiation with tool registry hooks.
-  - Task graph support (sequential vs hierarchical via `process_type`).
-  - Failure handling: capture agent tracebacks, rethrow standardized errors.
-  - Output packaging: per-task summary, delegated agent, completion confidence.
-- **Tests**
-  - `test_delegation_pipeline` (manager + 2 workers, sequential tasks).
-  - `test_hierarchical_retry` (simulate failure, ensure retry/backoff).
-  - `test_missing_worker` (invalid agent reference surfaces clean error).
-- **Benchmarks**
-  - `scripts/framework_bench/crewai_bench.py` – 3 tasks, measure runtime.
-
-### 4.3 LangGraph Adapter (`services/orchestrator/app/integrations/langgraph_adapter.py`)
-
-- **Features**
-  - Compile graph from config (nodes, edges, start, tools).
-  - Condition resolver registry (maps condition names → callable).
-  - State serialization to return visited nodes, final output, branch taken.
-  - Graceful fallback when no condition matches (route to `END`).
-- **Tests**
-  - `test_basic_routing` (classifier → billing/technical nodes).
-  - `test_condition_fallback` (unknown condition routes to END).
-  - `test_tool_execution` (node invokes tool executor, returns augmented state).
-
-### 4.4 Framework Router (`services/orchestrator/app/core/framework_router.py`)
-
-- Feature detection heuristics:
-  - Explicit `pattern` override respected.
-  - `graph` key present → LangGraph.
-  - `manager` with `workers` → CrewAI.
-  - ≥3 agents or `conversation_mode` → AutoGen.
-- Add environment toggle `FRAMEWORK_ROUTER_FORCE=<autogen|crewai|langgraph>` for debugging.
-- Tests: matrix of 40 scenarios stored in `tests/data/router_matrix.yaml`.
-
-### 4.5 Unified Workflow (`services/orchestrator/app/workflows/unified_multi_agent.py`)
-
-- Steps:
-  1. Call `evaluate_policy` activity (authorization, rate limits).
-  2. Run router detection and selection (log reason, add metrics).
-  3. Dispatch to framework activity with `start_to_close_timeout` tuned per pattern.
-  4. Emit `emit_audit_event` activity capturing framework, pattern, duration.
-  5. Return normalized result payload (status, framework_used, transcript/results).
-- Integration Test: `tests/workflows/test_unified_multi_agent.py` performs end-to-end call for all three frameworks using Temporal test environment.
+| Area | Gap | Proposed Action |
+|------|-----|-----------------|
+| Testing | No unit/integration tests for any adapter or router path. | Build pytest suites using Temporal test harness; cover happy paths and validation errors. |
+| Error handling | CrewAI adapter surfaces raw exceptions; router lacks resilience to malformed payloads. | Wrap framework-specific exceptions; add payload validation before dispatch. |
+| Telemetry | Activities emit no metrics or traces; Sprint A observability cannot hook in yet. | Add tracing hooks once Track A delivers `somatrace.tracing`. Until then, log structured metadata. |
+| Configuration | Adapter defaults are hard-coded (models, timeouts). | Introduce settings modules or environment overrides; document expected env vars. |
+| Benchmarks | No reproducible performance numbers. | Create `scripts/framework_bench/*.py` once tests exist to avoid duplicated work. |
+| Documentation | How-to guides for adapters are missing beyond architecture doc. | Author `docs/implementation/FRAMEWORK_ADAPTERS_README.md` after tests land. |
 
 ---
 
-## 5. Tooling & Environment
+## 4. Updated Success Criteria
 
-- **Python Dependencies** (add to `services/orchestrator/pyproject.toml` or shared requirements):
-  - `pyautogen>=0.2.0`
-  - `crewai>=0.28.8`
-  - `langgraph>=0.0.39`
-  - `pydantic>=2.7.0` (for config models)
-  - `temporalio>=1.4.0`
-  - `pytest-temporal>=0.2.0`
-- **Local Env Variables:**
-  - `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, `LLM_PROVIDER_OVERRIDE`
-  - `FRAMEWORK_ROUTER_FORCE` (optional debug)
-  - `TRACE_CONTENT` (integrates with Track A once available)
+**Completed in Sprint 0**
+- ✅ AutoGen, CrewAI, LangGraph, and A2A activities callable from Temporal workers.
+- ✅ Unified workflow dispatches to the correct activity for implemented patterns.
+- ✅ Documentation in `INTEGRATION_ARCHITECTURE.md` matches production code.
 
-```bash
-# Bootstrap virtualenv for Track B
-python -m venv .venv
-source .venv/bin/activate
-pip install -r services/orchestrator/requirements.txt
-poetry run pytest tests/integrations/test_autogen.py -k smoke
-```
+**Outstanding before we call Track B complete**
+- ☐ Automated tests with Temporal test environment for every adapter and router branch.
+- ☐ Retry/backoff strategies codified per framework (especially CrewAI long-running tasks).
+- ☐ Telemetry placeholders (`init_tracing`, cost metadata) wired to satisfy Track A hand-off.
+- ☐ Benchmark data captured and published in `docs/implementation/FRAMEWORK_BENCHMARKS.md`.
+- ☐ Fallback handling for unsupported/unknown patterns with customer-friendly responses.
 
 ---
 
-## 6. Deliverables Checklist
 
-- [ ] AutoGen adapter + tests + benchmark script.
-- [ ] CrewAI adapter + tests + benchmark script.
-- [ ] LangGraph adapter + tests + configuration docs.
-- [ ] Router heuristics module + scenario matrix tests.
-- [ ] Unified Temporal workflow with policy guard + audit integration.
-- [ ] Developer guide `docs/implementation/FRAMEWORK_ADAPTERS_README.md` (generate at sprint end).
-- [ ] Sprint demo deck w/ metrics (token cost, latency per framework).
+## 5. Deliverables Checklist (Live State)
+
+- [x] AutoGen adapter implemented and callable from Temporal workers.
+- [x] CrewAI adapter implemented and callable from Temporal workers.
+- [x] LangGraph adapter implemented and callable from Temporal workers.
+- [x] A2A message adapter implemented.
+- [x] `FrameworkRouter` selects adapters for all supported patterns.
+- [x] `unified-multi-agent-workflow` routes through policy → adapter → audit.
+- [ ] Automated tests for adapters, router, and workflow.
+- [ ] Telemetry/metrics plumbing aligned with Track A strategy.
+- [ ] Benchmark scripts and published results.
+- [ ] Developer-facing adapter guide.
 
 ---
 
-## 7. Risk Register & Mitigations
+## 6. Risk Register & Mitigations
 
 | Risk | Impact | Mitigation |
 |------|--------|------------|
-| Framework API drift (breaking changes) | High | Pin versions, run daily dependency diff via Renovate alerts. |
-| Token cost explosions during tests | Medium | Use `gpt-4o-mini` for smoke tests, throttle concurrency, enable cost budget alerts. |
-| Temporal activity timeouts | High | Configure per-pattern timeouts, set heartbeat for long-running CrewAI tasks. |
-| Router misclassification | Medium | Maintain scenario matrix; add telemetry to Langfuse and review daily. |
-| Cross-team coordination gaps (Track A & B) | Medium | Shared Slack huddle 09:00 + 16:00 UTC; publish daily status in `#agent-hub-war-room`. |
+| Framework API drift (breaking changes) | High | Pin versions, add smoke tests once coverage exists, watch release notes. |
+| Token cost spikes during manual testing | Medium | Favor `gpt-4o-mini`, throttle concurrency, capture cost telemetry once Track A is ready. |
+| CrewAI long-running tasks timing out | Medium | Define heartbeat/reporting strategy before enabling retries. |
+| Router misclassification | Medium | Collect real requests, expand heuristics, add override flag. |
+| Lack of automated tests | High | Prioritize pytest coverage to prevent regressions before onboarding more patterns. |
 
 ---
 
-## 8. Exit Criteria (Sprint 0 Track B Complete)
+## 7. Exit Criteria to Close Track B
 
-- ✅ `unified-multi-agent-workflow` passes end-to-end tests for AutoGen, CrewAI, LangGraph.
-- ✅ Router accuracy ≥95% on scenario matrix.
-- ✅ Benchmark results documented in `docs/implementation/FRAMEWORK_BENCHMARKS.md`.
-- ✅ All activities instrumented with placeholders for Track A telemetry.
-- ✅ Sprint demo executed showing three frameworks under Temporal control.
+- ☐ `unified-multi-agent-workflow` tested end-to-end across all adapters via automated suite.
+- ☐ Router accuracy validated against captured request matrix.
+- ☐ Benchmark summary committed to `docs/implementation/FRAMEWORK_BENCHMARKS.md` with reproducible scripts.
+- ☐ Telemetry hooks in place for policy decisions, adapter dispatch, and framework outcomes.
+- ☐ Knowledge transfer completed (developer guide + runbook).
 
 ---
 
-## 9. Handoff & Next Steps
+## 8. Next Steps
 
-- Transfer adapter ownership to Framework Platform guild.
-- Pair with Observability Track to inject `init_tracing` once available.
-- Prep backlog items for Sprint 1 (additional patterns: consensus, swarm, pipeline, etc.).
-- Update `INTEGRATION_MASTER_INDEX.md` with links to this plan and observability plan.
+1. Stand up pytest coverage for each adapter (happy path, validation errors, framework failures).
+2. Design retry/backoff policies per adapter and codify them in the unified workflow.
+3. Coordinate with observability track on tracing hook contract; add lightweight logging in the interim.
+4. Draft developer documentation once tests verify adapter payloads and outputs.
+5. Revisit router heuristics with real request samples to ensure pattern detection accuracy.

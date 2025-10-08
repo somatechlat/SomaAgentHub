@@ -9,229 +9,6 @@
 ## 📋 Table of Contents
 
 1. [Introduction](#introduction)
-2. [Architecture Overview](#architecture-overview)
-3. [Quick Start](#quick-start)
-4. [Authentication & Identity](#authentication--identity)
-5. [Core Platform Services](#core-platform-services)
-6. [Building Your First Agent](#building-your-first-agent)
-7. [Advanced Integrations](#advanced-integrations)
-8. [Tool Adapters](#tool-adapters)
-9. [Memory & RAG](#memory--rag)
-10. [Workflows & Orchestration](#workflows--orchestration)
-11. [Observability & Monitoring](#observability--monitoring)
-12. [Production Deployment](#production-deployment)
-13. [SDK Reference](#sdk-reference)
-14. [Troubleshooting](#troubleshooting)
-
----
-
-## 🎯 Introduction
-
-Welcome to **SomaAgentHub** - your comprehensive platform for building, deploying, and managing AI agents at scale. This guide will walk you through integrating your first agent and leveraging all 14 microservices, 12 infrastructure components, and 16 tool adapters.
-
-### What You'll Learn
-
-- How to authenticate and establish agent identity
-- How to use each platform service (Gateway, Orchestrator, Memory, Tools, etc.)
-- How to build intelligent agents with memory, tools, and workflows
-- How to monitor, scale, and deploy production-ready agents
-- Best practices for multi-agent collaboration
-
-### Prerequisites
-
-```bash
-# Required
-- Python 3.11+
-- Docker & Docker Compose (for local development)
-- Kubernetes cluster (for production)
-
-# Optional
-- Node.js 18+ (for React Native mobile app)
-- Helm 3.x (for K8s deployment)
-```
-
----
-
-## 🏗️ Architecture Overview
-
-### Platform Services Map
-
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                        SOMAGENTHUB PLATFORM                      │
-├─────────────────────────────────────────────────────────────────┤
-│                                                                   │
-│  ┌──────────────┐      ┌──────────────┐      ┌──────────────┐  │
-│  │  Gateway API │─────▶│ Orchestrator │─────▶│ Identity Svc │  │
-│  │  (Port 8000) │      │  (Port 8001) │      │  (Port 8002) │  │
-│  └──────────────┘      └──────────────┘      └──────────────┘  │
-│         │                      │                      │          │
-│         │                      │                      │          │
-│         ▼                      ▼                      ▼          │
-│  ┌──────────────┐      ┌──────────────┐      ┌──────────────┐  │
-│  │  SLM Service │      │Memory Gateway│      │ Tool Service │  │
-│  │  (Port 8003) │      │  (Port 8004) │      │  (Port 8005) │  │
-│  └──────────────┘      └──────────────┘      └──────────────┘  │
-│         │                      │                      │          │
-│         └──────────────────────┴──────────────────────┘          │
-│                                │                                 │
-│                                ▼                                 │
-│  ┌────────────────────────────────────────────────────────────┐ │
-│  │           INFRASTRUCTURE LAYER (12 Components)             │ │
-│  │  PostgreSQL • Redis • Kafka • Keycloak • OPA • Qdrant     │ │
-│  │  ClickHouse • Temporal • Ray • MinIO • Prometheus • Grafana│ │
-│  └────────────────────────────────────────────────────────────┘ │
-│                                                                   │
-└─────────────────────────────────────────────────────────────────┘
-```
-
-### Service Responsibilities
-
-| Service | Port | Purpose | Key Features |
-|---------|------|---------|-------------|
-| **Gateway API** | 8000 | Public entry point | Authentication, rate limiting, routing |
-| **Orchestrator** | 8001 | Workflow coordination | Temporal workflows, multi-agent coordination |
-| **Identity Service** | 8002 | Auth & identity | JWT tokens, user management, audit logging |
-| **SLM Service** | 8003 | Local language models | Text generation, embeddings, no external API costs |
-| **Memory Gateway** | 8004 | Vector memory & RAG | Qdrant integration, semantic search, memory management |
-| **Tool Service** | 8005 | External integrations | 16 adapters (GitHub, Slack, AWS, etc.) |
-| **Task Capsule Repo** | 8006 | Reusable task library | Versioned task definitions, marketplace |
-| **Policy Engine** | 8007 | Authorization & governance | OPA policies, compliance enforcement |
-| **Analytics Service** | 8008 | Usage analytics | ClickHouse queries, cost tracking |
-| **Settings Service** | 8009 | Configuration | User preferences, tenant settings |
-| **Billing Service** | 8010 | Usage metering | Token tracking, cost allocation |
-| **Constitution Service** | 8011 | Ethical constraints | Value alignment, safety guardrails |
-| **Notification Service** | 8012 | Alerts & notifications | Email, Slack, Discord webhooks |
-| **Marketplace** | 8013 | Capsule marketplace | Search, download, ratings |
-
----
-
-## 🚀 Quick Start
-
-### 1. Install the SDK
-
-```bash
-# Python SDK
-pip install somaagent
-
-# Or install from source
-cd sdk/python
-pip install -e .
-```
-
-### 2. Set Environment Variables
-
-```bash
-# .env file
-export SOMAAGENT_API_URL="http://localhost:8000"
-export SOMAAGENT_API_KEY="your-api-key-here"
-
-# For production
-export SOMAAGENT_API_URL="https://api.somaagent.io"
-export SOMAAGENT_API_KEY="prod-key-xxxxxxxx"
-```
-
-### 3. Your First Agent (5 Minutes)
-
-```python
-from somaagent import SomaAgentClient
-
-# Initialize client
-client = SomaAgentClient(
-    api_key="your-api-key",
-    base_url="http://localhost:8000"
-)
-
-# Create an agent
-agent = client.create_agent(
-    name="MyFirstAgent",
-    instructions="You are a helpful assistant with access to GitHub and Slack.",
-    model="somasuite-markov-v1",
-    tools=["github", "slack"]
-)
-
-# Run the agent
-result = client.run_agent(
-    agent_id=agent.id,
-    prompt="Create a GitHub issue for bug tracking and notify the team on Slack"
-)
-
-print(result)
-```
-
-**Output:**
-```json
-{
-  "status": "completed",
-  "result": "Created GitHub issue #123 and sent Slack notification to #dev-team",
-  "tool_calls": [
-    {"tool": "github", "action": "create_issue", "status": "success"},
-    {"tool": "slack", "action": "send_message", "status": "success"}
-  ]
-}
-```
-
----
-
-## 🔐 Authentication & Identity
-
-### Identity Service Integration
-
-The Identity Service (port 8002) manages all authentication, user identities, and JWT tokens.
-
-#### 1. User Registration
-
-```python
-import httpx
-
-async def register_user(username: str, email: str, password: str):
-    async with httpx.AsyncClient() as client:
-        response = await client.post(
-            "http://localhost:8002/v1/auth/register",
-            json={
-                "username": username,
-                "email": email,
-                "password": password
-            }
-        )
-        return response.json()
-
-# Example
-user = await register_user("john_doe", "john@example.com", "secure_password")
-# Returns: {"user_id": "usr_xxx", "status": "registered"}
-```
-
-#### 2. Login & Token Generation
-
-```python
-async def login(username: str, password: str):
-    async with httpx.AsyncClient() as client:
-        response = await client.post(
-            "http://localhost:8002/v1/auth/login",
-            json={
-                "username": username,
-                "password": password
-            }
-        )
-        data = response.json()
-        return data["access_token"], data["refresh_token"]
-
-# Example
-access_token, refresh_token = await login("john_doe", "secure_password")
-```
-
-#### 3. JWT Token Usage
-
-All subsequent requests to SomaAgentHub services require the JWT token:
-
-```python
-headers = {
-    "Authorization": f"Bearer {access_token}",
-    "Content-Type": "application/json"
-}
-
-# Use in all API calls
-response = await client.get(
     "http://localhost:8000/v1/agents",
     headers=headers
 )
@@ -306,889 +83,210 @@ api_key = service_account["api_key"]  # Use this for the agent
 
 **Endpoint:** `POST /v1/chat/completions`
 
-**Purpose:** Generate text completions using local SLM models (OpenAI-compatible)
+##### **2.1 Start Session Workflow**
+
+**Endpoint:** `POST /v1/sessions/start`
+
+**Purpose:** Start the Temporal-backed conversational session workflow used by the orchestrator service.
 
 **Authentication:** Required (Bearer token)
 
 **Request Schema:**
 ```json
 {
-  "model": "string",              // Required: Model ID (e.g., "somasuite-markov-v1")
-  "messages": [                   // Required: Conversation history
-    {
-      "role": "string",           // Required: "user", "assistant", or "system"
-      "content": "string",        // Required: Message content
-      "name": "string"            // Optional: Participant name
-    }
-  ],
-  "max_tokens": 64,               // Optional: Max completion tokens (1-256, default: 64)
-  "temperature": 0.8,             // Optional: Randomness (0.0-2.0, default: 0.8)
-  "top_p": 1.0,                   // Optional: Nucleus sampling (0.0-1.0)
-  "n": 1,                         // Optional: Number of completions (default: 1)
-  "stream": false,                // Optional: Enable streaming (default: false)
-  "stop": ["string"],             // Optional: Stop sequences
-  "presence_penalty": 0.0,        // Optional: Presence penalty (-2.0 to 2.0)
-  "frequency_penalty": 0.0,       // Optional: Frequency penalty (-2.0 to 2.0)
-  "user": "string"                // Optional: User identifier for tracking
+  "tenant": "string",            // Required: Tenant identifier
+  "user": "string",              // Required: User initiating the session
+  "prompt": "string",            // Required: Initial conversation prompt
+  "model": "string",             // Optional: Model id (default: "somagent-demo")
+  "metadata": {                   // Optional: Additional session metadata
+    "session_id": "session-123"  // Provide to reuse an id, otherwise auto-generated
+  }
 }
 ```
 
 **Response Schema:**
 ```json
 {
-  "id": "chatcmpl-xxx",           // Completion ID
-  "object": "chat.completion",    // Object type
-  "created": 1234567890,          // Unix timestamp
-  "model": "somasuite-markov-v1", // Model used
-  "choices": [
-    {
-      "index": 0,                 // Choice index
-      "message": {
-        "role": "assistant",      // Always "assistant"
-        "content": "string"       // Generated response
-      },
-      "finish_reason": "stop"     // "stop", "length", or "content_filter"
-    }
-  ],
-  "usage": {
-    "prompt_tokens": 10,          // Input token count
-    "completion_tokens": 25,      // Output token count
-    "total_tokens": 35            // Total tokens used
-  }
+  "workflow_id": "session-session-123",  // Temporal workflow id
+  "run_id": "string",                    // Temporal run id
+  "session_id": "session-123",          // Session id persisted in metadata
+  "task_queue": "somagent-orchestrator"  // Queue configured in orchestrator settings
 }
 ```
 
-**Example Implementation:**
+**Example - Kick Off a Session Workflow:**
 ```python
 import httpx
-from typing import List, Dict, Optional
 
-class ChatCompletionClient:
-    def __init__(self, api_key: str, base_url: str = "http://localhost:8000"):
-        self.api_key = api_key
-        self.base_url = base_url
-        self.headers = {
-            "Authorization": f"Bearer {api_key}",
-            "Content-Type": "application/json"
-        }
-    
-    async def create_completion(
-        self,
-        messages: List[Dict[str, str]],
-        model: str = "somasuite-markov-v1",
-        max_tokens: int = 64,
-        temperature: float = 0.8,
-        stream: bool = False
-    ):
-        """Create a chat completion."""
-        async with httpx.AsyncClient(timeout=30.0) as client:
-            response = await client.post(
-                f"{self.base_url}/v1/chat/completions",
-                headers=self.headers,
-                json={
-                    "model": model,
-                    "messages": messages,
-                    "max_tokens": max_tokens,
-                    "temperature": temperature,
-                    "stream": stream
-                }
-            )
-            response.raise_for_status()
-            return response.json()
-
-# Usage Example
-async def main():
-    client = ChatCompletionClient(api_key="your-token")
-    
-    # Simple conversation
-    result = await client.create_completion(
-        messages=[
-            {"role": "system", "content": "You are a helpful Python expert."},
-            {"role": "user", "content": "Write a function to reverse a string."}
-        ],
-        max_tokens=150
-    )
-    
-    print(result["choices"][0]["message"]["content"])
-    print(f"Tokens used: {result['usage']['total_tokens']}")
-
-# Output:
-# Here's a function to reverse a string in Python:
-# def reverse_string(s):
-#     return s[::-1]
-# Tokens used: 42
-```
-
-**Use Cases:**
-1. **Chatbots** - Build conversational AI with context
-2. **Code Generation** - Generate code snippets based on requirements
-3. **Content Creation** - Write articles, emails, documentation
-4. **Question Answering** - Answer questions with context from conversation history
-5. **Text Transformation** - Summarize, translate, or rewrite text
-
-**Rate Limits:**
-- Free tier: 10 requests/minute
-- Pro tier: 100 requests/minute
-- Enterprise tier: 1000 requests/minute
-
-**Error Responses:**
-```json
-// 401 Unauthorized
-{
-  "error": {
-    "message": "Invalid authentication token",
-    "type": "authentication_error",
-    "code": "invalid_token"
-  }
-}
-
-// 429 Rate Limit Exceeded
-{
-  "error": {
-    "message": "Rate limit exceeded. Retry after 60 seconds.",
-    "type": "rate_limit_error",
-    "code": "rate_limit_exceeded"
-  }
-}
-
-// 400 Bad Request
-{
-  "error": {
-    "message": "Invalid model specified",
-    "type": "invalid_request_error",
-    "code": "invalid_model"
-  }
-}
-```
-
----
-
-##### **1.2 Models API**
-
-**Endpoint:** `GET /v1/models`
-
-**Purpose:** List all available models and their capabilities
-
-**Authentication:** Required (Bearer token)
-
-**Request:** No parameters required
-
-**Response Schema:**
-```json
-{
-  "object": "list",
-  "data": [
-    {
-      "id": "somasuite-markov-v1",        // Model identifier
-      "object": "model",                   // Object type
-      "created": 1234567890,               // Unix timestamp
-      "owned_by": "somaagent",             // Owner
-      "permission": [...],                 // Model permissions
-      "root": "somasuite-markov-v1",       // Base model
-      "parent": null,                      // Parent model (if fine-tuned)
-      "capabilities": {
-        "completion": true,                // Supports text completion
-        "chat": true,                      // Supports chat
-        "embeddings": true,                // Supports embeddings
-        "fine_tuning": false               // Supports fine-tuning
-      },
-      "context_window": 2048,              // Max context tokens
-      "max_tokens": 256                    // Max output tokens
-    }
-  ]
-}
-```
-
-**Example:**
-```python
-async def list_models(token: str):
-    async with httpx.AsyncClient() as client:
-        response = await client.get(
-            "http://localhost:8000/v1/models",
-            headers={"Authorization": f"Bearer {token}"}
-        )
-        return response.json()
-
-models = await list_models(access_token)
-for model in models["data"]:
-    print(f"Model: {model['id']}")
-    print(f"  Context: {model['context_window']} tokens")
-    print(f"  Max output: {model['max_tokens']} tokens")
-    print(f"  Capabilities: {', '.join([k for k, v in model['capabilities'].items() if v])}")
-```
-
-**Use Cases:**
-1. **Model Discovery** - Find available models before making requests
-2. **Capability Check** - Verify model supports required features
-3. **Dynamic UI** - Populate model selection dropdowns
-4. **Validation** - Ensure requested model exists before expensive operations
-
----
-
-##### **1.3 Sessions API**
-
-**Endpoint:** `POST /v1/sessions`
-
-**Purpose:** Create persistent conversation sessions with state management
-
-**Authentication:** Required (Bearer token)
-
-**When to Use:**
-- Multi-turn conversations with context retention
-- User-specific agent interactions
-- Long-running dialogues requiring state persistence
-- When you need session-level analytics
-
-**Request Schema:**
-```json
-{
-  "agent_id": "string",           // Optional: Agent to use for this session
-  "user_id": "string",            // Optional: User identifier
-  "metadata": {                   // Optional: Custom metadata
-    "source": "web",
-    "ip_address": "192.168.1.1",
-    "user_agent": "Mozilla/5.0...",
-    "custom_field": "value"
-  },
-  "settings": {                   // Optional: Session-specific settings
-    "temperature": 0.8,
-    "max_history": 50,            // Max messages to retain
-    "timeout_minutes": 30         // Session timeout
-  }
-}
-```
-
-**Response Schema:**
-```json
-{
-  "session_id": "sess_xxx",       // Unique session identifier
-  "agent_id": "agent_xxx",        // Assigned agent
-  "user_id": "user_123",          // User identifier
-  "status": "active",             // "active", "expired", or "terminated"
-  "created_at": "2025-10-05T12:00:00Z",
-  "expires_at": "2025-10-05T12:30:00Z",
-  "message_count": 0,             // Messages in session
-  "metadata": {...}               // Custom metadata
-}
-```
-
-**Example - Complete Session Workflow:**
-```python
-class ConversationSession:
-    """Manages a conversation session with state."""
-    
-    def __init__(self, api_key: str, base_url: str = "http://localhost:8000"):
-        self.api_key = api_key
-        self.base_url = base_url
-        self.headers = {"Authorization": f"Bearer {api_key}"}
-        self.session_id = None
-    
-    async def start_session(self, user_id: str, agent_id: str = None):
-        """Create a new session."""
-        async with httpx.AsyncClient() as client:
-            response = await client.post(
-                f"{self.base_url}/v1/sessions",
-                headers=self.headers,
-                json={
-                    "agent_id": agent_id,
-                    "user_id": user_id,
-                    "metadata": {
-                        "source": "python_sdk",
-                        "version": "1.0.0"
-                    },
-                    "settings": {
-                        "max_history": 50,
-                        "timeout_minutes": 60
-                    }
-                }
-            )
-            data = response.json()
-            self.session_id = data["session_id"]
-            return data
-    
-    async def send_message(self, content: str):
-        """Send a message in the session."""
-        async with httpx.AsyncClient() as client:
-            response = await client.post(
-                f"{self.base_url}/v1/sessions/{self.session_id}/messages",
-                headers=self.headers,
-                json={"content": content, "role": "user"}
-            )
-            return response.json()
-    
-    async def get_history(self, limit: int = 10):
-        """Retrieve conversation history."""
-        async with httpx.AsyncClient() as client:
-            response = await client.get(
-                f"{self.base_url}/v1/sessions/{self.session_id}/messages",
-                headers=self.headers,
-                params={"limit": limit}
-            )
-            return response.json()
-    
-    async def end_session(self):
-        """Terminate the session."""
-        async with httpx.AsyncClient() as client:
-            response = await client.delete(
-                f"{self.base_url}/v1/sessions/{self.session_id}",
-                headers=self.headers
-            )
-            return response.json()
-
-# Usage Example
-async def customer_support_session():
-    session = ConversationSession(api_key="your-token")
-    
-    # Start session
-    info = await session.start_session(user_id="user_123", agent_id="support_agent")
-    print(f"Session started: {info['session_id']}")
-    
-    # User asks questions
-    response1 = await session.send_message("What are your pricing tiers?")
-    print(f"Agent: {response1['message']['content']}")
-    
-    response2 = await session.send_message("How do I upgrade to Pro?")
-    print(f"Agent: {response2['message']['content']}")
-    
-    # Get conversation history
-    history = await session.get_history(limit=10)
-    print(f"Messages in session: {len(history['messages'])}")
-    
-    # End session
-    await session.end_session()
-    print("Session ended")
-```
-
-**Use Cases:**
-1. **Customer Support** - Track customer conversations across interactions
-2. **Multi-turn Interviews** - Conduct structured dialogues with context
-3. **Form Filling** - Guide users through complex forms conversationally
-4. **Tutoring Systems** - Maintain learning context across lessons
-5. **Sales Conversations** - Track prospect interactions with full history
-
----
-
-### 2. Orchestrator Service (Port 8001)
-
-**Purpose:** Coordinates complex workflows using Temporal. Manages multi-agent collaboration, long-running tasks, and state management.
-
-**When to Connect:**
-- Executing multi-step workflows that span multiple services
-- Coordinating multiple agents working together
-- Running long-running processes (hours, days, or weeks)
-- When you need guaranteed execution with retries and fault tolerance
-- For complex business processes with human-in-the-loop steps
-
-**Why Connect:**
-- **Durable Execution** - Workflows survive crashes and restarts
-- **State Management** - Automatic state persistence and recovery
-- **Retry Logic** - Built-in retry with exponential backoff
-- **Visibility** - Track workflow progress and history
-- **Versioning** - Deploy new workflow versions without breaking running instances
-
----
-
-#### 📋 Complete API Reference
-
-##### **2.1 Start Workflow**
-
-**Endpoint:** `POST /v1/workflows/start`
-
-**Purpose:** Initiate a new workflow execution with specified inputs
-
-**Authentication:** Required (Bearer token)
-
-**Request Schema:**
-```json
-{
-  "workflow_type": "string",      // Required: Workflow name/type
-  "inputs": {                     // Required: Workflow input parameters
-    "key": "value"
-  },
-  "workflow_id": "string",        // Optional: Custom workflow ID (default: auto-generated)
-  "task_queue": "string",         // Optional: Task queue name (default: "default")
-  "timeout_seconds": 3600,        // Optional: Workflow timeout (default: 3600)
-  "retry_policy": {               // Optional: Retry configuration
-    "max_attempts": 3,
-    "initial_interval_seconds": 1,
-    "backoff_coefficient": 2.0,
-    "maximum_interval_seconds": 100
-  },
-  "metadata": {                   // Optional: Custom metadata
-    "user_id": "user_123",
-    "source": "api"
-  }
-}
-```
-
-**Response Schema:**
-```json
-{
-  "run_id": "wf_xxx",             // Unique workflow run identifier
-  "workflow_id": "custom_id",     // Workflow identifier (custom or auto-generated)
-  "workflow_type": "data_pipeline",
-  "status": "running",            // "running", "completed", "failed", "cancelled"
-  "started_at": "2025-10-05T12:00:00Z",
-  "inputs": {...},                // Input parameters
-  "metadata": {...}               // Custom metadata
-}
-```
-
-**Available Workflow Types:**
-```python
-WORKFLOW_TYPES = {
-    # Single Agent Workflows
-    "simple_task": "Execute a single task with retry logic",
-    "data_processing": "ETL pipeline with validation steps",
-    "scheduled_job": "Cron-like scheduled execution",
-    
-    # Multi-Agent Workflows
-    "multi_agent_research": "Coordinated research by multiple agents",
-    "collaborative_writing": "Writer, editor, reviewer workflow",
-    "code_review_pipeline": "Automated code review process",
-    
-    # Business Workflows
-    "approval_workflow": "Multi-stage approval process",
-    "customer_onboarding": "New customer setup workflow",
-    "incident_response": "Automated incident handling",
-    
-    # Data Workflows
-    "data_pipeline": "Extract, transform, load data",
-    "ml_training_pipeline": "Model training and deployment",
-    "batch_processing": "Process large datasets in chunks",
-    
-    # Integration Workflows
-    "github_sync": "Sync GitHub issues and PRs",
-    "slack_notification_campaign": "Send scheduled notifications",
-    "multi_cloud_deployment": "Deploy across AWS, Azure, GCP"
-}
-```
-
-**Example 1: Simple Data Processing Workflow**
-```python
-async def run_data_pipeline(token: str):
-    """Execute a data processing workflow."""
+async def start_session_workflow(token: str):
     async with httpx.AsyncClient() as client:
         response = await client.post(
-            "http://localhost:8001/v1/workflows/start",
+            "http://localhost:8001/v1/sessions/start",
             headers={"Authorization": f"Bearer {token}"},
             json={
-                "workflow_type": "data_pipeline",
-                "inputs": {
-                    "source": "s3://my-bucket/raw-data.csv",
-                    "transformations": [
-                        {"type": "filter", "column": "status", "value": "active"},
-                        {"type": "aggregate", "group_by": "category", "function": "sum"},
-                        {"type": "sort", "column": "total", "order": "desc"}
-                    ],
-                    "destination": "postgres://db/processed_data",
-                    "notification_email": "team@company.com"
-                },
-                "timeout_seconds": 7200,  # 2 hours
-                "retry_policy": {
-                    "max_attempts": 3,
-                    "initial_interval_seconds": 60
-                }
-            }
-        )
-        return response.json()
-
-# Execute
-result = await run_data_pipeline(access_token)
-print(f"Workflow started: {result['run_id']}")
-print(f"Status: {result['status']}")
-```
-
-**Example 2: Multi-Agent Research Workflow**
-```python
-async def start_research_project(
-    topic: str,
-    num_sources: int,
-    deadline: str,
-    token: str
-):
-    """Start a collaborative research project."""
-    async with httpx.AsyncClient() as client:
-        response = await client.post(
-            "http://localhost:8001/v1/workflows/start",
-            headers={"Authorization": f"Bearer {token}"},
-            json={
-                "workflow_type": "multi_agent_research",
-                "inputs": {
-                    "topic": topic,
-                    "num_sources": num_sources,
-                    "deadline": deadline,
-                    "agents": {
-                        "researcher": {
-                            "role": "primary_researcher",
-                            "tools": ["github", "notion", "confluence"],
-                            "search_depth": "comprehensive"
-                        },
-                        "analyzer": {
-                            "role": "data_analyst",
-                            "tools": ["python", "jupyter"],
-                            "analysis_type": "statistical"
-                        },
-                        "writer": {
-                            "role": "content_creator",
-                            "tools": ["notion", "grammarly"],
-                            "style": "technical"
-                        },
-                        "reviewer": {
-                            "role": "quality_checker",
-                            "tools": ["notion"],
-                            "criteria": ["accuracy", "clarity", "completeness"]
-                        }
-                    },
-                    "deliverables": {
-                        "research_doc": "notion://workspace/research",
-                        "data_analysis": "s3://bucket/analysis.ipynb",
-                        "final_report": "notion://workspace/final-report"
-                    }
-                },
-                "workflow_id": f"research_{topic.replace(' ', '_')}",
-                "timeout_seconds": 86400,  # 24 hours
+                "tenant": "acme",
+                "user": "alex",
+                "prompt": "Warm up the user with a welcome message",
+                "model": "somagent-demo",
                 "metadata": {
-                    "project_id": "PROJ-123",
-                    "priority": "high",
-                    "requester": "john@company.com"
+                    "source": "integration-guide",
+                    "session_id": "demo-session-1"
                 }
-            }
+            },
+            timeout=30,
         )
+        response.raise_for_status()
         return response.json()
 
-# Execute
-workflow = await start_research_project(
-    topic="AI Safety Regulations 2025",
-    num_sources=50,
-    deadline="2025-10-10T00:00:00Z",
-    token=access_token
-)
-print(f"Research project started: {workflow['run_id']}")
+session_job = await start_session_workflow(access_token)
+print(session_job)
 ```
 
-**Example 3: Approval Workflow (Human-in-the-Loop)**
-```python
-async def start_approval_workflow(
-    document: dict,
-    approvers: list[str],
-    token: str
-):
-    """Start a multi-stage approval workflow."""
-    async with httpx.AsyncClient() as client:
-        response = await client.post(
-            "http://localhost:8001/v1/workflows/start",
-            headers={"Authorization": f"Bearer {token}"},
-            json={
-                "workflow_type": "approval_workflow",
-                "inputs": {
-                    "document": document,
-                    "approval_stages": [
-                        {
-                            "stage": "technical_review",
-                            "approvers": [approvers[0]],
-                            "timeout_hours": 48,
-                            "notification_channel": "slack"
-                        },
-                        {
-                            "stage": "legal_review",
-                            "approvers": [approvers[1]],
-                            "timeout_hours": 72,
-                            "notification_channel": "email"
-                        },
-                        {
-                            "stage": "executive_approval",
-                            "approvers": [approvers[2]],
-                            "timeout_hours": 24,
-                            "notification_channel": "slack"
-                        }
-                    ],
-                    "auto_reject_on_timeout": False,
-                    "notification_settings": {
-                        "on_approval": True,
-                        "on_rejection": True,
-                        "on_timeout_warning": True
-                    }
-                },
-                "timeout_seconds": 604800,  # 1 week
-                "metadata": {
-                    "document_id": document["id"],
-                    "department": "engineering"
-                }
-            }
-        )
-        return response.json()
-
-# Execute
-workflow = await start_approval_workflow(
-    document={"id": "DOC-123", "title": "Q4 Budget Proposal"},
-    approvers=["tech_lead@co.com", "legal@co.com", "ceo@co.com"],
-    token=access_token
-)
-```
+> **Note:** The workflow id is `session-{session_id}`. Persist it to check status or correlate Temporal history.
 
 ---
 
-##### **2.2 Get Workflow Status**
+##### **2.2 Check Session Status**
 
-**Endpoint:** `GET /v1/workflows/{run_id}`
+**Endpoint:** `GET /v1/sessions/{workflow_id}`
 
-**Purpose:** Check the current status and progress of a running or completed workflow
+**Purpose:** Inspect the Temporal session workflow state (running, completed, failed) and optional result payload.
 
 **Authentication:** Required (Bearer token)
-
-**Request:** No body required, run_id in URL path
 
 **Response Schema:**
 ```json
 {
-  "run_id": "wf_xxx",
-  "workflow_id": "custom_id",
-  "workflow_type": "data_pipeline",
-  "status": "running",            // "running", "completed", "failed", "cancelled"
-  "progress": 45.5,               // Percentage complete (0-100)
-  "current_step": "transform_data",
-  "started_at": "2025-10-05T12:00:00Z",
-  "updated_at": "2025-10-05T12:15:00Z",
-  "completed_at": null,           // Null if still running
-  "inputs": {...},                // Original inputs
-  "outputs": {...},               // Results (if completed)
-  "error": null,                  // Error details (if failed)
-  "execution_history": [          // Step-by-step execution log
-    {
-      "step": "validate_source",
-      "status": "completed",
-      "started_at": "2025-10-05T12:00:00Z",
-      "completed_at": "2025-10-05T12:01:00Z",
-      "duration_seconds": 60
-    },
-    {
-      "step": "extract_data",
-      "status": "completed",
-      "started_at": "2025-10-05T12:01:00Z",
-      "completed_at": "2025-10-05T12:10:00Z",
-      "duration_seconds": 540
-    },
-    {
-      "step": "transform_data",
-      "status": "running",
-      "started_at": "2025-10-05T12:10:00Z",
-      "completed_at": null,
-      "duration_seconds": null
-    }
-  ],
-  "metadata": {...}
+  "workflow_id": "session-demo-session-1",
+  "run_id": "string",
+  "status": "running",           // running | completed | failed | terminated
+  "history_length": 12,           // Temporal history length
+  "result": { ... }               // Present only when workflow has completed successfully
 }
 ```
 
-**Example - Polling Workflow Status:**
+**Example - Poll Until Completion:**
 ```python
 import asyncio
+import httpx
 
-async def wait_for_workflow_completion(
-    run_id: str,
-    token: str,
-    poll_interval: int = 5,
-    timeout: int = 3600
-):
-    """Poll workflow status until completion or timeout."""
-    start_time = asyncio.get_event_loop().time()
-    
+async def wait_for_session(workflow_id: str, token: str) -> dict:
     async with httpx.AsyncClient() as client:
         while True:
-            # Check timeout
-            if asyncio.get_event_loop().time() - start_time > timeout:
-                raise TimeoutError(f"Workflow {run_id} exceeded timeout of {timeout}s")
-            
-            # Get status
             response = await client.get(
-                f"http://localhost:8001/v1/workflows/{run_id}",
-                headers={"Authorization": f"Bearer {token}"}
+                f"http://localhost:8001/v1/sessions/{workflow_id}",
+                headers={"Authorization": f"Bearer {token}"},
+                timeout=15,
             )
-            status_data = response.json()
-            
-            # Log progress
-            print(f"Status: {status_data['status']}, "
-                  f"Progress: {status_data['progress']:.1f}%, "
-                  f"Step: {status_data['current_step']}")
-            
-            # Check if done
-            if status_data["status"] == "completed":
-                print(f"✅ Workflow completed successfully!")
-                return status_data
-            elif status_data["status"] == "failed":
-                print(f"❌ Workflow failed: {status_data['error']}")
-                raise Exception(f"Workflow failed: {status_data['error']}")
-            elif status_data["status"] == "cancelled":
-                print(f"⚠️ Workflow was cancelled")
-                return status_data
-            
-            # Wait before next poll
-            await asyncio.sleep(poll_interval)
+            response.raise_for_status()
+            payload = response.json()
 
-# Usage
-result = await wait_for_workflow_completion(
-    run_id="wf_xxx",
-    token=access_token,
-    poll_interval=10,  # Check every 10 seconds
-    timeout=7200       # 2 hour timeout
-)
-print(f"Final outputs: {result['outputs']}")
+            if payload["status"] == "completed":
+                return payload
+            if payload["status"] in {"failed", "terminated"}:
+                raise RuntimeError(f"Session workflow ended early: {payload}")
+
+            await asyncio.sleep(5)
+
+session_status = await wait_for_session(session_job["workflow_id"], access_token)
+print(session_status)
 ```
 
 ---
 
-##### **2.3 Cancel Workflow**
+##### **2.3 Start Multi-Agent Orchestration**
 
-**Endpoint:** `POST /v1/workflows/{run_id}/cancel`
+**Endpoint:** `POST /v1/mao/start`
 
-**Purpose:** Cancel a running workflow
+**Purpose:** Launch the multi-agent orchestration workflow that coordinates multiple agent directives through Temporal.
 
 **Authentication:** Required (Bearer token)
 
 **Request Schema:**
 ```json
 {
-  "reason": "string",             // Optional: Cancellation reason
-  "force": false                  // Optional: Force immediate cancellation (default: false)
+  "tenant": "string",                // Required: Tenant identifier
+  "initiator": "string",             // Required: Who initiated the orchestration
+  "directives": [
+    {
+      "agent_id": "string",          // Required: Agent registry id
+      "goal": "string",              // Required: High-level objective
+      "prompt": "string",            // Required: Prompt delivered to the agent
+      "capabilities": ["search"],    // Optional: Capability hints
+      "metadata": {}                  // Optional: Agent-specific metadata
+    }
+  ],
+  "notification_channel": "slack",    // Optional: Notification target
+  "metadata": {}                        // Optional orchestration metadata
 }
 ```
 
 **Response Schema:**
 ```json
 {
-  "run_id": "wf_xxx",
-  "status": "cancelled",
-  "cancelled_at": "2025-10-05T12:30:00Z",
-  "reason": "User requested cancellation",
-  "cleanup_status": "completed"   // "pending", "completed", "failed"
+  "workflow_id": "mao-<orchestration_id>",
+  "run_id": "string",
+  "orchestration_id": "mao-123",
+  "task_queue": "somagent-orchestrator"
 }
 ```
 
-**Example:**
+**Example - Coordinate Two Agents:**
 ```python
-async def cancel_workflow(run_id: str, reason: str, token: str):
-    """Cancel a running workflow."""
+import httpx
+
+async def start_mao(token: str):
     async with httpx.AsyncClient() as client:
         response = await client.post(
-            f"http://localhost:8001/v1/workflows/{run_id}/cancel",
+            "http://localhost:8001/v1/mao/start",
             headers={"Authorization": f"Bearer {token}"},
             json={
-                "reason": reason,
-                "force": False  # Graceful shutdown
-            }
+                "tenant": "acme",
+                "initiator": "integration-test",
+                "directives": [
+                    {
+                        "agent_id": "researcher",
+                        "goal": "Summarise the latest release notes",
+                        "prompt": "Collect highlights from the last sprint",
+                        "capabilities": ["web_search"],
+                    },
+                    {
+                        "agent_id": "writer",
+                        "goal": "Draft a customer-ready update",
+                        "prompt": "Use insights from the researcher to craft a concise email",
+                        "metadata": {"audience": "enterprise"}
+                    }
+                ],
+                "metadata": {"request_id": "mao-demo-1"}
+            },
+            timeout=30,
         )
+        response.raise_for_status()
         return response.json()
 
-# Usage
-result = await cancel_workflow(
-    run_id="wf_xxx",
-    reason="Requirements changed, restarting with new parameters",
-    token=access_token
-)
+mao_job = await start_mao(access_token)
+print(mao_job)
 ```
 
 ---
 
-##### **2.4 List Workflows**
+##### **2.4 Check Multi-Agent Status**
 
-**Endpoint:** `GET /v1/workflows`
+**Endpoint:** `GET /v1/mao/{workflow_id}`
 
-**Purpose:** List workflows with filtering and pagination
+**Purpose:** Retrieve the Temporal execution status for a multi-agent orchestration workflow.
 
 **Authentication:** Required (Bearer token)
 
-**Query Parameters:**
-```
-?status=running              // Filter by status (running, completed, failed, cancelled)
-?workflow_type=data_pipeline // Filter by workflow type
-?user_id=user_123           // Filter by user
-?limit=20                   // Results per page (default: 20, max: 100)
-?offset=0                   // Pagination offset
-?sort_by=started_at         // Sort field (started_at, completed_at, status)
-?sort_order=desc            // Sort order (asc, desc)
-?start_date=2025-10-01      // Filter by start date range
-?end_date=2025-10-31
-```
+**Response Schema:** Identical to the session status payload described in section 2.2 (`workflow_id`, `run_id`, `status`, `history_length`, `result`).
 
-**Response Schema:**
-```json
-{
-  "total": 156,
-  "limit": 20,
-  "offset": 0,
-  "workflows": [
-    {
-      "run_id": "wf_001",
-      "workflow_type": "data_pipeline",
-      "status": "completed",
-      "progress": 100,
-      "started_at": "2025-10-05T10:00:00Z",
-      "completed_at": "2025-10-05T11:30:00Z",
-      "duration_seconds": 5400
-    },
-    // ... more workflows
-  ]
-}
-```
-
-**Example - Dashboard View:**
+**Example - Reuse Status Poller:**
 ```python
-async def get_workflow_dashboard(token: str):
-    """Get workflow statistics for dashboard."""
-    async with httpx.AsyncClient() as client:
-        # Get running workflows
-        running = await client.get(
-            "http://localhost:8001/v1/workflows",
-            headers={"Authorization": f"Bearer {token}"},
-            params={"status": "running", "limit": 100}
-        )
-        
-        # Get recent completions
-        completed = await client.get(
-            "http://localhost:8001/v1/workflows",
-            headers={"Authorization": f"Bearer {token}"},
-            params={
-                "status": "completed",
-                "sort_by": "completed_at",
-                "sort_order": "desc",
-                "limit": 10
-            }
-        )
-        
-        # Get failures
-        failed = await client.get(
-            "http://localhost:8001/v1/workflows",
-            headers={"Authorization": f"Bearer {token}"},
-            params={
-                "status": "failed",
-                "start_date": "2025-10-05",
-                "limit": 100
-            }
-        )
-        
-        return {
-            "running_count": running.json()["total"],
-            "recent_completions": completed.json()["workflows"],
-            "failed_count": failed.json()["total"],
-            "failed_workflows": failed.json()["workflows"]
-        }
-
-# Usage
-dashboard = await get_workflow_dashboard(access_token)
-print(f"Running: {dashboard['running_count']}")
-print(f"Failed today: {dashboard['failed_count']}")
+mao_status = await wait_for_session(mao_job["workflow_id"], access_token)
+print(mao_status)
 ```
 
-**Use Cases:**
-1. **ETL Pipelines** - Orchestrate data extraction, transformation, and loading
-2. **Multi-Agent Coordination** - Coordinate multiple AI agents on complex tasks
-3. **Approval Processes** - Implement multi-stage approval workflows
-4. **Scheduled Jobs** - Run periodic tasks with guaranteed execution
-5. **Long-Running Operations** - Handle tasks that take hours, days, or weeks
-6. **Retry Logic** - Automatically retry failed operations with backoff
-7. **Saga Pattern** - Implement distributed transactions with compensation
-8. **Event-Driven Workflows** - React to external events and trigger actions
+> **Current limitation:** The orchestrator REST API does not yet expose cancel or list endpoints. Use the Temporal CLI (`temporal workflow terminate ...`) if you need to stop a workflow manually.
 
 ---
 

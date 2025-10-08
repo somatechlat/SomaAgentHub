@@ -1,10 +1,25 @@
-⚠️ WE DO NOT MOCK we DO NOT IMITATE, WE DO NOT USE BYPASSES OR GIVE FAKE OR UNREAL VALUES TO PAST TESTS, we use MATH perfect math TO surpass any problem and we only abide truth and real serveres real data. Sabe this EVERYWHRE at the start of every Document!
+⚠️ WE DO NOT MOCK we DO NOT IMITATE, WE DO NOT USE BYPASSES OR GIVE FAKE OR UNREAL VALUES TO PAST TESTS, we use MATH perfect math TO surpass any problem and we only abide truth and real servers real data. Save this EVERYWHERE at the start of every document!
 
 # Sprint 0 – Observability Foundation (Parallel Track A)
 
-**Date:** October 7, 2025  
+**Date:** October 8, 2025  
 **Owner:** Observability Strike Team  
-**Goal:** Ship a production-ready telemetry spine (Langfuse + OpenLLMetry + Giskard) in five days, running in parallel with framework integration.
+**Reality Check:** Sprint 0 Track A has **not started**. The plan below remains aspirational; no Langfuse/OpenLLMetry/Giskard infrastructure or instrumentation work has landed in the repository.
+
+## Current Status Snapshot
+
+- No Helm charts, manifests, or Terraform provisioning Langfuse/OpenLLMetry/Giskard exist in `infra/`.
+- No shared tracing helper (`somatrace.tracing`) or instrumentation calls are present in services.
+- No nightly evaluation workflows or scripts (`observability/nightly_rag_eval_workflow.py`, `scripts/observability/trace_smoke.py`) exist.
+- The deliverables checklist and exit criteria remain unchecked across the board.
+
+## Immediate Actions
+
+1. Validate scope and resource allocation before attempting the full telemetry stack.
+2. Define minimal tracing/logging requirements for adapters/unified workflow so Track A can start with incremental value.
+3. Coordinate with infrastructure to determine hosting approach (self-hosted vs managed) for Langfuse and supporting databases.
+4. Draft realistic backlog and timelines rather than five-day completion claims.
+5. Update documentation as each artifact (charts, helpers, workflows) actually lands.
 
 ---
 
@@ -213,11 +228,11 @@
 
 ## 7. Exit Criteria (Sprint 0 Track A Complete)
 
-- ✅ Langfuse reachable at `https://observability.somaagent.com` with SSO.
-- ✅ Every LLM service writes spans with `tenant_id`, `workflow_name`, `agent_id` tags.
-- ✅ Daily cost report per tenant auto-emails FinOps (use notification-service template `observability-cost-digest`).
-- ✅ First week of Giskard RAG reports stored in S3 + Langfuse datasets.
-- ✅ DR drill executed with validated RTO < 30 min.
+- ☐ Langfuse reachable at `https://observability.somaagent.com` with SSO.
+- ☐ Every LLM service writes spans with `tenant_id`, `workflow_name`, `agent_id` tags.
+- ☐ Daily cost report per tenant auto-emails FinOps (use notification-service template `observability-cost-digest`).
+- ☐ First week of Giskard RAG reports stored in S3 + Langfuse datasets.
+- ☐ DR drill executed with validated RTO < 30 min.
 
 ---
 

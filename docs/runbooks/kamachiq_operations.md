@@ -25,7 +25,7 @@ Use this guide to launch and monitor fully automated KAMACHIQ project deliveries
 3. MAO provisions deliverables, runs governance overlay, and records analytics (`/v1/kamachiq/runs`).
 
 ## 3. Monitoring
-- **Workflows**: `GET /v1/workflows` for status; use notification orchestrator for event stream.
+- **Workflows**: Track individual orchestrations via `GET /v1/mao/{workflow_id}` (multi-agent) or `GET /v1/sessions/{workflow_id}` (session runs); rely on the Temporal CLI for fleet-wide listings.
 - **Analytics**: `GET /v1/kamachiq/summary` (overview) and `GET /v1/kamachiq/runs?tenant_id=...` (history).
 - **Governance Reports**: `GET /v1/governance/reports?tenant_id=...` for compliance trail.
 - **Policy blocks**: `GET /v1/kamachiq/requeue` to inspect blocked deliverables; resolve via `POST /v1/kamachiq/requeue/{id}/resolve`.

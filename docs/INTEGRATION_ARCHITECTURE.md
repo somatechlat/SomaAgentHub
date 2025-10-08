@@ -2,11 +2,22 @@
 
 # 🎯 SomaAgentHub Integration Architecture
 
-**Date**: October 7, 2025  
+**Date**: October 8, 2025  
 **Strategy**: **INTEGRATE** existing frameworks (not rebuild)  
 **Execution Tracks**: Track A — Observability & Telemetry • Track B — Multi-Framework Orchestration  
 **Timeline**: 3-week accelerated rollout (Sprint 0 + Weeks 1-3)  
 **Approach**: Temporal-first orchestration, policy guardrails, and proven agent frameworks
+
+## Reality Check — October 8, 2025
+
+- AutoGen, CrewAI, and LangGraph adapters exist in `services/orchestrator/app/integrations/` and are callable via Temporal activities; they currently lack automated tests, retries, and cost/latency instrumentation.
+- The unified workflow in `services/orchestrator/app/workflows/unified_multi_agent.py` runs the router-backed orchestration path, but there is no load testing data, benchmarking, or CI coverage guarding regressions.
+- The A2A adapter is present, yet the agent registry is in-memory, no persistence or discovery API exists, and there are no production call sites exercising the pathway.
+- Track A observability work (Langfuse/OpenLLMetry/Giskard) has not begun; there are no Helm charts, tracing helpers, or evaluation jobs checked into the repository.
+- Framework dependencies (`pyautogen`, `crewai`, `langgraph`) live in `services/orchestrator/requirements.txt`, but they are missing from the root `requirements-dev.txt`; fresh developer environments that only install the dev bundle will not have the frameworks available.
+- Documentation sections describing load testing, Grafana dashboards, and production launch are legacy goals; no artifacts supporting those claims exist in `infra/`, `monitoring/`, or `runbooks/`.
+
+> **Action:** Treat everything below as an aspirational plan unless cross-referenced with live code. Update each section once the corresponding implementation lands with tests and observability.
 
 ---
 
@@ -67,21 +78,22 @@ After analyzing **9 world-class frameworks** and comparing with our current impl
 │  │    "group_chat"        → AutoGen activity               │  │
 │  │    "task_delegation"   → CrewAI activity                │  │
 │  │    "state_machine"     → LangGraph activity             │  │
+│  │    "a2a"               → A2A message activity           │  │
 │  └──────────────────────────────────────────────────────────┘  │
 │                            ↓                                    │
 │  ┌──────────────────────────────────────────────────────────┐  │
 │  │   LAYER 4: Framework Integration Layer (ADAPTERS)        │  │
 │  │                                                          │  │
-│  │  ┌──────────┐ ┌──────────┐ ┌──────────┐               │  │
-│  │  │ AutoGen  │ │ CrewAI   │ │LangGraph │               │  │
-│  │  │ Adapter  │ │ Adapter  │ │ Adapter  │               │  │
-│  │  └──────────┘ └──────────┘ └──────────┘               │  │
-│  │      ↓            ↓            ↓                       │  │
-│  │  ┌──────────┐ ┌──────────┐ ┌──────────┐               │  │
-│  │  │ AutoGen  │ │ CrewAI   │ │LangGraph │               │  │
-│  │  │Framework │ │Framework │ │Framework │               │  │
-│  │  │(MIT Lic) │ │(MIT Lic) │ │(MIT Lic) │               │  │
-│  │  └──────────┘ └──────────┘ └──────────┘               │  │
+│  │  ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌──────────┐ │  │
+│  │  │ AutoGen  │ │ CrewAI   │ │LangGraph │ │  A2A     │ │  │
+│  │  │ Adapter  │ │ Adapter  │ │ Adapter  │ │ Adapter  │ │  │
+│  │  └──────────┘ └──────────┘ └──────────┘ └──────────┘ │  │
+│  │      ↓            ↓            ↓            ↓         │  │
+│  │  ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌──────────┐ │  │
+│  │  │ AutoGen  │ │ CrewAI   │ │LangGraph │ │ Soma A2A │ │  │
+│  │  │Framework │ │Framework │ │Framework │ │ Protocol │ │  │
+│  │  │(MIT Lic) │ │(MIT Lic) │ │(MIT Lic) │ │ (in-house)│ │  │
+│  │  └──────────┘ └──────────┘ └──────────┘ └──────────┘ │  │
 │  └──────────────────────────────────────────────────────────┘  │
 │                            ↓                                    │
 │  ┌──────────────────────────────────────────────────────────┐  │
@@ -125,384 +137,487 @@ After analyzing **9 world-class frameworks** and comparing with our current impl
 
 **Leverage Ratio**: 57:1 (we maintain 2,100 lines, benefit from 120,000+)
 
-> 🔭 **Future Expansion Backlog**: CAMEL role-play adapters, Rowboat-style pipelines, and the A2A federation layer remain on the roadmap once foundational integrations are hardened.
+> 🔭 **Future Expansion Backlog**: CAMEL role-play adapters and Rowboat-style pipelines remain on the roadmap once the current integrations are production-hardened.
 
 ---
 
 ## 📦 INTEGRATION PATTERNS
 
-### **Pattern 1: AutoGen Integration (Group Chat)**
+### **Pattern 1: AutoGen Integration (Group Chat)** *(Implemented)*
 
 ```python
 # File: services/orchestrator/app/integrations/autogen_adapter.py
 
+"""AutoGen integration for group-chat style multi-agent conversations."""
+
+from dataclasses import asdict, dataclass
+from typing import Any, Dict, Iterable, List, Optional
+
+from temporalio import activity
+
+
+@dataclass(slots=True)
+class AgentConfig:
+    name: str
+    model: str
+    system_message: str = ""
+    llm_config: Optional[Dict[str, Any]] = None
+
+    @classmethod
+    def from_dict(cls, payload: Dict[str, Any]) -> "AgentConfig":
+        # ... validation logic ...
+        return cls(
+            name=str(payload["name"]).strip(),
+            model=str(payload.get("model", "gpt-4o-mini")).strip(),
+            system_message=str(payload.get("system_message", "")),
+            llm_config=payload.get("llm_config"),
+        )
+
+
+def _get_autogen_components():
+    from autogen import AssistantAgent, GroupChat, GroupChatManager, UserProxyAgent
+
+    return AssistantAgent, GroupChat, GroupChatManager, UserProxyAgent
+
+
+def _build_llm_config(agent: AgentConfig, default_temperature: float) -> Dict[str, Any]:
+    if agent.llm_config:
+        return agent.llm_config
+    return {
+        "config_list": [{"model": agent.model}],
+        "temperature": default_temperature,
+    }
+
+
+def _termination_predicate(keywords: Iterable[str]):
+    lowered = [kw.lower() for kw in keywords if kw]
+
+    def _is_termination(message: Dict[str, Any]) -> bool:
+        if not lowered:
+            return False
+        content = message.get("content") or ""
+        return any(keyword in content.lower() for keyword in lowered)
+
+    return _is_termination
+
+
+def _serialize_conversation(messages: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    serialized: List[Dict[str, Any]] = []
+    for msg in messages:
+        serialized.append(
+            {
+                "speaker": msg.get("name") or msg.get("role", "unknown"),
+                "role": msg.get("role", "assistant"),
+                "content": msg.get("content", ""),
+                "metadata": {
+                    "thought": msg.get("thought"),
+                    "summary": msg.get("summary"),
+                },
+            }
+        )
+    return serialized
+
+
 @activity.defn(name="autogen-group-chat")
 async def run_autogen_group_chat(payload: Dict[str, Any]) -> Dict[str, Any]:
-    """Execute AutoGen group chat using a unified payload contract."""
-
     agents = payload.get("agents")
     task = payload.get("task")
     tenant = payload.get("tenant", "default")
+    metadata = payload.get("metadata")
     max_rounds = int(payload.get("max_rounds", 20))
+    temperature = float(payload.get("temperature", 0.7))
     termination_keywords = payload.get("termination_keywords")
 
     if agents is None:
         raise ValueError("at least one agent configuration is required")
     if task is None:
         raise ValueError("task description is required")
+    if not agents:
+        raise ValueError("at least one agent configuration is required")
+    if max_rounds <= 0:
+        raise ValueError("max_rounds must be positive")
 
     agent_configs = [AgentConfig.from_dict(agent) for agent in agents]
     AssistantAgent, GroupChat, GroupChatManager, UserProxyAgent = _get_autogen_components()
 
-    # Instantiate framework-native agents with SomaAgent's defaults.
-    autogen_agents = [
-        AssistantAgent(
-            name=config.name,
-            system_message=config.system_message,
-            llm_config=_build_llm_config(config, default_temperature=float(payload.get("temperature", 0.7))),
+    autogen_agents: List[AssistantAgent] = []
+    for config in agent_configs:
+        llm_config = _build_llm_config(config, default_temperature=temperature)
+        autogen_agents.append(
+            AssistantAgent(
+                name=config.name,
+                system_message=config.system_message,
+                llm_config=llm_config,
+            )
         )
-        for config in agent_configs
-    ]
 
+    term_keywords = termination_keywords or ["TERMINATE", "DONE"]
     user_proxy = UserProxyAgent(
         name="user",
         human_input_mode="NEVER",
-        is_termination_msg=_termination_predicate(termination_keywords or ["TERMINATE", "DONE"]),
+        is_termination_msg=_termination_predicate(term_keywords),
         max_consecutive_auto_reply=0,
     )
 
     groupchat = GroupChat(agents=[user_proxy, *autogen_agents], messages=[], max_round=max_rounds)
     manager = GroupChatManager(groupchat=groupchat)
+
     user_proxy.initiate_chat(manager, message=task)
+
+    conversation = _serialize_conversation(groupchat.messages)
 
     return {
         "framework": "autogen",
         "pattern": "group_chat",
         "tenant": tenant,
-        "metadata": payload.get("metadata", {}),
+        "metadata": metadata or {},
         "agents": [asdict(config) for config in agent_configs],
-        "conversation": _serialize_conversation(groupchat.messages),
-        "turns": len(groupchat.messages),
+        "conversation": conversation,
+        "turns": len(conversation),
     }
 ```
 
-### **Pattern 2: CrewAI Integration (Task Delegation)**
+### **Pattern 2: CrewAI Integration (Task Delegation)** *(Implemented)*
 
 ```python
 # File: services/orchestrator/app/integrations/crewai_adapter.py
 
-"""
-CrewAI integration for role-based agents and task delegation.
+"""CrewAI integration activity for hierarchical and sequential delegation."""
 
-What we get:
-- Role-based agent design
-- Hierarchical task delegation
-- Task dependencies and workflows
-- Agent collaboration patterns
-- Battle-tested delegation logic
-"""
+from dataclasses import asdict, dataclass
+from typing import Any, Dict, List, Optional
 
-from typing import List, Dict, Any, Optional
 from temporalio import activity
-from crewai import Agent, Task, Crew, Process
+
+
+@dataclass(slots=True)
+class ManagerConfig:
+    role: str
+    goal: str
+    backstory: str = ""
+    verbose: bool = True
+    allow_delegation: bool = True
+
+    @classmethod
+    def from_dict(cls, payload: Dict[str, Any]) -> "ManagerConfig":
+        # ... validation logic ...
+        return cls(
+            role=str(payload["role"]).strip(),
+            goal=str(payload["goal"]).strip(),
+            backstory=str(payload.get("backstory", "")),
+            verbose=bool(payload.get("verbose", True)),
+            allow_delegation=bool(payload.get("allow_delegation", True)),
+        )
+
+
+@dataclass(slots=True)
+class WorkerConfig:
+    role: str
+    goal: str
+    backstory: str = ""
+    tools: Optional[List[str]] = None
+    verbose: bool = False
+
+    @classmethod
+    def from_dict(cls, payload: Dict[str, Any]) -> "WorkerConfig":
+        # ... validation logic ...
+        return cls(
+            role=str(payload["role"]).strip(),
+            goal=str(payload["goal"]).strip(),
+            backstory=str(payload.get("backstory", "")),
+            tools=payload.get("tools") or None,
+            verbose=bool(payload.get("verbose", False)),
+        )
+
+
+@dataclass(slots=True)
+class TaskConfig:
+    description: str
+    agent_role: Optional[str] = None
+    expected_output: str | None = None
+
+    @classmethod
+    def from_dict(cls, payload: Dict[str, Any]) -> "TaskConfig":
+        # ... validation logic ...
+        return cls(
+            description=str(payload.get("description", "")).strip(),
+            agent_role=str(payload.get("agent", "") or None) or None,
+            expected_output=str(payload.get("expected_output")) if payload.get("expected_output") else None,
+        )
+
+
+def _get_crewai_components():
+    from crewai import Agent, Crew, Process, Task
+
+    return Agent, Task, Crew, Process
+
 
 @activity.defn(name="crewai-delegation")
-async def run_crewai_delegation(
-    manager_config: Dict[str, Any],
-    workers_config: List[Dict[str, Any]],
-    tasks_config: List[Dict[str, Any]],
-    process_type: str = "sequential"
-) -> Dict[str, Any]:
-    """
-    Execute task delegation using CrewAI framework.
-    
-    Args:
-        manager_config: Manager agent configuration
-        workers_config: Worker agents configurations
-        tasks_config: Tasks to execute
-        process_type: 'sequential' or 'hierarchical'
-        
-    Returns:
-        Task execution results
-        
-    Example:
-        manager_config = {
-            "role": "Project Manager",
-            "goal": "Coordinate team to build trading bot",
-            "backstory": "Experienced PM with 10 years...",
-            "verbose": True
-        }
-        
-        workers_config = [
-            {
-                "role": "Python Developer",
-                "goal": "Write clean, efficient Python code",
-                "backstory": "Senior developer...",
-                "tools": ["code_interpreter"]
-            },
-            {
-                "role": "QA Engineer",
-                "goal": "Ensure code quality",
-                "backstory": "Quality specialist...",
-                "tools": ["test_runner"]
-            }
-        ]
-        
-        tasks_config = [
-            {
-                "description": "Build trading bot with Python",
-                "agent": "Python Developer"
-            },
-            {
-                "description": "Test the trading bot",
-                "agent": "QA Engineer"
-            }
-        ]
-        
-        result = await run_crewai_delegation(
-            manager_config=manager_config,
-            workers_config=workers_config,
-            tasks_config=tasks_config,
-            process_type="hierarchical"
-        )
-    """
-    activity.logger.info(f"Starting CrewAI delegation with {len(workers_config)} workers")
-    
-    # Create manager (CrewAI handles role abstraction)
-    manager = Agent(
-        role=manager_config["role"],
-        goal=manager_config["goal"],
-        backstory=manager_config.get("backstory", ""),
-        verbose=manager_config.get("verbose", True),
-        allow_delegation=True,
+async def run_crewai_delegation(payload: Dict[str, Any]) -> Dict[str, Any]:
+    manager = payload.get("manager")
+    workers = payload.get("workers")
+    tasks = payload.get("tasks")
+    tenant = payload.get("tenant", "default")
+    metadata = payload.get("metadata")
+    process_type = str(payload.get("process_type", "sequential"))
+
+    # ... validation and logging omitted for brevity ...
+
+    manager_config = ManagerConfig.from_dict(manager)
+    worker_configs = [WorkerConfig.from_dict(cfg) for cfg in workers]
+    task_configs = [TaskConfig.from_dict(cfg) for cfg in tasks]
+
+    Agent, Task, Crew, Process = _get_crewai_components()
+
+    manager_agent = Agent(
+        role=manager_config.role,
+        goal=manager_config.goal,
+        backstory=manager_config.backstory,
+        verbose=manager_config.verbose,
+        allow_delegation=manager_config.allow_delegation,
     )
-    
-    # Create workers (CrewAI handles specialization)
-    workers = []
-    agents_map = {}
-    
-    for config in workers_config:
-        worker = Agent(
-            role=config["role"],
-            goal=config["goal"],
-            backstory=config.get("backstory", ""),
-            verbose=config.get("verbose", True),
-            tools=config.get("tools", []),
+
+    worker_agents = {}
+    agents = [manager_agent]
+    for config in worker_configs:
+        agent = Agent(
+            role=config.role,
+            goal=config.goal,
+            backstory=config.backstory,
+            tools=config.tools,
+            verbose=config.verbose,
         )
-        workers.append(worker)
-        agents_map[config["role"]] = worker
-    
-    # Create tasks (CrewAI handles dependencies)
-    tasks = []
-    for task_config in tasks_config:
-        task = Task(
-            description=task_config["description"],
-            agent=agents_map.get(task_config.get("agent"), manager),
-            expected_output=task_config.get("expected_output", "Task completed"),
+        worker_agents[config.role] = agent
+        agents.append(agent)
+
+    crew_tasks = []
+    for task_config in task_configs:
+        assigned_agent = worker_agents.get(task_config.agent_role or "") or manager_agent
+        crew_tasks.append(
+            Task(
+                description=task_config.description,
+                agent=assigned_agent,
+                expected_output=task_config.expected_output,
+            )
         )
-        tasks.append(task)
-    
-    # Create crew (CrewAI handles orchestration)
-    process = Process.hierarchical if process_type == "hierarchical" else Process.sequential
-    
-    crew = Crew(
-        agents=[manager] + workers,
-        tasks=tasks,
-        process=process,
-        verbose=True,
-    )
-    
-    # Execute (CrewAI does all the work)
-    activity.logger.info("Executing CrewAI delegation...")
+
+    process = (Process.hierarchical if process_type == "hierarchical" else Process.sequential)
+
+    crew = Crew(agents=agents, tasks=crew_tasks, process=process, verbose=False)
     result = crew.kickoff()
-    
-    activity.logger.info("CrewAI delegation completed")
-    
+
     return {
         "framework": "crewai",
         "pattern": "task_delegation",
-        "result": str(result),
-        "manager": manager_config["role"],
-        "workers": [w["role"] for w in workers_config],
-        "tasks_completed": len(tasks),
-        "process": process_type,
-        "status": "completed"
+        "tenant": tenant,
+        "metadata": metadata or {},
+        "manager": asdict(manager_config),
+        "workers": [asdict(cfg) for cfg in worker_configs],
+        "tasks": [asdict(cfg) for cfg in task_configs],
+        "tasks_completed": len(crew_tasks),
+        "result": str(result) if result is not None else None,
+        "process_type": process_type,
     }
 ```
 
-### **Pattern 3: LangGraph Integration (State Machine Routing)**
+### **Pattern 3: LangGraph Integration (State Machine Routing)** *(Implemented)*
 
 ```python
 # File: services/orchestrator/app/integrations/langgraph_adapter.py
 
-"""
-LangGraph integration for state machines and conditional routing.
+"""LangGraph integration for configurable state-machine style routing."""
 
-What we get:
-- State machine workflows
-- Conditional edge routing
-- Dynamic agent selection
-- Graph-based execution
-- Battle-tested routing logic
-"""
+import importlib
+import inspect
+from typing import Any, Awaitable, Callable, Dict
 
-from typing import List, Dict, Any, Callable
 from temporalio import activity
-from langgraph.graph import StateGraph, END
-from langgraph.prebuilt import ToolExecutor
-from typing_extensions import TypedDict
 
-class AgentState(TypedDict):
-    """State that flows through the graph."""
-    input: str
-    current_state: str
-    history: List[Dict[str, Any]]
-    output: str
-    next_action: str
+
+def _get_langgraph_components():
+    from langgraph.graph import END, StateGraph
+
+    return StateGraph, END
+
+
+def _resolve_callable(path: str) -> Callable[[Dict[str, Any]], Any]:
+    module_path, _, attr = path.rpartition(".")
+    if not module_path or not attr:
+        raise ValueError(f"callable path '{path}' is invalid; expected 'module.function'")
+
+    module = importlib.import_module(module_path)
+    return getattr(module, attr)
+
+
+def _wrap_handler(name: str, handler: Callable[[Dict[str, Any]], Any]) -> Callable[[Dict[str, Any]], Awaitable[Dict[str, Any]] | Dict[str, Any]]:
+    async def _async_wrapper(state: Dict[str, Any]) -> Dict[str, Any]:
+        history = state.setdefault("history", [])
+        history.append({"node": name})
+        result = handler(state)
+        if inspect.isawaitable(result):
+            result = await result  # type: ignore[assignment]
+        return result or state
+
+    def _sync_wrapper(state: Dict[str, Any]) -> Dict[str, Any]:
+        history = state.setdefault("history", [])
+        history.append({"node": name})
+        result = handler(state)
+        return result or state
+
+    if inspect.iscoroutinefunction(handler):
+        return _async_wrapper
+    return _sync_wrapper
+
+
+def _wrap_condition(handler: Callable[[Dict[str, Any]], str]) -> Callable[[Dict[str, Any]], str]:
+    def _condition(state: Dict[str, Any]) -> str:
+        result = handler(state)
+        if inspect.isawaitable(result):
+            raise ValueError("asynchronous condition callables are not supported")
+        return str(result)
+
+    return _condition
+
 
 @activity.defn(name="langgraph-routing")
-async def run_langgraph_routing(
-    graph_config: Dict[str, Any],
-    initial_input: str
-) -> Dict[str, Any]:
-    """
-    Execute state machine routing using LangGraph framework.
-    
-    Args:
-        graph_config: Graph definition with nodes and edges
-        initial_input: Initial input to the graph
-        
-    Returns:
-        Graph execution results
-        
-    Example:
-        graph_config = {
-            "nodes": [
-                {
-                    "name": "classifier",
-                    "type": "agent",
-                    "config": {"role": "Classifier", "goal": "Classify requests"}
-                },
-                {
-                    "name": "technical_support",
-                    "type": "agent",
-                    "config": {"role": "Technical Support", "goal": "Solve tech issues"}
-                },
-                {
-                    "name": "billing_support",
-                    "type": "agent",
-                    "config": {"role": "Billing Support", "goal": "Handle billing"}
-                }
-            ],
-            "edges": [
-                {
-                    "from": "classifier",
-                    "condition": "is_technical",
-                    "to": "technical_support"
-                },
-                {
-                    "from": "classifier",
-                    "condition": "is_billing",
-                    "to": "billing_support"
-                }
-            ],
-            "start": "classifier"
-        }
-        
-        result = await run_langgraph_routing(
-            graph_config=graph_config,
-            initial_input="My payment failed, help!"
-        )
-    """
-    activity.logger.info("Starting LangGraph routing...")
-    
-    # Create state graph (LangGraph handles complexity)
-    workflow = StateGraph(AgentState)
-    
-    # Add nodes from config (LangGraph handles execution)
-    for node in graph_config["nodes"]:
-        node_func = _create_node_function(node)
-        workflow.add_node(node["name"], node_func)
-    
-    # Add conditional edges (LangGraph handles routing)
-    for edge in graph_config.get("edges", []):
+async def run_langgraph_routing(payload: Dict[str, Any]) -> Dict[str, Any]:
+    graph = payload.get("graph")
+    state = payload.get("state")
+    input_data = payload.get("input_data")
+    tenant = payload.get("tenant", "default")
+    metadata = payload.get("metadata")
+
+    logger = activity.logger
+    if graph is None:
+        raise ValueError("graph configuration is required")
+
+    nodes = graph.get("nodes") or []
+    if not nodes:
+        raise ValueError("graph must define at least one node")
+
+    StateGraph, END = _get_langgraph_components()
+    workflow = StateGraph(dict)
+
+    for node in nodes:
+        name = str(node.get("name", "")).strip()
+        handler_path = node.get("handler")
+        handler = _resolve_callable(str(handler_path))
+        workflow.add_node(name, _wrap_handler(name, handler))
+
+    edges = graph.get("edges") or []
+    for edge in edges:
+        source = str(edge.get("from", "")).strip()
         if "condition" in edge:
-            # Conditional routing
-            condition_func = _create_condition_function(edge["condition"])
+            condition_path = str(edge["condition"])
+            routes = edge.get("routes") or {}
+            default_target = routes.get("default")
+            condition_callable = _resolve_callable(condition_path)
+            mapping: Dict[str, Any] = {}
+            for key, value in routes.items():
+                if key == "default":
+                    continue
+                mapping[key] = END if value == "END" else value
+            mapping["__default__"] = END if default_target in {None, "END"} else default_target
             workflow.add_conditional_edges(
-                edge["from"],
-                condition_func,
-                {
-                    edge["condition"]: edge["to"],
-                    "end": END
-                }
+                source,
+                _wrap_condition(condition_callable),
+                mapping,
             )
         else:
-            # Direct edge
-            workflow.add_edge(edge["from"], edge["to"])
-    
-    # Set entry point
-    workflow.set_entry_point(graph_config.get("start", "classifier"))
-    
-    # Compile graph (LangGraph optimizes execution)
-    app = workflow.compile()
-    
-    # Execute (LangGraph does all the work)
-    activity.logger.info("Executing LangGraph routing...")
-    
-    result = app.invoke({
-        "input": initial_input,
-        "current_state": graph_config.get("start", "classifier"),
-        "history": [],
-        "output": "",
-        "next_action": ""
-    })
-    
-    activity.logger.info("LangGraph routing completed")
-    
+            target = str(edge.get("to", "")).strip()
+            workflow.add_edge(source, target)
+
+    start_node = str(graph.get("start")) if graph.get("start") else nodes[0]["name"]
+    workflow.set_entry_point(start_node)
+
+    compiled = workflow.compile()
+
+    execution_state: Dict[str, Any] = dict(state or {})
+    execution_state.setdefault("history", [])
+    if input_data is not None:
+        execution_state["input"] = input_data
+
+    result_state = await compiled.ainvoke(execution_state)
+
     return {
         "framework": "langgraph",
         "pattern": "state_machine_routing",
-        "input": initial_input,
-        "output": result.get("output", ""),
-        "states_visited": [h["state"] for h in result.get("history", [])],
-        "final_state": result.get("current_state", ""),
-        "status": "completed"
+        "tenant": tenant,
+        "metadata": metadata or {},
+        "history": result_state.get("history", []),
+        "state": {key: value for key, value in result_state.items() if key != "history"},
     }
+```
 
-def _create_node_function(node_config: Dict[str, Any]) -> Callable:
-    """Create a node function from config."""
-    # This would integrate with SomaAgent's LLM infrastructure
-    def node_func(state: AgentState) -> AgentState:
-        # Execute agent logic here
-        activity.logger.info(f"Executing node: {node_config['name']}")
-        
-        # Update state
-        state["history"].append({
-            "state": node_config["name"],
-            "timestamp": "now"
-        })
-        state["current_state"] = node_config["name"]
-        
-        return state
-    
-    return node_func
+### **Pattern 4: A2A Messaging (Agent-to-Agent)** *(Implemented)*
 
-def _create_condition_function(condition_name: str) -> Callable:
-    """Create a condition function from name."""
-    def condition_func(state: AgentState) -> str:
-        # Evaluate condition based on state
-        # This would use SomaAgent's LLM for classification
-        
-        # Simple example: keyword matching
-        if condition_name == "is_technical" and "error" in state["input"].lower():
-            return "is_technical"
-        elif condition_name == "is_billing" and "payment" in state["input"].lower():
-            return "is_billing"
-        else:
-            return "end"
-    
-    return condition_func
+```python
+# File: services/orchestrator/app/integrations/a2a_adapter.py
+
+"""Temporal activity that delivers Agent-to-Agent messages using the A2A protocol."""
+
+from temporalio import activity
+
+from ..core.a2a_protocol import A2AProtocol, AgentRegistry
+
+_registry = AgentRegistry()
+_protocol = A2AProtocol(_registry)
+
+
+@activity.defn(name="a2a-message")
+async def run_a2a_message(payload: Dict[str, Any]) -> Dict:
+    target_agent_id = str(payload.get("target_agent_id", "")).strip()
+    message = str(payload.get("message", "")).strip()
+    sender_id = str(payload.get("sender_id", "")).strip()
+    metadata = payload.get("metadata") or {}
+
+    if not target_agent_id:
+        raise ValueError("'target_agent_id' is required for A2A messaging")
+    if not message:
+        raise ValueError("'message' is required for A2A messaging")
+    if not sender_id:
+        raise ValueError("'sender_id' is required for A2A messaging")
+
+    result = await _protocol.send_message(
+        target_agent_id=target_agent_id,
+        message=message,
+        sender_id=sender_id,
+        metadata=metadata,
+    )
+    return result if isinstance(result, dict) else {"result": result}
+```
+
+```python
+# File: services/orchestrator/app/core/a2a_protocol.py
+
+@dataclass(slots=True)
+class AgentCard:
+    agent_id: str
+    entrypoint: str
+    capabilities: List[str] = field(default_factory=list)
+
+
+class AgentRegistry:
+    async def register(self, card: AgentCard) -> None:
+        self._agents[card.agent_id] = card
+
+    async def discover(self, capability: str) -> List[AgentCard]:
+        return [card for card in self._agents.values() if capability in card.capabilities]
+
+
+class A2AProtocol:
+    async def send_message(...):
+        target_card = await self.registry.get_agent(target_agent_id)
+        if not target_card:
+            raise AgentNotFoundError(target_agent_id)
+
+        from temporalio import workflow
+
+        result = await workflow.execute_child_workflow(
+            target_card.entrypoint,
+            A2AMessage(input=message, sender=sender_id, metadata=metadata or {}),
+        )
+        return result
 ```
 
 ---
@@ -512,123 +627,65 @@ def _create_condition_function(condition_name: str) -> Callable:
 ```python
 # File: services/orchestrator/app/core/framework_router.py
 
-"""
-Multi-framework router that selects the best framework for each pattern.
-
-This is OUR UNIQUE VALUE: intelligent routing across frameworks.
-"""
+"""Framework router that selects the optimal integration for each multi-agent pattern."""
 
 from enum import Enum
-from typing import Dict, Any, List
-from temporalio import workflow
-from dataclasses import dataclass
+from typing import Any, Dict
 
-class MultiAgentPattern(Enum):
-    """Supported multi-agent patterns."""
+
+class MultiAgentPattern(str, Enum):
     GROUP_CHAT = "group_chat"
     TASK_DELEGATION = "task_delegation"
     STATE_MACHINE_ROUTING = "state_machine_routing"
-    ROLE_PLAYING = "role_playing"
-    PIPELINE = "pipeline"
-    CONSENSUS = "consensus"
+    A2A = "a2a"
 
-@dataclass
-class FrameworkSelection:
-    """Framework selection result."""
-    pattern: MultiAgentPattern
-    framework: str
-    reason: str
-    activity_name: str
 
 class FrameworkRouter:
-    """
-    Routes requests to the appropriate framework based on pattern detection.
-    
-    This is where SomaAgent adds unique value:
-    - Intelligent pattern detection
-    - Best framework selection
-    - Unified interface across frameworks
-    """
-    
-    @staticmethod
-    def detect_pattern(request: Dict[str, Any]) -> MultiAgentPattern:
-        """
-        Detect which multi-agent pattern is needed.
-        
-        Args:
-            request: User request with agents, task, etc.
-            
-        Returns:
-            Detected pattern
-        """
-        # Pattern detection logic
-        if request.get("pattern"):
-            # Explicit pattern specified
-            return MultiAgentPattern(request["pattern"])
-        
-        # Heuristic detection
-        num_agents = len(request.get("agents", []))
-        has_manager = request.get("manager") is not None
-        has_graph = request.get("graph") is not None
-        has_roles = any("role" in agent for agent in request.get("agents", []))
-        
-        if has_graph:
+    """Detect multi-agent patterns and select the best framework adapter."""
+
+    def __init__(self, *, default_pattern: MultiAgentPattern | None = None) -> None:
+        self.default_pattern = default_pattern or MultiAgentPattern.GROUP_CHAT
+
+    def detect_pattern(self, payload: Dict[str, Any]) -> MultiAgentPattern:
+        explicit = payload.get("pattern")
+        if explicit:
+            try:
+                return MultiAgentPattern(explicit)
+            except ValueError:
+                raise ValueError(f"unsupported pattern '{explicit}'") from None
+
+        if payload.get("graph"):
             return MultiAgentPattern.STATE_MACHINE_ROUTING
-        elif has_manager and num_agents > 1:
+        if payload.get("target_agent_id"):
+            return MultiAgentPattern.A2A
+
+        has_manager = bool(payload.get("manager"))
+        has_workers = bool(payload.get("workers"))
+        has_tasks = bool(payload.get("tasks"))
+        if has_manager and has_workers and has_tasks:
             return MultiAgentPattern.TASK_DELEGATION
-        elif num_agents > 2:
+
+        agents = payload.get("agents") or []
+        if len(agents) >= 3:
             return MultiAgentPattern.GROUP_CHAT
-        else:
-            return MultiAgentPattern.GROUP_CHAT  # Default
-    
-    @staticmethod
-    def select_framework(pattern: MultiAgentPattern) -> FrameworkSelection:
-        """
-        Select the best framework for a pattern.
-        
-        This mapping is based on our research of 9 frameworks.
-        Each framework excels at specific patterns.
-        """
-        framework_map = {
-            MultiAgentPattern.GROUP_CHAT: FrameworkSelection(
-                pattern=pattern,
-                framework="AutoGen",
-                reason="AutoGen has 2+ years of group chat development, speaker selection, termination",
-                activity_name="autogen-group-chat"
-            ),
-            MultiAgentPattern.TASK_DELEGATION: FrameworkSelection(
-                pattern=pattern,
-                framework="CrewAI",
-                reason="CrewAI excels at role-based design and hierarchical delegation",
-                activity_name="crewai-delegation"
-            ),
-            MultiAgentPattern.STATE_MACHINE_ROUTING: FrameworkSelection(
-                pattern=pattern,
-                framework="LangGraph",
-                reason="LangGraph is purpose-built for state machines and conditional routing",
-                activity_name="langgraph-routing"
-            ),
-            MultiAgentPattern.ROLE_PLAYING: FrameworkSelection(
-                pattern=pattern,
-                framework="CAMEL",
-                reason="CAMEL has role-playing safety guarantees and structured dialogue",
-                activity_name="camel-role-playing"
-            ),
-            MultiAgentPattern.PIPELINE: FrameworkSelection(
-                pattern=pattern,
-                framework="Rowboat-inspired",
-                reason="Using Rowboat's pipeline pattern with our implementation",
-                activity_name="pipeline-execution"
-            ),
-            MultiAgentPattern.CONSENSUS: FrameworkSelection(
-                pattern=pattern,
-                framework="SomaAgent-native",
-                reason="Consensus is our unique innovation, not available in other frameworks",
-                activity_name="consensus-voting"
-            ),
+
+        return self.default_pattern
+
+    def select_framework(self, pattern: MultiAgentPattern) -> str:
+        mapping = {
+            MultiAgentPattern.GROUP_CHAT: "autogen-group-chat",
+            MultiAgentPattern.TASK_DELEGATION: "crewai-delegation",
+            MultiAgentPattern.STATE_MACHINE_ROUTING: "langgraph-routing",
+            MultiAgentPattern.A2A: "a2a-message",
         }
-        
-        return framework_map.get(pattern, framework_map[MultiAgentPattern.GROUP_CHAT])
+        try:
+            return mapping[pattern]
+        except KeyError:  # pragma: no cover - defensive
+            raise ValueError(f"no framework mapping for pattern '{pattern}'")
+
+    def route(self, payload: Dict[str, Any]) -> str:
+        pattern = self.detect_pattern(payload)
+        return self.select_framework(pattern)
 ```
 
 ---
@@ -638,169 +695,115 @@ class FrameworkRouter:
 ```python
 # File: services/orchestrator/app/workflows/unified_multi_agent.py
 
-"""
-Unified multi-agent workflow that intelligently routes to best framework.
+"""Unified multi-agent workflow orchestrating across multiple frameworks."""
 
-This is the SomaAgent developer experience:
-- Single API for all patterns
-- Automatic framework selection
-- Temporal durability for all patterns
-- Policy enforcement for all patterns
-"""
+from __future__ import annotations
+
+from datetime import timedelta
+from typing import Any, Dict
 
 from temporalio import workflow
-from datetime import timedelta
-from typing import Dict, Any
+
 from ..core.framework_router import FrameworkRouter, MultiAgentPattern
-from ..workflows.session import evaluate_policy, emit_audit_event
+from ..integrations import (
+    run_autogen_group_chat,
+    run_crewai_delegation,
+    run_langgraph_routing,
+    run_a2a_message,
+)
+from ..workflows.session import PolicyEvaluationContext, evaluate_policy, emit_audit_event
+
 
 @workflow.defn(name="unified-multi-agent-workflow")
 class UnifiedMultiAgentWorkflow:
-    """
-    Unified workflow that routes to AutoGen, CrewAI, LangGraph, etc.
-    
-    Developer just calls ONE workflow, we handle the rest.
-    """
-    
+    """Temporal workflow that selects the optimal framework per request."""
+
+    def __init__(self) -> None:
+        self.router = FrameworkRouter()
+
     @workflow.run
     async def run(self, request: Dict[str, Any]) -> Dict[str, Any]:
-        """
-        Execute multi-agent request using best framework.
-        
-        Example requests:
-        
-        # Group chat (routes to AutoGen)
-        {
-            "agents": [
-                {"name": "researcher", "system_message": "..."},
-                {"name": "writer", "system_message": "..."}
-            ],
-            "task": "Research and write about AI"
-        }
-        
-        # Task delegation (routes to CrewAI)
-        {
-            "manager": {"role": "PM", "goal": "..."},
-            "workers": [
-                {"role": "Developer", "goal": "..."},
-                {"role": "QA", "goal": "..."}
-            ],
-            "tasks": [...]
-        }
-        
-        # State machine (routes to LangGraph)
-        {
-            "graph": {
-                "nodes": [...],
-                "edges": [...]
-            },
-            "input": "My payment failed"
-        }
-        """
         logger = workflow.logger
-        logger.info("Unified multi-agent workflow started", request=request)
-        
-        # LAYER 1: Policy Enforcement (OUR VALUE)
+        workflow_id = workflow.info().workflow_id
+
+        policy_ctx = PolicyEvaluationContext(
+            session_id=request.get("session_id", workflow_id),
+            tenant=request.get("tenant", "default"),
+            user=request.get("user", "anonymous"),
+            payload=request,
+        )
+
         policy = await workflow.execute_activity(
             evaluate_policy,
-            {
-                "session_id": workflow.info().workflow_id,
-                "tenant": request.get("tenant", "default"),
-                "user": request.get("user", "unknown"),
-                "payload": request
-            },
-            start_to_close_timeout=timedelta(seconds=30)
+            policy_ctx,
+            start_to_close_timeout=timedelta(seconds=30),
         )
-        
+
         if not policy.get("allowed", True):
-            logger.warning("Request rejected by policy", policy=policy)
-            return {
-                "status": "rejected",
-                "reason": "policy_violation",
-                "policy": policy
-            }
-        
-        # LAYER 2: Pattern Detection (OUR VALUE)
-        router = FrameworkRouter()
-        pattern = router.detect_pattern(request)
-        framework_selection = router.select_framework(pattern)
-        
+            return {"status": "rejected", "reason": "policy_denied", "policy": policy}
+
+        pattern = self.router.detect_pattern(request)
+        activity_name = self.router.select_framework(pattern)
+
         logger.info(
-            "Pattern detected, framework selected",
+            "Dispatching multi-agent request",
             pattern=pattern.value,
-            framework=framework_selection.framework,
-            reason=framework_selection.reason
+            activity=activity_name,
+            workflow_id=workflow_id,
         )
-        
-        # LAYER 3: Execute with Selected Framework (THEIR VALUE)
-        result = None
-        
-        if framework_selection.framework == "AutoGen":
-            # Use AutoGen for group chat
+
+        if pattern is MultiAgentPattern.GROUP_CHAT:
             result = await workflow.execute_activity(
-                framework_selection.activity_name,
-                {
-                    "agents_config": request.get("agents", []),
-                    "task": request.get("task", ""),
-                    "max_turns": request.get("max_turns", 20)
-                },
-                start_to_close_timeout=timedelta(minutes=10)
+                run_autogen_group_chat,
+                request,
+                start_to_close_timeout=timedelta(minutes=10),
             )
-        
-        elif framework_selection.framework == "CrewAI":
-            # Use CrewAI for delegation
+        elif pattern is MultiAgentPattern.TASK_DELEGATION:
             result = await workflow.execute_activity(
-                framework_selection.activity_name,
-                {
-                    "manager_config": request.get("manager", {}),
-                    "workers_config": request.get("workers", []),
-                    "tasks_config": request.get("tasks", []),
-                    "process_type": request.get("process", "sequential")
-                },
-                start_to_close_timeout=timedelta(minutes=15)
+                run_crewai_delegation,
+                request,
+                start_to_close_timeout=timedelta(minutes=15),
             )
-        
-        elif framework_selection.framework == "LangGraph":
-            # Use LangGraph for routing
+        elif pattern is MultiAgentPattern.A2A:
             result = await workflow.execute_activity(
-                framework_selection.activity_name,
-                {
-                    "graph_config": request.get("graph", {}),
-                    "initial_input": request.get("input", "")
-                },
-                start_to_close_timeout=timedelta(minutes=10)
+                run_a2a_message,
+                request,
+                start_to_close_timeout=timedelta(minutes=5),
             )
-        
-        # LAYER 4: Audit Trail (OUR VALUE)
+        else:
+            result = await workflow.execute_activity(
+                run_langgraph_routing,
+                request,
+                start_to_close_timeout=timedelta(minutes=5),
+            )
+
         await workflow.execute_activity(
             emit_audit_event,
             {
-                "workflow_id": workflow.info().workflow_id,
+                "workflow_id": workflow_id,
                 "pattern": pattern.value,
-                "framework": framework_selection.framework,
+                "activity": activity_name,
                 "status": "completed",
-                "result_summary": str(result)[:200]
             },
-            start_to_close_timeout=timedelta(seconds=10)
+            start_to_close_timeout=timedelta(seconds=10),
         )
-        
-        logger.info("Unified workflow completed successfully")
-        
+
         return {
             "status": "completed",
-            "pattern_detected": pattern.value,
-            "framework_used": framework_selection.framework,
-            "framework_reason": framework_selection.reason,
+            "pattern": pattern.value,
+            "activity": activity_name,
+            "policy": policy,
             "result": result,
-            "policy": policy
         }
 ```
 
 ---
 
-## 📊 IMPLEMENTATION TIMELINE
+## 📊 IMPLEMENTATION TIMELINE *(Archived Plan)*
 
-### **Week 1: AutoGen + CrewAI Integration**
+> This timeline reflected the original three-week launch narrative. None of the observability, load testing, or production hardening tasks have shipped. Keep the section for historical context only.
+
+### **Week 1: AutoGen + CrewAI Integration** *(Historical Plan)*
 
 **Days 1-2: AutoGen**
 - Install: `pip install pyautogen`
@@ -819,15 +822,15 @@ class UnifiedMultiAgentWorkflow:
 - Performance benchmarks
 - Documentation
 
-**Deliverables Week 1:**
-- ✅ 2 framework integrations
-- ✅ 2 Temporal activities
-- ✅ Integration tests
-- ✅ 2 patterns working (group chat, delegation)
+**Deliverables Week 1 (Actual Status):**
+- ✅ AutoGen and CrewAI adapter activities exist in `services/orchestrator/app/integrations/`.
+- ✅ Temporal activities registered and callable from the unified workflow.
+- ☐ Integration tests or replay harnesses cover these adapters.
+- ☐ End-to-end CI job or benchmarking ensures regression detection.
 
 ---
 
-### **Week 2: LangGraph + Router**
+### **Week 2: LangGraph + Router** *(Historical Plan)*
 
 **Days 1-2: LangGraph**
 - Install: `pip install langgraph`
@@ -847,15 +850,15 @@ class UnifiedMultiAgentWorkflow:
 - Observability (metrics, traces)
 - Documentation
 
-**Deliverables Week 2:**
-- ✅ 3 total framework integrations
-- ✅ Smart router with pattern detection
-- ✅ Unified API (one workflow, all patterns)
-- ✅ Production-grade error handling
+**Deliverables Week 2 (Actual Status):**
+- ✅ LangGraph adapter, router, and unified workflow live in the repository.
+- ☐ Production error handling (retries, fallbacks, structured logging) implemented.
+- ☐ Observability hooks (metrics/traces) wired into the workflow path.
+- ☐ Multi-pattern integration tests or Temporal replay coverage available.
 
 ---
 
-### **Week 3: A2A Protocol + Production**
+### **Week 3: A2A Protocol + Production** *(Historical Plan)*
 
 **Days 1-2: A2A Protocol**
 - Integrate: A2A Gateway (already using it)
@@ -875,11 +878,11 @@ class UnifiedMultiAgentWorkflow:
 - Team training
 - Production deployment
 
-**Deliverables Week 3:**
-- ✅ A2A Protocol integration
-- ✅ Production deployment
-- ✅ Full observability
-- ✅ Complete documentation
+**Deliverables Week 3 (Actual Status):**
+- ⚠️ A2A adapter exists but operates on an in-memory registry without persistence or federation.
+- ☐ No production deployment evidence, load testing data, or release notes.
+- ☐ Observability stack (Langfuse/OpenLLMetry/Giskard) not present.
+- ☐ Runbooks and operational documentation incomplete; only aspirational notes exist.
 
 ---
 
@@ -920,25 +923,25 @@ python -c "import autogen; import crewai; from langgraph.graph import StateGraph
 
 ---
 
-## ✅ SUCCESS CRITERIA
+## ✅ SUCCESS CRITERIA *(Reality)*
 
-### **Week 1 Success:**
-- ✅ AutoGen group chat working with 3+ agents
-- ✅ CrewAI delegation working with manager + workers
-- ✅ Both integrated with Temporal (fault-tolerant)
-- ✅ Policy enforcement working
+### **Week 1 Targets**
+- ✅ AutoGen group chat and CrewAI delegation pathways execute inside Temporal.
+- ☐ Automated tests, replay fixtures, or CI gates cover these frameworks.
+- ☐ Documented performance benchmarks or load envelopes exist.
+- ☐ Policy enforcement has regression tests verifying denial scenarios.
 
-### **Week 2 Success:**
-- ✅ LangGraph routing working with state machines
-- ✅ Smart router detects patterns correctly (90%+ accuracy)
-- ✅ Unified API: one call works for all patterns
-- ✅ Production error handling
+### **Week 2 Targets**
+- ✅ LangGraph routing and FrameworkRouter unify pattern selection in-code.
+- ☐ Router accuracy validated via automated scenarios (currently anecdotal only).
+- ☐ Unified API returns structured telemetry or metrics for ops use.
+- ☐ Production-grade error handling (fallbacks, retries, circuit breaking) implemented.
 
-### **Week 3 Success:**
-- ✅ A2A Protocol working (agent discovery)
-- ✅ System handles 100+ concurrent workflows
-- ✅ Full observability (metrics, traces, logs)
-- ✅ Production deployment complete
+### **Week 3 Targets**
+- ⚠️ A2A adapter provides message dispatch, but discovery/persistence remain prototypes.
+- ☐ Throughput and concurrency validated at 100+ simultaneous workflows.
+- ☐ Observability stack (Langfuse/OpenLLMetry/Giskard) deployed and integrated.
+- ☐ Production deployment, runbooks, and alerting baselines documented.
 
 ---
 
@@ -961,6 +964,6 @@ python -c "import autogen; import crewai; from langgraph.graph import StateGraph
 
 ---
 
-**Status**: ✅ Integration Architecture Complete  
-**Next**: Start Week 1 Implementation  
-**Confidence**: Very High (standing on proven foundations)
+**Status**: ⚠️ Partial — core adapters and router implemented, but testing, observability, and production hardening are outstanding.  
+**Next**: Focus on automated tests, dependency packaging, and observability instrumentation before expanding into new patterns.  
+**Confidence**: Medium — functionality exists, but reliability and operational readiness remain unproven.

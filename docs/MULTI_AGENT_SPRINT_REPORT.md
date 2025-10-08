@@ -1,4 +1,35 @@
-# 📊 Multi-Agent Architecture Sprint Report
+# Multi-Agent Architecture Status Report — October 8, 2025
+
+## Reality Snapshot
+
+- **Implemented:** AutoGen, CrewAI, LangGraph, and A2A adapters plus the unified workflow/FrameworkRouter.
+- **Pending:** Message bus, shared memory/blackboard, consensus workflows, workflow chains, agent templates, observability, SDK alignment, and production runbooks.
+- **Documentation:** Core integration docs updated (`INTEGRATION_ARCHITECTURE.md`, sprint plans). Research/architecture docs retained but mark aspirational claims.
+- **Testing/Telemetry:** No automated tests, benchmarks, or observability dashboards exist for multi-agent flows.
+
+## Key Findings (Current)
+
+1. Framework adapters unblock integration but lack guardrails (tests, telemetry, retry policy).
+2. All additional patterns described in earlier research remain unimplemented; effort estimates should be revisited.
+3. Production readiness work (observability, load testing, runbooks) never started.
+4. Some documentation still references legacy `/v1/workflows/*` endpoints—SDKs and samples must be updated.
+5. Future roadmap items (consensus, pipelines, role playing) depend on foundational work still outstanding.
+
+## Immediate Priorities
+
+1. Establish automated testing for adapters and router before expanding scope.
+2. Decide which advanced patterns to pursue vs. remove from near-term plan.
+3. Coordinate with observability team to define instrumentation strategy.
+4. Align SDK/docs/examples with real endpoints (`/v1/sessions` and `/v1/mao`).
+5. Produce a realistic implementation roadmap reflecting current capacity.
+
+---
+
+## Archived Sprint Report (October 7, 2025)
+
+> **Note:** The historical report below reflects the original aspirational narrative and overstates completion. Preserve for research reference only.
+
+### 📊 Multi-Agent Architecture Sprint Report (Archived)
 
 **Project**: SomaAgentHub Multi-Agent Orchestration Platform  
 **Sprint**: Multi-Agent Architecture Research & Design  
