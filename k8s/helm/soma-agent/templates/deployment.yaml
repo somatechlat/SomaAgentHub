@@ -29,6 +29,13 @@ spec:
           imagePullPolicy: {{ $svc.imagePullPolicy | default $.Values.global.imagePullPolicy }}
           ports:
             - containerPort: {{ $svc.port }}
+          {{- if $svc.env }}
+          env:
+          {{- range $env := $svc.env }}
+            - name: {{ $env.name }}
+              value: {{ $env.value | quote }}
+          {{- end }}
+          {{- end }}
           livenessProbe:
             httpGet:
               path: /health

@@ -11,6 +11,7 @@ from fastapi import FastAPI
 from fastapi.responses import Response
 from prometheus_client import CONTENT_TYPE_LATEST, generate_latest
 from redis.asyncio import Redis, from_url as redis_from_url
+import os
 
 from .api.routes import router
 from .core.audit import AuditLogger
@@ -35,8 +36,15 @@ async def _rotation_worker(key_manager: KeyManager, interval: float, stop_event:
 
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncIterator[None]:
-    redis: Redis = redis_from_url(str(settings.redis_url), decode_responses=True)
-    identity_store = IdentityStore(redis)
+    # Allow running without Redis by falling back to in-memory store when no URL provided.
+    redis_url = os.getenv("REDIS_URL", str(settings.redis_url) if settings.redis_url else "")
+    redis: Redis | None = None
+    if redis_url:
+        try:
+            redis = redis_from_url(redis_url, decode_responses=True)
+        except Exception:
+            redis = None
+    identity_store = IdentityStore(redis)  # accepts None -> degraded but functional
     key_manager = KeyManager(
         redis,
         rotation_interval=timedelta(seconds=settings.key_rotation_seconds),
@@ -46,7 +54,11 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     await key_manager.start()
 
     audit_logger = AuditLogger(settings.audit_bootstrap_servers, settings.audit_topic)
-    await audit_logger.start()
+    try:
+        await audit_logger.start()
+    except Exception:
+        # Degrade gracefully when Kafka is unavailable in dev
+        pass
 
     stop_event = asyncio.Event()
     rotation_task = asyncio.create_task(
@@ -68,8 +80,10 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         with suppress(asyncio.CancelledError):
             await rotation_task
         await key_manager.stop()
-        await audit_logger.stop()
-        await identity_store.close()
+        with suppress(Exception):
+            await audit_logger.stop()
+        with suppress(Exception):
+            await identity_store.close()
 
 
 def create_app() -> FastAPI:

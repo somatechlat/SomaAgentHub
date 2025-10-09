@@ -1,40 +1,50 @@
-# Simple async Redis client for the Policy Engine
-# Uses redis.asyncio; falls back to a no‑op stub if the library is missing.
+"""Async Redis access convenience for the Policy Engine.
 
-try:
+Exports:
+- redis_client: an async Redis client or None if unavailable/misconfigured.
+- get_constitution_hash: helper to fetch constitution hash with safe fallbacks.
+"""
+
+from __future__ import annotations
+
+import os
+from typing import Optional
+
+try:  # pragma: no cover
     import redis.asyncio as redis
 except Exception:  # pragma: no cover
-    redis = None
+    redis = None  # type: ignore
+
+
+def _build_client() -> Optional["redis.Redis"]:
+    if redis is None:
+        return None
+    url = os.getenv("REDIS_URL")
+    if not url:
+        return None
+    try:
+        return redis.from_url(url)
+    except Exception:  # pragma: no cover
+        return None
+
+
+# Exported client used by store modules
+redis_client = _build_client()
 
 
 async def get_constitution_hash(tenant: str) -> str:
-    """Return a cached constitution hash for *tenant*.
-
-    In a real deployment this reads ``constitution:{tenant}`` from Redis.
-    If Redis is unavailable we return a deterministic placeholder.
-    """
-    # If the redis library is missing or the connection URL is not provided, use a stub.
-    if redis is None:
+    """Return a cached constitution hash for tenant with safe fallback."""
+    client = redis_client
+    if client is None:
         return f"constitution-hash-{tenant}"
-
-    # Allow tests to run without a live Redis instance by checking env var.
-    import os
-
-    redis_url = os.getenv("REDIS_URL")
-    if not redis_url:
-        # No URL -> fallback to deterministic placeholder.
-        return f"constitution-hash-{tenant}"
-
-    client = redis.from_url(redis_url)
     key = f"constitution:{tenant}"
     try:
         val = await client.get(key)
     except Exception:  # pragma: no cover
-        # Any connection error falls back to placeholder.
-        await client.close()
         return f"constitution-hash-{tenant}"
-    await client.close()
     if val is None:
-        # placeholder when not set
         return f"constitution-hash-{tenant}"
-    return val.decode()
+    try:
+        return val.decode()
+    except Exception:
+        return f"constitution-hash-{tenant}"
