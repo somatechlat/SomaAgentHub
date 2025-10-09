@@ -20,10 +20,11 @@ def create_app() -> FastAPI:
 
     @app.on_event("startup")
     async def _startup_temporal_client() -> None:
-        app.state.temporal_client = await temporal_client.Client.connect(
-            settings.temporal_target_host,
-            namespace=settings.temporal_namespace,
-        )
+        if settings.temporal_enabled:
+            app.state.temporal_client = await temporal_client.Client.connect(
+                settings.temporal_target_host,
+                namespace=settings.temporal_namespace,
+            )
 
     @app.on_event("shutdown")
     async def _shutdown_temporal_client() -> None:
@@ -45,7 +46,7 @@ def create_app() -> FastAPI:
     @app.get("/ready", tags=["system"])
     async def ready() -> dict[str, str]:
         # Basic readiness check: temporal client present
-        if getattr(app.state, "temporal_client", None) is None:
+        if settings.temporal_enabled and getattr(app.state, "temporal_client", None) is None:
             return {"status": "starting"}
         return {"status": "ready"}
 

@@ -52,11 +52,18 @@ services:
     imagePullPolicy: IfNotPresent
     port: 1001
   policy-engine:
-    enabled: false
+    enabled: true
+    image: "somaagent/soma-policy-engine:latest"
+    port: 8000
   memory-gateway:
     enabled: false
   orchestrator:
-    enabled: false
+    enabled: true
+    image: "somaagent/soma-orchestrator:latest"
+    port: 1004
+    env:
+      - name: TEMPORAL_ENABLED
+        value: "false"
   settings-service:
     enabled: false
   task-capsule-repo:
@@ -69,7 +76,9 @@ services:
     port: 8080
     nodePort: 30080
   identity-service:
-    enabled: false
+    enabled: true
+    image: "somaagent/soma-identity-service:latest"
+    port: 8000
   constitution-service:
     enabled: false
   analytics-service:

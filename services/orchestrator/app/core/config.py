@@ -24,6 +24,7 @@ class Settings(BaseSettings):
     temporal_target_host: str = Field(default="localhost:7233", alias="TEMPORAL_HOST")
     temporal_namespace: str = Field(default="default", alias="TEMPORAL_NAMESPACE")
     temporal_task_queue: str = Field(default="somagent.session.workflows", alias="TEMPORAL_TASK_QUEUE")
+    temporal_enabled: bool = Field(default=False, alias="TEMPORAL_ENABLED")
 
     # Kafka audit stream
     kafka_bootstrap_servers: Optional[str] = Field(default=None, alias="KAFKA_BOOTSTRAP_SERVERS")
