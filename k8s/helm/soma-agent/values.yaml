@@ -79,6 +79,11 @@ services:
     enabled: true
     image: "somaagent/soma-identity-service:latest"
     port: 8000
+    env:
+      - name: SOMAGENT_IDENTITY_JWT_SECRET
+        value: "dev-secret-change-me"
+      - name: REDIS_URL
+        value: ""
   constitution-service:
     enabled: false
   analytics-service:
