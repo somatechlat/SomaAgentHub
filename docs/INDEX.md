@@ -175,7 +175,17 @@ Located in `../tests/` folder:
 
 ---
 
-## 📜 Legal & Compliance
+## � User Manuals
+
+Located in `user-manuals/` folder:
+
+- [INDEX](user-manuals/INDEX.md) – Overview
+- Services: [gateway-api](user-manuals/gateway-api.md), [slm-service](user-manuals/slm-service.md), [orchestrator](user-manuals/orchestrator.md), [policy-engine](user-manuals/policy-engine.md), [identity-service](user-manuals/identity-service.md), [analytics-service](user-manuals/analytics-service.md), [tool-service](user-manuals/tool-service.md), [memory-gateway](user-manuals/memory-gateway.md)
+- Tooling: [CLI](user-manuals/cli.md), [Python SDK](user-manuals/sdk-python.md), [Scripts](user-manuals/scripts.md), [Mobile App](user-manuals/mobile-app.md)
+
+---
+
+## �📜 Legal & Compliance
 
 Located in `legal/` folder:
 
