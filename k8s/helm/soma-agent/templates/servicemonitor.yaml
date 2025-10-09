@@ -1,0 +1,33 @@
+{{- if and .Values.monitoring .Values.monitoring.serviceMonitors .Values.monitoring.serviceMonitors.enabled }}
+{{- $namespace := .Values.monitoring.serviceMonitors.namespace | default "observability" -}}
+{{- $interval := .Values.monitoring.serviceMonitors.interval | default "30s" -}}
+{{- range $name, $svc := .Values.services }}
+{{- if $svc.enabled }}
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: {{ $name }}
+  namespace: {{ $namespace }}
+  labels:
+    app.kubernetes.io/name: {{ $name }}
+    app.kubernetes.io/part-of: {{ $.Chart.Name }}
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: {{ $name }}
+  namespaceSelector:
+    matchNames:
+      - {{ $.Values.global.namespace | default $.Release.Namespace }}
+  endpoints:
+    - port: http
+      interval: {{ $interval }}
+      path: /metrics
+      scheme: http
+      relabelings:
+        - action: replace
+          sourceLabels: ["__meta_kubernetes_pod_node_name"]
+          targetLabel: instance
+{{- end }}
+{{- end }}
+{{- end }}

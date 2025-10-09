@@ -81,3 +81,9 @@ services:
 ingress:
   enabled: false
   # other ingress fields left unchanged but will be ignored when disabled
+
+monitoring:
+  serviceMonitors:
+    enabled: false
+    namespace: observability
+    interval: 30s
