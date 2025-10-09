@@ -1,6 +1,6 @@
 # 📚 SomaAgent Documentation Index
 
-**Last Updated:** October 5, 2025  
+**Last Updated:** October 9, 2025  
 **Purpose:** Single source of truth for navigating all SomaAgent documentation
 
 ---
@@ -33,9 +33,9 @@
 ### Core Architecture
 | Document | Purpose | Last Updated | Audience |
 |----------|---------|--------------|----------|
-| **[SomaAgentHub_Platform_Architecture.md](SomaGent_Platform_Architecture.md)** | Complete technical architecture | Oct 5, 2025 | Architects, Senior Eng |
+| **[SomaGent_Platform_Architecture.md](SomaGent_Platform_Architecture.md)** | Complete technical architecture | Oct 9, 2025 | Architects, Senior Eng |
 | **[KAMACHIQ_Mode_Blueprint.md](KAMACHIQ_Mode_Blueprint.md)** | Autonomous mode design & workflows | Oct 5, 2025 | Product, Architects |
-| **[SomaAgentHub_Security.md](SomaGent_Security.md)** | Security architecture & policies | Oct 5, 2025 | Security, Compliance |
+| **[SomaGent_Security.md](SomaGent_Security.md)** | Security architecture & policies | Oct 5, 2025 | Security, Compliance |
 | **[SomaGent_SLM_Strategy.md](SomaGent_SLM_Strategy.md)** | LLM integration strategy | Oct 5, 2025 | ML Engineers |
 
 ### Subsystem Designs

@@ -1,10 +1,10 @@
-⚠️ WE DO NOT MOCK we DO NOT IMITATE, WE DO NOT USE BYPASSES OR GIVE FAKE OR UNREAL VALUES TO PAST TESTS, we use MATH perfect math TO surpass any problem and we only abide truth and real serveres real data. Save this EVERYWHERE at the start of every Document!
+⚠️ WE DO NOT MOCK, WE DO NOT IMITATE, WE DO NOT USE BYPASSES OR FAKE VALUES. All metrics, tests, and data are REAL and verifiable. Save this notice at the top of every document.
 
 # SomaAgent Documentation
 
 > **📚 Complete Documentation Index:** See **[INDEX.md](INDEX.md)** for comprehensive navigation guide
 
-**Last Updated:** October 5, 2025  
+**Last Updated:** October 9, 2025  
 **Platform Status:** ✅ **PRODUCTION READY**
 
 ---
@@ -17,9 +17,9 @@
 3. **[Quickstart.md](Quickstart.md)** - 🏃 Fast local setup (10 minutes)
 4. **[CANONICAL_ROADMAP.md](CANONICAL_ROADMAP.md)** - 🗺️ Development roadmap & sprint history
 
--- **[SomaAgentHub_Platform_Architecture.md](SomaGent_Platform_Architecture.md)** - Complete technical architecture
+ - **[SomaGent_Platform_Architecture.md](SomaGent_Platform_Architecture.md)** - Complete technical architecture
 - **[KAMACHIQ_Mode_Blueprint.md](KAMACHIQ_Mode_Blueprint.md)** - Autonomous mode design
--- **[SomaAgentHub_Security.md](SomaGent_Security.md)** - Security architecture & compliance
+ - **[SomaGent_Security.md](SomaGent_Security.md)** - Security architecture & compliance
 - **[Kubernetes-Setup.md](Kubernetes-Setup.md)** - Production K8s deployment
 
 ### Operational Guides
