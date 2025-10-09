@@ -4,10 +4,12 @@ set -euo pipefail
 # Quick development deployment script
 # Builds images, updates Helm values, and deploys to Kind cluster
 
-REGISTRY="ghcr.io/somatechlat"
-TAG=$(git rev-parse --short HEAD)
+REGISTRY="${1:-${REGISTRY:-ghcr.io/somatechlat}}"
+TAG="${2:-${TAG:-$(git rev-parse --short HEAD)}}"
 
-echo "🚀 SomaAgent Quick Deploy - Tag: ${TAG}"
+echo "🚀 SomaAgent Quick Deploy"
+echo "   Registry: ${REGISTRY}"
+echo "   Tag: ${TAG}"
 
 # 1. Ensure Kind cluster exists before building images
 if ! kind get clusters | grep -q "soma-agent-hub"; then
@@ -21,7 +23,7 @@ echo "📦 Building images..."
 
 # 3. Update Helm values with new tag
 echo "📝 Updating Helm values..."
-sed -i.bak "s|ghcr.io/somatechlat/soma-.*:latest|ghcr.io/somatechlat/soma-jobs:${TAG}|g" k8s/helm/soma-agent/values.yaml
+sed -i.bak "s|ghcr.io/somatechlat/soma-.*:latest|${REGISTRY}/soma-jobs:${TAG}|g" k8s/helm/soma-agent/values.yaml
 
 # 4. Deploy to Kind cluster
 echo "🎯 Deploying to Kubernetes..."

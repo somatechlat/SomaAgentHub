@@ -7,6 +7,37 @@ TAG ?= latest
 NAMESPACE ?= somaagent
 OBS_NS ?= observability
 
+# Canonical tool parameters
+DEV_DEPLOY_REGISTRY ?= ghcr.io/somatechlat
+DEV_DEPLOY_TAG ?= $(shell git rev-parse --short HEAD)
+REGION ?= us-west-2
+ACTION ?= plan
+WORKSPACE ?= production
+BACKUP_DIR ?= /tmp/somaagent-backups
+S3_BUCKET ?= s3://somaagent-backups
+RESTORE_TIMESTAMP ?=
+CLICKHOUSE_HOST ?= localhost
+CLICKHOUSE_NATIVE_PORT ?= 9000
+CLICKHOUSE_HTTP_PORT ?= 8123
+CLICKHOUSE_USER ?= default
+CLICKHOUSE_PASSWORD ?=
+LOAD_SAMPLE_DATA ?= false
+POSTGRES_HOST ?= localhost
+POSTGRES_PORT ?= 5432
+POSTGRES_DB ?= somaagent
+POSTGRES_USER ?= postgres
+POSTGRES_PASSWORD ?=
+TEST_NAMESPACE ?= soma-agent-hub
+TEST_TIMEOUT ?= 300
+LOCAL_PORT ?= 8080
+REMOTE_PORT ?= 8080
+SBOM_DIR ?= sbom
+SCAN_DIR ?= security-scans
+SEVERITY ?= --severity CRITICAL,HIGH,MEDIUM
+TRIVY_FORMAT ?= table
+VAULT_ADDR ?= http://localhost:8200
+VAULT_NAMESPACE ?= somaagent
+
 # Image names
 IMG_GATEWAY := $(REGISTRY)/gateway-api:$(TAG)
 IMG_ORCH := $(REGISTRY)/orchestrator:$(TAG)
@@ -17,19 +48,33 @@ IMG_ID := $(REGISTRY)/identity-service:$(TAG)
 
 help:
 	@echo "Available targets:"
-	@echo "  make images            Build all service images"
-	@echo "  make push              Push all service images"
-	@echo "  make deploy            Deploy infra + services to k8s"
+	@echo "  make images            Build gateway/orch/identity images"
+	@echo "  make push              Push gateway/orch/identity images"
+	@echo "  make build-all         Build & load all service images"
+	@echo "  make dev-deploy        Build + deploy to local Kind"
+	@echo "  make deploy            Alias for dev-deploy"
+	@echo "  make deploy-region     Terraform apply/plan/destroy"
+	@echo "  make backup-databases  Snapshot ClickHouse/Postgres/Redis"
+	@echo "  make restore-databases RESTORE_TIMESTAMP=..."
+	@echo "  make init-clickhouse   Apply ClickHouse schema & seeds"
+	@echo "  make run-migrations    Run ClickHouse & Postgres migrations"
+	@echo "  make select-free-ports Generate Temporal port overrides"
 	@echo "  make status            Show pods and services"
 	@echo "  make pf-gateway        Port-forward gateway 8080"
 	@echo "  make pf-prom           Port-forward Prometheus 9090"
 	@echo "  make test-int          Run gateway integration test"
 	@echo "  make test-e2e          Run gateway→orchestrator e2e test"
+	@echo "  make k8s-smoke         Run Kubernetes smoke tests"
 	@echo "  make logs-orch         Tail orchestrator logs"
 	@echo "  make airflow-up        Build & launch local Airflow stack"
 	@echo "  make airflow-down      Stop local Airflow stack"
 	@echo "  make flink-up          Build & launch local Flink stack"
 	@echo "  make flink-down        Stop local Flink stack"
+	@echo "  make port-forward-gateway LOCAL=8080 REMOTE=8080"
+	@echo "  make generate-sbom     Produce Syft SBOMs"
+	@echo "  make scan-vulns        Run Trivy image scans"
+	@echo "  make rotate-secrets    Rotate Vault-managed secrets"
+	@echo "  make verify-observability Validate OpenTelemetry wiring"
 
 # Developer convenience targets (local infra)
 dev-network:
@@ -50,6 +95,9 @@ dev-up:
 	@echo "Local infra started: Temporal + Redis (use the override file for docker-compose)"
 	@echo "Local infra started: Temporal + Redis"
 
+.PHONY: select-free-ports
+select-free-ports:
+	./scripts/select_free_ports.sh
 
 .PHONY: dev-start-services
 dev-start-services:
@@ -107,10 +155,13 @@ push:
 	docker push $(IMG_GATEWAY)
 	docker push $(IMG_ORCH)
 	docker push $(IMG_ID)
+	docker push $(IMG_GATEWAY)
+	docker push $(IMG_ORCH)
+	docker push $(IMG_ID)
 
 # Kubernetes deploy
 deploy:
-	bash scripts/deploy.sh
+	./scripts/dev-deploy.sh
 
 status:
 	kubectl get pods -n $(NAMESPACE)
