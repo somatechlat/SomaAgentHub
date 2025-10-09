@@ -37,16 +37,20 @@ build_service() {
     
     echo "🔨 Building ${service}..."
 
-    # Collect image tags (primary + legacy aliases)
+    # Collect image tags (primary registry + dockerhub mirror + legacy aliases)
     local image_tags=(
         "${REGISTRY}/soma-${service}:${TAG}"
         "${REGISTRY}/soma-${service}:latest"
+        "somaagent/soma-${service}:${TAG}"
+        "somaagent/soma-${service}:latest"
     )
 
     if [ "$service" = "slm-service" ]; then
         image_tags+=(
             "${REGISTRY}/soma-somallm-provider:${TAG}"
             "${REGISTRY}/soma-somallm-provider:latest"
+            "somaagent/soma-somallm-provider:${TAG}"
+            "somaagent/soma-somallm-provider:latest"
         )
     fi
     
