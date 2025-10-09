@@ -25,10 +25,10 @@ spec:
     spec:
       containers:
         - name: {{ $name }}
-          {{- $img := printf "%v" $svc.image -}}
-          {{- $last := last (splitList "/" $img) -}}
-          {{- $hasTag := contains ":" $last -}}
-          image: {{- if $hasTag -}}{{ $img | quote }}{{- else -}}{{ printf "%s:%s" $img ($.Values.global.imageTag | default "latest") | quote }}{{- end }}
+            {{ $img := printf "%v" $svc.image }}
+            {{ $last := last (splitList "/" $img) }}
+            {{ $hasTag := contains ":" $last }}
+            image: {{ if $hasTag }}{{ $img | quote }}{{ else }}{{ printf "%s:%s" $img ($.Values.global.imageTag | default "latest") | quote }}{{ end }}
           imagePullPolicy: {{ $svc.imagePullPolicy | default $.Values.global.imagePullPolicy }}
           ports:
             - containerPort: {{ $svc.port }}
