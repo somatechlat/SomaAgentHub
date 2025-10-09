@@ -25,7 +25,11 @@ spec:
     spec:
       containers:
         - name: {{ $name }}
-          image: {{ $svc.image }}
+          image: {{- if (hasSuffix ":latest" ($svc.image | toString)) or (hasSuffix ":dev" ($svc.image | toString)) or (hasSuffix ":prod" ($svc.image | toString)) or (hasSuffix ":stable" ($svc.image | toString)) or (contains ":" ($svc.image | toString)) -}}
+            {{ $svc.image }}
+            {{- else -}}
+            {{ $svc.image }}:{{ $.Values.global.imageTag | default "latest" }}
+            {{- end }}
           imagePullPolicy: {{ $svc.imagePullPolicy | default $.Values.global.imagePullPolicy }}
           ports:
             - containerPort: {{ $svc.port }}
