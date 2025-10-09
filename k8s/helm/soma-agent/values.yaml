@@ -5,7 +5,7 @@
 global:
   imagePullPolicy: IfNotPresent
   namespace: soma-agent-hub   # renamed from soma-agent-hub
-  imageTag: "029a130"
+  imageTag: "latest"
 
 # Default hub port for gateway-api (used in service definition)
 hubPort: 60000
@@ -45,8 +45,12 @@ kafka:
 services:
   jobs:
     enabled: false
-  somallm-provider:
-    enabled: false
+  slm-service:
+    enabled: true
+    replicaCount: 1
+    image: "somaagent/soma-slm-service:latest"
+    imagePullPolicy: IfNotPresent
+    port: 1001
   policy-engine:
     enabled: false
   memory-gateway:
@@ -60,9 +64,9 @@ services:
   gateway-api:
     enabled: true
     replicaCount: 1
-    image: "ghcr.io/somatechlat/soma-gateway-api:029a130"
-    imagePullPolicy: Never
-    port: 60000
+    image: "somaagent/soma-gateway-api:latest"
+    imagePullPolicy: IfNotPresent
+    port: 8080
     nodePort: 30080
   identity-service:
     enabled: false

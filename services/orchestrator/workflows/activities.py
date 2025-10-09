@@ -24,7 +24,7 @@ async def decompose_project(project_description: str, user_id: str) -> List[Dict
     """
     Decompose project into executable tasks.
     
-    Calls the SomaLLMProvider service to analyze the project description
+    Calls the SLM service (formerly SomaLLMProvider) to analyze the project description
     and generate a task breakdown.
     
     Args:
@@ -52,7 +52,7 @@ async def decompose_project(project_description: str, user_id: str) -> List[Dict
     Output as structured JSON.
     """
     
-    # HTTP call to SomaLLMProvider service
+    # HTTP call to SLM service
     async with httpx.AsyncClient() as client:
         try:
             response = await client.post(
@@ -67,7 +67,7 @@ async def decompose_project(project_description: str, user_id: str) -> List[Dict
             response.raise_for_status()
             
             result = response.json()
-            activity.logger.info(f"SomaLLMProvider decomposition completed: {result['model']}")
+            activity.logger.info(f"SLM decomposition completed: {result['model']}")
             
             # Parse the completion into structured tasks
             # In production, this would use proper JSON parsing
@@ -200,7 +200,7 @@ async def execute_task(
     """
     Execute a single task with policy checks.
     
-    Runs the task using the SomaLLMProvider service after policy validation.
+    Runs the task using the SLM service (formerly SomaLLMProvider) after policy validation.
     
     Args:
         task: Task specification with id, description, type
@@ -243,7 +243,7 @@ async def execute_task(
                     "duration_ms": 0,
                 }
             
-            # Step 2: Execute task logic (SomaLLMProvider call)
+            # Step 2: Execute task logic (SLM service call)
             task_prompt = f"""
             Execute this task:
             

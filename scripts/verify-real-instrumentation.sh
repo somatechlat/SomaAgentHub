@@ -19,7 +19,7 @@ SERVICES=(
     "gateway-api"
     "policy-engine"
     "identity-service"
-    "somallm-provider"
+    "slm-service"
     "analytics-service"
 )
 

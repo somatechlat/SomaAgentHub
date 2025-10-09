@@ -1,7 +1,7 @@
 [tool.poetry]
-name = "somallm-provider-service"
+name = "slm-service"
 version = "0.1.0"
-description = "SomaLLMProvider service: producer/consumer stubs for sprint 1"
+description = "SLM service (formerly SomaLLMProvider): producer/consumer workers and API"
 authors = ["SomaGent Team <dev@soma.gent>"]
 
 [tool.poetry.dependencies]

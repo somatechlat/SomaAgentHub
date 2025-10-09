@@ -61,7 +61,7 @@ EXPERIMENTS: List[ChaosExperiment] = [
     ChaosExperiment(
         name="slm_service_failure",
         type=ExperimentType.POD_FAILURE,
-        target_service="somallm-provider",
+        target_service="slm-service",
         duration="3m",
         description="Kill SLM service pod to test model routing fallback",
         params={"mode": "one"},
@@ -121,14 +121,14 @@ EXPERIMENTS: List[ChaosExperiment] = [
     ChaosExperiment(
         name="slm_memory_stress",
         type=ExperimentType.STRESS_MEMORY,
-        target_service="somallm-provider",
+        target_service="slm-service",
         duration="5m",
         description="Fill 70% of SLM service memory",
         params={
             "size": "70%"
         },
         validation_queries=[
-            'container_memory_usage_bytes{pod=~"somallm-provider.*"} < container_spec_memory_limit_bytes'
+            'container_memory_usage_bytes{pod=~"slm-service.*"} < container_spec_memory_limit_bytes'
         ]
     ),
     
@@ -153,7 +153,7 @@ EXPERIMENTS: List[ChaosExperiment] = [
 class ChaosRunner:
     """Run chaos engineering experiments."""
     
-    def __init__(self, namespace: str = "somaagent"):
+    def __init__(self, namespace: str = "soma-agent-hub"):
         """
         Initialize chaos runner.
         

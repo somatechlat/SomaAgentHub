@@ -68,7 +68,7 @@ SERVICE_SLOS: List[SLO] = [
     # SLM Service
     SLO(
         name="slm_availability",
-        service="somallm-provider",
+        service="slm-service",
         metric="availability",
         target=99.5,  # 99.5% uptime
         window="30d",
@@ -76,7 +76,7 @@ SERVICE_SLOS: List[SLO] = [
     ),
     SLO(
         name="slm_latency_p99",
-        service="somallm-provider",
+        service="slm-service",
         metric="latency_p99",
         target=2000.0,  # 2s p99 latency
         window="24h",

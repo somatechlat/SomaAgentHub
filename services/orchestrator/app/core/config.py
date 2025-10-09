@@ -42,13 +42,14 @@ class Settings(BaseSettings):
         alias="NOTIFICATION_SERVICE_URL",
     )
 
-    # SomaLLM provider (formerly SLM service)
+    # SLM service (formerly SomaLLM provider)
+    # Default to in-cluster DNS for slm-service on port 1001
     somallm_provider_url: AnyUrl = Field(
-        default="http://somallm-provider-service:8003",
+        default="http://slm-service:1001",
         alias="SOMALLM_PROVIDER_URL",
     )
     somallm_provider_health_url: AnyUrl = Field(
-        default="http://somallm-provider-service:8003/health",
+        default="http://slm-service:1001/health",
         alias="SOMALLM_PROVIDER_HEALTH_URL",
     )
 

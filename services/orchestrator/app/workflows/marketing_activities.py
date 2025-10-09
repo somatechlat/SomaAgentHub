@@ -174,7 +174,7 @@ class SLMServiceClient:
     """Client for SLM Service (content generation)."""
     
     def __init__(self):
-        self.base_url = str(settings.somallm_provider_url or "http://gateway-api:60000")
+        self.base_url = str(settings.somallm_provider_url or "http://gateway-api:8080")
         self.timeout = httpx.Timeout(120.0, connect=10.0)
     
     async def chat_completion(

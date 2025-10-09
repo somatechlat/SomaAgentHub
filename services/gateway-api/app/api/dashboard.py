@@ -13,7 +13,8 @@ from ..models.context import RequestContext
 # --- configuration for external services (Kubernetes DNS names) ---
 SOMALLM_PROVIDER_HEALTH_URL = (
     os.getenv("SOMALLM_PROVIDER_HEALTH_URL")
-    or os.getenv("SLM_HEALTH_URL", "http://somallm-provider:8000/v1/health")
+    or os.getenv("SLM_HEALTH_URL")
+    or "http://slm-service:1001/health"
 )
 SOMABRAIN_METRICS_URL = os.getenv("SOMABRAIN_METRICS_URL", "http://memory-gateway:9696/metrics")
 KAFKA_HOST = os.getenv("KAFKA_HOST", "kafka:9092")
@@ -42,7 +43,7 @@ async def dashboard_health(ctx: RequestContext = Depends(request_context_depende
         "tenant": ctx.tenant_id,
         "deployment_mode": ctx.deployment_mode,
         "services": {
-            "somallm_provider": somallm_health,
+            "slm_service": somallm_health,
             "somabrain": SOMABRAIN_METRICS_URL,
             "kafka": KAFKA_HOST,
             "postgres": POSTGRES_HOST,

@@ -149,18 +149,29 @@ class SomaAgentTestReporter:
         print("\n🏥 ANALYZING SERVICE HEALTH...")
         
         services = [
-            "jobs", "memory-gateway", "orchestrator", "policy-engine", 
-            "somallm-provider", "settings-service", "gateway-api", "identity-service", 
+            "jobs", "memory-gateway", "orchestrator", "policy-engine",
+            "slm-service", "settings-service", "gateway-api", "identity-service",
             "constitution-service", "analytics-service", "billing-service", "task-capsule-repo"
         ]
+
+        legacy_alias = {"slm-service": "somallm-provider"}
         
         service_health = {}
         
         for service in services:
             try:
+                deployment_name = service
+                check_deployment = subprocess.run(
+                    ["kubectl", "get", "deployment", deployment_name, "-n", "soma-agent-hub"],
+                    capture_output=True, text=True, timeout=5
+                )
+
+                if check_deployment.returncode != 0 and service in legacy_alias:
+                    deployment_name = legacy_alias[service]
+
                 # Get recent logs
                 log_result = subprocess.run(
-                    ["kubectl", "logs", "-n", "soma-agent-hub", f"deployment/{service}", "--tail=5"],
+                    ["kubectl", "logs", "-n", "soma-agent-hub", f"deployment/{deployment_name}", "--tail=5"],
                     capture_output=True, text=True, timeout=10
                 )
                 

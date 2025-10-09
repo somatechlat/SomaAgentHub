@@ -1,4 +1,4 @@
-"""Entry point for the production SomaLLMProvider service."""
+"""Entry point for the production SLM service (formerly SomaLLMProvider)."""
 
 from __future__ import annotations
 
@@ -10,7 +10,7 @@ from fastapi.responses import Response
 from pydantic import BaseModel, Field, constr
 from prometheus_client import CONTENT_TYPE_LATEST, Counter, Histogram, generate_latest
 
-from somallm_provider.local_models import get_embedding_model, get_text_generator
+from slm.local_models import get_embedding_model, get_text_generator
 from .observability import setup_observability
 
 
@@ -47,31 +47,31 @@ class EmbeddingResponse(BaseModel):
 
 
 app = FastAPI(
-    title="SomaGent SomaLLMProvider Service",
+    title="SomaGent SLM Service",
     version="1.0.0",
     description="Serves deterministic local language capabilities without mocks.",
 )
 
 # REAL OpenTelemetry instrumentation - no mocks, exports to Prometheus
-setup_observability("somallm-provider-service", app, service_version="1.0.0")
+setup_observability("slm-service", app, service_version="1.0.0")
 
 INFER_REQUESTS = Counter(
-    "somallm_infer_sync_requests_total",
+    "slm_infer_sync_requests_total",
     "Number of sync inference requests",
     ["model"],
 )
 INFER_LATENCY = Histogram(
-    "somallm_infer_sync_latency_seconds",
+    "slm_infer_sync_latency_seconds",
     "Sync inference latency in seconds",
     ["model"],
 )
 EMBED_REQUESTS = Counter(
-    "somallm_embedding_requests_total",
+    "slm_embedding_requests_total",
     "Number of embedding requests",
     ["model"],
 )
 EMBED_LATENCY = Histogram(
-    "somallm_embedding_latency_seconds",
+    "slm_embedding_latency_seconds",
     "Embedding latency in seconds",
     ["model"],
 )
@@ -82,7 +82,8 @@ MODEL_NAME = "somasuite-markov-v1"
 
 @app.get("/health", tags=["system"])
 def healthcheck() -> dict[str, str]:
-    return {"status": "ok", "service": "somallm-provider-service"}
+    # Standardized health payload
+    return {"status": "healthy", "service": "slm-service"}
 
 
 @app.get("/metrics", tags=["system"])
@@ -92,10 +93,10 @@ def metrics() -> Response:
 
 @app.get("/")
 def root():
-    return {"message": "SomaGent SomaLLMProvider Service"}
+    return {"message": "SomaGent SLM Service"}
 
 
-@app.post("/v1/infer/sync", response_model=InferSyncResponse, tags=["somallm-provider"])
+@app.post("/v1/infer/sync", response_model=InferSyncResponse, tags=["slm-service"])
 def infer_sync(request: InferSyncRequest, generator=Depends(get_text_generator)) -> InferSyncResponse:
     start = perf_counter()
     result = generator.generate(request.prompt, max_tokens=request.max_tokens, temperature=request.temperature)
@@ -111,7 +112,7 @@ def infer_sync(request: InferSyncRequest, generator=Depends(get_text_generator))
     return InferSyncResponse(model=MODEL_NAME, completion=completion, usage=usage)
 
 
-@app.post("/v1/embeddings", response_model=EmbeddingResponse, tags=["somallm-provider"])
+@app.post("/v1/embeddings", response_model=EmbeddingResponse, tags=["slm-service"])
 def create_embeddings(request: EmbeddingRequest, model=Depends(get_embedding_model)) -> EmbeddingResponse:
     start = perf_counter()
     vectors = model.embed(request.input)
@@ -123,18 +124,18 @@ def create_embeddings(request: EmbeddingRequest, model=Depends(get_embedding_mod
     return EmbeddingResponse(model=model.name, vectors=payload, vector_length=vector_length)
 
 
-@app.post("/v1/chat/completions", response_model=InferSyncResponse, tags=["somallm-provider"])
+@app.post("/v1/chat/completions", response_model=InferSyncResponse, tags=["slm-service"])
 def chat_completion(request: InferSyncRequest, generator=Depends(get_text_generator)) -> InferSyncResponse:
     """Backward-compatible endpoint that mirrors the sync inference capability."""
     return infer_sync(request, generator=generator)
 
 
-@app.get("/models", tags=["somallm-provider"])
+@app.get("/models", tags=["slm-service"])
 def list_models():
     return {"models": [{"id": MODEL_NAME, "name": "SomaSuite Markov Text", "status": "ready"}]}
 
 
-@app.post("/models/load", tags=["somallm-provider"])
+@app.post("/models/load", tags=["slm-service"])
 def load_model(model: dict):
     requested = model.get("id", MODEL_NAME)
     if requested != MODEL_NAME:

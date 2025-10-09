@@ -12,6 +12,7 @@
 | **[README.md](README.md)** | Project overview and quick setup | Everyone | 5 min |
 | **[Quickstart.md](Quickstart.md)** | Fast local deployment guide | Developers | 10 min |
 | **[Kubernetes-Setup.md](Kubernetes-Setup.md)** | Production deployment on K8s | DevOps, SRE | 20 min |
+| **[Cluster Start Runbook](runbooks/cluster_start.md)** | End-to-end cluster bring-up | Devs, SRE | 10 min |
 
 ---
 

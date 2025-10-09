@@ -4,7 +4,7 @@
 # Registry configuration
 REGISTRY ?= somaagent
 TAG ?= latest
-NAMESPACE ?= somaagent
+NAMESPACE ?= soma-agent-hub
 OBS_NS ?= observability
 
 # Canonical tool parameters
@@ -75,6 +75,8 @@ help:
 	@echo "  make scan-vulns        Run Trivy image scans"
 	@echo "  make rotate-secrets    Rotate Vault-managed secrets"
 	@echo "  make verify-observability Validate OpenTelemetry wiring"
+	@echo "  make helm-install       Helm upgrade/install soma-agent-hub"
+	@echo "  make start-cluster      Kind + Helm deploy + smoke"
 
 # Developer convenience targets (local infra)
 dev-network:
@@ -135,6 +137,60 @@ flink-down:
 	@docker compose -f infra/flink/docker-compose.yml down --remove-orphans
 
 
+.PHONY: build-all dev-deploy deploy-region backup-databases restore-databases init-clickhouse run-migrations k8s-smoke port-forward-gateway generate-sbom scan-vulns rotate-secrets verify-observability
+
+build-all:
+	REGISTRY=$(REGISTRY) TAG=$(TAG) ./scripts/build_and_push.sh $(REGISTRY) $(TAG)
+
+dev-deploy:
+	REGISTRY=$(DEV_DEPLOY_REGISTRY) TAG=$(DEV_DEPLOY_TAG) ./scripts/dev-deploy.sh
+
+deploy-region:
+	WORKSPACE=$(WORKSPACE) ./scripts/deploy-region.sh $(REGION) $(ACTION)
+
+backup-databases:
+	BACKUP_DIR=$(BACKUP_DIR) S3_BUCKET=$(S3_BUCKET) CLICKHOUSE_HOST=$(CLICKHOUSE_HOST) CLICKHOUSE_NATIVE_PORT=$(CLICKHOUSE_NATIVE_PORT) CLICKHOUSE_HTTP_PORT=$(CLICKHOUSE_HTTP_PORT) CLICKHOUSE_USER=$(CLICKHOUSE_USER) CLICKHOUSE_PASSWORD=$(CLICKHOUSE_PASSWORD) POSTGRES_HOST=$(POSTGRES_HOST) POSTGRES_PORT=$(POSTGRES_PORT) POSTGRES_USER=$(POSTGRES_USER) POSTGRES_PASSWORD=$(POSTGRES_PASSWORD) ./scripts/backup-databases.sh
+
+restore-databases:
+	@if [ -z "$(RESTORE_TIMESTAMP)" ]; then echo "RESTORE_TIMESTAMP is required"; exit 1; fi
+	S3_BUCKET=$(S3_BUCKET) CLICKHOUSE_HOST=$(CLICKHOUSE_HOST) CLICKHOUSE_NATIVE_PORT=$(CLICKHOUSE_NATIVE_PORT) CLICKHOUSE_HTTP_PORT=$(CLICKHOUSE_HTTP_PORT) CLICKHOUSE_USER=$(CLICKHOUSE_USER) CLICKHOUSE_PASSWORD=$(CLICKHOUSE_PASSWORD) POSTGRES_HOST=$(POSTGRES_HOST) POSTGRES_PORT=$(POSTGRES_PORT) POSTGRES_USER=$(POSTGRES_USER) POSTGRES_PASSWORD=$(POSTGRES_PASSWORD) ./scripts/restore-databases.sh $(RESTORE_TIMESTAMP)
+
+init-clickhouse:
+	CLICKHOUSE_HOST=$(CLICKHOUSE_HOST) CLICKHOUSE_PORT=$(CLICKHOUSE_NATIVE_PORT) CLICKHOUSE_USER=$(CLICKHOUSE_USER) CLICKHOUSE_PASSWORD=$(CLICKHOUSE_PASSWORD) LOAD_SAMPLE_DATA=$(LOAD_SAMPLE_DATA) ./scripts/init-clickhouse.sh
+
+run-migrations:
+	CLICKHOUSE_HOST=$(CLICKHOUSE_HOST) CLICKHOUSE_PORT=$(CLICKHOUSE_HTTP_PORT) POSTGRES_HOST=$(POSTGRES_HOST) POSTGRES_PORT=$(POSTGRES_PORT) POSTGRES_DB=$(POSTGRES_DB) POSTGRES_USER=$(POSTGRES_USER) POSTGRES_PASSWORD=$(POSTGRES_PASSWORD) ./scripts/run-migrations.sh
+
+k8s-smoke:
+	./scripts/integration-test.sh $(TEST_NAMESPACE) $(TEST_TIMEOUT)
+
+port-forward-gateway:
+	kubectl -n $(NAMESPACE) port-forward svc/gateway-api $(LOCAL_PORT):$(REMOTE_PORT)
+
+generate-sbom:
+	./scripts/generate-sbom.sh
+
+scan-vulns:
+	./scripts/scan-vulnerabilities.sh $(SEVERITY) $(TRIVY_FORMAT)
+
+rotate-secrets:
+	VAULT_ADDR=$(VAULT_ADDR) VAULT_NAMESPACE=$(VAULT_NAMESPACE) ./scripts/rotate-secrets.sh
+
+verify-observability:
+	./scripts/verify-real-instrumentation.sh
+
+.PHONY: helm-install start-cluster
+helm-install:
+	helm upgrade --install soma-agent-hub ./k8s/helm/soma-agent --namespace $(NAMESPACE) --create-namespace --set global.imageTag=$(TAG) --set global.namespace=$(NAMESPACE)
+
+start-cluster:
+	kind create cluster --name soma-agent-hub || true
+	kubectl create namespace $(NAMESPACE) || true
+	kubectl create namespace $(OBS_NS) || true
+	make build-all
+	make helm-install
+
+
 # Build images
 images: build-gateway build-orchestrator build-identity
 
@@ -160,8 +216,7 @@ push:
 	docker push $(IMG_ID)
 
 # Kubernetes deploy
-deploy:
-	./scripts/dev-deploy.sh
+deploy: dev-deploy
 
 status:
 	kubectl get pods -n $(NAMESPACE)
