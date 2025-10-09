@@ -46,6 +46,10 @@ mappings=(
 TMPASSIGN=$(mktemp)
 trap 'rm -f "$TMPASSIGN"' EXIT
 
+# Track assigned host ports to avoid duplicates
+ASSIGNED_PORTS=$(mktemp)
+trap 'rm -f "$TMPASSIGN" "$ASSIGNED_PORTS"' EXIT
+
 for mapping in "${mappings[@]}"; do
   svc=${mapping%%|*}
   rest=${mapping#*|}
@@ -54,14 +58,31 @@ for mapping in "${mappings[@]}"; do
   for part in "$@"; do
     desired_host=${part%%:*}
     container_port=${part##*:}
-    if port_in_use "$desired_host"; then
-      free_port=$(find_free_port $((desired_host + 1))) || free_port=$(find_free_port 20000)
-      echo "Port $desired_host is in use; assigning free host port $free_port for $svc:$container_port"
-      assigned_str="$assigned_str${free_port}:${container_port},"
-    else
-      echo "Port $desired_host is available; using it for $svc:$container_port"
-      assigned_str="$assigned_str${desired_host}:${container_port},"
-    fi
+    # find a host port that is not in use and not already assigned by this script
+    try_host=$desired_host
+    while true; do
+      # if already assigned in this run, pick next
+      if grep -qx "$try_host" "$ASSIGNED_PORTS" 2>/dev/null; then
+        try_host=$((try_host + 1))
+        continue
+      fi
+
+      if port_in_use "$try_host"; then
+        try_host=$((try_host + 1))
+        continue
+      fi
+
+      chosen_host=$try_host
+      # mark chosen host as assigned
+      echo "$chosen_host" >> "$ASSIGNED_PORTS"
+      if [ "$chosen_host" -ne "$desired_host" ]; then
+        echo "Port $desired_host is in use or reserved; assigning free host port $chosen_host for $svc:$container_port"
+      else
+        echo "Port $desired_host is available; using it for $svc:$container_port"
+      fi
+      assigned_str="$assigned_str${chosen_host}:${container_port},"
+      break
+    done
   done
   # trim trailing comma
   assigned_str=${assigned_str%,}

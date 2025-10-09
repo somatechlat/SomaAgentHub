@@ -26,6 +26,10 @@ help:
 	@echo "  make test-int          Run gateway integration test"
 	@echo "  make test-e2e          Run gateway→orchestrator e2e test"
 	@echo "  make logs-orch         Tail orchestrator logs"
+	@echo "  make airflow-up        Build & launch local Airflow stack"
+	@echo "  make airflow-down      Stop local Airflow stack"
+	@echo "  make flink-up          Build & launch local Flink stack"
+	@echo "  make flink-down        Stop local Flink stack"
 
 # Developer convenience targets (local infra)
 dev-network:
@@ -61,6 +65,26 @@ dev-start-services:
 	@echo "  export SOMAGENT_GATEWAY_ORCHESTRATOR_URL=http://localhost:60002"
 	@echo "  export PYTHONPATH=$(pwd)/services/gateway-api"
 	@echo "  ./.venv/bin/python -m uvicorn --app-dir services/gateway-api app.main:app --host 0.0.0.0 --port 60010"
+
+airflow-build:
+	@docker build -t somagent/airflow-service:dev -f services/airflow-service/Dockerfile .
+
+airflow-up: airflow-build dev-network
+	@docker compose -f infra/airflow/docker-compose.yml up -d
+	@echo "Airflow webserver available at http://localhost:8081"
+
+airflow-down:
+	@docker compose -f infra/airflow/docker-compose.yml down --remove-orphans
+
+flink-build:
+	@docker build -t somagent/flink-service:dev -f services/flink-service/Dockerfile services/flink-service
+
+flink-up: flink-build dev-network
+	@docker compose -f infra/flink/docker-compose.yml up -d
+	@echo "Flink dashboard available at http://localhost:8082"
+
+flink-down:
+	@docker compose -f infra/flink/docker-compose.yml down --remove-orphans
 
 
 # Build images

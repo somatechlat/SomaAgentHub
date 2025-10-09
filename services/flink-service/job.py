@@ -1,78 +1,97 @@
 #!/usr/bin/env python3
-"""Skeleton PyFlink job for SomaAgentHub.
+"""Production PyFlink job for SomaAgentHub event analytics."""
 
-The job reads events from a Kafka topic (or ClickHouse CDC), processes them, and writes aggregated metrics to a Prometheus Pushgateway.
-"""
+from __future__ import annotations
 
+import os
+from dataclasses import dataclass
+
+from prometheus_client import CollectorRegistry, Gauge, push_to_gateway
+from pyflink.common import Row
 from pyflink.datastream import StreamExecutionEnvironment
-from pyflink.table import StreamTableEnvironment, EnvironmentSettings
+from pyflink.datastream.functions import RichSinkFunction
+from pyflink.table import EnvironmentSettings, StreamTableEnvironment
 
 
-def main():
-    # Set up the streaming execution environment
-    env = StreamExecutionEnvironment.get_execution_environment()
-    env.set_parallelism(2)
+@dataclass
+class FlinkConfig:
+    bootstrap_servers: str
+    topic: str
+    pushgateway: str
+    metrics_job: str
 
-    # Table environment for SQL‑like processing
-    settings = EnvironmentSettings.new_instance().in_streaming_mode().use_blink_planner().build()
-    t_env = StreamTableEnvironment.create(env, environment_settings=settings)
+    @classmethod
+    def from_env(cls) -> "FlinkConfig":
+        return cls(
+            bootstrap_servers=os.getenv("KAFKA_BOOTSTRAP_SERVERS", "kafka:9092"),
+            topic=os.getenv("KAFKA_TOPIC", "soma.events"),
+            pushgateway=os.getenv("PROMETHEUS_PUSHGATEWAY", "http://pushgateway:9091"),
+            metrics_job=os.getenv("PROMETHEUS_JOB_NAME", "soma_flink_job"),
+        )
 
-    # Example source: Kafka (placeholder – replace with actual config)
+
+class PrometheusSink(RichSinkFunction):
+    """Push aggregated metrics to a Prometheus Pushgateway."""
+
+    def open(self, runtime_context):  # noqa: D401
+        config = FlinkConfig.from_env()
+        self._pushgateway = config.pushgateway
+        self._job_name = config.metrics_job
+
+    def invoke(self, value: Row, context):  # noqa: D401
+        registry = CollectorRegistry()
+        gauge = Gauge("soma_events_per_minute", "Events processed per minute", ["window_start"], registry=registry)
+        gauge.labels(window_start=str(value.window_start)).set(value.cnt)
+        push_to_gateway(self._pushgateway, job=self._job_name, registry=registry)
+
+
+def configure_tables(t_env: StreamTableEnvironment, config: FlinkConfig) -> None:
     t_env.execute_sql(
-        """
+        f"""
         CREATE TABLE events (
             id STRING,
-            ts TIMESTAMP(3),
-            payload MAP<STRING, STRING>
+            ts TIMESTAMP_LTZ(3),
+            payload MAP<STRING, STRING>,
+            WATERMARK FOR ts AS ts - INTERVAL '5' SECOND
         ) WITH (
             'connector' = 'kafka',
-            'topic' = 'soma-events',
-            'properties.bootstrap.servers' = 'kafka:9092',
-            'format' = 'json',
-            'scan.startup.mode' = 'earliest-offset'
+            'topic' = '{config.topic}',
+            'properties.bootstrap.servers' = '{config.bootstrap_servers}',
+            'properties.group.id' = 'soma-flink-consumer',
+            'scan.startup.mode' = 'earliest-offset',
+            'format' = 'json'
         )
         """
     )
 
-    # Simple transformation – count events per minute
     t_env.execute_sql(
         """
         CREATE VIEW per_minute_counts AS
-        SELECT TUMBLE_START(ts, INTERVAL '1' MINUTE) AS window_start,
-               COUNT(*) AS cnt
+        SELECT
+            TUMBLE_START(ts, INTERVAL '1' MINUTE) AS window_start,
+            COUNT(*) AS cnt
         FROM events
         GROUP BY TUMBLE(ts, INTERVAL '1' MINUTE)
         """
     )
 
-    # Sink: Prometheus Pushgateway (placeholder – you may replace with a custom sink)
-    t_env.execute_sql(
-        """
-        CREATE TABLE prometheus_sink (
-            metric_name STRING,
-            metric_value BIGINT,
-            timestamp TIMESTAMP(3)
-        ) WITH (
-            'connector' = 'filesystem',
-            'path' = '/tmp/prometheus_metrics',
-            'format' = 'csv'
-        )
-        """
-    )
 
-    # Insert transformed data into sink
-    t_env.execute_sql(
-        """
-        INSERT INTO prometheus_sink
-        SELECT 'soma_events_per_minute' AS metric_name,
-               cnt AS metric_value,
-               window_start AS timestamp
-        FROM per_minute_counts
-        """
-    )
+def main() -> None:
+    config = FlinkConfig.from_env()
 
-    # Execute the job
-    env.execute("soma_flink_job")
+    env = StreamExecutionEnvironment.get_execution_environment()
+    env.set_parallelism(2)
+
+    settings = EnvironmentSettings.new_instance().in_streaming_mode().build()
+    t_env = StreamTableEnvironment.create(env, environment_settings=settings)
+
+    configure_tables(t_env, config)
+
+    result_table = t_env.sql_query("SELECT window_start, cnt FROM per_minute_counts")
+    result_stream = t_env.to_data_stream(result_table)
+    result_stream.add_sink(PrometheusSink())
+
+    env.execute(config.metrics_job)
 
 
 if __name__ == "__main__":
