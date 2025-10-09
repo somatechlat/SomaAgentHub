@@ -35,8 +35,8 @@
 |----------|---------|--------------|----------|
 | **[SomaGent_Platform_Architecture.md](SomaGent_Platform_Architecture.md)** | Complete technical architecture | Oct 9, 2025 | Architects, Senior Eng |
 | **[KAMACHIQ_Mode_Blueprint.md](KAMACHIQ_Mode_Blueprint.md)** | Autonomous mode design & workflows | Oct 5, 2025 | Product, Architects |
-| **[SomaGent_Security.md](SomaGent_Security.md)** | Security architecture & policies | Oct 5, 2025 | Security, Compliance |
-| **[SomaGent_SLM_Strategy.md](SomaGent_SLM_Strategy.md)** | LLM integration strategy | Oct 5, 2025 | ML Engineers |
+| **[SomaGent_Security.md](SomaGent_Security.md)** | Security architecture & policies | Oct 9, 2025 | Security, Compliance |
+| **[SomaGent_SLM_Strategy.md](SomaGent_SLM_Strategy.md)** | LLM integration strategy | Oct 9, 2025 | ML Engineers |
 
 ### Subsystem Designs
 Located in `design/` folder:
@@ -148,6 +148,7 @@ Located in `observability/` folder:
 
 | Guide | Purpose | Audience |
 |-------|---------|----------|
+| **[README.md](observability/README.md)** | Deploy and verify Prometheus + Loki | Devs, SRE |
 | **[Metrics_Reference.md](observability/Metrics_Reference.md)** | Prometheus metrics catalog | SRE, DevOps |
 | (optional) Distributed Tracing | Add OTLP/Tempo as needed | Backend Devs |
 | **[Log_Analysis.md](observability/Log_Analysis.md)** | Loki query patterns | SRE, Support |

@@ -1,0 +1,16 @@
+sequenceDiagram
+  autonumber
+  participant User
+  participant GW as Gateway API
+  participant ORCH as Orchestrator
+  participant POL as Policy Engine
+  participant SLM as SLM Service
+
+  User->>GW: Request
+  GW->>ORCH: Forward request
+  ORCH->>POL: Evaluate policy
+  POL-->>ORCH: allow
+  ORCH->>SLM: /v1/infer/sync
+  SLM-->>ORCH: completion
+  ORCH-->>GW: result
+  GW-->>User: 200 OK

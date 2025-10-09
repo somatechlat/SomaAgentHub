@@ -1,0 +1,17 @@
+flowchart LR
+  U[User] --> GW[Gateway API]
+  GW --> ORCH[Orchestrator]
+  ORCH --> POLICY[Policy Engine]
+  ORCH --> SLM[SLM Service]
+  ORCH --> MEM[Memory Gateway]
+  ORCH --> KAFKA[(Kafka)]
+  subgraph Observability
+    PROM[(Prometheus)]
+    LOKI[(Loki)]
+  end
+  GW --> PROM
+  ORCH --> PROM
+  SLM --> PROM
+  GW --> LOKI
+  ORCH --> LOKI
+  SLM --> LOKI
