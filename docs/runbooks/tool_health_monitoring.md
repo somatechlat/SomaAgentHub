@@ -1,7 +1,7 @@
 # Tool Health Monitoring Runbook
 
 ## Overview
-Procedures for monitoring, diagnosing, and maintaining health of all tool adapters in SomaGent.
+Procedures for monitoring, diagnosing, and maintaining health of all tool adapters in SomaAgentHub.
 
 ## Tool Adapter Inventory
 

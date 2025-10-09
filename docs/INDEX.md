@@ -32,9 +32,9 @@
 ### Core Architecture
 | Document | Purpose | Last Updated | Audience |
 |----------|---------|--------------|----------|
-| **[SomaGent_Platform_Architecture.md](SomaGent_Platform_Architecture.md)** | Complete technical architecture | Oct 5, 2025 | Architects, Senior Eng |
+| **[SomaAgentHub_Platform_Architecture.md](SomaGent_Platform_Architecture.md)** | Complete technical architecture | Oct 5, 2025 | Architects, Senior Eng |
 | **[KAMACHIQ_Mode_Blueprint.md](KAMACHIQ_Mode_Blueprint.md)** | Autonomous mode design & workflows | Oct 5, 2025 | Product, Architects |
-| **[SomaGent_Security.md](SomaGent_Security.md)** | Security architecture & policies | Oct 5, 2025 | Security, Compliance |
+| **[SomaAgentHub_Security.md](SomaGent_Security.md)** | Security architecture & policies | Oct 5, 2025 | Security, Compliance |
 | **[SomaGent_SLM_Strategy.md](SomaGent_SLM_Strategy.md)** | LLM integration strategy | Oct 5, 2025 | ML Engineers |
 
 ### Subsystem Designs
@@ -42,7 +42,7 @@ Located in `design/` folder:
 - `Agent_State_Machine.md` - Persona lifecycle and state transitions
 - `Constitutional_AI_Design.md` - Policy enforcement architecture
 - `Memory_Architecture.md` - SomaBrain fractal memory design
-- `Observability_Stack.md` - Prometheus, Tempo, Loki setup
+- `Observability_Stack.md` - Prometheus + Loki setup
 
 ---
 
@@ -135,7 +135,7 @@ Located in `../infra/` folder:
 - `terraform/` - Terraform modules for cloud resources
 - `helm/` - Helm charts for all services
 - `k8s/` - Raw Kubernetes manifests
-- `monitoring/` - Prometheus, Grafana, Tempo configs
+- `monitoring/` - Prometheus and Loki configs
 
 ---
 
@@ -147,10 +147,10 @@ Located in `observability/` folder:
 | Guide | Purpose | Audience |
 |-------|---------|----------|
 | **[Metrics_Reference.md](observability/Metrics_Reference.md)** | Prometheus metrics catalog | SRE, DevOps |
-| **[Distributed_Tracing.md](observability/Distributed_Tracing.md)** | Tempo/Jaeger trace analysis | Backend Devs |
+| (optional) Distributed Tracing | Add OTLP/Tempo as needed | Backend Devs |
 | **[Log_Analysis.md](observability/Log_Analysis.md)** | Loki query patterns | SRE, Support |
 | **[Alerting_Rules.md](observability/Alerting_Rules.md)** | Alert definitions & thresholds | SRE |
-| **[Dashboard_Guide.md](observability/Dashboard_Guide.md)** | Grafana dashboard usage | All |
+| **[README.md](observability/README.md)** | Deploy and verify Prometheus + Loki | Devs, SRE |
 
 ---
 
@@ -244,7 +244,7 @@ Located in `templates/` folder:
 4. Check `observability/Metrics_Reference.md`
 
 **Architect:**
-1. Start with [SomaGent_Platform_Architecture.md](SomaGent_Platform_Architecture.md)
+1. Start with [SomaAgentHub_Platform_Architecture.md](SomaGent_Platform_Architecture.md)
 2. Review [KAMACHIQ_Mode_Blueprint.md](KAMACHIQ_Mode_Blueprint.md)
 3. Study `design/` folder contents
 4. Check [CANONICAL_ROADMAP.md](CANONICAL_ROADMAP.md)
@@ -256,7 +256,7 @@ Located in `templates/` folder:
 4. Review user-facing features in [README.md](README.md)
 
 **Security Engineer:**
-1. Start with [SomaGent_Security.md](SomaGent_Security.md)
+1. Start with [SomaAgentHub_Security.md](SomaGent_Security.md)
 2. Review `runbooks/security.md`
 3. Check `legal/Security_Disclosure.md`
 4. Study `legal/Compliance_Requirements.md`

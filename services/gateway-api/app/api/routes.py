@@ -41,8 +41,9 @@ def _build_orchestrator_payload(
         "prompt": payload.prompt,
         "capsule_id": payload.capsule_id,
         "metadata": payload.metadata,
-        "tenant_id": ctx.tenant_id,
-        "user_id": ctx.user_id,
+        # Orchestrator expects 'tenant' and 'user' field names
+        "tenant": ctx.tenant_id,
+        "user": ctx.user_id,
         "capabilities": ctx.capabilities,
         "client_type": ctx.client_type,
         "deployment_mode": ctx.deployment_mode,
@@ -115,6 +116,7 @@ async def create_session(
     start = time.perf_counter()
     async with httpx.AsyncClient(timeout=15.0) as client:
         try:
+            # Forward the prepared payload to the Orchestrator
             resp = await client.post(
                 f"{settings.orchestrator_url}/v1/sessions/start",
                 json=forward_payload,

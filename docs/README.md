@@ -17,10 +17,9 @@
 3. **[Quickstart.md](Quickstart.md)** - 🏃 Fast local setup (10 minutes)
 4. **[CANONICAL_ROADMAP.md](CANONICAL_ROADMAP.md)** - 🗺️ Development roadmap & sprint history
 
-### Core Architecture
-- **[SomaGent_Platform_Architecture.md](SomaGent_Platform_Architecture.md)** - Complete technical architecture
+-- **[SomaAgentHub_Platform_Architecture.md](SomaGent_Platform_Architecture.md)** - Complete technical architecture
 - **[KAMACHIQ_Mode_Blueprint.md](KAMACHIQ_Mode_Blueprint.md)** - Autonomous mode design
-- **[SomaGent_Security.md](SomaGent_Security.md)** - Security architecture & compliance
+-- **[SomaAgentHub_Security.md](SomaGent_Security.md)** - Security architecture & compliance
 - **[Kubernetes-Setup.md](Kubernetes-Setup.md)** - Production K8s deployment
 
 ### Operational Guides
@@ -56,12 +55,12 @@ This documentation is organized for different roles and use cases. Choose your p
 ### By Role
 - **New Developer** → [Quickstart.md](Quickstart.md) → [DEVELOPMENT_GUIDELINES.md](DEVELOPMENT_GUIDELINES.md)
 - **DevOps** → [Kubernetes-Setup.md](Kubernetes-Setup.md) → `runbooks/`
-- **Architect** → [SomaGent_Platform_Architecture.md](SomaGent_Platform_Architecture.md) → `design/`
+- **Architect** → [SomaAgentHub_Platform_Architecture.md](SomaGent_Platform_Architecture.md) → `design/`
 - **Product** → [PRODUCTION_READY_STATUS.md](PRODUCTION_READY_STATUS.md) → [CANONICAL_ROADMAP.md](CANONICAL_ROADMAP.md)
-- **Security** → [SomaGent_Security.md](SomaGent_Security.md) → `runbooks/security.md`
+- **Security** → [SomaAgentHub_Security.md](SomaGent_Security.md) → `runbooks/security.md`
 
 ### By Topic
-- **Authentication** → `SomaGent_Security.md` + Sprint-1, Sprint-2
+- **Authentication** → `SomaAgentHub_Security.md` + Sprint-1, Sprint-2
 - **Event Streaming** → `SomaGent_Platform_Architecture.md` + Sprint-3
 - **Vector Search** → `design/Memory_Architecture.md` + Sprint-6
 - **LLM Integration** → `SomaGent_SLM_Strategy.md` + Sprint-4

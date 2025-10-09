@@ -90,6 +90,12 @@ def create_app() -> FastAPI:
     async def metrics() -> Response:
         return Response(generate_latest(), media_type=CONTENT_TYPE_LATEST)
 
+    @app.get("/ready", tags=["system"])
+    async def ready() -> dict[str, str]:
+        # Consider ready if key manager and identity store have been initialized
+        healthy = hasattr(app.state, "identity_store") and hasattr(app.state, "key_manager")
+        return {"status": "ready" if healthy else "starting"}
+
     @app.get("/")
     async def root() -> dict[str, str]:
         return {"message": "SomaGent Identity Service"}

@@ -1,0 +1,38 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: soma-flink-service
+  labels:
+    app: soma-flink
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: soma-flink
+  template:
+    metadata:
+      labels:
+        app: soma-flink
+    spec:
+      containers:
+        - name: flink
+          image: somatechlat/soma-flink-service:latest
+          ports:
+            - containerPort: 8081  # Flink web UI
+          env:
+            - name: KAFKA_BOOTSTRAP_SERVERS
+              value: "kafka:9092"
+            - name: PROMETHEUS_PUSHGATEWAY_URL
+              value: "http://prometheus-pushgateway:9091"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: soma-flink-service
+spec:
+  selector:
+    app: soma-flink
+  ports:
+    - protocol: TCP
+      port: 8081
+      targetPort: 8081

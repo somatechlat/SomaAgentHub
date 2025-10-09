@@ -53,18 +53,22 @@ kubectl create secret generic somaagent-secrets \
 echo "   ✓ Secrets created (⚠️  CHANGE IN PRODUCTION!)"
 echo ""
 
-# Deploy observability stack (Prometheus + Grafana)
-echo "📊 Deploying observability stack..."
+# Deploy observability stack (Prometheus only) and Loki
+echo "📊 Deploying observability stack (Prometheus + Loki)..."
 if ! helm list -n $OBSERVABILITY_NS | grep -q prometheus; then
     helm install prometheus prometheus-community/kube-prometheus-stack \
       --namespace $OBSERVABILITY_NS \
       --set prometheus.prometheusSpec.serviceMonitorSelectorNilUsesHelmValues=false \
-      --set grafana.adminPassword='admin' \
+      --set grafana.enabled=false \
       --wait --timeout 5m
-    echo "   ✓ Prometheus + Grafana deployed"
+    echo "   ✓ Prometheus deployed (Grafana disabled)"
 else
     echo "   ✓ Prometheus stack already deployed"
 fi
+
+# Deploy Loki (logs)
+kubectl apply -f k8s/loki-deployment.yaml
+echo "   ✓ Loki applied"
 echo ""
 
 # Deploy ServiceMonitors
@@ -199,6 +203,9 @@ else
 fi
 
 # Temporal (for workflows)
+echo "📦 Ensuring Temporal Helm repo present..."
+helm repo add temporalio https://temporalio.github.io/helm-charts >/dev/null 2>&1 || true
+helm repo update >/dev/null 2>&1 || true
 if ! helm list -n $NAMESPACE | grep -q temporal; then
     helm install temporal temporalio/temporal \
       --namespace $NAMESPACE \
@@ -249,15 +256,14 @@ echo ""
 
 # Get endpoints
 GATEWAY_ENDPOINT=$(kubectl get svc gateway-api -n $NAMESPACE -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
-GRAFANA_PORT=$(kubectl get svc prometheus-grafana -n $OBSERVABILITY_NS -o jsonpath='{.spec.ports[0].nodePort}')
 
 echo "🎉 Deployment Complete!"
 echo "======================"
 echo ""
 echo "Access points:"
 echo "  API Gateway: http://${GATEWAY_ENDPOINT:-<pending>}:8080"
-echo "  Grafana: http://localhost:${GRAFANA_PORT:-30080} (admin/admin)"
-echo "  Prometheus: http://localhost:30090"
+echo "  Prometheus: use port-forward: kubectl port-forward -n $OBSERVABILITY_NS svc/prometheus-kube-prometheus-prometheus 9090:9090"
+echo "  Loki: use port-forward: kubectl port-forward -n $OBSERVABILITY_NS svc/loki 3100:3100"
 echo ""
 echo "Next steps:"
 echo "  1. Change default passwords in production"

@@ -42,7 +42,7 @@ spec:
         
         env:
         # Real backend services
-        - name: ORCHESTRATOR_URL
+        - name: SOMAGENT_GATEWAY_ORCHESTRATOR_URL
           value: "http://orchestrator:1004"
         - name: POLICY_ENGINE_URL
           value: "http://policy-engine:1002"

@@ -276,13 +276,9 @@ modules:
             launch_date: "{launch_date}"
             channels: "{channels}"
             metrics: "{success_metrics}"
-      - action: grafana.create_dashboard
-        description: "Set up campaign performance dashboard"
-        params:
-          dashboard_name: "Campaign: {campaign_name}"
-          metrics: "{success_metrics}"
     outputs:
-      - analytics_dashboard_url
+      - metrics_query_hint
+      - logs_label_hint
 
 # Validation rules
 validation:

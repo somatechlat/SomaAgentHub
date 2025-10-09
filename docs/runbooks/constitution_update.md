@@ -2,7 +2,7 @@
 
 # Constitution Update Runbook
 
-This runbook governs the process for publishing a new SomaGent constitution package to SomaBrain and propagating it to all services.
+This runbook governs the process for publishing a new SomaAgentHub constitution package to SomaBrain and propagating it to all services.
 
 ## Preconditions
 - Draft constitution reviewed and signed by authorized maintainer (PGP or Sigstore artifact).
@@ -33,4 +33,4 @@ This runbook governs the process for publishing a new SomaGent constitution pack
 ## Audit & Logging
 - Ensure `constitution.updated` Kafka topic ingested by SIEM.
 - Store signature artifacts in `docs/legal/constitution/` for audit packages.
-- Update `docs/SomaGent_Security.md` change log with version, approvers, and date.
+   - Update `docs/SomaAgentHub_Security.md` change log with version, approvers, and date.

@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 from dataclasses import asdict, is_dataclass
-from datetime import timedelta
 from typing import Any, Dict, List
 from uuid import uuid4
 
@@ -95,7 +94,6 @@ def _normalize_result(result_obj: Any) -> Dict[str, Any] | None:
 @router.post("/sessions/start", response_model=SessionStartResponse, status_code=status.HTTP_202_ACCEPTED)
 async def start_session(payload: SessionStartRequest, client: temporal_client.Client = Depends(get_temporal_client)) -> SessionStartResponse:
     """Kick off the Temporal session workflow and return identifiers for tracking."""
-
     session_id = payload.metadata.get("session_id") or f"session-{uuid4()}"
     workflow_id = f"session-{session_id}"
 
@@ -111,8 +109,6 @@ async def start_session(payload: SessionStartRequest, client: temporal_client.Cl
         ),
         id=workflow_id,
         task_queue=settings.temporal_task_queue,
-        start_timeout=timedelta(seconds=10),
-        run_timeout=timedelta(minutes=5),
     )
 
     return SessionStartResponse(
@@ -177,8 +173,6 @@ async def start_multi_agent(
         ),
         id=workflow_id,
         task_queue=settings.temporal_task_queue,
-        start_timeout=timedelta(seconds=10),
-        run_timeout=timedelta(minutes=15),
     )
 
     return MultiAgentStartResponse(

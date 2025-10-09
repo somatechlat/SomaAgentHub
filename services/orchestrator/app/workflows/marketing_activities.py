@@ -19,6 +19,7 @@ from typing import Any, Dict, List, Optional
 
 import httpx
 from temporalio import activity
+from prometheus_client import Counter
 
 from ..core.config import settings
 from ..patterns.circuit_breaker import get_circuit_breaker
@@ -852,38 +853,59 @@ date: {datetime.utcnow().isoformat()}
     }
 
 
+_CAMPAIGN_ANALYTICS_CREATED = Counter(
+    "campaign_analytics_created_total",
+    "Number of campaign analytics setups created",
+    ["campaign_id", "campaign_name"],
+)
+
+
 @activity.defn
 async def analytics_setup_activity(input: Dict[str, Any]) -> Dict[str, Any]:
     """
-    Phase 6: Analytics dashboard creation.
-    
-    Real integrations:
-    - Grafana API: Create custom dashboard
-    
-    NO MOCKS - Production ready!
+    Phase 6: Analytics wiring without Grafana.
+
+    Real behavior:
+    - Record a Prometheus counter to mark analytics setup for the campaign.
+    - Return a canonical metric reference that downstream UIs can query from Prometheus.
     """
     analytics_input = AnalyticsSetupInput(**input["input"])
-    
+
     activity.logger.info(
         f"Setting up analytics for campaign: {analytics_input.campaign_name}",
+        extra={"campaign_id": analytics_input.campaign_id, "metrics": analytics_input.metrics},
     )
-    
-    # For now, use template-based approach (fastest)
-    # Future: Full Grafana API integration
-    
-    dashboard_url = (
-        f"http://grafana.observability/d/campaign-{analytics_input.campaign_id}"
-        f"?var-campaign={analytics_input.campaign_name}"
-    )
-    
+
+    # Increment Prometheus counter with labels. This will be exposed on the orchestrator's /metrics endpoint.
+    _CAMPAIGN_ANALYTICS_CREATED.labels(
+        analytics_input.campaign_id,
+        analytics_input.campaign_name,
+    ).inc()
+
+    # Return a canonical Prometheus metric reference for consumers.
+    metric_name = "campaign_analytics_created_total"
+    metric_labels = {
+        "campaign_id": analytics_input.campaign_id,
+        "campaign_name": analytics_input.campaign_name,
+    }
+
     activity.logger.info(
-        "Analytics dashboard created",
-        extra={"dashboard_url": dashboard_url},
+        "Analytics metric recorded",
+        extra={"metric": metric_name, "labels": metric_labels},
     )
-    
+
     return {
-        "dashboard_url": dashboard_url,
+        "metric": metric_name,
+        "labels": metric_labels,
         "metrics_tracked": analytics_input.metrics,
+        "metrics_path": "/metrics",
+        "query_hint": f"sum by (campaign_id,campaign_name) ({metric_name})",
+        "metrics_query_hint": f"sum by (campaign_id,campaign_name) ({metric_name})",
+        "logs_label_hint": {
+            "service": "orchestrator",
+            "campaign_id": analytics_input.campaign_id,
+            "campaign_name": analytics_input.campaign_name,
+        },
     }
 
 
@@ -933,7 +955,6 @@ async def rollback_distribution_activity(args: Dict[str, Any]) -> Dict[str, Any]
 async def cleanup_analytics_activity(args: Dict[str, Any]) -> Dict[str, Any]:
     """Compensation: Delete analytics dashboard."""
     activity.logger.info("Compensating: Cleaning up analytics")
-    
-    # Delete Grafana dashboard (if API supports)
+    # Future: add cleanup for any external analytics artifacts if created
     
     return {"status": "compensated", "action": "cleanup_analytics"}

@@ -29,11 +29,25 @@ def create_app() -> FastAPI:
     async def _shutdown_temporal_client() -> None:
         client = getattr(app.state, "temporal_client", None)
         if client is not None:
-            await client.close()
+            close_fn = getattr(client, "close", None)
+            if close_fn is not None:
+                # Some Temporal client versions provide an async close method
+                try:
+                    await close_fn()
+                except TypeError:
+                    # close_fn may be a sync callable; call it directly
+                    close_fn()
 
     @app.get("/health", tags=["system"])
     async def healthcheck() -> dict[str, str]:
         return {"status": "ok", "service": settings.service_name}
+
+    @app.get("/ready", tags=["system"])
+    async def ready() -> dict[str, str]:
+        # Basic readiness check: temporal client present
+        if getattr(app.state, "temporal_client", None) is None:
+            return {"status": "starting"}
+        return {"status": "ready"}
 
     @app.get("/metrics", tags=["system"])
     async def metrics() -> Response:

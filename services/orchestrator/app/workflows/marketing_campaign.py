@@ -117,7 +117,7 @@ class MarketingCampaignWorkflow:
     3. Design Assets (3-5 min) - Parallel asset generation (Figma)
     4. Review & Approval (wait for human) - Human-in-the-loop quality gate
     5. Distribution (2-5 min) - Multi-channel parallel distribution
-    6. Analytics Setup (1 min) - Grafana dashboard creation
+    6. Analytics Setup (1 min) - Metrics/logs wiring (Prometheus + Loki)
     
     Total Duration: 13-24 minutes (excluding approval wait)
     """
@@ -522,9 +522,9 @@ class MarketingCampaignWorkflow:
         campaign_id: str,
     ) -> Dict[str, Any]:
         """
-        Phase 6: Analytics dashboard setup.
-        
-        Creates Grafana dashboard for campaign tracking.
+    Phase 6: Analytics setup.
+
+    Emits metrics and returns analytics hints suitable for Prometheus+Loki based monitoring.
         
         Duration: 1 minute
         """

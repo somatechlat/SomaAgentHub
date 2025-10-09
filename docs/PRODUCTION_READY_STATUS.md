@@ -416,9 +416,9 @@ TOTAL:                       98,642+ lines
 |----------|---------|----------|--------|
 | `PRODUCTION_READY_STATUS.md` | Current implementation status (this doc) | All | ✅ Current |
 | `CANONICAL_ROADMAP.md` | Development roadmap & sprints | Product, Eng | ⚠️ Needs update |
-| `SomaGent_Platform_Architecture.md` | Technical architecture | Architects, Eng | ✅ Current |
+| `SomaAgentHub_Platform_Architecture.md` | Technical architecture | Architects, Eng | ✅ Current |
 | `KAMACHIQ_Mode_Blueprint.md` | Autonomous mode design | Product, Eng | ✅ Current |
-| `SomaGent_Security.md` | Security architecture | SecOps, Eng | ✅ Current |
+| `SomaAgentHub_Security.md` | Security architecture | SecOps, Eng | ✅ Current |
 | `Kubernetes-Setup.md` | Deployment guide | DevOps, SRE | ✅ Current |
 | `Quickstart.md` | Getting started | All | ✅ Current |
 

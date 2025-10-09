@@ -321,28 +321,66 @@ class WizardEngine:
         }
     
     def approve_execution(self, session_id: str) -> Dict[str, Any]:
-        """Approve wizard execution plan and trigger automation."""
+        """Approve wizard execution plan and trigger real orchestration via Orchestrator."""
         session = self.sessions.get(session_id)
         if not session:
             raise ValueError(f"Session '{session_id}' not found")
-        
+
         if not session.completed:
             raise ValueError("Wizard must be completed before approval")
-        
-        # In a real implementation, this would trigger Temporal workflows
-        # For now, return a mock execution response
-        
+
+        # Build a minimal multi-agent orchestration request from the execution plan
+        plan = self._build_execution_plan(session, [])
+        directives: List[Dict[str, Any]] = []
+        for module in plan.get("modules", []):
+            directives.append(
+                {
+                    "agent_id": module.get("agent", module.get("id", "agent")),
+                    "goal": module.get("title", "Execute module"),
+                    "prompt": module.get("title", "Execute tasks"),
+                    "capabilities": list({t.get("action", "").split(".")[0] for t in module.get("tasks", []) if t.get("action")}),
+                    "metadata": {"module_id": module.get("id")},
+                }
+            )
+
+        # Fallback directive if modules are empty
+        if not directives:
+            directives = [
+                {
+                    "agent_id": "campaign-agent",
+                    "goal": plan.get("campaign_name", "Execute campaign"),
+                    "prompt": f"Run campaign '{plan.get('campaign_name', 'Untitled')}'",
+                    "capabilities": plan.get("tools_required", []),
+                    "metadata": {"wizard_id": session.wizard_id},
+                }
+            ]
+
+        # Call the real orchestrator
+        import os
+        import requests
+        orchestrator_base = os.getenv("SOMAGENT_GATEWAY_ORCHESTRATOR_URL", "http://orchestrator:1004")
+        url = f"{orchestrator_base}/v1/mao/start"
+        payload = {
+            "tenant": session.metadata.get("tenant", "demo"),
+            "initiator": session.user_id,
+            "directives": directives,
+            "metadata": {"wizard_session": session.session_id, "wizard_id": session.wizard_id},
+        }
+
+        resp = requests.post(url, json=payload, timeout=15)
+        if resp.status_code >= 400:
+            raise RuntimeError(f"Orchestrator error: {resp.text}")
+
+        data = resp.json()
         return {
             "status": "approved",
             "session_id": session_id,
             "execution_status": "queued",
-            "message": "Campaign automation has been queued for execution",
-            "workflow_id": f"wf-{uuid.uuid4().hex[:12]}",
+            "message": "Campaign automation queued via Orchestrator",
+            "workflow_id": data.get("workflow_id"),
+            "orchestration_id": data.get("orchestration_id"),
+            "task_queue": data.get("task_queue"),
             "estimated_completion": (datetime.utcnow() + timedelta(hours=4)).isoformat(),
-            "monitoring": {
-                "dashboard_url": f"http://localhost:60000/v1/campaigns/{session_id}/status",
-                "logs_url": f"http://localhost:60000/v1/campaigns/{session_id}/logs"
-            }
         }
 
 

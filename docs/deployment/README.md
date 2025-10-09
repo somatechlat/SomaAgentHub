@@ -71,13 +71,13 @@ k9s version
 ┌─────────────────────────────────────────────────────────┐
 │  Observability Namespace                                │
 │                                                          │
-│  ┌────────────┐  ┌────────────┐  ┌────────────┐        │
-│  │ Prometheus │  │  Grafana   │  │   Alerts   │        │
-│  │ (Metrics)  │  │ (Dashboards)│  │  (PagerDuty)│       │
-│  └────────────┘  └────────────┘  └────────────┘        │
+│  ┌────────────┐  ┌────────────┐                        │
+│  │ Prometheus │  │   Loki     │                        │
+│  │ (Metrics)  │  │  (Logs)    │                        │
+│  └────────────┘  └────────────┘                        │
 │                                                          │
-│  11 ServiceMonitors → Metrics collection      │
-│  4 Dashboards → System, Policy, SLM, KAMACHIQ          │
+│  ServiceMonitors → Metrics collection                  │
+│  No built-in dashboards (Grafana not used)             │
 └─────────────────────────────────────────────────────────┘
 ```
 
@@ -218,17 +218,16 @@ curl http://$GATEWAY_IP:8080/health
 ### Check Metrics
 ```bash
 # Port-forward Prometheus
-kubectl port-forward -n observability svc/prometheus-prometheus 9090:9090
+kubectl port-forward -n observability svc/prometheus-kube-prometheus-prometheus 9090:9090
 
 # Open browser: http://localhost:9090
 # Query: up{namespace="somaagent"}
 # All targets should be UP
 
-# Port-forward Grafana
-kubectl port-forward -n observability svc/prometheus-grafana 3000:80
+# Port-forward Loki (optional)
+kubectl port-forward -n observability svc/loki 3100:3100
 
-# Open browser: http://localhost:3000 (admin/admin)
-# Navigate to SomaAgent dashboards
+# Query logs via API: http://localhost:3100/loki/api/v1/query_range?query={app="orchestrator"}
 ```
 
 ### Test Execution
@@ -322,7 +321,7 @@ curl http://localhost:9090/api/v1/alerts | jq
 
 ### Observability
 - [ ] All ServiceMonitors deployed
-- [ ] Grafana dashboards configured
+- [ ] Grafana dashboards configured (not applicable; use your preferred UI)
 - [ ] Alert rules configured
 - [ ] PagerDuty/Slack integration
 - [ ] Log aggregation (ELK/Loki)

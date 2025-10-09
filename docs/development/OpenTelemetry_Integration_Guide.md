@@ -7,7 +7,7 @@
 
 ## 🎯 Overview
 
-This guide helps all squads add OpenTelemetry instrumentation to their services for Sprint-6 production observability. The goal is to export metrics, logs, and traces to our Prometheus/Grafana stack in the `observability` namespace.
+This guide helps all squads add OpenTelemetry instrumentation to their services for Sprint-6 production observability. The goal is to export metrics and logs to Prometheus and Loki in the `observability` namespace. Traces are optional and can be added later.
 
 ---
 
@@ -76,19 +76,19 @@ metadata:
     monitoring: enabled  # Important for ServiceMonitor!
 spec:
   ports:
-    - name: http
-      port: 8000
-      targetPort: 8000
-    - name: metrics  # Prometheus will scrape this
-      port: 8000
-      targetPort: 8000
-  selector:
-    app: your-service
+## 📊 Verify Metrics and Logs
+
+### Prometheus
+```bash
+kubectl port-forward -n observability svc/prometheus-kube-prometheus-prometheus 9090:9090
 ```
+Open http://localhost:9090 and run a query like: `up{namespace="somaagent"}`.
 
----
-
-## 🔍 Custom Metrics
+### Loki
+```bash
+kubectl port-forward -n observability svc/loki 3100:3100
+```
+Query via API: `http://localhost:3100/loki/api/v1/query?query={app="orchestrator"}`
 
 ### Add Custom Metrics to Your Service
 
@@ -246,39 +246,7 @@ kubectl get servicemonitor all-somaagent-services -n observability -o yaml
 
 ---
 
-## 📈 Grafana Dashboards
-
-### Access Grafana
-
-```bash
-# Via NodePort
-open http://localhost:30080
-
-# Or port forward
-kubectl port-forward -n observability svc/prometheus-grafana 3000:80
-open http://localhost:3000
-
-# Login: admin / admin
-```
-
-### Create Service Dashboard
-
-1. Go to **Dashboards → New Dashboard**
-2. Add panels with PromQL queries:
-
-```promql
-# Request rate
-rate(http_requests_total{service="your-service"}[5m])
-
-# Error rate
-rate(http_requests_total{service="your-service",status=~"5.."}[5m])
-
-# P95 latency
-histogram_quantile(0.95, rate(http_request_duration_seconds_bucket[5m]))
-
-# Active connections
-active_connections{service="your-service"}
-```
+<!-- Grafana section removed: we rely on Prometheus + Loki only -->
 
 ---
 

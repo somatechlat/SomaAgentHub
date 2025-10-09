@@ -10,11 +10,10 @@ High-level autonomous project creation from simple prompts:
 - Team workspace initialization
 """
 
-from typing import Dict, List, Any, Optional
+from typing import Dict, List, Any
 import logging
 from dataclasses import dataclass
 import yaml
-import json
 
 logger = logging.getLogger(__name__)
 
@@ -220,7 +219,7 @@ class KAMACHIQBootstrapper:
         architecture["infrastructure"] = [
             {"name": "container_orchestration", "type": "kubernetes"},
             {"name": "ci_cd", "type": "github_actions"},
-            {"name": "monitoring", "type": "prometheus + grafana"},
+            {"name": "observability", "type": "prometheus + loki"},
         ]
         
         return architecture

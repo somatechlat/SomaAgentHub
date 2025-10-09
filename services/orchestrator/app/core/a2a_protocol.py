@@ -9,7 +9,10 @@ minimal version is sufficient for the integration tests and the unified workflow
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Any, Dict, List, Optional
+import asyncio
+import json
+from pathlib import Path
+from typing import Any, Dict, Iterable, List, Optional, Protocol
 
 
 class AgentNotFoundError(RuntimeError):
@@ -28,24 +31,121 @@ class AgentCard:
     entrypoint: str  # Temporal workflow name to invoke
     capabilities: List[str] = field(default_factory=list)
 
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            "agent_id": self.agent_id,
+            "entrypoint": self.entrypoint,
+            "capabilities": list(self.capabilities),
+        }
+
+    @classmethod
+    def from_dict(cls, payload: Dict[str, Any]) -> "AgentCard":
+        return cls(
+            agent_id=str(payload["agent_id"]),
+            entrypoint=str(payload["entrypoint"]),
+            capabilities=list(payload.get("capabilities", [])),
+        )
+
+
+class AgentRegistryBackend(Protocol):
+    """Persistence contract for storing and retrieving agent cards."""
+
+    async def load_agents(self) -> Iterable[AgentCard]:  # pragma: no cover - interface
+        ...
+
+    async def persist_agents(self, agents: Iterable[AgentCard]) -> None:  # pragma: no cover - interface
+        ...
+
 
 class AgentRegistry:
-    """Simple async in‑memory registry for agent cards."""
+    """Async registry for agent cards with optional persistence."""
 
-    def __init__(self) -> None:
+    def __init__(self, backend: AgentRegistryBackend | None = None) -> None:
+        self._backend = backend
         self._agents: Dict[str, AgentCard] = {}
+        self._loaded = backend is None
+
+    async def _ensure_loaded(self) -> None:
+        if self._loaded:
+            return
+        if self._backend is None:  # pragma: no cover - defensive
+            self._loaded = True
+            return
+        cards = await self._backend.load_agents()
+        self._agents = {card.agent_id: card for card in cards}
+        self._loaded = True
+
+    async def _persist(self) -> None:
+        if not self._backend:
+            return
+        await self._backend.persist_agents(self._agents.values())
 
     async def register(self, card: AgentCard) -> None:
-        """Register an agent card."""
+        """Register an agent card and persist if a backend is configured."""
+
+        await self._ensure_loaded()
         self._agents[card.agent_id] = card
+        await self._persist()
+
+    async def deregister(self, agent_id: str) -> None:
+        """Remove an agent card if it exists."""
+
+        await self._ensure_loaded()
+        self._agents.pop(agent_id, None)
+        await self._persist()
 
     async def get_agent(self, agent_id: str) -> Optional[AgentCard]:
         """Retrieve an agent card by id, or ``None`` if not found."""
+
+        await self._ensure_loaded()
         return self._agents.get(agent_id)
 
     async def discover(self, capability: str) -> List[AgentCard]:
         """Return all agents that expose the given capability."""
+
+        await self._ensure_loaded()
         return [card for card in self._agents.values() if capability in card.capabilities]
+
+    async def list_agents(self) -> List[AgentCard]:
+        """Return all registered agents."""
+
+        await self._ensure_loaded()
+        return list(self._agents.values())
+
+    async def refresh(self) -> None:
+        """Reload state from the backend, if configured."""
+
+        if not self._backend:
+            return
+        self._loaded = False
+        await self._ensure_loaded()
+
+
+class JsonFileAgentRegistryBackend:
+    """Persistence backend storing agent cards as JSON on disk."""
+
+    def __init__(self, path: str | Path) -> None:
+        self._path = Path(path)
+        self._path.parent.mkdir(parents=True, exist_ok=True)
+
+    async def load_agents(self) -> Iterable[AgentCard]:
+        def _load() -> List[AgentCard]:
+            if not self._path.exists():
+                return []
+            with self._path.open("r", encoding="utf-8") as handle:
+                data = json.load(handle)
+            return [AgentCard.from_dict(item) for item in data]
+
+        return await asyncio.to_thread(_load)
+
+    async def persist_agents(self, agents: Iterable[AgentCard]) -> None:
+        payload = [card.to_dict() for card in agents]
+
+        def _write() -> None:
+            with self._path.open("w", encoding="utf-8") as handle:
+                json.dump(payload, handle, indent=2, sort_keys=True)
+
+        await asyncio.to_thread(_write)
 
 
 @dataclass(slots=True)

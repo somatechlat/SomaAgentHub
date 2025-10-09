@@ -1,0 +1,49 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: orchestrator-worker
+  namespace: somaagent
+  labels:
+    app: orchestrator-worker
+    component: workflow
+    monitoring: enabled
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: orchestrator-worker
+  template:
+    metadata:
+      labels:
+        app: orchestrator-worker
+        component: workflow
+        monitoring: enabled
+    spec:
+      containers:
+      - name: temporal-worker
+        image: somaagent/orchestrator:latest
+        imagePullPolicy: IfNotPresent
+        command: ["python", "temporal_worker_production.py"]
+        env:
+        - name: TEMPORAL_HOST
+          value: "temporal-frontend.somaagent:7233"
+        - name: TEMPORAL_NAMESPACE
+          value: "default"
+        - name: TEMPORAL_TASK_QUEUE
+          value: "somagent.session.workflows"
+        - name: POLICY_ENGINE_URL
+          value: "http://policy-engine:1002/v1/evaluate"
+        - name: IDENTITY_SERVICE_URL
+          value: "http://identity-service:1007/v1/tokens/issue"
+        - name: SOMALLM_PROVIDER_URL
+          value: "http://somallm-provider:1001"
+        - name: SOMALLM_PROVIDER_HEALTH_URL
+          value: "http://somallm-provider:1001/health"
+        resources:
+          requests:
+            cpu: "250m"
+            memory: "256Mi"
+          limits:
+            cpu: "1000m"
+            memory: "1Gi"

@@ -58,7 +58,6 @@ echo ""
 print_status "Adding Helm repositories..."
 helm repo add prometheus-community https://prometheus-community.github.io/helm-charts 2>/dev/null || true
 helm repo add temporalio https://go.temporal.io/helm-charts 2>/dev/null || true
-helm repo add grafana https://grafana.github.io/helm-charts 2>/dev/null || true
 helm repo update > /dev/null 2>&1
 print_success "Helm repositories updated"
 echo ""
@@ -72,7 +71,7 @@ print_success "Namespaces created/verified"
 echo ""
 
 # Deploy Observability Stack (Sprint-6)
-print_status "Deploying Prometheus/Grafana observability stack..."
+print_status "Deploying Prometheus observability stack..."
 
 if helm list -n $NAMESPACE_OBSERVABILITY | grep -q prometheus; then
     print_warning "Prometheus already installed, skipping..."
@@ -81,12 +80,13 @@ else
         -n $NAMESPACE_OBSERVABILITY \
         -f ../infra/helm/prometheus-lightweight.yaml \
         --wait --timeout 5m > /dev/null 2>&1
-    print_success "Observability stack deployed"
+    print_success "Prometheus deployed (Grafana disabled)"
 fi
 echo ""
 
-# Deploy ServiceMonitors
+# Deploy Loki and ServiceMonitors
 print_status "Deploying ServiceMonitors for automatic service discovery..."
+kubectl apply -f ../k8s/loki-deployment.yaml > /dev/null 2>&1 || print_warning "Loki deployment failed"
 kubectl apply -f ../k8s/monitoring/servicemonitors.yaml > /dev/null 2>&1 || print_warning "ServiceMonitors deployment failed (may need CRD)"
 print_success "ServiceMonitors configured"
 echo ""
@@ -104,12 +104,6 @@ echo "=============================================="
 echo "✅ Wave C Infrastructure Deployment Complete"
 echo "=============================================="
 echo ""
-echo "📊 Grafana Access:"
-echo "  → NodePort: http://localhost:30080"
-echo "  → Port Forward: kubectl port-forward -n observability svc/prometheus-grafana 3000:80"
-echo "  → Username: admin"
-echo "  → Password: admin"
-echo ""
 echo "📈 Prometheus Access:"
 echo "  → Port Forward: kubectl port-forward -n observability svc/prometheus-kube-prometheus-prometheus 9090:9090"
 echo "  → URL: http://localhost:9090"
@@ -121,7 +115,7 @@ echo ""
 echo "📚 Next Steps:"
 echo "  1. Add OpenTelemetry instrumentation to all services"
 echo "  2. Set up Temporal dev server for Sprint-5"
-echo "  3. Create Grafana dashboards"
+echo "  3. Verify Loki logs (see docs/observability/README.md)"
 echo "  4. Prepare for Oct 18 Wave C kickoff"
 echo ""
 echo "📄 Documentation:"

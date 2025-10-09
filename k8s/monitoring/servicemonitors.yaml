@@ -17,6 +17,7 @@ spec:
       scrapeTimeout: 10s
   namespaceSelector:
     matchNames:
+      - somaagent
       - soma-agent-hub
       - soma-memory
 ---
@@ -38,6 +39,7 @@ spec:
       interval: 30s
   namespaceSelector:
     matchNames:
+      - somaagent
       - soma-agent-hub
 ---
 apiVersion: monitoring.coreos.com/v1
@@ -58,6 +60,7 @@ spec:
       interval: 30s
   namespaceSelector:
     matchNames:
+      - somaagent
       - soma-agent-hub
 ---
 apiVersion: monitoring.coreos.com/v1
@@ -78,6 +81,7 @@ spec:
       interval: 30s
   namespaceSelector:
     matchNames:
+      - somaagent
       - soma-agent-hub
 ---
 apiVersion: monitoring.coreos.com/v1
@@ -98,6 +102,7 @@ spec:
       interval: 30s
   namespaceSelector:
     matchNames:
+      - somaagent
       - soma-agent-hub
 ---
 apiVersion: monitoring.coreos.com/v1
@@ -118,5 +123,6 @@ spec:
       scrapeTimeout: 10s
   namespaceSelector:
     matchNames:
+      - somaagent
       - soma-agent-hub
       - soma-memory

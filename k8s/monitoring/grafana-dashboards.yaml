@@ -1,124 +1,44 @@
-# Grafana Dashboard ConfigMap for SomaAgent Services
-# Apply with: kubectl apply -f grafana-dashboards.yaml
-# These dashboards will auto-load into Grafana via sidecar
-
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: somaagent-dashboards
-  namespace: observability
-  labels:
-    grafana_dashboard: "1"  # Sidecar will auto-discover this
-data:
-  somaagent-overview.json: |
-    {
-      "dashboard": {
-        "title": "SomaAgent - Service Overview",
-        "uid": "somaagent-overview",
-        "tags": ["somaagent", "overview"],
-        "timezone": "browser",
-        "schemaVersion": 16,
-        "version": 1,
-        "refresh": "10s",
-        "panels": [
-          {
-            "id": 1,
-            "title": "Service Health (Up/Down)",
-            "type": "stat",
-            "gridPos": {"h": 8, "w": 12, "x": 0, "y": 0},
-            "targets": [
-              {
-                "expr": "up{job=~\"orchestrator|gateway|policy-engine|identity-service|somallm-provider\"}",
-                "legendFormat": "{{job}}",
-                "refId": "A"
-              }
-            ],
-            "options": {
-              "reduceOptions": {
-                "values": false,
-                "calcs": ["lastNotNull"]
-              }
-            },
-            "fieldConfig": {
-              "defaults": {
-                "thresholds": {
-                  "mode": "absolute",
-                  "steps": [
-                    {"value": 0, "color": "red"},
-                    {"value": 1, "color": "green"}
-                  ]
-                }
-              }
-            }
-          },
-          {
-            "id": 2,
-            "title": "Request Rate (req/s)",
-            "type": "graph",
-            "gridPos": {"h": 8, "w": 12, "x": 12, "y": 0},
-            "targets": [
-              {
-                "expr": "rate(http_requests_total{job=~\"orchestrator|gateway|policy-engine\"}[5m])",
-                "legendFormat": "{{job}} - {{method}} {{endpoint}}",
-                "refId": "A"
-              }
-            ],
-            "yaxes": [
-              {"format": "reqps", "label": "Requests/sec"},
-              {"format": "short"}
-            ]
-          },
-          {
-            "id": 3,
-            "title": "P95 Latency",
-            "type": "graph",
-            "gridPos": {"h": 8, "w": 12, "x": 0, "y": 8},
-            "targets": [
-              {
-                "expr": "histogram_quantile(0.95, rate(http_request_duration_seconds_bucket{job=~\"orchestrator|gateway|policy-engine\"}[5m]))",
-                "legendFormat": "{{job}} P95",
-                "refId": "A"
-              }
-            ],
-            "yaxes": [
-              {"format": "s", "label": "Latency"},
-              {"format": "short"}
-            ],
-            "alert": {
-              "name": "High P95 Latency",
-              "conditions": [
-                {
-                  "evaluator": {"params": [0.5], "type": "gt"},
-                  "query": {"params": ["A", "5m", "now"]},
-                  "reducer": {"params": [], "type": "avg"},
-                  "type": "query"
-                }
-              ],
-              "executionErrorState": "alerting",
-              "frequency": "1m",
-              "handler": 1,
-              "message": "P95 latency exceeded 500ms threshold",
-              "noDataState": "no_data",
-              "notifications": []
-            }
-          },
-          {
-            "id": 4,
-            "title": "Error Rate (5xx)",
-            "type": "graph",
-            "gridPos": {"h": 8, "w": 12, "x": 12, "y": 8},
-            "targets": [
-              {
-                "expr": "rate(http_requests_total{job=~\"orchestrator|gateway|policy-engine\",status=~\"5..\"}[5m]) / rate(http_requests_total{job=~\"orchestrator|gateway|policy-engine\"}[5m])",
-                "legendFormat": "{{job}} error rate",
-                "refId": "A"
-              }
-            ],
-            "yaxes": [
-              {"format": "percentunit", "label": "Error Rate"},
-              {"format": "short"}
-            ]
-          },
+### DELETED: Grafana dashboards are not used in this project.
+### This file is intentionally left empty to avoid broken references.
+  # "title": "SomaAgent - Service Overview",
+  # "uid": "somaagent-overview",
+  # "tags": ["somaagent", "overview"],
+  # "timezone": "browser",
+  # "schemaVersion": 16,
+  # "version": 1,
+  # "refresh": "10s",
+  # "panels": [
+          # {
+          #   "id": 1,
+          #   "title": "Service Health (Up/Down)",
+          #   "type": "stat",
+          #   "gridPos": {"h": 8, "w": 12, "x": 0, "y": 0},
+          #   "targets": [
+          #     {
+          #       "expr": "up{job=~\"orchestrator|gateway|policy-engine|identity-service|somallm-provider\"}",
+          #       "legendFormat": "{{job}}",
+          #       "refId": "A"
+          #     }
+          #   ],
+          #   "options": {
+          #     "reduceOptions": {
+          #       "values": false,
+          #       "calcs": ["lastNotNull"]
+          #     }
+          #   },
+          #   "fieldConfig": {
+          #     "defaults": {
+          #       "thresholds": {
+          #         "mode": "absolute",
+          #         "steps": [
+          #           {"value": 0, "color": "red"},
+          #           {"value": 1, "color": "green"}
+          #         ]
+          #       }
+          #     }
+          #   }
+          # },
+          # JSON content truncated
           {
             "id": 5,
             "title": "Memory Usage (MB)",
@@ -157,8 +77,8 @@ data:
       }
     }
 
-  kamachiq-workflows.json: |
-    {
+  # kamachiq-workflows.json: |
+  #   {
       "dashboard": {
         "title": "KAMACHIQ - Workflow Execution",
         "uid": "kamachiq-workflows",
@@ -317,8 +237,8 @@ data:
       }
     }
 
-  production-sla.json: |
-    {
+  # production-sla.json: |
+  #   {
       "dashboard": {
         "title": "Production - SLA Monitoring",
         "uid": "production-sla",
@@ -431,236 +351,11 @@ data:
             "gridPos": {"h": 8, "w": 12, "x": 12, "y": 8},
             "targets": [
               {
-                "expr": "increase(kube_pod_container_status_restarts_total{namespace=\"soma-agent-hub\"}[24h])",
-                "legendFormat": "{{pod}}",
-                "refId": "A"
-              }
-              },
-              {
-                "expr": "up{job=~\"orchestrator|gateway|policy-engine|somallm-provider\"}",
-              },
-              {
-                "expr": "process_resident_memory_bytes{job=~\"orchestrator|gateway|policy-engine|somallm-provider\"} / 1024 / 1024",
-              },
-              {
-                "expr": "rate(process_cpu_seconds_total{job=~\"orchestrator|gateway|policy-engine|somallm-provider\"}[5m])",
-            ],
-            "alert": {
-              "name": "Frequent Pod Restarts",
-              "conditions": [
-                {
-                  "evaluator": {"params": [3], "type": "gt"},
-                  "query": {"params": ["A", "24h", "now"]},
-                  "reducer": {"params": [], "type": "max"},
-                  "type": "query"
-                }
-              ],
-              "message": "Pod restarting more than 3 times in 24 hours"
-            }
-          },
-          {
-            "id": 6,
-            "title": "Database Connection Pool",
-            "type": "graph",
-            "gridPos": {"h": 8, "w": 12, "x": 0, "y": 16},
-            "targets": [
-              {
-                "expr": "pg_stat_database_numbackends{datname=\"somaagent\"}",
-                "legendFormat": "Active connections",
-                "refId": "A"
-              }
-            ]
-          },
-          {
-            "id": 7,
-            "title": "Kafka Consumer Lag",
-            "type": "graph",
-            "gridPos": {"h": 8, "w": 12, "x": 12, "y": 16},
-            "targets": [
-              {
-                "expr": "kafka_consumer_lag",
-                "legendFormat": "{{topic}} - {{partition}}",
-                "refId": "A"
-              }
-            ],
-            "alert": {
-              "name": "High Consumer Lag",
-              "conditions": [
-                {
-                  "evaluator": {"params": [1000], "type": "gt"},
-                  "query": {"params": ["A", "5m", "now"]},
-                  "reducer": {"params": [], "type": "max"},
-                  "type": "query"
-                }
-              ],
-              "message": "Kafka consumer lag exceeds 1000 messages"
-            }
-          }
-        ]
-      }
-    }
+                ### DEPRECATED: Grafana dashboards are not used in this project.
+                # This placeholder file remains only to avoid broken references.
+                # Use Prometheus for metrics and Loki for logs.
 
-  marketplace-analytics.json: |
-    {
-      "dashboard": {
-        "title": "Marketplace - Analytics & Revenue",
-        "uid": "marketplace-analytics",
-        "tags": ["marketplace", "analytics", "sprint-7"],
-        "timezone": "browser",
-        "schemaVersion": 16,
-        "version": 1,
-        "refresh": "30s",
-        "panels": [
-          {
-            "id": 1,
-            "title": "Capsule Executions (24h)",
-            "type": "stat",
-            "gridPos": {"h": 8, "w": 6, "x": 0, "y": 0},
-            "targets": [
-              {
-                "expr": "sum(increase(capsule_execution_total[24h]))",
-                "legendFormat": "Executions",
-                "refId": "A"
-              }
-            ]
-          },
-          {
-            "id": 2,
-            "title": "Revenue (24h)",
-            "type": "stat",
-            "gridPos": {"h": 8, "w": 6, "x": 6, "y": 0},
-            "targets": [
-              {
-                "expr": "sum(increase(capsule_revenue_total[24h]))",
-                "legendFormat": "Revenue",
-                "refId": "A"
-              }
-            ],
-            "fieldConfig": {
-              "defaults": {
-                "unit": "currencyUSD"
-              }
-            }
-          },
-          {
-            "id": 3,
-            "title": "Active Capsules",
-            "type": "stat",
-            "gridPos": {"h": 8, "w": 6, "x": 12, "y": 0},
-            "targets": [
-              {
-                "expr": "count(capsule_info{status=\"active\"})",
-                "legendFormat": "Active",
-                "refId": "A"
-              }
-            ]
-          },
-          {
-            "id": 4,
-            "title": "Marketplace Search Latency",
-            "type": "stat",
-            "gridPos": {"h": 8, "w": 6, "x": 18, "y": 0},
-            "targets": [
-              {
-                "expr": "histogram_quantile(0.95, rate(marketplace_search_duration_seconds_bucket[5m])) * 1000",
-                "legendFormat": "P95 (ms)",
-                "refId": "A"
-              }
-            ],
-            "fieldConfig": {
-              "defaults": {
-                "unit": "ms",
-                "thresholds": {
-                  "mode": "absolute",
-                  "steps": [
-                    {"value": 0, "color": "green"},
-                    {"value": 500, "color": "yellow"},
-                    {"value": 1000, "color": "red"}
-                  ]
-                }
-              }
-            }
-          },
-          {
-            "id": 5,
-            "title": "Top 10 Capsules by Execution",
-            "type": "graph",
-            "gridPos": {"h": 8, "w": 12, "x": 0, "y": 8},
-            "targets": [
-              {
-                "expr": "topk(10, sum by (capsule_id) (rate(capsule_execution_total[1h])))",
-                "legendFormat": "{{capsule_id}}",
-                "refId": "A"
-              }
-            ]
-          },
-          {
-            "id": 6,
-            "title": "Revenue by Capsule",
-            "type": "graph",
-            "gridPos": {"h": 8, "w": 12, "x": 12, "y": 8},
-            "targets": [
-              {
-                "expr": "topk(10, sum by (capsule_id) (rate(capsule_revenue_total[1h])))",
-                "legendFormat": "{{capsule_id}}",
-                "refId": "A"
-              }
-            ],
-            "yaxes": [
-              {"format": "currencyUSD"},
-              {"format": "short"}
-            ]
-          },
-          {
-            "id": 7,
-            "title": "Analytics Event Ingestion Rate",
-            "type": "graph",
-            "gridPos": {"h": 8, "w": 12, "x": 0, "y": 16},
-            "targets": [
-              {
-                "expr": "rate(analytics_events_ingested_total[5m])",
-                "legendFormat": "{{event_type}}",
-                "refId": "A"
-              }
-            ],
-            "yaxes": [
-              {"format": "ops", "label": "Events/sec"},
-              {"format": "short"}
-            ]
-          },
-          {
-            "id": 8,
-            "title": "ClickHouse Query Performance",
-            "type": "graph",
-            "gridPos": {"h": 8, "w": 12, "x": 12, "y": 16},
-            "targets": [
-              {
-                "expr": "histogram_quantile(0.95, rate(clickhouse_query_duration_seconds_bucket[5m]))",
-                "legendFormat": "P95",
-                "refId": "A"
-              }
-            ],
-            "yaxes": [
-              {"format": "s", "label": "Query Time"},
-              {"format": "short"}
-            ],
-            "alert": {
-              "name": "Slow ClickHouse Queries",
-              "conditions": [
-                {
-                  "evaluator": {"params": [1], "type": "gt"},
-                  "query": {"params": ["A", "5m", "now"]},
-                  "reducer": {"params": [], "type": "avg"},
-                  "type": "query"
-                }
-              ],
-              "message": "ClickHouse query latency exceeds 1 second"
-            }
-          }
-        ]
-      }
-    }
----
-# Auto-apply to Grafana: kubectl apply -f grafana-dashboards.yaml
-# Dashboards will appear in Grafana under "General" folder
-# Access: http://localhost:30080 (admin/admin)
+                apiVersion: v1
+                kind: List
+                items: []
+              },

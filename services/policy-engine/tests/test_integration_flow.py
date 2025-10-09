@@ -1,16 +1,9 @@
-"""Integration test scaffold for the full request flow.
-
-The test demonstrates the intended steps without requiring the full Docker‑Compose stack.
-It uses FastAPI TestClient for the Identity and Gateway services, and mocks the
-Kafka producer/consumer and Redis client used by the Policy Engine.
-Replace the mocks with real testcontainers when you need a true end‑to‑end run.
-"""
+"""Integration test for the full request flow using REAL services (no mocks)."""
 
 import asyncio
 import os
 
 import pytest
-from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
 pytest.importorskip("testcontainers.redis")
@@ -101,25 +94,15 @@ def test_end_to_end_flow(identity_client, gateway_client, policy_client):
     tenant_id = "tenantA"
     token = get_jwt_token(identity_client, user_id, tenant_id)
 
-    # 2. Call gateway to start a session (this forwards to orchestrator – we mock it).
-    # For the purpose of this scaffold we bypass the orchestrator call by mocking httpx.
+        # 2. Call gateway to start a session (this forwards to the REAL orchestrator).
     session_payload = {
         "prompt": "hello world",
         "capsule_id": None,
         "metadata": {},
     }
     headers = {"Authorization": f"Bearer {token}"}
-
-    # Spin up a minimal orchestrator FastAPI app that returns a session.
-    orchestrator_app = FastAPI()
-
-    @orchestrator_app.post("/v1/sessions/start")
-    async def start_session(payload: dict):
-        return {"session_id": "sess-1", "status": "accepted"}
-
-    orchestrator_client = TestClient(orchestrator_app)
-    # Point the gateway to this orchestrator.
-    os.environ["SOMAGENT_GATEWAY_ORCHESTRATOR_URL"] = orchestrator_client.base_url
+    # Ensure gateway is pointed at a real orchestrator via env var
+    assert os.getenv("SOMAGENT_GATEWAY_ORCHESTRATOR_URL"), "Set SOMAGENT_GATEWAY_ORCHESTRATOR_URL to real Orchestrator URL"
     resp = gateway_client.post("/v1/sessions", json=session_payload, headers=headers)
     assert resp.status_code == 201
     session_id = resp.json()["session_id"]

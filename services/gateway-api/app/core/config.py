@@ -27,7 +27,7 @@ class Settings(BaseSettings):
 
     service_name: str = "gateway-api"
     debug: bool = False
-    orchestrator_url: str = "http://orchestrator:8000"
+    orchestrator_url: str = "http://orchestrator:1004"
     admin_api_url: str = "http://settings-service:8000"
     redis_url: str = "redis://redis:6379/0"
     tls_certfile: str | None = None
