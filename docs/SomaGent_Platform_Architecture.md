@@ -71,3 +71,60 @@ flowchart LR
 - Gateway is NodePort (default 30080 → 8080) for local, can be ClusterIP/Ingr ess in production.
 - slm-service is ClusterIP on port 1001.
 - Observability stack deployed in observability namespace (optional).
+
+## Diagrams
+
+### System Overview
+```mermaid
+%%{init: { 'theme': 'default' }}%%
+%% See docs/diagrams/System_Overview.mmd for source
+flowchart LR
+  U[User] --> GW[Gateway API]
+  GW --> ORCH[Orchestrator]
+  ORCH --> POLICY[Policy Engine]
+  ORCH --> SLM[SLM Service]
+  ORCH --> MEM[Memory Gateway]
+  ORCH --> KAFKA[(Kafka)]
+  subgraph Observability
+    PROM[(Prometheus)]
+    LOKI[(Loki)]
+  end
+  GW --> PROM
+  ORCH --> PROM
+  SLM --> PROM
+  GW --> LOKI
+  ORCH --> LOKI
+  SLM --> LOKI
+```
+
+### Data Flow
+```mermaid
+%% See docs/diagrams/Data_Flow.mmd for source
+flowchart TB
+  subgraph Edge
+    GW[Gateway API]
+  end
+  subgraph Core
+    ORCH[Orchestrator]
+    SLM[SLM Service]
+    MEM[Memory Gateway]
+  end
+  KAFKA[(Kafka)]
+  PROM[(Prometheus)]
+  LOKI[(Loki)]
+
+  GW --> ORCH
+  ORCH --> SLM
+  ORCH --> MEM
+
+  ORCH --> KAFKA
+  GW --> KAFKA
+
+  SLM --> PROM
+  ORCH --> PROM
+  GW --> PROM
+
+  GW --> LOKI
+  ORCH --> LOKI
+  SLM --> LOKI
+```

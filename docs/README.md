@@ -28,6 +28,11 @@
 - **[runbooks/disaster_recovery.md](runbooks/disaster_recovery.md)** - DR procedures
 - **[runbooks/development_tooling.md](runbooks/development_tooling.md)** - Shell tooling & parameters
 
+### Visuals
+- System overview (Mermaid): `docs/diagrams/System_Overview.mmd`
+- Request sequence (Mermaid): `docs/diagrams/Request_Sequence.mmd`
+- Data flow (Mermaid): `docs/diagrams/Data_Flow.mmd`
+
 ---
 
 ## 📊 Platform Status (October 5, 2025)
