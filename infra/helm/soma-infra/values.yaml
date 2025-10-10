@@ -1,0 +1,52 @@
+# Default values for soma-infra (kept tiny for dev by default)
+namespace: soma-infra
+
+kafka:
+  enabled: true
+  replicaCount: 1
+  kraft:
+    enabled: true
+  resources:
+    requests:
+      cpu: 250m
+      memory: 256Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+  persistence:
+    enabled: false
+  fullnameOverride: kafka
+
+redis:
+  enabled: true
+  architecture: standalone
+  master:
+    resources:
+      requests:
+        cpu: 100m
+        memory: 128Mi
+      limits:
+        cpu: 250m
+        memory: 256Mi
+  replica:
+    replicaCount: 0
+  auth:
+    enabled: false
+  persistence:
+    enabled: false
+  fullnameOverride: redis
+
+prometheus:
+  enabled: false
+
+grafana:
+  enabled: false
+
+opa:
+  enabled: false
+
+vault:
+  enabled: false
+
+etcd:
+  enabled: false

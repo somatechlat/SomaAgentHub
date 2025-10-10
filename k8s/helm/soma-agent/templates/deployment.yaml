@@ -11,6 +11,8 @@ metadata:
     app: {{ $name }}
     app.kubernetes.io/name: {{ $name }}
     app.kubernetes.io/part-of: {{ $.Chart.Name }}
+  annotations:
+    checksum/config: {{ include (print $.Chart.Name "/values.yaml") . | sha256sum }}
 spec:
   replicas: {{ $svc.replicaCount | default 1 }}
   selector:
@@ -25,13 +27,17 @@ spec:
     spec:
       containers:
         - name: {{ $name }}
-            {{ $img := printf "%v" $svc.image }}
-            {{ $last := last (splitList "/" $img) }}
-            {{ $hasTag := contains ":" $last }}
-            image: {{ if $hasTag }}{{ $img | quote }}{{ else }}{{ printf "%s:%s" $img ($.Values.global.imageTag | default "latest") | quote }}{{ end }}
+          image: "{{ if contains ":" (last (splitList "/" (printf "%v" $svc.image))) }}{{ printf "%v" $svc.image }}{{ else }}{{ printf "%v:%v" $svc.image ($.Values.global.imageTag | default "latest") }}{{ end }}"
           imagePullPolicy: {{ $svc.imagePullPolicy | default $.Values.global.imagePullPolicy }}
+          securityContext:
+{{ toYaml ($svc.securityContext | default $.Values.global.securityContext) | indent 12 }}
           ports:
             - containerPort: {{ $svc.port }}
+          {{- if $svc.envFromSecret }}
+          envFrom:
+            - secretRef:
+                name: {{ $svc.envFromSecret }}
+          {{- end }}
           {{- if $svc.env }}
           env:
           {{- range $env := $svc.env }}
@@ -55,12 +61,19 @@ spec:
             periodSeconds: 10
             timeoutSeconds: 3
             failureThreshold: 3
-{{- if $svc.resources }}
           resources:
+{{- if $svc.resources }}
             limits:
 {{ toYaml $svc.resources.limits | indent 14 }}
             requests:
 {{ toYaml $svc.resources.requests | indent 14 }}
+{{- else }}
+            requests:
+              cpu: "100m"
+              memory: "128Mi"
+            limits:
+              cpu: "1000m"
+              memory: "512Mi"
 {{- end }}
 {{- end }}
 {{- end }}

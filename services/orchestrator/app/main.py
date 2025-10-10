@@ -5,11 +5,11 @@ from __future__ import annotations
 from fastapi import FastAPI
 from fastapi.responses import Response
 from prometheus_client import CONTENT_TYPE_LATEST, generate_latest
+from services.common.observability import setup_observability
 from temporalio import client as temporal_client
 
 from .api.routes import router as orchestrator_router
 from .core.config import settings
-from .observability import setup_observability
 
 
 def create_app() -> FastAPI:

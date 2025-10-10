@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import os
-from typing import Any, Dict
+from typing import Any
 
 import jwt
 from fastapi import HTTPException, status
@@ -11,17 +11,17 @@ from fastapi import HTTPException, status
 from .config import get_settings
 
 
-def decode_token(token: str) -> Dict[str, Any]:
+def decode_token(token: str) -> dict[str, Any]:
     """Decode and validate JWT token.
-    
+
     If KEYCLOAK_SERVER_URL is configured, use Keycloak validation.
     Otherwise, fall back to simple JWT validation (for development).
     """
     settings = get_settings()
-    
+
     # Check if Keycloak is configured
     keycloak_url = os.getenv("KEYCLOAK_SERVER_URL")
-    
+
     if keycloak_url:
         # Use Keycloak validation
         try:
@@ -34,8 +34,8 @@ def decode_token(token: str) -> Dict[str, Any]:
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail=f"Keycloak token validation failed: {str(exc)}"
-            ) from exc
-    
+        ) from exc
+
     # Fall back to simple JWT validation (development mode)
     secret = settings.resolve_jwt_secret()
     try:

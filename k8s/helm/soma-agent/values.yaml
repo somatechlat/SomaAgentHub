@@ -5,7 +5,25 @@
 global:
   imagePullPolicy: IfNotPresent
   namespace: soma-agent-hub   # renamed from soma-agent-hub
-  imageTag: "latest"
+  # Avoid using 'latest' in production; override via --set global.imageTag=<git-sha or version>
+  imageTag: "dev"
+  # Sensible default container security context; can be overridden per-service if needed
+  securityContext:
+    runAsNonRoot: true
+    allowPrivilegeEscalation: false
+    readOnlyRootFilesystem: true
+    capabilities:
+      drop: ["ALL"]
+
+# Centralized secrets configuration
+secrets:
+  enabled: true
+  name: soma-secrets
+  # In local/dev, generate simple secrets to keep cluster booting. In prod, set to false and
+  # provide real secret values via external Secret or set identityJwt/gatewayJwt below.
+  generateDevSecrets: true
+  identityJwt: ""   # plaintext override for SOMAGENT_IDENTITY_JWT_SECRET (if not generating)
+  gatewayJwt: ""    # plaintext override for SOMAGENT_GATEWAY_JWT_SECRET (if not generating)
 
 # Default hub port for gateway-api (used in service definition)
 hubPort: 60000
@@ -48,22 +66,46 @@ services:
   slm-service:
     enabled: true
     replicaCount: 1
-    image: "somaagent/soma-slm-service:latest"
+    image: "somaagent/soma-slm-service"
     imagePullPolicy: IfNotPresent
     port: 1001
+    hpa:
+      enabled: false
+      minReplicas: 1
+      maxReplicas: 3
+      targetCPUUtilizationPercentage: 70
+    pdb:
+      enabled: false
+      minAvailable: 1
   policy-engine:
     enabled: true
-    image: "somaagent/soma-policy-engine:latest"
+    image: "somaagent/soma-policy-engine"
     port: 8000
+    hpa:
+      enabled: false
+      minReplicas: 1
+      maxReplicas: 3
+      targetCPUUtilizationPercentage: 70
+    pdb:
+      enabled: false
+      minAvailable: 1
   memory-gateway:
     enabled: false
   orchestrator:
     enabled: true
-    image: "somaagent/soma-orchestrator:latest"
+    image: "somaagent/soma-orchestrator"
     port: 1004
     env:
       - name: TEMPORAL_ENABLED
         value: "false"
+    hpa:
+      enabled: false
+      minReplicas: 1
+      maxReplicas: 3
+      targetCPUUtilizationPercentage: 70
+    pdb:
+      enabled: false
+      minAvailable: 1
   settings-service:
     enabled: false
   task-capsule-repo:
@@ -71,19 +113,37 @@ services:
   gateway-api:
     enabled: true
     replicaCount: 1
-    image: "somaagent/soma-gateway-api:latest"
+    image: "somaagent/soma-gateway-api"
     imagePullPolicy: IfNotPresent
     port: 8080
-    nodePort: 30080
+    # type: NodePort
+    # nodePort: 30080
+    # Reference secret for JWT or other sensitive envs
+    envFromSecret: "soma-secrets"
+    hpa:
+      enabled: false
+      minReplicas: 1
+      maxReplicas: 5
+      targetCPUUtilizationPercentage: 60
+    pdb:
+      enabled: false
+      minAvailable: 1
   identity-service:
     enabled: true
-    image: "somaagent/soma-identity-service:latest"
+    image: "somaagent/soma-identity-service"
     port: 8000
+    envFromSecret: "soma-secrets"
     env:
-      - name: SOMAGENT_IDENTITY_JWT_SECRET
-        value: "dev-secret-change-me"
       - name: REDIS_URL
         value: ""
+    hpa:
+      enabled: false
+      minReplicas: 1
+      maxReplicas: 3
+      targetCPUUtilizationPercentage: 70
+    pdb:
+      enabled: false
+      minAvailable: 1
   constitution-service:
     enabled: false
   analytics-service:

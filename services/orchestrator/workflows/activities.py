@@ -53,7 +53,7 @@ async def decompose_project(project_description: str, user_id: str) -> List[Dict
     """
     
     # HTTP call to SLM service
-    async with httpx.AsyncClient() as client:
+    async with httpx.AsyncClient(timeout=httpx.Timeout(10.0, connect=5.0), limits=httpx.Limits(max_connections=200, max_keepalive_connections=50)) as client:
         try:
             response = await client.post(
                 f"{SOMALLM_PROVIDER_URL}/v1/infer/sync",
@@ -216,7 +216,7 @@ async def execute_task(
     start_time = datetime.utcnow()
     
     # Step 1: Policy check (call to policy engine)
-    async with httpx.AsyncClient() as client:
+    async with httpx.AsyncClient(timeout=httpx.Timeout(10.0, connect=5.0), limits=httpx.Limits(max_connections=200, max_keepalive_connections=50)) as client:
         try:
             session_id = agent_instance.get("session_id", f"task-{task['id']}")
             policy_response = await client.post(

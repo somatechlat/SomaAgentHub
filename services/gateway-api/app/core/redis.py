@@ -1,30 +1,34 @@
-"""Redis client helpers for the gateway."""
+"""Redis client helpers for the gateway using the shared RedisClient."""
 
 from __future__ import annotations
 
-from typing import Optional
+from typing import TYPE_CHECKING
 
-import redis.asyncio as redis
-
-from .config import get_settings
-
-_redis_client: Optional[redis.Redis] = None
+if TYPE_CHECKING:  # pragma: no cover - import only for type checking
+    from services.common.redis_client import RedisClient
 
 
-def get_redis_client() -> redis.Redis:
-    """Return a cached Redis client instance."""
+def get_redis_client() -> RedisClient:
+    """Return the shared RedisClient instance configured via Settings."""
 
-    global _redis_client
-    if _redis_client is None:
-        settings = get_settings()
-        _redis_client = redis.from_url(settings.redis_url, decode_responses=True)
-    return _redis_client
+    from services.common.redis_client import get_redis_client as _get_redis_client
+
+    from ..config import get_sah_settings
+
+    settings = get_sah_settings()
+    if settings.redis.url:
+        # The common Redis client reads REDIS_URL; set it once before first use.
+        # This avoids per-call environment mutation while keeping compatibility.
+        import os
+
+        os.environ.setdefault("REDIS_URL", settings.redis.url)
+    return _get_redis_client()
 
 
 async def close_redis_client() -> None:
-    """Close the Redis connection when the service shuts down."""
+    """Close the shared Redis connection when the service shuts down."""
 
-    global _redis_client
-    if _redis_client is not None:
-        await _redis_client.aclose()
-        _redis_client = None
+    from services.common.redis_client import get_redis_client as _get_redis_client
+
+    client = _get_redis_client()
+    await client.close()

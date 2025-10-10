@@ -1,4 +1,4 @@
-"""Async Redis access convenience for the Policy Engine.
+"""Async Redis access for the Policy Engine using the shared Redis client.
 
 Exports:
 - redis_client: an async Redis client or None if unavailable/misconfigured.
@@ -8,33 +8,40 @@ Exports:
 from __future__ import annotations
 
 import os
-from typing import Optional
 
 try:  # pragma: no cover
-    import redis.asyncio as redis
+    from services.common.redis_client import get_redis_client
 except Exception:  # pragma: no cover
-    redis = None  # type: ignore
+    get_redis_client = None  # type: ignore
 
 
-def _build_client() -> Optional["redis.Redis"]:
-    if redis is None:
+async def _build_client():
+    if get_redis_client is None:
         return None
     url = os.getenv("REDIS_URL")
     if not url:
         return None
     try:
-        return redis.from_url(url)
+        client_wrap = get_redis_client()
+        return await client_wrap.get_client()
     except Exception:  # pragma: no cover
         return None
 
 
 # Exported client used by store modules
-redis_client = _build_client()
+# Note: policy modules can await _ensure_client() to lazily establish connection
+redis_client = None
+
+async def _ensure_client():
+    global redis_client
+    if redis_client is None:
+        redis_client = await _build_client()
+    return redis_client
 
 
 async def get_constitution_hash(tenant: str) -> str:
     """Return a cached constitution hash for tenant with safe fallback."""
-    client = redis_client
+    client = await _ensure_client()
     if client is None:
         return f"constitution-hash-{tenant}"
     key = f"constitution:{tenant}"

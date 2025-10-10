@@ -1,0 +1,22 @@
+global:
+  namespace: soma-agent-hub
+  imageTag: dev
+
+services:
+  gateway-api:
+    type: NodePort
+    nodePort: 30080
+  identity-service:
+    env:
+      - name: REDIS_URL
+        value: "redis://redis.soma-infra.svc.cluster.local:6379/0"
+  policy-engine:
+    env:
+      - name: REDIS_URL
+        value: "redis://redis.soma-infra.svc.cluster.local:6379/0"
+  orchestrator:
+    env:
+      - name: TEMPORAL_ENABLED
+        value: "false"
+  slm-service:
+    enabled: true

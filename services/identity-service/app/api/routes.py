@@ -2,9 +2,8 @@
 
 from __future__ import annotations
 
+from datetime import datetime, timedelta
 import secrets
-from datetime import datetime, timedelta, timezone
-from typing import List
 from uuid import uuid4
 
 import jwt
@@ -68,8 +67,8 @@ async def get_audit_logger(request: Request) -> AuditLogger:
     return audit_logger
 
 
-@router.get("/users", response_model=List[UserRecord])
-async def list_users(store: IdentityStore = Depends(get_store)) -> List[UserRecord]:
+@router.get("/users", response_model=list[UserRecord])
+async def list_users(store: IdentityStore = Depends(get_store)) -> list[UserRecord]:
     records = await store.list_users()
     return list(records)
 
@@ -86,8 +85,8 @@ async def get_user(user_id: str, store: IdentityStore = Depends(get_store)) -> U
     return await _fetch_user(store, user_id)
 
 
-@router.get("/users/{user_id}/capabilities", response_model=List[str])
-async def get_user_capabilities(user_id: str, store: IdentityStore = Depends(get_store)) -> List[str]:
+@router.get("/users/{user_id}/capabilities", response_model=list[str])
+async def get_user_capabilities(user_id: str, store: IdentityStore = Depends(get_store)) -> list[str]:
     user = await _fetch_user(store, user_id)
     return user.capabilities
 
@@ -132,7 +131,7 @@ async def issue_token(
         if missing:
             raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=f"User lacks capabilities: {missing}")
 
-    issued_at = datetime.now(timezone.utc)
+    issued_at = datetime.now(datetime.UTC)
     expires_at = issued_at + timedelta(seconds=JWT_EXP_SECONDS)
     jti = uuid4().hex
     signing_key = await key_manager.get_active()
@@ -158,6 +157,9 @@ async def issue_token(
             "jti": jti,
             "capabilities": claims["capabilities"],
             "expires_at": expires_at.isoformat(),
+            "resource_type": "token",
+            "actor_type": "user",
+            "outcome": "success",
         },
     )
     return TokenResponse(token=token, expires_in=JWT_EXP_SECONDS, token_type="bearer")
@@ -270,6 +272,9 @@ async def revoke_token(
             "tenant_id": claims.get("tenant_id"),
             "jti": jti,
             "user_id": claims.get("sub"),
+            "resource_type": "token",
+            "actor_type": "user",
+            "outcome": "success",
         },
     )
     return {"revoked": True}
@@ -281,7 +286,7 @@ async def start_training(request: TrainingLockRequest, store: IdentityStore = De
         tenant_id=request.tenant_id,
         locked=True,
         locked_by=request.requested_by,
-        locked_at=datetime.now(timezone.utc),
+    locked_at=datetime.now(datetime.UTC),
     )
     await store.set_training_lock(lock)
     return lock
@@ -290,7 +295,7 @@ async def start_training(request: TrainingLockRequest, store: IdentityStore = De
 @router.post("/training/stop", response_model=TrainingLockStatus)
 async def stop_training(request: TrainingLockRequest, store: IdentityStore = Depends(get_store)) -> TrainingLockStatus:
     lock = await store.get_training_lock(request.tenant_id)
-    now = datetime.now(timezone.utc)
+    now = datetime.now(datetime.UTC)
     if lock is None:
         lock = TrainingLockStatus(tenant_id=request.tenant_id, locked=False, locked_by=request.requested_by, locked_at=now)
     else:
