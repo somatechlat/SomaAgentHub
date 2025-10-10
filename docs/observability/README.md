@@ -10,7 +10,7 @@ Last Updated: October 9, 2025
 
 ## Quick verification
 ```bash
-./scripts/verify-real-instrumentation.sh
+./scripts/verify-instrumentation.sh
 ```
 
 ## Prometheus Operator (optional)

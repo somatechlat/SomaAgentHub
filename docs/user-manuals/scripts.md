@@ -5,7 +5,7 @@
 
 ## Key Scripts
 - build_and_push.sh – Build and load images
-- verify-real-instrumentation.sh – Check REAL observability
+- verify-instrumentation.sh – Check observability instrumentation
 - run-migrations.sh – Apply DB migrations (if any)
 
 ## Usage

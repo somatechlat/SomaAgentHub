@@ -177,7 +177,7 @@ rotate-secrets:
 	VAULT_ADDR=$(VAULT_ADDR) VAULT_NAMESPACE=$(VAULT_NAMESPACE) ./scripts/rotate-secrets.sh
 
 verify-observability:
-	./scripts/verify-real-instrumentation.sh
+	./scripts/verify-instrumentation.sh
 
 .PHONY: helm-install start-cluster
 helm-install:

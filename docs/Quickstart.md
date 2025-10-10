@@ -51,7 +51,7 @@ pytest -q tests/integration/test_services.py -q || true  # skips if services not
 
 ## 7) Verify observability (optional)
 ```bash
-./scripts/verify-real-instrumentation.sh
+./scripts/verify-instrumentation.sh
 ```
 
 ## Troubleshooting

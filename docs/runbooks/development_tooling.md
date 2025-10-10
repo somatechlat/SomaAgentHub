@@ -23,7 +23,7 @@ This runbook captures the actively maintained shell tooling that lives under `sc
 | `scripts/generate-sbom.sh` | `make generate-sbom SBOM_DIR=...` | Produce Syft SBOMs for deployed services | `./scripts/generate-sbom.sh` | `docker`, `syft` |
 | `scripts/scan-vulnerabilities.sh` | `make scan-vulns SEVERITY="--severity ..."` | Run Trivy image scans for services | `./scripts/scan-vulnerabilities.sh [--severity ...]` | `docker`, `trivy`, `jq` |
 | `scripts/rotate-secrets.sh` | `make rotate-secrets VAULT_ADDR=...` | Rotate Vault-managed secrets and keys | `VAULT_ADDR=... ./scripts/rotate-secrets.sh` | HashiCorp Vault CLI, OpenSSL |
-| `scripts/verify-real-instrumentation.sh` | `make verify-observability` | Validate OpenTelemetry instrumentation across services | `./scripts/verify-real-instrumentation.sh` | `kubectl`, cluster access |
+| `scripts/verify-instrumentation.sh` | `make verify-observability` | Validate OpenTelemetry instrumentation across services | `./scripts/verify-instrumentation.sh` | `kubectl`, cluster access |
 
 ## Usage Notes
 
@@ -81,7 +81,7 @@ This runbook captures the actively maintained shell tooling that lives under `sc
 - Rotates database credentials, API keys, JWT signing keys, and Vault transit keys.
 - Requires Vault CLI login with privileges to the referenced secret paths, plus OpenSSL for keypair generation.
 
-### `scripts/verify-real-instrumentation.sh`
+### `scripts/verify-instrumentation.sh`
 - Validates that each service imports and invokes `setup_observability`, and that observability namespaces/pods exist in Kubernetes.
 - Expects an accessible cluster and Prometheus/Loki namespaces to be present.
 
