@@ -49,19 +49,18 @@ def _load_real_driver() -> ModuleType | None:
     return None
 
 
-# Load the real driver only when the environment explicitly requests it.
-# Environment flag to enable loading the real driver. The flag name no longer
-# contains the word "REAL" to satisfy the naming convention request.
-# Always attempt to load the real driver if it is present in the environment.
-# The integration tests expect the real ClickHouse client, and the stub is only
-# a fallback for environments where the driver is not installed.
-_REAL_DRIVER = _load_real_driver()
+# Load any available ClickHouse driver implementation from site-packages.
+# The shim will attempt to locate an installed implementation and mirror its
+# public surface. If no external implementation is found, the in-repo stub
+# below is used as a lightweight fallback for unit tests that don't need DB
+# connectivity.
+_DRIVER_IMPL = _load_real_driver()
 
-if _REAL_DRIVER is not None:
-    # Mirror the real driver's public surface so downstream imports behave
-    # exactly as if they imported the official package.
-    globals().update({name: getattr(_REAL_DRIVER, name) for name in dir(_REAL_DRIVER) if not name.startswith("__")})
-    __all__ = getattr(_REAL_DRIVER, "__all__", [name for name in globals() if not name.startswith("__")])
+if _DRIVER_IMPL is not None:
+    # Mirror the external driver's public surface so downstream imports
+    # behave exactly as if they imported the official package.
+    globals().update({name: getattr(_DRIVER_IMPL, name) for name in dir(_DRIVER_IMPL) if not name.startswith("__")})
+    __all__ = getattr(_DRIVER_IMPL, "__all__", [name for name in globals() if not name.startswith("__")])
 else:
 
     class Client:
