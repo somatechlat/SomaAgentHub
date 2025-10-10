@@ -1,0 +1,85 @@
+## Production values for soma-agent Helm chart
+## Intended as conservative, secure defaults. Review and override per-cluster.
+
+global:
+  imagePullPolicy: IfNotPresent
+  namespace: soma-agent-hub
+  imageTag: "RELEASE-PLACEHOLDER" # set to a proper release tag in CI
+  securityContext:
+    runAsNonRoot: true
+    allowPrivilegeEscalation: false
+    readOnlyRootFilesystem: true
+    capabilities:
+      drop: ["ALL"]
+
+secrets:
+  enabled: true
+  name: soma-secrets
+  generateDevSecrets: false
+
+hubPort: 60000
+
+# Disable heavy infra by default unless explicitly required
+defaultKafka:
+  enabled: false
+  replicaCount: 3
+
+kafka:
+  enabled: false
+
+services:
+  # Core services expected to run in production; tune replicas according to capacity
+  gateway-api:
+    enabled: true
+    replicaCount: 3
+    image: "ghcr.io/somatechlat/soma-gateway-api"
+    imagePullPolicy: IfNotPresent
+    port: 8080
+    envFromSecret: "soma-secrets"
+    resources:
+      requests:
+        cpu: "250m"
+        memory: "256Mi"
+      limits:
+        cpu: "1000m"
+        memory: "1Gi"
+
+  orchestrator:
+    enabled: true
+    replicaCount: 2
+    image: "ghcr.io/somatechlat/soma-orchestrator"
+    imagePullPolicy: IfNotPresent
+    port: 1004
+    resources:
+      requests:
+        cpu: "500m"
+        memory: "512Mi"
+      limits:
+        cpu: "2000m"
+        memory: "2Gi"
+
+  identity-service:
+    enabled: true
+    replicaCount: 2
+    image: "ghcr.io/somatechlat/soma-identity-service"
+    port: 1007
+    envFromSecret: "soma-secrets"
+    resources:
+      requests:
+        cpu: "250m"
+        memory: "256Mi"
+      limits:
+        cpu: "1000m"
+        memory: "1Gi"
+
+  slm-service:
+    enabled: false  # inference/model services should be enabled only where GPU/scale is provisioned
+
+monitoring:
+  serviceMonitors:
+    enabled: true
+    namespace: observability
+    interval: 30s
+
+ingress:
+  enabled: false
