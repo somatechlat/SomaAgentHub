@@ -1,26 +1,22 @@
 # SLM Service – User Manual
 
 ## Overview
-Deterministic local language capabilities for text generation and embeddings.
-
-## Base URL
-- Local port-forward: http://127.0.0.1:11001
+The SLM Service provides deterministic, local language capabilities for the SomaAgentHub platform.
 
 ## Endpoints
-- GET /health -> {"status":"healthy","service":"slm-service"}
-- GET /metrics -> Prometheus metrics
-- POST /v1/infer/sync
-- POST /v1/embeddings
 
-## Quick Start
-```
-POST /v1/infer/sync
-{
-  "prompt": "Write a short greeting",
-  "max_tokens": 64,
-  "temperature": 0.8
-}
-```
+### System
+- `GET /health`: Performs a health check of the service.
+- `GET /metrics`: Exposes Prometheus metrics.
 
-## Troubleshooting
-- Check /health and /metrics; see docs/observability/Metrics_Reference.md
+### Language
+- `POST /v1/infer/sync`: Generates text using a local model.
+    - **Request Body:** `{"prompt": "string", "max_tokens": "integer", "temperature": "float"}`
+- `POST /v1/embeddings`: Creates vector embeddings for text.
+    - **Request Body:** `{"input": ["string"]}`
+- `POST /v1/chat/completions`: A backward-compatible endpoint that mirrors the sync inference capability.
+- `GET /models`: Lists the available models.
+- `POST /models/load`: Loads a model into memory.
+
+## Models
+The SLM Service uses a local Markov chain-based model for text generation and a pre-trained model for embeddings.

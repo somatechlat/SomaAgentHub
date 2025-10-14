@@ -12,7 +12,7 @@ metadata:
     app.kubernetes.io/name: {{ $name }}
     app.kubernetes.io/part-of: {{ $.Chart.Name }}
   annotations:
-    checksum/config: "{{ include "soma-agent.valuesChecksum" . }}"
+    checksum/config: {{ include (print $.Chart.Name "/values.yaml") . | sha256sum }}
 spec:
   replicas: {{ $svc.replicaCount | default 1 }}
   selector:
