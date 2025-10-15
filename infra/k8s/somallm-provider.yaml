@@ -1,2 +1,3 @@
 # Deprecated: somallm-provider manifest has been superseded by infra/k8s/slm-service.yaml
+# Use the SomaLanguage Model (SLM) service manifests for all new deployments.
 # Intentionally left as a stub to avoid accidental use.

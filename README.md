@@ -1,189 +1,205 @@
-⚠️ WE DO NOT MOCK we DO NOT IMITATE, WE DO NOT USE BYPASSES OR GIVE FAKE OR UNREAL VALUES TO PAST TESTS, we use MATH perfect math TO surpass any problem and we only abide truth and real servers real data. Save this EVERYWHERE at the start of every Document!
+# 🚀 SomaAgentHub
 
-# SomaAgentHub
+**The Next Generation Agent Orchestration Platform**
 
-SomaAgentHub is the autonomy control tower for organizations that demand production-grade AI orchestration, business-grade guardrails, and human-readable accountability. This single file explains the platform in plain language, surfacing every module, value proposition, and competitive advantage so product teams, operators, and agents all know what SomaAgentHub delivers.
+> Enterprise-grade infrastructure for autonomous agent systems with parallel execution, real-time orchestration, and production-ready deployment
 
-> **Promise:** Go from "What if an agent could run this?" to "It shipped in production" without sacrificing compliance, observability, or human oversight.
+---
 
-## Table of Contents
-1. [Executive Snapshot](#executive-snapshot)
-2. [How SomaAgentHub Creates Value](#how-somaagenthub-creates-value)
-3. [End-to-End Flowcharts](#end-to-end-flowcharts)
-4. [Platform Pillars](#platform-pillars)
-5. [Module-by-Module Narrative](#module-by-module-narrative)
-6. [Use Cases That Win](#use-cases-that-win)
-7. [Competitive Comparison](#competitive-comparison)
-8. [Operations & Automation](#operations--automation)
-9. [Launch Playbook](#launch-playbook)
-10. [Documentation Launchpad](#documentation-launchpad)
-11. [Support & Contribution](#support--contribution)
+## 📋 Overview
 
-## Executive Snapshot
-- **Audience:** Product leaders, platform engineers, SREs, RevOps, compliance teams, and AI strategists.
-- **Outcome:** Agents that orchestrate real systems (CRM, marketing, infra, analytics) under constitution-level guardrails with full telemetry.
-- **Differentiator:** Every integration, policy, and runbook is live, tested, and backed by real infrastructure—no demo shortcuts.
+SomaAgentHub is the coordination layer that powers the Soma platform. The hub connects specialized services—gateway, orchestrator, policy enforcement, memory, model access, and tooling—into a unified runtime for autonomous agent programs. The project ships with hardened infrastructure manifests, repeatable developer workflows, and documentation that keeps code and operations in lockstep.
 
-## How SomaAgentHub Creates Value
+---
+
+## ⚡ Core Capabilities
+
+### 🧠 Intelligent Orchestration
+- **Multi-Agent Coordination** – Orchestrator and MAO services drive structured work across specialized agents and workflows.
+- **Parallel Execution** – Temporal-backed job queues keep long-running tasks resilient and horizontally scalable.
+- **Task Capsule System** – `services/task-capsule-repo` holds reusable execution capsules that bundle tools, prompts, and policies.
+- **Autonomous Project Execution** – Wizard flows in `services/gateway-api` launch complex delivery tracks from a single request.
+
+### 🔄 Conversation & Memory
+- **Memory Gateway** – Vector and key/value storage with Qdrant integrations for durable context recall.
+- **Real-Time Context Sharing** – Shared Redis, policy, and identity services broadcast state across parallel agents.
+- **Conversation Engine** – Gateway wizard engine plus orchestrator sessions manage multi-turn dialogue and approvals.
+
+### ⚙️ Production Infrastructure
+- **Kubernetes Native** – `infra/k8s` and `k8s/helm/soma-agent` provide production manifests with probes, resources, and tolerations.
+- **Helm Deployment** – One chart installs the entire hub with environment-aware overrides and metrics wiring.
+- **Automated CI/CD Hooks** – Make targets and scripts build, scan, push, and verify every service image.
+- **Health Probes & Metrics** – Every critical service exposes `/health`, `/ready`, and `/metrics` endpoints out of the box.
+
+### 🚄 Rapid Development
+- **3-Day Sprint Cadence** – Roadmaps and runbooks in `docs/` map repeatable sprint waves across the stack.
+- **Auto-Documentation** – Handbooks in `docs/` pair with service READMEs to eliminate drift between code and operations.
+- **Zero Configuration Drift** – Terraform, Helm, and Make-based workflows ensure environments stay in sync.
+- **Integrated Testing** – Smoke, integration, and e2e harnesses in `scripts/` and `tests/` validate every change.
+
+---
+
+## 🏗️ Architecture
+
+### Core Services
+
+| Service | Port | Purpose |
+| --- | --- | --- |
+| **Gateway API** | 8080 | Public ingress for UI, CLI, and partner integrations. Handles wizard flows and session fan-out. |
+| **Orchestrator** | 1004 | Coordinates multi-agent workflows, talks to Temporal, identity, and policy services. |
+| **Policy Engine** | 1002 | Enforces constitutional rules with Redis-backed caching and constitution service integration. |
+| **Identity Service** | 1007 | Issues access tokens and validates identities for every agent-facing request. |
+| **Memory Gateway** | 8000 | Stores and retrieves long-term context via Qdrant or in-memory fallback for development. |
+
+### System Components
+
 ```
-Customer Goal --> Wizard Intake --> Policy & Constitution Check --> Orchestrated Execution
-       |             |                      |                           |
-       v             v                      v                           v
-  Persona Library  Capsule Marketplace   Tool Adapter Fabric      Observability Stack
-       |             |                      |                           |
-       `-------- Continuous Memory & Analytics Feedback Loop -----------'
-```
-
-### The Flywheel Explained
-1. **Intent Intake** – Wizards capture business goals, reference existing personas, and assemble draft automations.
-2. **Guardrail Approval** – Constitution service and OPA policies validate every step for tenant, region, and compliance rules.
-3. **Autonomous Execution** – Orchestrator coordinates agents, deterministic services, and human approvals in real time.
-4. **Memory & Insight** – Results feed the Qdrant/Redis memory lattice and ClickHouse analytics for smarter future decisions.
-5. **Continuous Optimization** – Analytics and evolution engines recommend improvements, spawn experiments, and update capsules.
-
-## End-to-End Flowcharts
-### High-Level Control Flow
-```
-+------------------+      +---------------------+      +-------------------------+
-| Business Intent  | ---> | Wizard Synthesizes   | ---> | Constitution & Policy   |
-| (human request)  |      | Execution Blueprint  |      | Validation (OPA + rules)|
-+---------+--------+      +----------+----------+      +------------+------------+
-          |                          |                             |
-          v                          v                             v
-  Human Approval?           Yes -> Continue              Violations? -> Alert & Triage
-          |                          |                             |
-          v                          v                             v
-+---------+--------+      +----------+----------+      +------------+------------+
-| Orchestrator Core | ---> | Tool Adapter Fabric | ---> | External Systems (CRM,  |
-| (multi-agent DAG) |      | (16 live adapters)  |      | marketing, infra, etc.) |
-+---------+--------+      +----------+----------+      +------------+------------+
-          |                          |
-          v                          v
-  Observability Stack    Memory Gateway & Recall
- (OTel, Prometheus, Loki)  (Qdrant + Redis)
-```
-
-### Module Interaction Map
-```
-[Gateway API] --auth--> [Identity Service]
-     |                            |
-     v                            v
-[Wizard Engine] ---> [Orchestrator Core] ---> [Kamachiq Mode]
-     |                   |                         |
-     |                   v                         v
-     |          [Memory Gateway] <----> [Recall Service]
-     |                   |
-     v                   v
-[Tool Service] <----> [Adapter Generator] --> External APIs
-     |
-     v
-[Marketplace Service] <-- Capsule catalog & entitlements
-
-Observability Path:
-[Every Service] --> OpenTelemetry --> Prometheus / Loki --> Grafana dashboards
-
-Governance Path:
-[Orchestrator] --> [Constitution Service] --> [OPA Policy Engine] --> Allow / Deny / Escalate
+┌─────────────────────────────────────────┐
+│             SomaAgentHub                │
+├─────────────────────────────────────────┤
+│                                         │
+│  ┌──────────────┐  ┌──────────────┐     │
+│  │ Gateway API  │  │ Policy Engine│     │
+│  │    (8080)    │  │    (1002)    │     │
+│  └──────┬───────┘  └──────┬───────┘     │
+│         │                 │              │
+│  ┌──────────────────────────────────┐    │
+│  │        Orchestrator (1004)       │    │
+│  │   Temporal Workflows & Sessions  │    │
+│  └──────────────────────────────────┘    │
+│                │                          │
+│  ┌──────────────────────────────────┐    │
+│  │       Memory Gateway (8000)      │    │
+│  │   Vector + KV Recall for Agents  │    │
+│  └──────────────────────────────────┘    │
+│                                         │
+└─────────────────────────────────────────┘
+         ↓
+    Kubernetes Cluster
+    Helm-managed deployment
 ```
 
-## Platform Pillars
-| Pillar | What It Means | Why Customers Care |
-|--------|----------------|--------------------|
-| **Autonomous Orchestration** | Task graphs blend deterministic services, LLM agents, and human approvals. | Run mission-critical workflows end-to-end with confidence. |
-| **Constitutional Governance** | Tenant-specific constitutions, OPA policies, and kill-switches. | Stay compliant with regulatory, legal, and brand mandates. |
-| **Real Integrations** | Adapter generator ships ready-to-run connectors for CRM, marketing, analytics, infra, and more. | Unlock value immediately instead of wiring fragile scripts. |
-| **Memory Intelligence** | Qdrant vector search + Redis episodic memory + ClickHouse analytics. | Agents remember commitments, avoid duplication, and personalize experiences. |
-| **Observability First** | OpenTelemetry, Prometheus, Loki, and curated runbooks in every service. | Teams troubleshoot faster and prove agent ROI with hard data. |
-| **Human Collaboration** | Wizards, admin console, approval workflows, and clear audit trails. | Humans stay in charge, guiding agents rather than chasing them. |
+---
 
-## Module-by-Module Narrative
-| Module | Location | Story for Humans | Value for Agents |
-|--------|----------|------------------|------------------|
-| Gateway API | `services/gateway-api` | FastAPI edge, JWT-auth, wizard endpoints, and dynamic `openapi.json`. | Discoverable schema for agent integration and tool discovery. |
-| Orchestrator Core | `services/orchestrator` | Enforces deterministic execution, retries, compensation, and event tracing. | Coordinates agents with predictable state transitions. |
-| Kamachiq Service | `services/kamachiq-service` | Autonomous execution mode with kill switches, approval hooks, and mission tracking. | Long-horizon autonomy without losing human oversight. |
-| Constitution Service | `services/constitution-service` | Stores constitutional rules, adjudicates policy conflicts, logs history. | Gives agents clear behavioral boundaries per tenant. |
-| Policy Engine | `services/policy-engine` | OPA-driven evaluations on each request with contextual data. | Real-time go/no-go checks before actions fire. |
-| Tool Service | `services/tool-service` | Manages adapter lifecycle, permissions, and marketplace metadata. Ships adapters for AWS, Azure, GCP, GitHub, GitLab, Figma, Plane, Slack, Jira, Linear, Notion, Confluence, Terraform, Playwright, Discord, and Kubernetes. | Agents gain instant access to authenticated tool calls. |
-| Adapter Generator | `services/tool-service/adapter-generator` | Builds adapters from live OpenAPI specs (no mocks). | Adds new tool capabilities quickly and safely. |
-| Memory Gateway | `services/memory-gateway` | Combines Qdrant embeddings with Redis episodic snapshots. | Supplies agents with context windows and history. |
-| Recall Service | `services/recall-service` | Semantic search and retrieval analytics across SomaBrain. | Enables retrieval-augmented planning and responses. |
-| Capsule Service | `services/capsule-service` | Packages reusable automations and curates the catalog. | Agents reuse proven sequences instead of starting from scratch. |
-| Marketplace Service | `services/marketplace-service` | Postgres-backed capsule catalog with publishing, ratings, and download tracking. | Agents discover vetted capsules and understand adoption trends. |
-| Identity Service | `services/identity-service` | Keycloak-backed SSO, tenant boundaries, multi-factor support. | Keeps agent actions scoped to the right customers. |
-| Settings Service | `services/settings-service` | Feature flags, tenant defaults, rollout orchestration. | Allows staged releases and progressive capability enabling. |
-| Analytics Service | `services/analytics-service` | Feeds ClickHouse with agent performance, latency, and impact metrics. | Highlights optimization opportunities and proves success. |
-| Flink Streaming Job | `services/flink-service` | PyFlink pipeline that aggregates Kafka events and pushes metrics to Prometheus Pushgateway. | Keeps downstream analytics fresh with per-minute event insights. |
-| Evolution Engine | `services/evolution-engine` | Tracks experiments, A/B tests, and persona training data. | Drives continuous improvement for agent behaviors. |
-| Voice Interface | `services/voice-interface` | Voice pipeline and telephony integrations. | Gives agents human-grade conversational interfaces. |
-| Admin Console | `apps/admin-console` | Operational dashboards, approvals, audit trails, and health views. | Gives humans instant context and control. |
+## 🚀 Quick Start
 
-## Use Cases That Win
-- **Growth Automation:** Launch campaigns, sync marketing ops, and coordinate GTM experiments with the Notion, Linear, Slack, and Plane adapters.
-- **Customer Reliability:** Detect incidents, open tickets, trigger remediation runbooks, and notify stakeholders in minutes—not hours.
-- **RevOps & Finance:** Reconcile billing, forecast pipeline, and generate executive readouts with linked analytics and approval flows.
-- **Product Delivery:** Plan releases, run QA checklists, and deploy safely while keeping PMs and SREs aligned.
-- **Governed RAG:** Harness SomaBrain memory plus tool adapters to deliver audited, explainable AI insights.
+### Prerequisites
+- Docker & Docker Compose
+- Python 3.11+ (for local tooling)
+- Kind or Kubernetes 1.24+
+- Helm 3+
+- `kubectl`
 
-## Competitive Comparison
-| Dimension | SomaAgentHub | Temporal | Apache Airflow | Prefect | LangChain Agents | CrewAI |
-|-----------|--------------|----------|----------------|---------|------------------|--------|
-| Mission | Production AI orchestration with guardrails and observability | Workflow engine for microservices | Batch & ETL orchestration | Data/task orchestration | Prompt-tool chaining framework | Cooperative agent scripts |
-| Integrations | 16 live adapters + auto-generation | SDK-based activities | Operators focused on data workloads | Community blocks | Community connectors (mixed maturity) | Community maintained |
-| Governance | Constitution + OPA + tenant isolation | Custom add-on | Basic RBAC | API keys & roles | DIY guardrails | DIY guardrails |
-| Memory | Qdrant + Redis + analytics feedback | Bring your own | None | None | Optional | Optional |
-| Observability | OTel + Prometheus + Loki w/ runbooks | Metrics API | Metrics + logs | Cloud UI | DIY | DIY |
-| Human Collaboration | Wizards, approvals, dashboards | External tooling | Airflow UI | Prefect UI | Build it yourself | Build it yourself |
-| Deployment | Makefile automation, Kind, Terraform, Helm | Helm charts, CLI | Helm/CLI | SaaS/self-hosted | Library (do it yourself) | Library |
-| Compliance | Runbooks, audit logs, constitution history | Custom | Custom | Prefect Cloud (SOC2) | Depends on implementation | Depends on implementation |
-| Ideal Customer | Enterprises operationalizing AI across verticals | Platform teams scheduling services | Data engineering orgs | Hybrid data teams | Prototype builders | Hobbyist AI teams |
+### Deploy the Hub Locally
 
-## Operations & Automation
-- `make dev-up` – Launch local Temporal, Redis, and dependencies with automatic port selection.
-- `make dev-deploy` – Build images with the configured registry/tag and deploy to Kind via the canonical wrapper script.
-- `make flink-up` / `make flink-down` – Build the PyFlink image and launch or stop the Kafka + Pushgateway stack for streaming analytics.
-- `make deploy-region REGION=<aws-region> ACTION=<plan|apply|destroy>` – Run Terraform workflows with workspace isolation.
-- `make backup-databases` / `make restore-databases RESTORE_TIMESTAMP=<ts>` – Protect ClickHouse, Postgres, and Redis using S3 snapshots.
-- `make generate-sbom` / `make scan-vulns SEVERITY='--severity CRITICAL,HIGH' TRIVY_FORMAT=json` – Syft SBOM generation and Trivy security scanning for supply chain trust.
-- `make verify-observability` – Confirm Prometheus scraping, Loki logs, and OpenTelemetry spans across services.
-- `make k8s-smoke TEST_NAMESPACE=<ns> TEST_TIMEOUT=<seconds>` – Kubernetes smoke tests for gateway/orchestrator before promoting changes.
-
-## Launch Playbook
+**1. Bootstrap Local Control Plane**
 ```bash
-# Clone the source of truth
-git clone https://github.com/somatechlat/SomaAgentHub.git
-cd SomaAgentHub
-
-# Bootstrap local environment
-make dev-up
-make dev-deploy
-
-# Validate API health and discover the dynamic schema
-curl http://localhost:8000/health
-curl http://localhost:8000/openapi.json | jq '.info'
-
-# Run smoke tests (if targeting a K8s namespace)
-make k8s-smoke TEST_NAMESPACE=soma-agent-hub
+kind create cluster --name soma-agent-hub || true
 ```
 
-### Checklist for New Teams
-1. Review `docs/README.md` for navigation and role-based onboarding.
-2. Read `docs/PRODUCTION_READY_STATUS.md` to understand current service posture.
-3. Explore `docs/MULTI_AGENT_MASTER_INDEX.md` for persona and capsule libraries.
-4. Inspect `services/tool-service/adapter-generator` to learn how adapters are generated and validated.
-5. Walk through `apps/admin-console` to understand human approval and monitoring workflows.
+**2. Build and Install Services**
+```bash
+make start-cluster
+```
 
-## Documentation Launchpad
-- `docs/INDEX.md` – Master index of architecture, runbooks, and sprint history.
-- `docs/runbooks/development_tooling.md` – Canonical list of scripts, make targets, parameters, and dependencies.
-- `docs/SomaGent_Platform_Architecture.md` – Deep-dive architecture blueprint.
-- `docs/SomaGent_Security.md` – Security, compliance, and policy references.
-- `docs/CANONICAL_ROADMAP.md` – Strategic roadmap and sprint planning timeline.
-- `docs/PRODUCTION_READY_STATUS.md` – Evidence that services are live and compliant.
+**3. Verify Pods and Services**
+```bash
+kubectl get pods -n soma-agent-hub
+kubectl get svc -n soma-agent-hub
+```
 
-## Support & Contribution
-- **Maintainers:** Platform Engineering @ SomaTech LATAM
-- **Connect:** Slack `#somagent-platform`, GitHub issues (`platform` label)
-- **Contribute:** Follow `docs/DEVELOPMENT_GUIDELINES.md`, ship observability with every change, update `docs/INDEX.md` and the relevant runbooks, and ensure new automations include make targets for reproducibility.
+### Local Development Loop
 
-**SomaAgentHub is the single source of truth for how autonomous orchestration is built, governed, and scaled. Humans design the strategy, agents execute the tactics, and this repository keeps them in lockstep.**
+**Start Temporal & Redis Dependencies**
+```bash
+make dev-up
+```
+
+**Run Gateway and Orchestrator Locally**
+```bash
+make dev-start-services
+```
+
+**Port-Forward the Gateway**
+```bash
+make port-forward-gateway LOCAL=8080 REMOTE=8080
+```
+
+**Run End-to-End Smoke Tests**
+```bash
+make k8s-smoke
+```
+
+---
+
+## 📚 Documentation
+
+| Document | Purpose |
+| --- | --- |
+| `docs/INDEX.md` | Master index for architecture, operations, and roadmap content. |
+| `docs/CANONICAL_ROADMAP.md` | Sequenced delivery plan with sprint-ready milestones. |
+| `docs/runbook.md` | Operational runbook covering deployments, recovery, and observability. |
+| `docs/Kubernetes-Setup.md` | Step-by-step guide for installing the hub on Kubernetes clusters. |
+| `docs/CRITICAL_FIXES_REPORT.md` | Traceability for infrastructure fixes and resilience improvements. |
+
+Service-specific READMEs live beside the code under `services/`, and infra playbooks are captured in `infra/` and `k8s/` directories.
+
+---
+
+## 🎯 Project Status
+
+- **Core Services** – Gateway, orchestrator, policy, identity, and memory services ship with production manifests and health checks.
+- **Infrastructure** – Helm chart, Kind bootstrap, and Terraform modules (see `infra/terraform/`) keep environments reproducible.
+- **Observability** – Prometheus, Grafana, Loki, and alert routing are wired through `k8s/monitoring/` and Make targets.
+- **Compliance & Policy** – Constitution and policy artifacts live under `services/constitution-service` and integrate with the policy engine.
+- **Roadmaps & Playbooks** – Every sprint deliverable is mirrored in `docs/` for zero documentation drift.
+
+---
+
+## 🌟 What Sets SomaAgentHub Apart
+
+| Capability | SomaAgentHub | Traditional Agent Frameworks |
+| --- | --- | --- |
+| **Production Infrastructure** | ✅ Full Kubernetes, Helm, and Terraform stack included | ❌ Usually left to the adopter |
+| **Governance & Policy** | ✅ Dedicated policy engine with constitution service | ❌ Custom build required |
+| **Memory Architecture** | ✅ Pluggable Qdrant/Redis memory gateway | ⚠️ Basic in-memory or third-party |
+| **CI/CD Automation** | ✅ Make-driven builds, scans, and deploys | ⚠️ Manual scripts |
+| **Observability** | ✅ Metrics, probes, and Grafana dashboards out of the box | ❌ Minimal logging |
+
+---
+
+## 🛠️ Technology Stack
+
+- **Languages**: Python (services), TypeScript/React (admin console), Bash (operations)
+- **Core Services**: FastAPI, Temporal, Redis, PostgreSQL, Qdrant
+- **Infrastructure**: Kubernetes, Helm, Kind, Terraform
+- **CI/CD & Automation**: GitHub Actions, Make, Docker, Syft, Trivy
+- **Observability**: Prometheus, Grafana, Loki, OpenTelemetry
+
+---
+
+## 🤝 Contributing
+
+1. Fork the repository and create a feature branch from `soma_integration`.
+2. Enable the repo virtual environment and install dev tooling:
+   ```bash
+   python -m venv .venv
+   source .venv/bin/activate
+   pip install -r requirements-dev.txt
+   ```
+3. Run linting and tests before submitting a pull request:
+   ```bash
+   ruff check .
+   make k8s-smoke
+   ```
+4. Open a PR with a summary, testing evidence, and linked documentation updates.
+
+---
+
+## 📞 Support & Next Steps
+
+Questions, bug reports, or feature requests? Open an issue or start a discussion in this repository. For deployment assistance, follow the runbook in `docs/runbook.md` and the Kubernetes guide in `docs/Kubernetes-Setup.md`.
+
+---
+
+**SomaAgentHub: Where Development Velocity Meets Production Excellence.**

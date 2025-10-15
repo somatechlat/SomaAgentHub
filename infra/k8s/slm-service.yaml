@@ -1,5 +1,5 @@
 ---
-# Production deployment for the SLM service (formerly somallm-provider)
+# Production deployment for the SomaLanguage Model (SLM) service (formerly somallm-provider)
 apiVersion: apps/v1
 kind: Deployment
 metadata:
