@@ -134,8 +134,12 @@ async def rag(request: RAGRequest):
         answer = f"Found {len(results)} relevant memories. Top result: {context_texts[0][:100] if context_texts else 'None'}"
         return RAGResponse(answer=answer, sources=sources)
     else:
-        # Dummy implementation – echo the query as answer
-        return RAGResponse(answer=f"Result for query: {request.query}", sources=[])
+        # Fallback: No vector store available. Return error or use basic string matching.
+        # In production, this should use a configured fallback (e.g., ES, database search)
+        raise HTTPException(
+            status_code=503,
+            detail="Vector store (Qdrant) unavailable. Configure SLM_SERVICE_URL and Qdrant to enable RAG."
+        )
 
 # Example metric: a simple counter that increments on each scrape
 REQUESTS = Counter("somabrain_requests_total", "Total requests to SOMABrain metrics endpoint")

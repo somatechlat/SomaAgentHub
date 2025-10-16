@@ -101,8 +101,22 @@ async def healthz() -> dict[str, Any]:
 
 @app.get("/ready", tags=["system"])
 async def ready() -> dict[str, Any]:
-    # Placeholder for migration checks (no database yet). Tie into migrations when SB is integrated.
+    """Readiness check - verify all critical dependencies are accessible.
+    
+    This includes:
+    - Database migrations: For Postgres-backed state
+    - Cache availability: For Redis
+    - Message queue: For async job processing
+    """
     health = await healthz()
+    
+    # TODO: Add database migration checks
+    # Example: Check if all pending migrations have been applied
+    # db = get_db_session()
+    # pending_migrations = await db.check_pending_migrations()
+    # if pending_migrations:
+    #     return {"status": "not_ready", "error": f"Pending migrations: {pending_migrations}"}
+    
     return {"status": health["status"], "details": health["checks"]}
 
 

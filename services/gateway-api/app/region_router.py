@@ -190,13 +190,26 @@ class RegionRouter:
         Returns:
             List of Region enums that are enabled and healthy
         """
-        # In production, check health status from monitoring system
+        import httpx
+        import asyncio
+        
         healthy = []
         
         for region, config in REGION_CONFIG.items():
-            if config['enabled']:
-                # TODO: Add actual health check
-                healthy.append(region)
+            if not config['enabled']:
+                continue
+            
+            # REAL health check: ping regional endpoint
+            try:
+                endpoint = config['endpoint'].rstrip('/') + '/healthz'
+                response = httpx.get(endpoint, timeout=5.0)
+                if response.status_code < 500:
+                    healthy.append(region)
+                    logger.info(f"Region {region} is healthy")
+                else:
+                    logger.warning(f"Region {region} health check failed: {response.status_code}")
+            except Exception as exc:
+                logger.warning(f"Region {region} health check error: {exc}")
         
         return healthy
     

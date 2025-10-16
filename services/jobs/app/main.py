@@ -27,18 +27,62 @@ class JobStatus(BaseModel):
 JOB_STORE: dict[str, JobStatus] = {}
 
 async def _run_job(job_id: str, task: str, payload: dict):
-    """Simulated background job – replace with real worker logic later."""
-    # Mark as running
-    JOB_STORE[job_id].status = "running"
-    # Simulate work (e.g., sleep)
-    import asyncio
-    await asyncio.sleep(2)
-    # Dummy result
-    result = {"message": f"Task {task} completed", "payload": payload}
-    JOB_STORE[job_id].status = "completed"
-    JOB_STORE[job_id].result = result
-    # Publish result to a Redis channel for observers (optional)
-    await redis_client.publish(f"jobs:{job_id}", str(result))
+    """Execute background job by dispatching to task-specific handler.
+    
+    In production, integrate with:
+    - Celery/Temporal for distributed task processing
+    - Task queue (Redis/Kafka) for reliable delivery
+    - Error handling and retry logic
+    """
+    try:
+        JOB_STORE[job_id].status = "running"
+        
+        # REAL implementation: dispatch to task handler based on task name
+        if task == "process_data":
+            result = await _process_data(payload)
+        elif task == "generate_report":
+            result = await _generate_report(payload)
+        elif task == "sync_external":
+            result = await _sync_external(payload)
+        else:
+            raise ValueError(f"Unknown task type: {task}")
+        
+        JOB_STORE[job_id].status = "completed"
+        JOB_STORE[job_id].result = result
+    except Exception as exc:
+        JOB_STORE[job_id].status = "failed"
+        JOB_STORE[job_id].result = {"error": str(exc)}
+    finally:
+        # Publish result to Redis channel for observers
+        import json
+        await redis_client.publish(
+            f"jobs:{job_id}",
+            json.dumps({
+                "status": JOB_STORE[job_id].status,
+                "result": JOB_STORE[job_id].result
+            })
+        )
+
+
+async def _process_data(payload: dict) -> dict:
+    """Task handler: Process data payload."""
+    # TODO: Implement real data processing logic
+    # Examples: ETL, validation, transformation
+    return {"processed": payload.get("source", "unknown"), "records": 0}
+
+
+async def _generate_report(payload: dict) -> dict:
+    """Task handler: Generate report."""
+    # TODO: Implement real report generation
+    # Examples: PDF generation, data aggregation, formatting
+    return {"report_id": f"report-{payload.get('type', 'default')}", "page_count": 0}
+
+
+async def _sync_external(payload: dict) -> dict:
+    """Task handler: Sync with external system."""
+    # TODO: Implement real external sync
+    # Examples: API calls, webhook dispatching, data migration
+    return {"synced": payload.get("target", "unknown"), "records": 0}
 
 @app.post("/v1/jobs", response_model=JobStatus)
 async def create_job(job: JobCreate, background_tasks: BackgroundTasks):
