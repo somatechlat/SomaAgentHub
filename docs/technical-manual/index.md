@@ -1,34 +1,398 @@
-# SomaAgentHub Technical Manual
+# Technical Manual
 
-**System Administration, Deployment, and Operations Guide**
+**Operations, deployment, and system administration guide for SomaAgentHub.**
 
-This Technical Manual provides comprehensive information for system administrators, DevOps engineers, and SRE teams responsible for deploying, operating, and maintaining SomaAgentHub in production environments.
-
----
-
-## 🎯 Who Should Use This Manual?
-
-| Role | Primary Responsibilities | Key Sections |
-|------|-------------------------|-------------|
-| **System Administrators** | Server management, user accounts, security | [Deployment](deployment.md), [Security](security/) |
-| **DevOps Engineers** | CI/CD, infrastructure automation, deployments | [Deployment](deployment.md), [Monitoring](monitoring.md) |
-| **SRE Teams** | Reliability, performance, incident response | [Runbooks](runbooks/), [Monitoring](monitoring.md) |
-| **Platform Engineers** | Architecture, scaling, infrastructure design | [Architecture](architecture.md), [Backup & Recovery](backup-and-recovery.md) |
-| **Security Engineers** | Security hardening, compliance, auditing | [Security](security/), [Backup & Recovery](backup-and-recovery.md) |
+Welcome to the Technical Manual. This guide is for **SREs, DevOps Engineers, and System Administrators** who deploy, operate, and maintain SomaAgentHub in production environments.
 
 ---
 
-## 📚 Manual Contents
+## 📚 Quick Navigation
 
-### Core System Documentation
-| Section | Description |
-|---------|-------------|
-| **[System Architecture](architecture.md)** | Detailed system design, components, and data flow |
-| **[Deployment Guide](deployment.md)** | Production deployment instructions and configurations |
-| **[Monitoring & Health](monitoring.md)** | Observability, metrics, logging, and alerting setup |
+### Core Documentation
 
-### Operational Procedures
-| Section | Description |
+| Section | Purpose | Audience |
+|---------|---------|----------|
+| **[Architecture](./architecture.md)** | System design, components, data flow | All technical staff |
+| **[Deployment](./deployment.md)** | Docker Compose & Kubernetes setup | DevOps/SRE |
+| **[Monitoring](./monitoring.md)** | Observability, dashboards, alerts | SRE/Ops |
+| **[Security](./security/)** | Access control, secrets, hardening | Security/SRE |
+| **[Runbooks](./runbooks/)** | Operational procedures, incident response | All operators |
+
+---
+
+## 🎯 Getting Started
+
+### For New Operators (First Time Setup)
+
+**Follow this path:**
+
+1. **[Architecture Overview](./architecture.md)** (30 min)
+   - Understand the system design
+   - Learn component responsibilities
+   - Review data flow patterns
+
+2. **[Local Deployment Setup](./deployment.md#quick-start-docker-compose)** (15 min)
+   - Get docker-compose running locally
+   - Verify all services boot successfully
+   - Understand port mappings
+
+3. **[Monitoring Setup](./monitoring.md)** (20 min)
+   - Access Grafana dashboards
+   - Configure alerts
+   - Set up log aggregation
+
+4. **[Security Configuration](./security/)** (45 min)
+   - Review RBAC matrix
+   - Set up secrets management (Vault)
+   - Configure network policies
+
+### For Kubernetes Deployment
+
+**For production Kubernetes deployment:**
+
+1. Read **[Deployment > Kubernetes Deployment](./deployment.md#kubernetes-deployment)** (full section)
+2. Follow **[Deployment > Production Configuration](./deployment.md#production-configuration)** (HA, scaling, storage)
+3. Review **[Runbooks > Incident Response](./runbooks/incident-response.md)** (troubleshooting)
+
+### For Incident Response
+
+**When issues occur:**
+
+1. Check **[Monitoring](./monitoring.md)** to understand what's failing
+2. Review **[Runbooks](./runbooks/)** for specific service procedures
+3. Use troubleshooting steps in **[Deployment > Troubleshooting](./deployment.md#troubleshooting)**
+
+---
+
+## 📋 Complete File Structure
+
+```
+technical-manual/
+├─ index.md                          # You are here
+├─ architecture.md                   # System design & components
+├─ deployment.md                     # Installation & configuration
+├─ monitoring.md                     # Observability & dashboards
+├─ security/
+│  ├─ index.md                       # Security overview
+│  ├─ secrets-policy.md              # Secrets management (Vault)
+│  └─ rbac-matrix.md                 # Access control matrix
+├─ runbooks/
+│  ├─ index.md                       # Runbook overview
+│  ├─ gateway-api.md                 # Gateway API procedures
+│  ├─ orchestrator.md                # Orchestrator procedures
+│  ├─ postgres-database.md           # Database management
+│  ├─ incident-response.md           # Emergency procedures
+│  └─ scaling-procedures.md          # Scaling operations
+└─ backup-and-recovery.md            # Disaster recovery
+```
+
+---
+
+## 🔑 Key Concepts
+
+### Service Responsibilities
+
+**Application Services** (user-facing APIs):
+- **Gateway API** (10000): Ingress, authentication, rate limiting
+- **Orchestrator** (10001): Multi-agent workflows, state management
+- **Identity Service** (10002): Tenants, roles, JWT issuance
+
+**Infrastructure Services** (supporting backend):
+- **PostgreSQL**: Persistent state, Temporal metadata
+- **Redis**: Caching, sessions, real-time data
+- **Qdrant**: Vector search, semantic memory
+- **Temporal**: Workflow engine, task queues
+- **Kafka**: Event streaming, audit logs
+
+**Observability Stack**:
+- **Prometheus**: Metrics collection & storage
+- **Grafana**: Metrics visualization & dashboards
+- **Loki**: Log aggregation
+- **Tempo**: Distributed tracing
+- **OTEL Collector**: Trace/metric receiver
+
+**Security & Secrets**:
+- **Vault**: Secrets management, key rotation
+- **OPA/Gatekeeper**: Policy enforcement
+- **Istio**: mTLS, service mesh
+
+---
+
+## 📊 Standard Operating Procedures
+
+### Daily Operations
+
+```bash
+# 1. Check service health (every morning)
+curl http://localhost:10000/health          # Gateway
+curl http://localhost:10001/ready           # Orchestrator
+curl http://localhost:10002/health          # Identity
+
+# 2. Monitor resource usage
+docker stats --no-stream
+
+# 3. Check logs for errors
+docker-compose logs --tail=100 | grep -i error
+
+# 4. Verify database connectivity
+docker-compose exec app-postgres pg_isready
+
+# 5. Monitor alerting
+open http://localhost:3000  # Grafana
+open http://localhost:9090  # Prometheus
+```
+
+### Weekly Maintenance
+
+- ✅ Review backup status (`backup-and-recovery.md`)
+- ✅ Check certificate expiry (Vault, TLS)
+- ✅ Audit security policy compliance
+- ✅ Review application logs for warnings
+- ✅ Validate metrics collection is running
+
+### Monthly Audit
+
+- ✅ Security posture assessment
+- ✅ Capacity planning review
+- ✅ Disaster recovery drill
+- ✅ Documentation updates
+- ✅ Dependency vulnerability scanning
+
+---
+
+## 🚨 Emergency Procedures
+
+### Service is Down
+
+**Quick response:**
+
+```bash
+# 1. Check service status
+docker-compose ps <service>
+kubectl get pod -n soma-agent-hub
+
+# 2. Check logs
+docker-compose logs -f <service>
+kubectl logs -f deployment/<service> -n soma-agent-hub
+
+# 3. Restart service
+docker-compose restart <service>
+kubectl rollout restart deployment/<service> -n soma-agent-hub
+
+# 4. If restart fails → See Runbooks
+open docs/technical-manual/runbooks/<service>.md
+```
+
+### Database Connection Failures
+
+**Quick response:**
+
+```bash
+# 1. Check PostgreSQL health
+docker-compose exec app-postgres pg_isready
+
+# 2. Check database size
+docker-compose exec app-postgres psql -U somaagent -d somaagent -c \
+  "SELECT datname, pg_size_pretty(pg_database_size(datname)) FROM pg_database;"
+
+# 3. Check active connections
+docker-compose exec app-postgres psql -U somaagent -d somaagent -c \
+  "SELECT datname, count(*) as connections FROM pg_stat_activity GROUP BY datname;"
+
+# 4. Full troubleshooting → See Runbooks
+open docs/technical-manual/runbooks/postgres-database.md
+```
+
+### Out of Memory
+
+**Quick response:**
+
+```bash
+# 1. Check memory usage
+docker stats --no-stream
+df -h /var/lib/docker/
+
+# 2. Identify heavy consumers
+docker system df
+
+# 3. Free up space
+docker system prune -a  # Remove unused images/containers
+docker volume prune     # Remove unused volumes
+
+# 4. Increase Docker memory
+# → Open Docker Desktop → Preferences → Resources
+# → Increase Memory to 16+ GB
+```
+
+### Data Corruption / Inconsistency
+
+**Recovery procedure:**
+
+```bash
+# 1. Stop all services
+docker-compose down
+
+# 2. Backup current volumes
+docker run --rm -v somaagenthub-app-postgres-data:/data \
+  -v $(pwd):/backup alpine tar czf /backup/backup-corrupted.tar.gz /data
+
+# 3. Restore from backup (if available)
+docker volume rm somaagenthub-app-postgres-data
+docker run --rm -v somaagenthub-app-postgres-data:/data \
+  -v /path/to/backup:/backup alpine tar xzf /backup/postgres-backup.tar.gz
+
+# 4. Restart services
+docker-compose up -d
+
+# 5. Verify integrity
+docker-compose exec app-postgres pg_dump -U somaagent --verbose | head -100
+```
+
+---
+
+## 📞 Support & Escalation
+
+### Getting Help
+
+| Issue Type | First Steps | Escalation |
+|-----------|------------|-----------|
+| Service down | Check logs, restart, see runbooks | Page on-call engineer |
+| Performance issue | Check metrics in Grafana, review runbooks | Contact SRE lead |
+| Database problem | Run diagnostics, check runbooks | Contact database specialist |
+| Security concern | Isolate service, disable user access, page security team | Activate incident response |
+
+### Contacts
+
+- **Tech Lead**: `@tech-lead` (architecture questions)
+- **DevOps Lead**: `@devops-lead` (deployment, infrastructure)
+- **On-Call SRE**: Check PagerDuty rotation
+- **Security Team**: `@security-team` (security incidents)
+
+### Slack Channels
+
+- `#somagenthub-alerts` - System alerts & incidents
+- `#somagenthub-dev` - Development & ops discussion
+- `#somagenthub-general` - General announcements
+
+---
+
+## 🔗 Related Documentation
+
+**For other audiences:**
+
+- **[User Manual](../user-manual/)** - End-user features & workflows
+- **[Development Manual](../development-manual/)** - Code contribution & architecture
+- **[Onboarding Manual](../onboarding-manual/)** - Team member onboarding
+
+---
+
+## 📋 Operations Checklist
+
+### Pre-Production Deployment
+
+- [ ] Architecture reviewed by tech lead
+- [ ] Security assessment completed
+- [ ] Capacity planning verified
+- [ ] Backup procedures tested
+- [ ] Monitoring configured & verified
+- [ ] Runbooks written & tested
+- [ ] Incident response plan created
+- [ ] Team trained on procedures
+
+### Post-Deployment Verification
+
+- [ ] All services healthy (15+ running)
+- [ ] Metrics flowing to Prometheus
+- [ ] Logs flowing to Loki
+- [ ] Traces flowing to Tempo
+- [ ] Vault unsealed & operational
+- [ ] Backups running on schedule
+- [ ] Alerts triggering correctly
+- [ ] Documentation up-to-date
+
+---
+
+## 🎯 Common Tasks Reference
+
+### View Service Logs
+
+```bash
+# Last 50 lines
+docker-compose logs --tail=50 gateway-api
+
+# Follow in real-time
+docker-compose logs -f gateway-api
+
+# Kubernetes
+kubectl logs -f deployment/gateway-api -n soma-agent-hub
+```
+
+### Scale Services
+
+```bash
+# Docker Compose
+docker-compose up -d --scale orchestrator=3
+
+# Kubernetes
+kubectl scale deployment gateway-api --replicas=5 -n soma-agent-hub
+```
+
+### Update Service Configuration
+
+```bash
+# Edit .env
+nano .env
+
+# Restart affected service
+docker-compose restart gateway-api
+
+# Or Kubernetes
+kubectl set env deployment/gateway-api KEY=value -n soma-agent-hub
+kubectl rollout restart deployment/gateway-api -n soma-agent-hub
+```
+
+### Database Backup
+
+```bash
+# PostgreSQL dump
+docker-compose exec app-postgres pg_dump -U somaagent -d somaagent > backup.sql
+
+# Restore
+cat backup.sql | docker-compose exec -T app-postgres psql -U somaagent -d somaagent
+```
+
+---
+
+## 📊 Performance Baselines
+
+**Expected healthy state metrics:**
+
+| Metric | Threshold | Alert Level |
+|--------|-----------|-------------|
+| **API p95 latency** | < 1000ms | 2000ms |
+| **API error rate** | < 0.1% | > 1% |
+| **Throughput** | > 100 req/sec | < 50 req/sec |
+| **PostgreSQL connections** | < 150/200 | > 180/200 |
+| **Redis memory** | < 400MB/512MB | > 480MB/512MB |
+| **Disk usage** | < 70% | > 85% |
+| **CPU usage** | < 70% | > 85% |
+| **Memory usage** | < 70% | > 85% |
+
+---
+
+## ✅ You're Ready!
+
+**Next steps:**
+
+1. **Read [Architecture](./architecture.md)** to understand the system
+2. **Follow [Deployment](./deployment.md)** to get services running
+3. **Set up [Monitoring](./monitoring.md)** to observe the system
+4. **Review [Runbooks](./runbooks/)** for operational procedures
+5. **Read [Security](./security/)** for hardening procedures
+
+---
+
+**Questions? Check the [Onboarding Manual](../onboarding-manual/) or reach out in #somagenthub-dev!** 🚀
 |---------|-------------|
 | **[Operational Runbooks](runbooks/)** | Step-by-step procedures for common operations |
 | **[Backup & Recovery](backup-and-recovery.md)** | Data protection and disaster recovery procedures |

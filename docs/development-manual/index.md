@@ -1,20 +1,37 @@
-# SomaAgentHub Development Manual
+# Development Manual
 
-**Code Contribution, Local Development, and Customization Guide**
+**Contributor guide for developers building and extending SomaAgentHub.**
 
-This Development Manual contains everything software engineers need to understand, build, modify, and contribute to the SomaAgentHub codebase.
+Welcome to the Development Manual. This guide is for **software engineers, developers, and contributors** who build, test, and extend the SomaAgentHub codebase.
 
 ---
 
-## 🎯 Who Should Use This Manual?
+## 📚 Quick Navigation
 
-| Developer Type | Primary Use Cases | Key Sections |
-|---------------|------------------|-------------|
-| **New Contributors** | First-time contributions, understanding codebase | [Local Setup](local-setup.md), [Contribution Process](contribution-process.md) |
-| **Backend Engineers** | Service development, API modifications | [Codebase Overview](#codebase-overview), [Coding Standards](coding-standards.md) |
-| **Frontend Developers** | UI development, admin console | [Local Setup](local-setup.md), [API Reference](api-reference.md) |
-| **DevOps Engineers** | CI/CD, deployment automation | [Testing Guidelines](testing-guidelines.md), [Contribution Process](contribution-process.md) |
-| **Platform Engineers** | Architecture changes, scaling improvements | All sections |
+### Core Documentation
+
+| Section | Purpose | Time |
+|---------|---------|------|
+| **[Local Setup](./local-setup.md)** | Get your development environment ready | 15 min |
+| **[Codebase Overview](../onboarding-manual/codebase-walkthrough.md)** | Understand project structure & architecture | 30 min |
+| **[Coding Standards](./coding-standards.md)** | Code style, linting, formatting | 20 min |
+| **[Testing Guidelines](./testing-guidelines.md)** | Unit, integration, e2e testing | 30 min |
+| **[API Reference](./api-reference.md)** | Service endpoints & data models | Reference |
+| **[Contribution Process](./contribution-process.md)** | Git workflow, PR process, code review | 20 min |
+
+---
+
+## 🎯 Your First Day
+
+**Get up and running in 2 hours:**
+
+### Quick Start
+
+1. Clone: `git clone https://github.com/somatechlat/SomaAgentHub.git && cd SomaAgentHub`
+2. Setup: `make setup && docker-compose up -d`
+3. Verify: `curl http://localhost:10000/health`
+4. Explore: Read [Codebase Walkthrough](../onboarding-manual/codebase-walkthrough.md)
+5. Contribute: Pick a `good-first-issue` and make your first PR
 
 ---
 
