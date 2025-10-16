@@ -1,0 +1,117 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: openfga-system
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: openfga
+  namespace: openfga-system
+spec:
+  ports:
+    - port: 8080
+      targetPort: 8080
+      name: http
+    - port: 8081
+      targetPort: 8081
+      name: grpc
+    - port: 3000
+      targetPort: 3000
+      name: playground
+  selector:
+    app: openfga
+  type: ClusterIP
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: openfga
+  namespace: openfga-system
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: openfga
+  template:
+    metadata:
+      labels:
+        app: openfga
+    spec:
+      containers:
+        - name: openfga
+          image: openfga/openfga:v1.2.0
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8080
+              name: http
+            - containerPort: 8081
+              name: grpc
+            - containerPort: 3000
+              name: playground
+          env:
+            - name: OPENFGA_DATASTORE_ENGINE
+              value: "postgres"
+            - name: OPENFGA_DATASTORE_URI
+              value: "postgres://openfga:openfga@postgres:5432/openfga?sslmode=disable"
+            - name: OPENFGA_LOG_LEVEL
+              value: "info"
+            - name: OPENFGA_PLAYGROUND_ENABLED
+              value: "true"
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: 8080
+            initialDelaySeconds: 30
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: 8080
+            initialDelaySeconds: 10
+            periodSeconds: 5
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
+---
+apiVersion: networking.istio.io/v1beta1
+kind: VirtualService
+metadata:
+  name: openfga
+  namespace: openfga-system
+spec:
+  hosts:
+    - openfga
+    - openfga.openfga-system
+  http:
+    - route:
+        - destination:
+            host: openfga
+            port:
+              number: 8080
+      timeout: 5s
+---
+apiVersion: networking.istio.io/v1beta1
+kind: DestinationRule
+metadata:
+  name: openfga
+  namespace: openfga-system
+spec:
+  host: openfga
+  trafficPolicy:
+    connectionPool:
+      tcp:
+        maxConnections: 100
+      http:
+        http1MaxPendingRequests: 100
+        http2MaxRequests: 1000
+    loadBalancer:
+      simple: ROUND_ROBIN
+    outlierDetection:
+      consecutive5xxErrors: 5
+      interval: 30s
+      baseEjectionTime: 30s

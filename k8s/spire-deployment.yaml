@@ -1,0 +1,210 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: spire-system
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: spire-server
+  namespace: spire-system
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: spire-server
+rules:
+  - apiGroups: [""]
+    resources: ["configmaps"]
+    verbs: ["get"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: spire-server
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: spire-server
+subjects:
+  - kind: ServiceAccount
+    name: spire-server
+    namespace: spire-system
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: spire-server
+  namespace: spire-system
+spec:
+  ports:
+    - port: 8081
+      targetPort: 8081
+      protocol: TCP
+      name: grpc
+    - port: 8888
+      targetPort: 8888
+      protocol: TCP
+      name: metrics
+  selector:
+    app: spire-server
+  type: ClusterIP
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: spire-server
+  namespace: spire-system
+  labels:
+    app: spire-server
+spec:
+  serviceName: spire-server
+  replicas: 1
+  selector:
+    matchLabels:
+      app: spire-server
+  template:
+    metadata:
+      labels:
+        app: spire-server
+    spec:
+      serviceAccountName: spire-server
+      containers:
+        - name: spire-server
+          image: ghcr.io/spiffe/spire-server:v1.8.0
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8081
+              name: grpc
+            - containerPort: 8888
+              name: metrics
+          volumeMounts:
+            - name: spire-server-config
+              mountPath: /etc/spire/server
+            - name: spire-server-data
+              mountPath: /run/spire/server/data
+            - name: spire-server-ca
+              mountPath: /run/spire/server/ca
+          livenessProbe:
+            exec:
+              command: ["/bin/sh", "-c", "ps aux | grep spire-server | grep -v grep"]
+            initialDelaySeconds: 30
+            periodSeconds: 30
+          readinessProbe:
+            exec:
+              command: ["/bin/sh", "-c", "curl http://localhost:8888/metrics | grep -q spire"]
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
+      volumes:
+        - name: spire-server-config
+          configMap:
+            name: spire-server
+        - name: spire-server-data
+          emptyDir: {}
+        - name: spire-server-ca
+          secret:
+            secretName: spire-server-ca
+            optional: true
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: spire-agent
+  namespace: spire-system
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: spire-agent
+rules:
+  - apiGroups: [""]
+    resources: ["pods", "pods/log"]
+    verbs: ["get"]
+  - apiGroups: [""]
+    resources: ["nodes"]
+    verbs: ["get"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: spire-agent
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: spire-agent
+subjects:
+  - kind: ServiceAccount
+    name: spire-agent
+    namespace: spire-system
+---
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: spire-agent
+  namespace: spire-system
+spec:
+  selector:
+    matchLabels:
+      app: spire-agent
+  template:
+    metadata:
+      labels:
+        app: spire-agent
+    spec:
+      serviceAccountName: spire-agent
+      hostNetwork: true
+      hostPID: true
+      containers:
+        - name: spire-agent
+          image: ghcr.io/spiffe/spire-agent:v1.8.0
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: MY_NODE_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: spec.nodeName
+          volumeMounts:
+            - name: spire-agent-config
+              mountPath: /etc/spire/agent
+            - name: spire-agent-data
+              mountPath: /run/spire/agent/data
+            - name: spire-agent-socket
+              mountPath: /run/spire/sockets
+            - name: kubelet-root
+              mountPath: /var/lib/kubelet
+              readOnly: true
+          livenessProbe:
+            exec:
+              command: ["/bin/sh", "-c", "ps aux | grep spire-agent | grep -v grep"]
+            initialDelaySeconds: 30
+            periodSeconds: 30
+          readinessProbe:
+            exec:
+              command: ["/bin/sh", "-c", "test -S /run/spire/sockets/agent.sock"]
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          resources:
+            requests:
+              cpu: 50m
+              memory: 128Mi
+            limits:
+              cpu: 200m
+              memory: 256Mi
+      volumes:
+        - name: spire-agent-config
+          configMap:
+            name: spire-agent
+        - name: spire-agent-data
+          emptyDir: {}
+        - name: spire-agent-socket
+          emptyDir: {}
+        - name: kubelet-root
+          hostPath:
+            path: /var/lib/kubelet

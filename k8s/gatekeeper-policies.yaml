@@ -1,0 +1,165 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: gatekeeper-system
+---
+apiVersion: templates.gatekeeper.sh/v1
+kind: ConstraintTemplate
+metadata:
+  name: k8srequiredregistry
+spec:
+  crd:
+    spec:
+      names:
+        kind: K8sRequiredRegistry
+      validation:
+        openAPIV3Schema:
+          properties:
+            allowedRegistries:
+              description: "List of allowed image registries"
+              type: array
+              items:
+                type: string
+  targets:
+    - target: admission.k8s.gatekeeper.sh
+      rego: |
+        package k8srequiredregistry
+        
+        violation[{"msg": msg}] {
+          container := input.review.object.spec.containers[_]
+          image := container.image
+          not allowed_image(image)
+          msg := sprintf("Image '%v' from disallowed registry. Allowed: %v", [image, input.parameters.allowedRegistries])
+        }
+        
+        violation[{"msg": msg}] {
+          container := input.review.object.spec.initContainers[_]
+          image := container.image
+          not allowed_image(image)
+          msg := sprintf("Init image '%v' from disallowed registry. Allowed: %v", [image, input.parameters.allowedRegistries])
+        }
+        
+        allowed_image(image) {
+          registry := split(image, "/")[0]
+          registry == input.parameters.allowedRegistries[_]
+        }
+        
+        allowed_image(image) {
+          not contains(image, "/")
+        }
+---
+apiVersion: constraints.gatekeeper.sh/v1beta1
+kind: K8sRequiredRegistry
+metadata:
+  name: soma-registry-policy
+spec:
+  match:
+    kinds:
+      - apiGroups: [""]
+        kinds: ["Pod"]
+    excludedNamespaces: ["kube-system", "kube-public", "gatekeeper-system"]
+  parameters:
+    allowedRegistries:
+      - "docker.io"
+      - "gcr.io"
+      - "quay.io"
+      - "registry.k8s.io"
+      - "ghcr.io"
+---
+apiVersion: templates.gatekeeper.sh/v1
+kind: ConstraintTemplate
+metadata:
+  name: k8sblockprivileged
+spec:
+  crd:
+    spec:
+      names:
+        kind: K8sBlockPrivileged
+  targets:
+    - target: admission.k8s.gatekeeper.sh
+      rego: |
+        package k8sblockprivileged
+        
+        violation[{"msg": msg}] {
+          container := input.review.object.spec.containers[_]
+          container.securityContext.privileged
+          msg := sprintf("Container '%v' is running in privileged mode", [container.name])
+        }
+        
+        violation[{"msg": msg}] {
+          container := input.review.object.spec.containers[_]
+          container.securityContext.allowPrivilegeEscalation == true
+          msg := sprintf("Container '%v' allows privilege escalation", [container.name])
+        }
+---
+apiVersion: constraints.gatekeeper.sh/v1beta1
+kind: K8sBlockPrivileged
+metadata:
+  name: soma-block-privileged
+spec:
+  match:
+    kinds:
+      - apiGroups: [""]
+        kinds: ["Pod"]
+    excludedNamespaces: ["kube-system", "kube-public", "gatekeeper-system"]
+---
+apiVersion: templates.gatekeeper.sh/v1
+kind: ConstraintTemplate
+metadata:
+  name: k8srequiredresources
+spec:
+  crd:
+    spec:
+      names:
+        kind: K8sRequiredResources
+  targets:
+    - target: admission.k8s.gatekeeper.sh
+      rego: |
+        package k8srequiredresources
+        
+        violation[{"msg": msg}] {
+          container := input.review.object.spec.containers[_]
+          not container.resources.requests
+          msg := sprintf("Container '%v' missing resource requests", [container.name])
+        }
+        
+        violation[{"msg": msg}] {
+          container := input.review.object.spec.containers[_]
+          not container.resources.limits
+          msg := sprintf("Container '%v' missing resource limits", [container.name])
+        }
+        
+        violation[{"msg": msg}] {
+          container := input.review.object.spec.containers[_]
+          not container.resources.requests.cpu
+          msg := sprintf("Container '%v' missing CPU request", [container.name])
+        }
+        
+        violation[{"msg": msg}] {
+          container := input.review.object.spec.containers[_]
+          not container.resources.requests.memory
+          msg := sprintf("Container '%v' missing memory request", [container.name])
+        }
+---
+apiVersion: constraints.gatekeeper.sh/v1beta1
+kind: K8sRequiredResources
+metadata:
+  name: soma-require-resources
+spec:
+  match:
+    kinds:
+      - apiGroups: [""]
+        kinds: ["Pod"]
+    excludedNamespaces: ["kube-system", "kube-public", "gatekeeper-system"]
+---
+apiVersion: constraints.gatekeeper.sh/v1beta1
+kind: K8sRequiredLabels
+metadata:
+  name: soma-require-labels
+spec:
+  match:
+    kinds:
+      - apiGroups: [""]
+        kinds: ["Pod"]
+  parameters:
+    labels: ["app", "version"]

@@ -1,0 +1,195 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: argocd
+---
+# Using Helm for Argo CD is recommended, but here's a starter manifest
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: argocd-server
+  namespace: argocd
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: argocd-server
+  template:
+    metadata:
+      labels:
+        app: argocd-server
+    spec:
+      serviceAccountName: argocd-server
+      containers:
+        - name: argocd-server
+          image: argoproj/argocd:v2.10.0
+          command:
+            - argocd-server
+          ports:
+            - containerPort: 8080
+              name: http
+            - containerPort: 8083
+              name: https
+          env:
+            - name: ARGOCD_SERVER_INSECURE
+              value: "true"
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: argocd-repo-server
+  namespace: argocd
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: argocd-repo-server
+  template:
+    metadata:
+      labels:
+        app: argocd-repo-server
+    spec:
+      containers:
+        - name: argocd-repo-server
+          image: argoproj/argocd:v2.10.0
+          command:
+            - argocd-repo-server
+          ports:
+            - containerPort: 8081
+              name: server
+          volumeMounts:
+            - name: ssh-known-hosts
+              mountPath: /home/argocd/.ssh
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
+      volumes:
+        - name: ssh-known-hosts
+          configMap:
+            name: argocd-ssh-known-hosts-cm
+            optional: true
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: argocd-application-controller
+  namespace: argocd
+spec:
+  serviceName: argocd-application-controller
+  replicas: 1
+  selector:
+    matchLabels:
+      app: argocd-application-controller
+  template:
+    metadata:
+      labels:
+        app: argocd-application-controller
+    spec:
+      serviceAccountName: argocd-application-controller
+      containers:
+        - name: argocd-application-controller
+          image: argoproj/argocd:v2.10.0
+          command:
+            - argocd-application-controller
+            - --status-processor-workers=20
+            - --operation-processors=10
+          env:
+            - name: ARGOCD_RECONCILIATION_TIMEOUT
+              value: "180s"
+          resources:
+            requests:
+              cpu: 250m
+              memory: 512Mi
+            limits:
+              cpu: 1000m
+              memory: 1024Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: argocd-server
+  namespace: argocd
+spec:
+  ports:
+    - port: 80
+      targetPort: 8080
+      name: http
+    - port: 443
+      targetPort: 8083
+      name: https
+  selector:
+    app: argocd-server
+  type: LoadBalancer
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: argocd-repo-server
+  namespace: argocd
+spec:
+  ports:
+    - port: 8081
+      targetPort: 8081
+  selector:
+    app: argocd-repo-server
+  type: ClusterIP
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: argocd-application-controller
+  namespace: argocd
+spec:
+  ports:
+    - port: 8082
+      targetPort: 8082
+  selector:
+    app: argocd-application-controller
+  type: ClusterIP
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: argocd-server
+  namespace: argocd
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: argocd-application-controller
+  namespace: argocd
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: argocd-application-controller
+rules:
+  - apiGroups: ["*"]
+    resources: ["*"]
+    verbs: ["*"]
+  - nonResourceURLs: ["*"]
+    verbs: ["*"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: argocd-application-controller
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: argocd-application-controller
+subjects:
+  - kind: ServiceAccount
+    name: argocd-application-controller
+    namespace: argocd

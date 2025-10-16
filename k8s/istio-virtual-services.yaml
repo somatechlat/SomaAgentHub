@@ -1,0 +1,254 @@
+---
+# Gateway API VirtualService
+apiVersion: networking.istio.io/v1beta1
+kind: VirtualService
+metadata:
+  name: gateway-api
+  namespace: soma-agent-hub
+spec:
+  hosts:
+    - gateway-api
+    - gateway-api.soma-agent-hub
+    - gateway-api.soma-agent-hub.svc.cluster.local
+  http:
+    - match:
+        - uri:
+            prefix: /metrics
+      route:
+        - destination:
+            host: gateway-api
+            port:
+              number: 10000
+      timeout: 5s
+    - match:
+        - uri:
+            prefix: /health
+      route:
+        - destination:
+            host: gateway-api
+            port:
+              number: 10000
+      timeout: 5s
+    - route:
+        - destination:
+            host: gateway-api
+            port:
+              number: 10000
+            subset: v1
+          weight: 100
+      timeout: 30s
+      retries:
+        attempts: 3
+        perTryTimeout: 5s
+---
+apiVersion: networking.istio.io/v1beta1
+kind: DestinationRule
+metadata:
+  name: gateway-api
+  namespace: soma-agent-hub
+spec:
+  host: gateway-api
+  trafficPolicy:
+    connectionPool:
+      tcp:
+        maxConnections: 100
+      http:
+        http1MaxPendingRequests: 100
+        http2MaxRequests: 1000
+        maxRequestsPerConnection: 10
+    loadBalancer:
+      simple: ROUND_ROBIN
+    outlierDetection:
+      consecutive5xxErrors: 5
+      interval: 30s
+      baseEjectionTime: 30s
+      maxEjectionPercent: 50
+      minRequestVolume: 5
+      splitExternalLocalOriginErrors: true
+  subsets:
+    - name: v1
+      labels:
+        version: v1
+---
+# Orchestrator VirtualService
+apiVersion: networking.istio.io/v1beta1
+kind: VirtualService
+metadata:
+  name: orchestrator
+  namespace: soma-agent-hub
+spec:
+  hosts:
+    - orchestrator
+    - orchestrator.soma-agent-hub
+    - orchestrator.soma-agent-hub.svc.cluster.local
+  http:
+    - match:
+        - uri:
+            prefix: /metrics
+      route:
+        - destination:
+            host: orchestrator
+            port:
+              number: 10001
+      timeout: 5s
+    - route:
+        - destination:
+            host: orchestrator
+            port:
+              number: 10001
+            subset: v1
+          weight: 100
+      timeout: 60s
+      retries:
+        attempts: 2
+        perTryTimeout: 10s
+---
+apiVersion: networking.istio.io/v1beta1
+kind: DestinationRule
+metadata:
+  name: orchestrator
+  namespace: soma-agent-hub
+spec:
+  host: orchestrator
+  trafficPolicy:
+    connectionPool:
+      tcp:
+        maxConnections: 50
+      http:
+        http1MaxPendingRequests: 50
+        http2MaxRequests: 500
+        maxRequestsPerConnection: 5
+    loadBalancer:
+      simple: ROUND_ROBIN
+    outlierDetection:
+      consecutive5xxErrors: 3
+      interval: 30s
+      baseEjectionTime: 60s
+      maxEjectionPercent: 50
+      minRequestVolume: 5
+  subsets:
+    - name: v1
+      labels:
+        version: v1
+---
+# Identity Service VirtualService
+apiVersion: networking.istio.io/v1beta1
+kind: VirtualService
+metadata:
+  name: identity-service
+  namespace: soma-agent-hub
+spec:
+  hosts:
+    - identity-service
+    - identity-service.soma-agent-hub
+    - identity-service.soma-agent-hub.svc.cluster.local
+  http:
+    - match:
+        - uri:
+            prefix: /metrics
+      route:
+        - destination:
+            host: identity-service
+            port:
+              number: 10002
+      timeout: 5s
+    - route:
+        - destination:
+            host: identity-service
+            port:
+              number: 10002
+            subset: v1
+          weight: 100
+      timeout: 10s
+      retries:
+        attempts: 3
+        perTryTimeout: 2s
+---
+apiVersion: networking.istio.io/v1beta1
+kind: DestinationRule
+metadata:
+  name: identity-service
+  namespace: soma-agent-hub
+spec:
+  host: identity-service
+  trafficPolicy:
+    connectionPool:
+      tcp:
+        maxConnections: 200
+      http:
+        http1MaxPendingRequests: 200
+        http2MaxRequests: 2000
+        maxRequestsPerConnection: 20
+    loadBalancer:
+      simple: ROUND_ROBIN
+    outlierDetection:
+      consecutive5xxErrors: 5
+      interval: 30s
+      baseEjectionTime: 30s
+      maxEjectionPercent: 30
+      minRequestVolume: 5
+  subsets:
+    - name: v1
+      labels:
+        version: v1
+---
+# Policy Engine VirtualService
+apiVersion: networking.istio.io/v1beta1
+kind: VirtualService
+metadata:
+  name: policy-engine
+  namespace: soma-agent-hub
+spec:
+  hosts:
+    - policy-engine
+    - policy-engine.soma-agent-hub
+    - policy-engine.soma-agent-hub.svc.cluster.local
+  http:
+    - match:
+        - uri:
+            prefix: /metrics
+      route:
+        - destination:
+            host: policy-engine
+            port:
+              number: 10020
+      timeout: 5s
+    - route:
+        - destination:
+            host: policy-engine
+            port:
+              number: 10020
+            subset: v1
+          weight: 100
+      timeout: 5s
+      retries:
+        attempts: 2
+        perTryTimeout: 1s
+---
+apiVersion: networking.istio.io/v1beta1
+kind: DestinationRule
+metadata:
+  name: policy-engine
+  namespace: soma-agent-hub
+spec:
+  host: policy-engine
+  trafficPolicy:
+    connectionPool:
+      tcp:
+        maxConnections: 150
+      http:
+        http1MaxPendingRequests: 150
+        http2MaxRequests: 1500
+        maxRequestsPerConnection: 15
+    loadBalancer:
+      simple: LEAST_REQUEST
+    outlierDetection:
+      consecutive5xxErrors: 3
+      interval: 20s
+      baseEjectionTime: 30s
+      maxEjectionPercent: 30
+      minRequestVolume: 3
+  subsets:
+    - name: v1
+      labels:
+        version: v1

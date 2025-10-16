@@ -1,0 +1,101 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: spire-server
+  namespace: spire-system
+data:
+  server.conf: |
+    server {
+      bind_address = "0.0.0.0"
+      bind_port = "8081"
+      log_level = "INFO"
+      trust_domain = "soma-agent-hub.local"
+      data_dir = "/run/spire/server/data"
+      default_svid_ttl = "1h"
+      default_x509_svid_ttl = "1h"
+    }
+
+    plugins {
+      DataStore "sql" {
+        plugin_data {
+          database_type = "postgres"
+          connection_string = "dbname=spire user=spire password=spire host=postgres port=5432 sslmode=disable"
+        }
+      }
+
+      NodeAttestor "k8s_psat" {
+        plugin_data {
+          clusters = {
+            "soma-cluster" = {
+              service_account_whitelist = ["spire-system:spire-agent"]
+            }
+          }
+        }
+      }
+
+      NodeResolver "noop" {
+        plugin_data {}
+      }
+
+      KeyManager "disk" {
+        plugin_data {
+          keys_path = "/run/spire/server/keys"
+        }
+      }
+
+      UpstreamAuthority "disk" {
+        plugin_data {
+          key_file_path = "/run/spire/server/ca/private.pem"
+          cert_file_path = "/run/spire/server/ca/cert.pem"
+        }
+      }
+    }
+
+    telemetry {
+      Prometheus {
+        port = 8888
+      }
+    }
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: spire-agent
+  namespace: spire-system
+data:
+  agent.conf: |
+    agent {
+      data_dir = "/run/spire/agent/data"
+      log_level = "INFO"
+      server_address = "spire-server"
+      server_port = 8081
+      trust_domain = "soma-agent-hub.local"
+      trust_bundle_path = "/run/spire/agent/data/bundle.crt"
+      trust_bundle_format = "pem"
+    }
+
+    plugins {
+      NodeAttestor "k8s_psat" {
+        plugin_data {
+          cluster = "soma-cluster"
+        }
+      }
+
+      WorkloadAttestor "k8s" {
+        plugin_data {
+          skip_kubelet_verification = false
+          node_name_env = "MY_NODE_NAME"
+          service_account_dir = "/var/run/secrets/kubernetes.io/serviceaccount"
+        }
+      }
+
+      UpstreamWorkloadAttestor "unix" {
+        plugin_data {}
+      }
+    }
+
+    telemetry {
+      Prometheus {
+        port = 8889
+      }
+    }

@@ -1,0 +1,62 @@
+# OpenFGA Authorization Model for SomaAgentHub
+
+model
+  schema 1.1
+
+type user
+type service
+type action
+type resource
+
+type organization
+  relations
+    define owner: [user, service]
+    define admin: [user, service, organization#owner]
+    define member: [user, service, organization#admin]
+
+type project
+  relations
+    define organization: [organization]
+    define owner: [user, service]
+    define admin: [user, service, project#owner]
+    define viewer: [user, service, project#admin, project#owner]
+    define editor: [user, service, project#admin]
+    define deployer: [user, service, project#admin]
+    define can_read: [user, service, project#viewer, project#editor, project#admin]
+    define can_edit: [user, service, project#editor, project#admin]
+    define can_delete: [user, service, project#admin]
+    define can_deploy: [user, service, project#deployer, project#admin]
+
+type workflow
+  relations
+    define project: [project]
+    define owner: [user, service]
+    define executor: [user, service, workflow#owner]
+    define viewer: [user, service, workflow#owner, project#viewer]
+    define can_read: [user, service, workflow#viewer, workflow#owner]
+    define can_execute: [user, service, workflow#executor, workflow#owner]
+    define can_modify: [user, service, workflow#owner]
+
+type model
+  relations
+    define project: [project]
+    define owner: [user, service]
+    define deployer: [user, service]
+    define can_read: [user, service, model#owner, project#viewer]
+    define can_deploy: [user, service, model#deployer, model#owner]
+
+type vector_store
+  relations
+    define project: [project]
+    define owner: [user, service]
+    define can_read: [user, service, vector_store#owner, project#viewer]
+    define can_write: [user, service, vector_store#owner]
+    define can_delete: [user, service, vector_store#owner]
+
+type policy
+  relations
+    define organization: [organization]
+    define owner: [user, service]
+    define can_read: [user, service, policy#owner, organization#admin]
+    define can_modify: [user, service, policy#owner, organization#admin]
+    define can_enforce: [user, service, policy#owner, organization#admin]

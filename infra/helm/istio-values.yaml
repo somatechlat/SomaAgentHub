@@ -1,0 +1,105 @@
+# Istio Helm values for SomaAgentHub
+# Deployed to: istio-system namespace
+# Version: 1.19.0+
+
+global:
+  imagePullPolicy: IfNotPresent
+
+istiod:
+  replicaCount: 2
+  resources:
+    requests:
+      cpu: 500m
+      memory: 2Gi
+    limits:
+      cpu: 2000m
+      memory: 4Gi
+  
+  # Enable pod disruption budgets for high availability
+  podDisruptionBudget:
+    minAvailable: 1
+
+ingressGateways:
+  - name: istio-ingressgateway
+    enabled: true
+    replicaCount: 2
+    resources:
+      requests:
+        cpu: 100m
+        memory: 128Mi
+      limits:
+        cpu: 2000m
+        memory: 1024Mi
+    service:
+      type: LoadBalancer
+      ports:
+        - port: 80
+          targetPort: 8080
+          name: http
+        - port: 443
+          targetPort: 8443
+          name: https
+    podDisruptionBudget:
+      minAvailable: 1
+
+egressGateways:
+  - name: istio-egressgateway
+    enabled: true
+    replicaCount: 1
+    resources:
+      requests:
+        cpu: 100m
+        memory: 128Mi
+      limits:
+        cpu: 2000m
+        memory: 1024Mi
+
+pilot:
+  autoscalingv2Enabled: true
+  autoscalingv2Metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 80
+
+meshConfig:
+  # Enable strict mutual TLS by default
+  mtls:
+    mode: STRICT
+  
+  # Certificate configuration
+  certificateChain: /etc/certs/cert-chain.pem
+  privateKey: /etc/certs/key.pem
+  rootCertificate: /etc/certs/root-cert.pem
+  
+  # Enable access logging
+  accessLogFile: /dev/stdout
+  accessLogFormat: |
+    [%START_TIME%] "%REQ(:METHOD)% %REQ(X-ENVOY-ORIGINAL-PATH?:PATH)% %PROTOCOL%"
+    %RESPONSE_CODE% %RESPONSE_FLAGS% %BYTES_RECEIVED% %BYTES_SENT%
+    "%DURATION%" "%RESP(X-ENVOY-UPSTREAM-SERVICE-TIME)%" "%REQ(USER-AGENT)%"
+    "%REQ(X-REQUEST-ID)%" "%REQ(:AUTHORITY)%" "%UPSTREAM_HOST%"
+  
+  # Enable metrics
+  enablePrometheusMerge: true
+  
+  # Service entry configuration
+  serviceSettings:
+    - hosts:
+        - "*.local"
+      settings:
+        clusterLocalNamespaces:
+          - soma-agent-hub
+          - observability
+
+# Monitoring and observability
+prometheus:
+  enabled: true
+
+# Tracing configuration
+tracing:
+  provider: jaeger
+  jaeger:
+    address: jaeger-collector.observability:14250

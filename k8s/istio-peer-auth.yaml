@@ -1,0 +1,36 @@
+apiVersion: security.istio.io/v1beta1
+kind: PeerAuthentication
+metadata:
+  name: default
+  namespace: soma-agent-hub
+spec:
+  # STRICT: all traffic encrypted with mTLS
+  mtls:
+    mode: STRICT
+---
+apiVersion: security.istio.io/v1beta1
+kind: PeerAuthentication
+metadata:
+  name: observability
+  namespace: observability
+spec:
+  mtls:
+    mode: STRICT
+---
+# Allow ingress gateway to receive non-mTLS traffic from external clients
+apiVersion: security.istio.io/v1beta1
+kind: PeerAuthentication
+metadata:
+  name: ingress-gateway
+  namespace: istio-system
+spec:
+  selector:
+    matchLabels:
+      istio: ingressgateway
+  mtls:
+    mode: DISABLE
+  portLevelMtls:
+    8080:
+      mode: DISABLE
+    8443:
+      mode: SIMPLE
