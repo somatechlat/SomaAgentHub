@@ -142,7 +142,7 @@ Every core service exposes a `/health` endpoint that provides a simple health st
 
 ```bash
 # Check the health of the Gateway API
-kubectl exec -n soma-agent-hub <gateway-api-pod-name> -- curl -s http://localhost:8080/health
+kubectl exec -n soma-agent-hub <gateway-api-pod-name> -- curl -s http://localhost:10000/health
 
 # Expected Response
 {"status": "healthy"}

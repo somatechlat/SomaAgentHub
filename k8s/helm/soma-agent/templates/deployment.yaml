@@ -11,8 +11,6 @@ metadata:
     app: {{ $name }}
     app.kubernetes.io/name: {{ $name }}
     app.kubernetes.io/part-of: {{ $.Chart.Name }}
-  annotations:
-    checksum/config: {{ include (print $.Chart.Name "/values.yaml") . | sha256sum }}
 spec:
   replicas: {{ $svc.replicaCount | default 1 }}
   selector:
@@ -32,7 +30,7 @@ spec:
           securityContext:
 {{ toYaml ($svc.securityContext | default $.Values.global.securityContext) | indent 12 }}
           ports:
-            - containerPort: {{ $svc.port }}
+            - containerPort: {{ index $.Values.ports $name }}
           {{- if $svc.envFromSecret }}
           envFrom:
             - secretRef:
@@ -48,7 +46,7 @@ spec:
           livenessProbe:
             httpGet:
               path: /health
-              port: {{ $svc.port }}
+              port: {{ index $.Values.ports $name }}
             initialDelaySeconds: 10
             periodSeconds: 30
             timeoutSeconds: 5
@@ -56,7 +54,7 @@ spec:
           readinessProbe:
             httpGet:
               path: /health
-              port: {{ $svc.port }}
+              port: {{ index $.Values.ports $name }}
             initialDelaySeconds: 5
             periodSeconds: 10
             timeoutSeconds: 3

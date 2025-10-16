@@ -22,85 +22,68 @@ Ensure you have the following tools installed on your system before you begin.
 
 ---
 
-## 🚀 Setup in 5 Steps
+## 🚀 Local Development Workflows
 
-Follow these five steps to get everything running.
+You now have two perfect, parallel workflows for local development. Choose the one that best fits your needs.
 
-### Step 1: Clone the Repository
+### **Workflow 1: Kubernetes-Based Development (Recommended)**
+This workflow provides the closest experience to the production environment.
+
+**To start or verify your environment:**
 ```bash
-git clone https://github.com/somatechlat/somaAgentHub.git
-cd somaAgentHub
+make dev-env
 ```
 
-### Step 2: Set Up Python Environment
-We use `venv` for managing Python dependencies.
-
+**To stop the environment:**
 ```bash
-# Create a virtual environment
-python3.11 -m venv .venv
-
-# Activate the environment
-source .venv/bin/activate
-
-# On Windows, use:
-# .venv\Scripts\activate
-
-# Install all required dependencies
-pip install -r requirements-dev.txt
+make stop-cluster
 ```
 
-### Step 3: Start Local Infrastructure
-This command uses Docker Compose to start all the necessary backing services (PostgreSQL, Redis, Temporal, etc.).
+### **Workflow 2: Pure Docker-Based Development**
+This workflow is slightly faster and uses less memory, as it does not run Kubernetes.
 
+**To start the full application cluster:**
 ```bash
-make dev-up
+make docker-cluster-up
 ```
-- **What it does**: Starts all infrastructure containers in the background.
-- **Verify**: Run `docker compose ps` to see all containers in the `running` state.
 
-### Step 4: Run the Services Locally
-This command starts the core SomaAgentHub microservices locally for development.
-
+**To stop the cluster and remove volumes:**
 ```bash
-make dev-start-services
+make docker-cluster-down
 ```
-- **What it does**: Starts the Gateway API, Orchestrator, and other key services. They will automatically reload on code changes.
-- **Access**:
-    - Gateway API: `http://localhost:8080`
-    - API Docs: `http://localhost:8080/docs`
-    - Temporal UI: `http://localhost:8233`
-
-### Step 5: Run the Test Suite
-Verify that your local setup is working correctly by running the full test suite.
-
-```bash
-make test
-```
-- **What it does**: Runs unit tests, integration tests, and code quality checks.
-- **Expected Output**: All tests should pass.
 
 ---
 
 ## ✅ You are now ready to code!
 
-Your local development environment is fully configured.
+Your local development environment is fully configured, persistent, and intelligent.
 
 ### Daily Workflow Commands
 ```bash
-# Start everything
-make dev-up
-make dev-start-services
+# The only command you need to start or check your environment
+make dev-env
 
-# Stop everything
-make dev-down
+# Stop the cluster
+make stop-cluster
 
 # Run all tests and linters
 make lint
 make test
-
-# Clean your environment (removes Docker volumes)
-make dev-clean
 ```
+
+---
+
+## 💾 **New: Persistent Data Storage**
+
+**The local development cluster is now configured for persistent storage.**
+
+-   **What this means**: Any data stored in the databases (PostgreSQL, Qdrant, etc.) will **survive** if you delete and recreate the cluster using `kind delete cluster` and `make start-cluster`.
+-   **How it works**: The cluster is configured to store all its data in the `.persistent_volumes/` directory in your project root. This directory is safely on your local machine.
+-   **To perform a full data reset**: If you need to start with a completely clean slate, you can manually delete the `.persistent_volumes/` directory before recreating the cluster:
+    ```bash
+    rm -rf .persistent_volumes/
+    make start-cluster
+    ```
 
 ---
 

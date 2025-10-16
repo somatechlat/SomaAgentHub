@@ -8,7 +8,7 @@ from typing import List
 import redis.asyncio as redis
 
 from ..models.context import RequestContext
-from .config import Settings, get_settings
+from .config import GatewaySettings, get_settings
 from .redis import get_redis_client
 
 
@@ -31,7 +31,7 @@ class ModerationVerdict:
 class ModerationGuard:
     """Performs lightweight content moderation with strike tracking."""
 
-    def __init__(self, redis_client: redis.Redis, settings: Settings | None = None) -> None:
+    def __init__(self, redis_client: redis.Redis, settings: GatewaySettings | None = None) -> None:
         self.redis = redis_client
         self.settings = settings or get_settings()
         self.block_terms = self.settings.moderation_terms()

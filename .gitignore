@@ -110,3 +110,5 @@ run_full_k8s_test.sh
 # Local environment configuration
 .dev_bind_ports.env
 *.local.env
+.persistent_volumes/
+.logs/

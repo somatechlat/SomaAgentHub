@@ -88,13 +88,10 @@ dev-up:
 	@docker network create somaagenthub-network || true
 	@bash ./scripts/select_free_ports.sh
 	@docker compose -f infra/temporal/docker-compose.yml -f infra/temporal/docker-compose.override.ports.yml up -d
-	@# Start redis using the mapped port suggested by the script (if not already running)
-	@if [ -z "$(docker ps -q -f name=soma-redis)" ]; then \
-	  # parse chosen redis port from override
-	  REDIS_PORT=$(awk '/soma-redis/ {p=1} p && /ports:/ {getline; print; exit}' infra/temporal/docker-compose.override.ports.yml | sed -E 's/\s*- "?([0-9]+):.*"?/\1/' ); \
-	  docker run -d --name soma-redis --network somaagenthub-network --restart unless-stopped -p $${REDIS_PORT}:6379 redis:7-alpine || true; \
+	@if [ -z "$$(docker ps -q -f name=soma-redis)" ]; then \
+		REDIS_PORT=$$(awk '/soma-redis/ {p=1} p && /ports:/ {getline; print; exit}' infra/temporal/docker-compose.override.ports.yml | sed -E 's/\s*- "?([0-9]+):.*"?/\1/'); \
+		docker run -d --name soma-redis --network somaagenthub-network --restart unless-stopped -p "$${REDIS_PORT:-10005}:6379" redis:7-alpine; \
 	fi
-	@echo "Local infra started: Temporal + Redis (use the override file for docker-compose)"
 	@echo "Local infra started: Temporal + Redis"
 
 .PHONY: select-free-ports
@@ -103,18 +100,18 @@ select-free-ports:
 
 .PHONY: dev-start-services
 dev-start-services:
-	@echo "Dev service start helper (prints example commands)."
-	@echo "Start Orchestrator:"
-	@echo "  export TEMPORAL_HOST=localhost:7237"
-	@echo "  export PYTHONPATH=$(pwd)/services/orchestrator"
-	@echo "  ./.venv/bin/python -m uvicorn services.orchestrator.app.main:app --host 0.0.0.0 --port 60002"
-	@echo
-	@echo "Start Gateway:"
-	@echo "  export SOMAGENT_GATEWAY_JWT_SECRET=dev-secret"
-	@echo "  export SOMAGENT_GATEWAY_REDIS_URL=redis://localhost:6380/0"
-	@echo "  export SOMAGENT_GATEWAY_ORCHESTRATOR_URL=http://localhost:60002"
-	@echo "  export PYTHONPATH=$(pwd)/services/gateway-api"
-	@echo "  ./.venv/bin/python -m uvicorn --app-dir services/gateway-api app.main:app --host 0.0.0.0 --port 60010"
+	@echo "Starting core services in the background. Logs will be in the .logs/ directory."
+	@pkill -f uvicorn || true
+	@ORCHESTRATOR_PORT=$${ORCHESTRATOR_PORT:-10001}; \
+	echo "Starting Orchestrator on port $${ORCHESTRATOR_PORT}..."; \
+	(PORT=$${ORCHESTRATOR_PORT} TEMPORAL_HOST=localhost:7233 PYTHONPATH=$(pwd)/services/orchestrator ./.venv/bin/python -m uvicorn services.orchestrator.app.main:app --host 0.0.0.0 --port $${ORCHESTRATOR_PORT} > .logs/orchestrator.log 2>&1 &)
+	
+	@GATEWAY_PORT=$${GATEWAY_PORT:-10000}; \
+	ORCHESTRATOR_PORT=$${ORCHESTRATOR_PORT:-10001}; \
+	echo "Starting Gateway API on port $${GATEWAY_PORT}..."; \
+	(PORT=$${GATEWAY_PORT} SOMAGENT_GATEWAY_JWT_SECRET=dev-secret SOMAGENT_GATEWAY_REDIS_URL=redis://localhost:6379/0 SOMAGENT_GATEWAY_ORCHESTRATOR_URL=http://localhost:$${ORCHESTRATOR_PORT} PYTHONPATH=$(pwd)/services/gateway-api ./.venv/bin/python -m uvicorn --app-dir services/gateway-api app.main:app --host 0.0.0.0 --port $${GATEWAY_PORT} > .logs/gateway-api.log 2>&1 &)
+	
+	@echo "Core services started. Use 'tail -f .logs/service-name.log' to see output."
 
 airflow-build:
 	@docker build -t somagent/airflow-service:dev -f services/airflow-service/Dockerfile .
@@ -137,10 +134,10 @@ flink-down:
 	@docker compose -f infra/flink/docker-compose.yml down --remove-orphans
 
 
-.PHONY: build-all dev-deploy deploy-region backup-databases restore-databases init-clickhouse run-migrations k8s-smoke port-forward-gateway generate-sbom scan-vulns rotate-secrets verify-observability
+.PHONY: build-changed dev-deploy deploy-region backup-databases restore-databases init-clickhouse run-migrations k8s-smoke port-forward-gateway generate-sbom scan-vulns rotate-secrets verify-observability
 
-build-all:
-	REGISTRY=$(REGISTRY) TAG=$(TAG) ./scripts/build_and_push.sh $(REGISTRY) $(TAG)
+build-changed:
+	./scripts/build-changed.sh $(REGISTRY) $(TAG)
 
 dev-deploy:
 	REGISTRY=$(DEV_DEPLOY_REGISTRY) TAG=$(DEV_DEPLOY_TAG) ./scripts/dev-deploy.sh
@@ -179,16 +176,42 @@ rotate-secrets:
 verify-observability:
 	./scripts/verify-instrumentation.sh
 
-.PHONY: helm-install start-cluster
-helm-install:
-	helm upgrade --install soma-agent-hub ./k8s/helm/soma-agent --namespace $(NAMESPACE) --create-namespace --set global.imageTag=$(TAG) --set global.namespace=$(NAMESPACE)
+.PHONY: docker-cluster-up docker-cluster-down
+docker-cluster-up:
+	./scripts/docker-cluster.sh
 
-start-cluster:
-	kind create cluster --name soma-agent-hub || true
+docker-cluster-down:
+	@echo "--> Stopping the Docker-based application cluster..."
+	docker compose down
+
+.PHONY: dev-env
+dev-env:
+	./scripts/manage-cluster.sh
+
+.PHONY: helm-install start-cluster stop-cluster
+helm-install:
+	helm upgrade --install soma-agent-hub ./k8s/helm/soma-agent --namespace $(NAMESPACE) --create-namespace --set global.imageTag=$(shell git rev-parse --short HEAD) --set global.namespace=$(NAMESPACE)
+
+start-cluster: stop-cluster
+	@echo "--> Creating persistent Kind cluster..."
+	kind create cluster --name soma-agent-hub --config=kind-cluster-persistent.yaml
+	@echo "--> Applying persistent volume..."
+	kubectl apply -f k8s/local/persistence.yaml
+	@echo "--> Creating namespaces..."
 	kubectl create namespace $(NAMESPACE) || true
 	kubectl create namespace $(OBS_NS) || true
-	make build-all
-	make helm-install
+	@echo "--> Building changed images..."
+	make build-changed
+	@echo "--> Deploying application with Helm..."
+	helm upgrade --install soma-agent-hub ./k8s/helm/soma-agent \
+		--namespace $(NAMESPACE) \
+		-f ./k8s/helm/soma-agent/values.yaml \
+		-f ./k8s/helm/soma-agent/values-dev.yaml \
+		--set global.imageTag=$(TAG)
+
+stop-cluster:
+	@echo "--> Deleting existing Kind cluster to ensure a clean start..."
+	kind delete cluster --name soma-agent-hub || true
 
 
 # Build images

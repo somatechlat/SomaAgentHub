@@ -1,0 +1,171 @@
+# docker-compose.yml
+# This file defines the complete, persistent, multi-service Docker environment
+# for local development, mirroring the Kubernetes deployment.
+
+services:
+  # --- Application Services ---
+  gateway-api:
+    build:
+      context: .
+      dockerfile: services/gateway-api/Dockerfile
+    container_name: somaagenthub-gateway-api
+    restart: unless-stopped
+    ports:
+      - "${GATEWAY_API_PORT:-10000}:10000"
+    environment:
+      - PORT=10000
+      - ORCHESTRATOR_URL=http://orchestrator:10001
+      - IDENTITY_SERVICE_URL=http://identity-service:10002
+      - REDIS_URL=redis://redis:6379/0
+      - AUTH_URL=http://identity-service:10002
+      - KAFKA_BOOTSTRAP_SERVERS=redis:6379
+    depends_on:
+      orchestrator:
+        condition: service_healthy
+      identity-service:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - python -c "import urllib.request; urllib.request.urlopen('http://127.0.0.1:10000/ready', timeout=3)"
+      interval: 10s
+      timeout: 5s
+      retries: 6
+    networks:
+      - somaagenthub-network
+
+  orchestrator:
+    build:
+      context: .
+      dockerfile: services/orchestrator/Dockerfile
+    container_name: somaagenthub-orchestrator
+    restart: unless-stopped
+    ports:
+      - "${ORCHESTRATOR_PORT:-10001}:10001"
+    environment:
+      - PORT=10001
+      - TEMPORAL_HOST=temporal-server:7233
+    depends_on:
+      temporal-server:
+        condition: service_healthy
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - python -c "import urllib.request; urllib.request.urlopen('http://127.0.0.1:10001/ready', timeout=3)"
+      interval: 10s
+      timeout: 5s
+      retries: 6
+    networks:
+      - somaagenthub-network
+
+  identity-service:
+    build:
+      context: .
+      dockerfile: services/identity-service/Dockerfile
+    container_name: somaagenthub-identity-service
+    restart: unless-stopped
+    ports:
+      - "${IDENTITY_SERVICE_PORT:-10002}:10002"
+    environment:
+      - PORT=10002
+      - REDIS_URL=redis://redis:6379/0
+      - SOMAGENT_IDENTITY_JWT_SECRET=dev-secret
+    depends_on:
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - python -c "import urllib.request; urllib.request.urlopen('http://127.0.0.1:10002/ready', timeout=3)"
+      interval: 10s
+      timeout: 5s
+      retries: 6
+    networks:
+      - somaagenthub-network
+
+  # --- Infrastructure Services ---
+  temporal-postgres:
+    image: postgres:15-alpine
+    container_name: somaagenthub-temporal-postgres
+    restart: unless-stopped
+    environment:
+      - POSTGRES_USER=temporal
+      - POSTGRES_PASSWORD=temporal
+      - POSTGRES_DB=temporal
+    volumes:
+      - temporal-postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - pg_isready -U "${POSTGRES_USER:-temporal}" -d "${POSTGRES_DB:-temporal}"
+      interval: 10s
+      timeout: 5s
+      retries: 6
+    networks:
+      - somaagenthub-network
+
+  temporal-server:
+    image: temporalio/auto-setup:1.22.4
+    container_name: somaagenthub-temporal
+    restart: unless-stopped
+    depends_on:
+      temporal-postgres:
+        condition: service_healthy
+    environment:
+      - DB=postgresql
+      - DB_PORT=5432
+      - POSTGRES_USER=temporal
+      - POSTGRES_PWD=temporal
+      - POSTGRES_SEEDS=temporal-postgres
+      - DYNAMIC_CONFIG_FILE_PATH=config/dynamicconfig/development-sql.yaml
+      - ENABLE_ES=false
+      - ES_SEEDS=
+      - LOG_LEVEL=info
+    networks:
+      - somaagenthub-network
+    healthcheck:
+      test:
+        - CMD
+        - tctl
+        - --address
+        - temporal-server:7233
+        - cluster
+        - health
+      interval: 15s
+      timeout: 10s
+      retries: 10
+    volumes:
+      - ./infra/temporal/config:/etc/temporal/config/dynamicconfig:ro
+
+  redis:
+    image: redis:7-alpine
+    container_name: somaagenthub-redis
+    restart: unless-stopped
+    ports:
+      - "${REDIS_PORT:-10003}:6379"
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test:
+        - CMD
+        - redis-cli
+        - ping
+      interval: 10s
+      timeout: 5s
+      retries: 6
+    networks:
+      - somaagenthub-network
+
+volumes:
+  temporal-postgres-data:
+    driver: local
+    name: somaagenthub_temporal_postgres_data
+  redis-data:
+    driver: local
+    name: somaagenthub_redis_data
+
+networks:
+  somaagenthub-network:
+    name: somaagenthub-network

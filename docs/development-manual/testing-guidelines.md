@@ -110,7 +110,7 @@ import requests
 def test_health_check_returns_200():
     """Ensures the gateway's /health endpoint is responsive."""
     # Arrange
-    gateway_url = "http://localhost:8080"
+    gateway_url = "http://localhost:10000"
 
     # Act
     response = requests.get(f"{gateway_url}/health")

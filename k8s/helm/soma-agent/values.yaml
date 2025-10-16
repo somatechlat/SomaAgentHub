@@ -4,10 +4,8 @@
 # Global settings
 global:
   imagePullPolicy: IfNotPresent
-  namespace: soma-agent-hub   # renamed from soma-agent-hub
-  # Avoid using 'latest' in production; override via --set global.imageTag=<git-sha or version>
+  namespace: soma-agent-hub
   imageTag: "dev"
-  # Sensible default container security context; can be overridden per-service if needed
   securityContext:
     runAsNonRoot: true
     allowPrivilegeEscalation: false
@@ -15,24 +13,48 @@ global:
     capabilities:
       drop: ["ALL"]
 
+# Centralized port definitions. This is the single source of truth for all service ports.
+ports:
+  gateway-api: 10000
+  orchestrator: 10001
+  identity-service: 10002
+  policy-engine: 10003
+  memory-gateway: 10004
+  slm-service: 10005
+  tool-service: 10006
+  analytics-service: 10007
+  settings-service: 10008
+  billing-service: 10009
+  constitution-service: 10010
+  task-capsule-repo: 10011
+  jobs: 10012
+  # Ensure all services have a port defined, even if disabled by default
+  "self-provisioning": 10013
+  "evolution-engine": 10014
+  "marketplace-service": 10015
+  "voice-interface": 10016
+  "recall-service": 10017
+  "notification-service": 10018
+  "model-proxy": 10019
+  "capsule-service": 10020
+  "kamachiq-service": 10021
+  "mao-service": 10022
+  "token-estimator": 10023
+  "flink-service": 10024
+  "airflow-service": 10025
+
 # Centralized secrets configuration
 secrets:
   enabled: true
   name: soma-secrets
-  # In local/dev, generate simple secrets to keep cluster booting. In prod, set to false and
-  # provide real secret values via external Secret or set identityJwt/gatewayJwt below.
   generateDevSecrets: true
-  identityJwt: ""   # plaintext override for SOMAGENT_IDENTITY_JWT_SECRET (if not generating)
-  gatewayJwt: ""    # plaintext override for SOMAGENT_GATEWAY_JWT_SECRET (if not generating)
-
-# Default hub port for gateway-api (used in service definition)
-hubPort: 60000
+  identityJwt: ""
+  gatewayJwt: ""
 
 # Kafka (Bitnami) configuration – KRaft mode
 defaultKafka:
   enabled: true
   replicaCount: 3
-  ## Enable KRaft (no Zookeeper)
   kraft:
     enabled: true
   resources:
@@ -42,22 +64,6 @@ defaultKafka:
     requests:
       cpu: "250m"
       memory: "256Mi"
-
-# Kafka KRaft configuration - disabled for local development
-kafka:
-  enabled: false
-  replicaCount: 3
-  kraft:
-    enabled: true
-  resources:
-    limits:
-      cpu: "500m"
-      memory: "512Mi"
-    requests:
-      cpu: "250m"
-      memory: "256Mi"
-  persistence:
-    enabled: false
 
 # Service definitions – each microservice can override these defaults
 services:
@@ -67,45 +73,17 @@ services:
     enabled: true
     replicaCount: 1
     image: "somaagent/soma-slm-service"
-    imagePullPolicy: IfNotPresent
-    port: 1001
-    hpa:
-      enabled: false
-      minReplicas: 1
-      maxReplicas: 3
-      targetCPUUtilizationPercentage: 70
-    pdb:
-      enabled: false
-      minAvailable: 1
   policy-engine:
     enabled: true
     image: "somaagent/soma-policy-engine"
-    port: 8000
-    hpa:
-      enabled: false
-      minReplicas: 1
-      maxReplicas: 3
-      targetCPUUtilizationPercentage: 70
-    pdb:
-      enabled: false
-      minAvailable: 1
   memory-gateway:
     enabled: false
   orchestrator:
     enabled: true
     image: "somaagent/soma-orchestrator"
-    port: 1004
     env:
       - name: TEMPORAL_ENABLED
         value: "false"
-    hpa:
-      enabled: false
-      minReplicas: 1
-      maxReplicas: 3
-      targetCPUUtilizationPercentage: 70
-    pdb:
-      enabled: false
-      minAvailable: 1
   settings-service:
     enabled: false
   task-capsule-repo:
@@ -114,36 +92,14 @@ services:
     enabled: true
     replicaCount: 1
     image: "somaagent/soma-gateway-api"
-    imagePullPolicy: IfNotPresent
-    port: 8080
-    # type: NodePort
-    # nodePort: 30080
-    # Reference secret for JWT or other sensitive envs
     envFromSecret: "soma-secrets"
-    hpa:
-      enabled: false
-      minReplicas: 1
-      maxReplicas: 5
-      targetCPUUtilizationPercentage: 60
-    pdb:
-      enabled: false
-      minAvailable: 1
   identity-service:
     enabled: true
     image: "somaagent/soma-identity-service"
-    port: 8000
     envFromSecret: "soma-secrets"
     env:
       - name: REDIS_URL
         value: ""
-    hpa:
-      enabled: false
-      minReplicas: 1
-      maxReplicas: 3
-      targetCPUUtilizationPercentage: 70
-    pdb:
-      enabled: false
-      minAvailable: 1
   constitution-service:
     enabled: false
   analytics-service:

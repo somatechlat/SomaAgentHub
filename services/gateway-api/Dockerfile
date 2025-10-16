@@ -1,23 +1,30 @@
-FROM python:3.13-slim
+# Use a specific, minimal Python base image
+FROM python:3.11.6-slim-bookworm
 
+# Set environment variables for a secure and efficient build
 ENV PYTHONDONTWRITEBYTECODE=1 \
 	PYTHONUNBUFFERED=1 \
 	PIP_DISABLE_PIP_VERSION_CHECK=on \
-	PIP_NO_CACHE_DIR=off
+	PIP_NO_CACHE_DIR=on \
+	PYTHONPATH=/app
 
 WORKDIR /app
 
-COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt && \
-	adduser --disabled-password --gecos "app" --home /home/app app && \
-	chown -R app:app /app
+# Install dependencies
+COPY services/gateway-api/requirements.txt ./requirements.txt
+RUN pip install --no-cache-dir -r requirements.txt
 
-COPY app/ ./app/
-COPY . .
+# Create a non-root user
+RUN adduser --disabled-password --gecos "" appuser
+COPY services/common /app/services/common
+COPY common /app/common
+COPY services/gateway-api/ /app/
+RUN chown -R appuser:appuser /app
 
-USER app
+# Switch to the non-root user
+USER appuser
 
-EXPOSE 8080
+EXPOSE 10000
 
-ENV PORT=8080 WORKERS=1
-CMD ["sh", "-c", "uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8080} --workers ${WORKERS:-1}"]
+# Run the application
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "10000"]

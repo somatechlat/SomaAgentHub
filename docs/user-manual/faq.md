@@ -78,7 +78,7 @@ cd somaAgentHub
 make dev-up
 
 # 3. Verify installation  
-curl http://localhost:8080/health
+curl http://localhost:10000/health
 ```
 
 See the [Installation Guide](installation.md) for detailed instructions and other deployment options.
@@ -96,15 +96,15 @@ docker compose logs gateway-api
 docker compose logs orchestrator
 
 # 3. Verify port bindings
-docker compose port gateway-api 8080
+docker compose port gateway-api 10000
 
 # 4. Test internal connectivity
-docker compose exec gateway-api curl http://orchestrator:8001/health
+docker compose exec gateway-api curl http://orchestrator:10001/health
 ```
 
 **Common causes:**
 - Services still starting up (wait 2-3 minutes)
-- Port conflicts (check if 8080, 8001, etc. are available)
+- Port conflicts (check if 10000, 10001, etc. are available)
 - Firewall blocking connections
 - Docker daemon not running
 
@@ -114,7 +114,7 @@ docker compose exec gateway-api curl http://orchestrator:8001/health
 
 ```bash
 # Start a simple workflow
-curl -X POST http://localhost:8001/v1/workflows/start \
+curl -X POST http://localhost:10001/v1/workflows/start \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer demo-token" \
   -d '{
@@ -127,7 +127,7 @@ curl -X POST http://localhost:8001/v1/workflows/start \
   }'
 
 # Check workflow status
-curl http://localhost:8001/v1/workflows/WORKFLOW_ID \
+curl http://localhost:10001/v1/workflows/WORKFLOW_ID \
   -H "Authorization: Bearer demo-token"
 ```
 
@@ -143,7 +143,7 @@ Use the **Memory System** to store and recall context:
 
 ```bash
 # Store information
-curl -X POST http://localhost:8004/v1/memories \
+curl -X POST http://localhost:10004/v1/memories \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer demo-token" \
   -d '{
@@ -153,7 +153,7 @@ curl -X POST http://localhost:8004/v1/memories \
   }'
 
 # Agents automatically recall relevant information
-curl -X POST http://localhost:8080/v1/chat/completions \
+curl -X POST http://localhost:10000/v1/chat/completions \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer demo-token" \
   -d '{
@@ -169,7 +169,7 @@ curl -X POST http://localhost:8080/v1/chat/completions \
 **Absolutely!** This is one of SomaAgentHub's core strengths:
 
 ```bash
-curl -X POST http://localhost:8001/v1/workflows/start \
+curl -X POST http://localhost:10001/v1/workflows/start \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer demo-token" \
   -d '{
@@ -194,10 +194,10 @@ Use the **Tool Service** with pre-built integrations:
 
 ```bash
 # List available tools
-curl http://localhost:8005/v1/tools
+curl http://localhost:10006/v1/tools
 
 # Configure GitHub integration
-curl -X POST http://localhost:8005/v1/tools/github/configure \
+curl -X POST http://localhost:10006/v1/tools/github/configure \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer demo-token" \
   -d '{
@@ -208,7 +208,7 @@ curl -X POST http://localhost:8005/v1/tools/github/configure \
   }'
 
 # Use in workflows
-curl -X POST http://localhost:8001/v1/workflows/start \
+curl -X POST http://localhost:10001/v1/workflows/start \
   -d '{
     "workflow_type": "code_review",
     "input": {
@@ -225,7 +225,7 @@ Use the **Policy Engine** for governance:
 
 ```bash
 # Set up policies
-curl -X POST http://localhost:8007/v1/policies \
+curl -X POST http://localhost:10003/v1/policies \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer demo-token" \
   -d '{
@@ -261,10 +261,10 @@ curl http://localhost:8233
 docker compose logs orchestrator | grep -i temporal
 
 # 3. Check workflow worker status
-curl http://localhost:8001/v1/workers/status
+curl http://localhost:10001/v1/workers/status
 
 # 4. Manually trigger a simple workflow
-curl -X POST http://localhost:8001/v1/workflows/start \
+curl -X POST http://localhost:10001/v1/workflows/start \
   -d '{"workflow_type": "health_check", "input": {}}'
 ```
 
@@ -279,17 +279,17 @@ curl -X POST http://localhost:8001/v1/workflows/start \
 
 ```bash
 # 1. Check memory gateway health
-curl http://localhost:8004/health
+curl http://localhost:10004/health
 
 # 2. Verify Qdrant vector database
 curl http://localhost:6333/collections
 
 # 3. Test embedding generation
-curl -X POST http://localhost:8004/v1/debug/embedding \
+curl -X POST http://localhost:10004/v1/debug/embedding \
   -d '{"text": "test embedding generation"}'
 
 # 4. Check memory storage
-curl http://localhost:8004/v1/memories?user_id=YOUR_USER&limit=5
+curl http://localhost:10004/v1/memories?user_id=YOUR_USER&limit=5
 ```
 
 **Common solutions:**
@@ -306,8 +306,8 @@ curl http://localhost:8004/v1/memories?user_id=YOUR_USER&limit=5
 docker stats --no-stream
 
 # 2. Check service-specific metrics
-curl http://localhost:8080/metrics | grep memory
-curl http://localhost:8001/metrics | grep cpu
+curl http://localhost:10000/metrics | grep memory
+curl http://localhost:10001/metrics | grep cpu
 
 # 3. Scale down if needed
 docker compose up -d --scale orchestrator=1 --scale gateway-api=1
@@ -325,16 +325,16 @@ docker compose up -d --scale orchestrator=1 --scale gateway-api=1
 
 ```bash
 # 1. Check response times
-time curl http://localhost:8080/v1/models
+time curl http://localhost:10000/v1/models
 
 # 2. Monitor internal service latency  
-curl http://localhost:8080/metrics | grep http_request_duration
+curl http://localhost:10000/metrics | grep http_request_duration
 
 # 3. Check database performance
 docker compose logs postgresql | grep -i slow
 
 # 4. Test with minimal payload
-curl -X POST http://localhost:8080/v1/chat/completions \
+curl -X POST http://localhost:10000/v1/chat/completions \
   -d '{"model":"gpt-3.5-turbo","messages":[{"role":"user","content":"hi"}],"max_tokens":10}'
 ```
 
@@ -394,11 +394,11 @@ helm install soma-agent-hub ./helm/soma-agent \
 
 ```bash
 # Delete user data (GDPR compliance)
-curl -X DELETE http://localhost:8004/v1/users/USER_ID/data \
+curl -X DELETE http://localhost:10004/v1/users/USER_ID/data \
   -H "Authorization: Bearer admin-token"
 
 # Export user data  
-curl http://localhost:8004/v1/users/USER_ID/export \
+curl http://localhost:10004/v1/users/USER_ID/export \
   -H "Authorization: Bearer admin-token"
 ```
 
@@ -458,7 +458,7 @@ tool_registry.register(MyCustomTool())
 
 ```bash
 # Configure different providers
-curl -X POST http://localhost:8003/v1/providers/configure \
+curl -X POST http://localhost:10005/v1/providers/configure \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer demo-token" \
   -d '{
@@ -482,7 +482,7 @@ curl -X POST http://localhost:8003/v1/providers/configure \
   }'
 
 # Use specific provider in requests
-curl -X POST http://localhost:8080/v1/chat/completions \
+curl -X POST http://localhost:10000/v1/chat/completions \
   -d '{
     "model": "gpt-4",
     "provider": "azure_openai",
@@ -508,7 +508,7 @@ curl -X POST http://localhost:8080/v1/chat/completions \
 # Access monitoring
 open http://localhost:3000  # Grafana dashboards
 open http://localhost:8233  # Temporal workflows
-curl http://localhost:8080/metrics  # Prometheus metrics
+curl http://localhost:10000/metrics  # Prometheus metrics
 ```
 
 ### What logs should I check when troubleshooting?
@@ -546,7 +546,7 @@ kubectl patch configmap soma-config \
 kubectl rollout restart deployment/gateway-api
 
 # Runtime log level change
-curl -X PUT http://localhost:8080/v1/admin/log-level \
+curl -X PUT http://localhost:10000/v1/admin/log-level \
   -H "Authorization: Bearer admin-token" \
   -d '{"level": "DEBUG"}'
 ```
@@ -610,9 +610,9 @@ Contact: support@somatech.lat for commercial options.
 
 ```bash
 # Health checks
-curl http://localhost:8080/health
-curl http://localhost:8001/health  
-curl http://localhost:8004/health
+curl http://localhost:10000/health
+curl http://localhost:10001/health  
+curl http://localhost:10004/health
 
 # Service restart
 docker compose restart
@@ -623,7 +623,7 @@ docker compose logs -f gateway-api
 kubectl logs -f deployment/orchestrator
 
 # Check running workflows
-curl http://localhost:8001/v1/workflows?status=running
+curl http://localhost:10001/v1/workflows?status=running
 
 # Memory usage
 docker stats

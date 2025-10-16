@@ -48,12 +48,12 @@ SomaAgentHub is built as a **cloud-native, microservices architecture** designed
 │                                                         │
 │  ┌─────────────┐   ┌─────────────┐   ┌─────────────┐   │
 │  │ Gateway API │   │Orchestrator │   │Identity Svc │   │
-│  │  (Port 8080)│───│ (Port 8001) │───│ (Port 8002) │   │
+│  │  (Port 10000)│───│ (Port 10001) │───│ (Port 10002) │   │
 │  └─────────────┘   └─────────────┘   └─────────────┘   │
 │         │                 │                 │           │
 │  ┌─────────────┐   ┌─────────────┐   ┌─────────────┐   │
 │  │ SLM Service │   │Memory Gateway│   │Policy Engine│   │
-│  │ (Port 8003) │   │ (Port 8004) │   │ (Port 8007) │   │
+│  │ (Port 10005) │   │ (Port 10004) │   │ (Port 10003) │   │
 │  └─────────────┘   └─────────────┘   └─────────────┘   │
 │                                                         │
 ├─────────────────────────────────────────────────────────┤

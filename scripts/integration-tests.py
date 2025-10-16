@@ -21,23 +21,29 @@ class ServiceTest:
     endpoints: List[str]
     expected_status: int = 200
 
+import os
+
+# ... existing code ...
+
 class SomaAgentTester:
     def __init__(self):
         self.services = [
-            ServiceTest("jobs", "http://localhost", 8000, ["/health", "/jobs"]),
-            ServiceTest("memory-gateway", "http://localhost", 9696, ["/health", "/v1/recall/test"]),
-            ServiceTest("orchestrator", "http://localhost", 8002, ["/health", "/status"]),
-            ServiceTest("policy-engine", "http://localhost", 8100, ["/health", "/validate"]),
-            ServiceTest("settings-service", "http://localhost", 8004, ["/health"]),
-            ServiceTest("gateway-api", "http://localhost", 8003, ["/health", "/docs"]),
-            ServiceTest("identity-service", "http://localhost", 8006, ["/health"]),
-            ServiceTest("constitution-service", "http://localhost", 8007, ["/health"]),
-            ServiceTest("analytics-service", "http://localhost", 8008, ["/health", "/metrics"]),
-            ServiceTest("billing-service", "http://localhost", 8009, ["/health"]),
-            ServiceTest("task-capsule-repo", "http://localhost", 8005, ["/health", "/capsules"])
+            ServiceTest("jobs", "http://localhost", int(os.getenv("JOBS_PORT", "10012")), ["/health", "/jobs"]),
+            ServiceTest("memory-gateway", "http://localhost", int(os.getenv("MEMORY_GATEWAY_PORT", "10004")), ["/health", "/v1/recall/test"]),
+            ServiceTest("orchestrator", "http://localhost", int(os.getenv("ORCHESTRATOR_PORT", "10001")), ["/health", "/status"]),
+            ServiceTest("policy-engine", "http://localhost", int(os.getenv("POLICY_ENGINE_PORT", "10003")), ["/health", "/validate"]),
+            ServiceTest("settings-service", "http://localhost", int(os.getenv("SETTINGS_SERVICE_PORT", "10008")), ["/health"]),
+            ServiceTest("gateway-api", "http://localhost", int(os.getenv("GATEWAY_API_PORT", "10000")), ["/health", "/docs"]),
+            ServiceTest("identity-service", "http://localhost", int(os.getenv("IDENTITY_SERVICE_PORT", "10002")), ["/health"]),
+            ServiceTest("constitution-service", "http://localhost", int(os.getenv("CONSTITUTION_SERVICE_PORT", "10010")), ["/health"]),
+            ServiceTest("analytics-service", "http://localhost", int(os.getenv("ANALYTICS_SERVICE_PORT", "10007")), ["/health", "/metrics"]),
+            ServiceTest("billing-service", "http://localhost", int(os.getenv("BILLING_SERVICE_PORT", "10009")), ["/health"]),
+            ServiceTest("task-capsule-repo", "http://localhost", int(os.getenv("TASK_CAPSULE_REPO_PORT", "10011")), ["/health", "/capsules"])
         ]
         self.results = {}
         self.port_forwards = []
+    
+# ... existing code ...
     
     def setup_port_forwards(self):
         """Setup port forwards for all services"""

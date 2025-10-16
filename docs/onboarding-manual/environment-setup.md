@@ -89,7 +89,7 @@ Open a **new terminal window** (leave the services from Step 5 running) and foll
 
 2.  **Run the smoke tests**:
     ```bash
-    make k8s-smoke HOST="localhost:8080"
+    make k8s-smoke HOST="localhost:10000"
     ```
     This runs a quick set of tests to ensure the core APIs are responding correctly.
 

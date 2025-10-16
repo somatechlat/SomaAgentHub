@@ -22,7 +22,7 @@ Before starting, make sure you've completed the [Installation Guide](installatio
 **Verify Installation:**
 ```bash
 # Check that services are running
-curl http://localhost:8080/health
+curl http://localhost:10000/health
 # Expected: {"status": "healthy"}
 ```
 
@@ -47,7 +47,7 @@ Let's start with a simple conversation using the Gateway API.
 ### 1.1 Test Basic Chat Completion
 
 ```bash
-curl -X POST http://localhost:8080/v1/chat/completions \
+curl -X POST http://localhost:10000/v1/chat/completions \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer demo-token" \
   -d '{
@@ -87,7 +87,7 @@ curl -X POST http://localhost:8080/v1/chat/completions \
 ### 1.2 Check Available Models
 
 ```bash
-curl http://localhost:8080/v1/models \
+curl http://localhost:10000/v1/models \
   -H "Authorization: Bearer demo-token"
 ```
 
@@ -102,7 +102,7 @@ Now let's create a persistent conversation session that maintains context across
 ### 2.1 Start a New Session
 
 ```bash
-curl -X POST http://localhost:8080/v1/sessions \
+curl -X POST http://localhost:10000/v1/sessions \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer demo-token" \
   -d '{
@@ -120,7 +120,7 @@ curl -X POST http://localhost:8080/v1/sessions \
 
 ```bash
 # Replace SESSION_ID with the actual session ID from step 2.1
-curl -X POST http://localhost:8080/v1/chat/completions \
+curl -X POST http://localhost:10000/v1/chat/completions \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer demo-token" \
   -d '{
@@ -147,7 +147,7 @@ Now for the exciting part - let's create a complex workflow that coordinates mul
 ### 3.1 Start a Research Workflow
 
 ```bash
-curl -X POST http://localhost:8001/v1/workflows/start \
+curl -X POST http://localhost:10001/v1/workflows/start \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer demo-token" \
   -d '{
@@ -172,7 +172,7 @@ curl -X POST http://localhost:8001/v1/workflows/start \
 
 ```bash
 # Replace WORKFLOW_RUN_ID with the actual run ID
-curl http://localhost:8001/v1/workflows/WORKFLOW_RUN_ID \
+curl http://localhost:10001/v1/workflows/WORKFLOW_RUN_ID \
   -H "Authorization: Bearer demo-token"
 ```
 
@@ -208,7 +208,7 @@ curl http://localhost:8001/v1/workflows/WORKFLOW_RUN_ID \
 ### 3.3 List All Your Workflows
 
 ```bash
-curl "http://localhost:8001/v1/workflows?user_id=tutorial-user&limit=10" \
+curl "http://localhost:10001/v1/workflows?user_id=tutorial-user&limit=10" \
   -H "Authorization: Bearer demo-token"
 ```
 
@@ -235,20 +235,20 @@ Here you can see:
 
 ```bash
 # Get platform metrics
-curl http://localhost:8080/metrics
+curl http://localhost:10000/metrics
 
 # Get orchestrator metrics  
-curl http://localhost:8001/metrics
+curl http://localhost:10001/metrics
 
 # Get policy engine metrics
-curl http://localhost:8007/metrics
+curl http://localhost:10003/metrics
 ```
 
 ### 4.3 Check Service Health
 
 ```bash
 # Health check all services
-for port in 8080 8001 8002 8003 8004 8007; do
+for port in 10000 10001 10002 10005 10004 10003; do
   echo "Checking port $port:"
   curl -s http://localhost:$port/health | jq .
   echo
@@ -264,7 +264,7 @@ SomaAgentHub's memory system allows agents to retain and recall information acro
 ### 5.1 Store Information in Memory
 
 ```bash
-curl -X POST http://localhost:8004/v1/memories \
+curl -X POST http://localhost:10004/v1/memories \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer demo-token" \
   -d '{
@@ -282,7 +282,7 @@ curl -X POST http://localhost:8004/v1/memories \
 ### 5.2 Recall Relevant Information
 
 ```bash
-curl -X POST http://localhost:8004/v1/recall \
+curl -X POST http://localhost:10004/v1/recall \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer demo-token" \
   -d '{
@@ -305,7 +305,7 @@ SomaAgentHub includes built-in governance to ensure AI agents operate within def
 
 ```bash
 # Check if a query would be allowed by current policies
-curl -X POST http://localhost:8007/v1/evaluate \
+curl -X POST http://localhost:10003/v1/evaluate \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer demo-token" \
   -d '{
@@ -326,11 +326,11 @@ SomaAgentHub can connect agents to external tools and services.
 
 ```bash
 # List available tools
-curl http://localhost:8005/v1/tools \
+curl http://localhost:10006/v1/tools \
   -H "Authorization: Bearer demo-token"
 
 # Use a specific tool (example: web search)
-curl -X POST http://localhost:8005/v1/tools/web_search/execute \
+curl -X POST http://localhost:10006/v1/tools/web_search/execute \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer demo-token" \
   -d '{
@@ -356,7 +356,7 @@ import json
 import time
 
 class SomaAgentHubClient:
-    def __init__(self, base_url="http://localhost:8080", token="demo-token"):
+    def __init__(self, base_url="http://localhost:10000", token="demo-token"):
         self.base_url = base_url
         self.token = token
         self.headers = {
@@ -395,7 +395,7 @@ class SomaAgentHubClient:
     
     def start_workflow(self, workflow_type, input_data, metadata=None):
         """Start a multi-agent workflow"""
-        orchestrator_url = self.base_url.replace("8080", "8001")
+        orchestrator_url = self.base_url.replace("10000", "10001")
         response = requests.post(
             f"{orchestrator_url}/v1/workflows/start",
             headers=self.headers,
@@ -409,7 +409,7 @@ class SomaAgentHubClient:
     
     def check_workflow_status(self, run_id):
         """Check workflow progress"""
-        orchestrator_url = self.base_url.replace("8080", "8001")
+        orchestrator_url = self.base_url.replace("10000", "10001")
         response = requests.get(
             f"{orchestrator_url}/v1/workflows/{run_id}",
             headers=self.headers
@@ -475,7 +475,7 @@ make dev-up
 **2. Authentication Errors**
 ```bash
 # Verify you're using the correct demo token
-curl -H "Authorization: Bearer demo-token" http://localhost:8080/health
+curl -H "Authorization: Bearer demo-token" http://localhost:10000/health
 ```
 
 **3. Workflow Doesn't Start**
@@ -489,7 +489,7 @@ curl http://localhost:8233
 **4. Memory Operations Fail**
 ```bash
 # Check memory gateway status
-curl http://localhost:8004/health
+curl http://localhost:10004/health
 # Verify Qdrant is running
 docker compose logs qdrant
 ```

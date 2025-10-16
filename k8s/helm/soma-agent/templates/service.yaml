@@ -20,8 +20,8 @@ spec:
   ports:
     - protocol: TCP
       name: http
-      port: {{ $svc.port }}
-      targetPort: {{ $svc.port }}
+      port: {{ index $.Values.ports $name }}
+      targetPort: {{ index $.Values.ports $name }}
 {{- if and (eq $name "gateway-api") ($svc.nodePort) }}
       nodePort: {{ $svc.nodePort }}
 {{- end }}

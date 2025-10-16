@@ -59,16 +59,30 @@ SomaAgentHub operates as a layered system, separating concerns from public-facin
 
 The platform is composed of specialized microservices, each with a distinct responsibility.
 
-| Service | Port | Purpose & Key Features |
+| Service | Container Port | Purpose & Key Features |
 |---|---|---|
-| **Gateway API** | 8080 | **Public Entry Point**: Handles all incoming traffic, authentication (JWT), rate limiting, request validation, and routing to internal services. Provides OpenAI-compatible endpoints. |
-| **Orchestrator** | 1004 | **Workflow Coordination**: The "brain" of the system. Manages multi-agent workflows using Temporal, coordinates tasks, and maintains state for long-running processes. |
-| **Identity Service** | 1007 | **Authentication & Authorization**: Manages users, tenants, and roles. Issues and validates JWT tokens and enforces Role-Based Access Control (RBAC). |
-| **Policy Engine** | 1002 | **Governance & Safety**: Enforces constitutional rules and ethical constraints on agent behavior. Evaluates actions against defined policies before execution. |
-| **Memory Gateway** | 8000 | **Intelligent Memory**: Provides semantic storage and retrieval for agent context and conversation history using the Qdrant vector database for RAG. |
-| **SLM Service** | - | **Language Model Access**: Manages interactions with various LLMs, whether local models or external APIs (e.g., OpenAI, Azure). |
-| **Tool Service** | - | **External Integrations**: Provides a registry and execution environment for 16+ adapters that connect agents to external tools like GitHub, Slack, and AWS. |
-| **Analytics Service**| - | **Usage & Metrics**: Collects and processes data for reporting, cost tracking, and performance analytics, often using a ClickHouse backend. |
+| **Gateway API** | 10000 | **Public Entry Point**: Handles all incoming traffic, authentication (JWT), rate limiting, request validation, and routing to internal services. Provides OpenAI-compatible endpoints. |
+| **Orchestrator** | 10001 | **Workflow Coordination**: The "brain" of the system. Manages multi-agent workflows using Temporal, coordinates tasks, and maintains state for long-running processes. |
+| **Identity Service** | 10002 | **Authentication & Authorization**: Manages users, tenants, and roles. Issues and validates JWT tokens and enforces Role-Based Access Control (RBAC). |
+| **Policy Engine** | 10003 | **Governance & Safety**: Enforces constitutional rules and ethical constraints on agent behavior. Evaluates actions against defined policies before execution. |
+| **Memory Gateway** | 10004 | **Intelligent Memory**: Provides semantic storage and retrieval for agent context and conversation history using the Qdrant vector database for RAG. |
+| **SLM Service** | 10005 | **Language Model Access**: Manages interactions with various LLMs, whether local models or external APIs (e.g., OpenAI, Azure). |
+| **Tool Service** | 10006 | **External Integrations**: Provides a registry and execution environment for 16+ adapters that connect agents to external tools like GitHub, Slack, and AWS. |
+| **Analytics Service**| 10007 | **Usage & Metrics**: Collects and processes data for reporting, cost tracking, and performance analytics, often using a ClickHouse backend. |
+
+### Local Docker Cluster Ports
+
+For local development the `scripts/docker-cluster.sh` helper reserves consecutive host ports starting at 10000 (or the next available slot) and writes them to `.env`. The current Docker Compose stack exposes the following endpoints:
+
+| Service | Host Port (from `.env`) | Container Port | Notes |
+|---|---|---|---|
+| Gateway API | `${GATEWAY_API_PORT}` (e.g., 10006) | 10000 | `/ready` for liveness, `/healthz` may warn when optional upstreams are offline. |
+| Orchestrator | `${ORCHESTRATOR_PORT}` (e.g., 10007) | 10001 | Requires Temporal at `temporal-server:7233`. |
+| Identity Service | `${IDENTITY_SERVICE_PORT}` (e.g., 10008) | 10002 | Issues JWTs, depends on Redis. |
+| Redis | `${REDIS_PORT}` (e.g., 10009) | 6379 | Backing cache/message bus for Identity and orchestrator tasks. |
+| Temporal UI/API | n/a | 7233 / 8080 | Internal only; reachable from other containers in the compose network. |
+
+> Check the generated `.env` file after each `docker-cluster.sh` run to confirm the actual host bindings when multiple stacks share the machine.
 
 ---
 

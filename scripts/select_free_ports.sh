@@ -107,7 +107,7 @@ done < "$TMPASSIGN"
 echo "Override file generated. Review $OVERRIDE_FILE before running docker-compose."
 
 # Provide recommended redis run command
-redis_mapping="6379:6379"
+redis_mapping="10005:6379"
 redis_host_port=${redis_mapping%%:*}
 if port_in_use "$redis_host_port"; then
   redis_host_port=$(find_free_port $((redis_host_port + 1))) || redis_host_port=$(find_free_port 20000)

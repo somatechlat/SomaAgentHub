@@ -19,9 +19,9 @@ This document provides developers with the information needed to interact with t
 
 The most up-to-date and interactive API documentation is generated automatically from the code and is available on your local instance.
 
-- **Gateway API**: `http://localhost:8080/docs`
-- **Orchestrator API**: `http://localhost:8001/docs`
-- **Memory Gateway API**: `http://localhost:8004/docs`
+- **Gateway API**: `http://localhost:10000/docs`
+- **Orchestrator API**: `http://localhost:10001/docs`
+- **Memory Gateway API**: `http://localhost:10004/docs`
 - *(and so on for each service...)*
 
 These interactive docs (provided by Swagger UI) allow you to explore and even try out the API endpoints directly from your browser.
@@ -36,7 +36,7 @@ All requests to the SomaAgentHub API must be authenticated using a **Bearer Toke
 2.  **Include the Token**: Provide the token in the `Authorization` header of your HTTP requests.
 
 ```bash
-curl -X GET http://localhost:8080/v1/models \
+curl -X GET http://localhost:10000/v1/models \
   -H "Authorization: Bearer <your-jwt-token>"
 ```
 
@@ -46,7 +46,7 @@ curl -X GET http://localhost:8080/v1/models \
 
 This section provides a high-level overview of the most important APIs. For detailed endpoint specifications, refer to the interactive Swagger docs.
 
-### 1. Gateway API (`:8080`)
+### 1. Gateway API (`:10000`)
 This is the primary public-facing API.
 
 - **`POST /v1/chat/completions`**: (OpenAI-compatible) Create a chat completion. Can be used for stateless requests or session-based conversations.
@@ -54,7 +54,7 @@ This is the primary public-facing API.
 - **`POST /v1/sessions`**: Create a new persistent conversation session.
 - **`GET /health`**: Health check endpoint.
 
-### 2. Orchestrator API (`:8001`)
+### 2. Orchestrator API (`:10001`)
 Used for managing and executing complex workflows.
 
 - **`POST /v1/workflows/start`**: Start a new workflow.
@@ -62,7 +62,7 @@ Used for managing and executing complex workflows.
 - **`POST /v1/workflows/{run_id}/cancel`**: Cancel a workflow.
 - **`GET /v1/workflows`**: List all workflows.
 
-### 3. Memory Gateway API (`:8004`)
+### 3. Memory Gateway API (`:10004`)
 Used for interacting with the agent memory system.
 
 - **`POST /v1/memories`**: Store a new piece of information in memory.
@@ -79,8 +79,8 @@ This example demonstrates a common workflow using the Python `requests` library.
 import requests
 import time
 
-BASE_URL = "http://localhost:8080"
-ORCHESTRATOR_URL = "http://localhost:8001"
+BASE_URL = "http://localhost:10000"
+ORCHESTRATOR_URL = "http://localhost:10001"
 TOKEN = "your-demo-token" # Replace with a valid token
 
 HEADERS = {

@@ -28,7 +28,7 @@ Instead of storing raw text, the system creates **semantic embeddings** that cap
 ### 1. Store Information in Memory
 
 ```bash
-curl -X POST http://localhost:8004/v1/memories \
+curl -X POST http://localhost:10004/v1/memories \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer demo-token" \
   -d '{
@@ -48,7 +48,7 @@ curl -X POST http://localhost:8004/v1/memories \
 ### 2. Recall Relevant Information
 
 ```bash
-curl -X POST http://localhost:8004/v1/recall \
+curl -X POST http://localhost:10004/v1/recall \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer demo-token" \
   -d '{
@@ -90,7 +90,7 @@ curl -X POST http://localhost:8004/v1/recall \
 ### 3. Use Memory in Agent Conversations
 
 ```bash
-curl -X POST http://localhost:8080/v1/chat/completions \
+curl -X POST http://localhost:10000/v1/chat/completions \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer demo-token" \
   -d '{
@@ -158,7 +158,7 @@ The agent will automatically retrieve relevant memories and incorporate them int
 
 ```bash
 # Store personal preferences
-curl -X POST http://localhost:8004/v1/memories \
+curl -X POST http://localhost:10004/v1/memories \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer demo-token" \
   -d '{
@@ -173,7 +173,7 @@ curl -X POST http://localhost:8004/v1/memories \
   }'
 
 # Store project context
-curl -X POST http://localhost:8004/v1/memories \
+curl -X POST http://localhost:10004/v1/memories \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer demo-token" \
   -d '{
@@ -188,7 +188,7 @@ curl -X POST http://localhost:8004/v1/memories \
   }'
 
 # Later, when scheduling a meeting
-curl -X POST http://localhost:8080/v1/chat/completions \
+curl -X POST http://localhost:10000/v1/chat/completions \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer demo-token" \
   -d '{
@@ -213,7 +213,7 @@ curl -X POST http://localhost:8080/v1/chat/completions \
 
 ```bash
 # Store solution knowledge
-curl -X POST http://localhost:8004/v1/memories \
+curl -X POST http://localhost:10004/v1/memories \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer demo-token" \
   -d '{
@@ -230,7 +230,7 @@ curl -X POST http://localhost:8004/v1/memories \
   }'
 
 # Query for solutions
-curl -X POST http://localhost:8004/v1/recall \
+curl -X POST http://localhost:10004/v1/recall \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer demo-token" \
   -d '{
@@ -251,7 +251,7 @@ curl -X POST http://localhost:8004/v1/recall \
 
 ```bash
 # Engineering team stores architectural decision
-curl -X POST http://localhost:8004/v1/memories \
+curl -X POST http://localhost:10004/v1/memories \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer demo-token" \
   -d '{
@@ -272,7 +272,7 @@ curl -X POST http://localhost:8004/v1/memories \
   }'
 
 # Product team searches for architecture patterns
-curl -X POST http://localhost:8004/v1/recall \
+curl -X POST http://localhost:10004/v1/recall \
   -H "Content-Type: application/json" \  
   -H "Authorization: Bearer demo-token" \
   -d '{
@@ -477,30 +477,30 @@ curl -X POST http://localhost:8004/v1/recall \
 **1. Memory Not Found**
 ```bash
 # Check if memory was stored correctly
-curl http://localhost:8004/v1/memories/MEMORY_ID
+curl http://localhost:10004/v1/memories/MEMORY_ID
 
 # Verify user permissions
-curl http://localhost:8004/v1/memories?user_id=USER_ID&limit=10
+curl http://localhost:10004/v1/memories?user_id=USER_ID&limit=10
 ```
 
 **2. Poor Search Results**
 ```bash
 # Check embedding quality
-curl -X POST http://localhost:8004/v1/debug/similarity \
+curl -X POST http://localhost:10004/v1/debug/similarity \
   -d '{"text1": "your query", "text2": "expected result"}'
 
 # Adjust similarity threshold
-curl -X POST http://localhost:8004/v1/recall \
+curl -X POST http://localhost:10004/v1/recall \
   -d '{"query": "...", "similarity_threshold": 0.6}'
 ```
 
 **3. Memory System Performance**
 ```bash
 # Check vector database health
-curl http://localhost:8004/v1/health/detailed
+curl http://localhost:10004/v1/health/detailed
 
 # Monitor search performance
-curl http://localhost:8004/v1/metrics | grep search_duration
+curl http://localhost:10004/v1/metrics | grep search_duration
 ```
 
 ### Best Practices

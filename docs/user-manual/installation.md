@@ -54,11 +54,11 @@ cd somaAgentHub
 make dev-up
 
 # This starts:
-# - Gateway API (port 8080)
-# - Orchestrator Service (port 8001)  
-# - Memory Gateway (port 8004)
-# - Policy Engine (port 8007)
-# - Identity Service (port 8002)
+# - Gateway API (port 10000)
+# - Orchestrator Service (port 10001)  
+# - Memory Gateway (port 10004)
+# - Policy Engine (port 10003)
+# - Identity Service (port 10002)
 # - Supporting infrastructure (Redis, PostgreSQL, Temporal)
 ```
 
@@ -66,7 +66,7 @@ make dev-up
 
 ```bash
 # Check service health
-curl http://localhost:8080/health
+curl http://localhost:10000/health
 # Expected: {"status": "healthy"}
 
 # List running services
@@ -75,8 +75,8 @@ docker compose ps
 
 ### 4. Access the Platform
 
-- **Gateway API**: http://localhost:8080
-- **API Documentation**: http://localhost:8080/docs
+- **Gateway API**: http://localhost:10000
+- **API Documentation**: http://localhost:10000/docs
 - **Temporal Web UI**: http://localhost:8233
 - **Admin Console**: http://localhost:3000
 
@@ -126,7 +126,7 @@ make k8s-smoke
 
 ```bash
 # Port-forward Gateway API
-make port-forward-gateway LOCAL=8080 REMOTE=8080
+make port-forward-gateway LOCAL=10000 REMOTE=10000
 
 # Port-forward Grafana (monitoring)
 kubectl port-forward -n observability svc/prometheus-grafana 3000:80

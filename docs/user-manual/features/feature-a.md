@@ -30,7 +30,7 @@ Instead of asking one AI to "research, analyze, and write a report," you orchest
 ### 1. Basic Multi-Agent Workflow
 
 ```bash
-curl -X POST http://localhost:8001/v1/workflows/start \
+curl -X POST http://localhost:10001/v1/workflows/start \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer demo-token" \
   -d '{
@@ -55,7 +55,7 @@ curl -X POST http://localhost:8001/v1/workflows/start \
 
 ```bash
 # Replace WORKFLOW_ID with your actual workflow ID
-curl http://localhost:8001/v1/workflows/WORKFLOW_ID \
+curl http://localhost:10001/v1/workflows/WORKFLOW_ID \
   -H "Authorization: Bearer demo-token"
 ```
 
@@ -149,7 +149,7 @@ curl http://localhost:8001/v1/workflows/WORKFLOW_ID \
 **Scenario**: Multi-agent customer support that handles complex technical issues.
 
 ```bash
-curl -X POST http://localhost:8001/v1/workflows/start \
+curl -X POST http://localhost:10001/v1/workflows/start \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer demo-token" \
   -d '{
@@ -191,7 +191,7 @@ curl -X POST http://localhost:8001/v1/workflows/start \
 **Scenario**: Multi-agent content creation for blog posts, documentation, and marketing materials.
 
 ```bash
-curl -X POST http://localhost:8001/v1/workflows/start \
+curl -X POST http://localhost:10001/v1/workflows/start \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer demo-token" \
   -d '{
@@ -238,7 +238,7 @@ curl -X POST http://localhost:8001/v1/workflows/start \
 **Scenario**: End-to-end data science project with multiple specialized agents.
 
 ```bash
-curl -X POST http://localhost:8001/v1/workflows/start \
+curl -X POST http://localhost:10001/v1/workflows/start \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer demo-token" \
   -d '{
@@ -418,28 +418,28 @@ curl -X POST http://localhost:8001/v1/workflows/start \
 **1. Agents Not Communicating**
 ```bash
 # Check agent status
-curl http://localhost:8001/v1/workflows/WORKFLOW_ID/agents
+curl http://localhost:10001/v1/workflows/WORKFLOW_ID/agents
 
 # Verify message passing
-curl http://localhost:8001/v1/workflows/WORKFLOW_ID/messages
+curl http://localhost:10001/v1/workflows/WORKFLOW_ID/messages
 ```
 
 **2. Workflow Stuck in Waiting State**
 ```bash
 # Check dependencies
-curl http://localhost:8001/v1/workflows/WORKFLOW_ID/dependencies
+curl http://localhost:10001/v1/workflows/WORKFLOW_ID/dependencies
 
 # Manual agent trigger (if needed)
-curl -X POST http://localhost:8001/v1/workflows/WORKFLOW_ID/agents/AGENT_ID/trigger
+curl -X POST http://localhost:10001/v1/workflows/WORKFLOW_ID/agents/AGENT_ID/trigger
 ```
 
 **3. Agent Performance Issues**
 ```bash
 # Check agent metrics
-curl http://localhost:8001/v1/workflows/WORKFLOW_ID/agents/AGENT_ID/metrics
+curl http://localhost:10001/v1/workflows/WORKFLOW_ID/agents/AGENT_ID/metrics
 
 # Review execution logs
-curl http://localhost:8001/v1/workflows/WORKFLOW_ID/logs
+curl http://localhost:10001/v1/workflows/WORKFLOW_ID/logs
 ```
 
 ### Best Practices
