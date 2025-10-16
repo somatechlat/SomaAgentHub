@@ -1,16 +1,60 @@
-# Default values for soma-agent Helm chart.
+# Default values for soma-agent-hub Helm chart.
 # These values are used to render the templates under templates/.
 
 # Global settings
 global:
   imagePullPolicy: IfNotPresent
-  namespace: soma-agent
+  namespace: soma-agent-hub
+  imageTag: "dev"
+  securityContext:
+    runAsNonRoot: true
+    allowPrivilegeEscalation: false
+    readOnlyRootFilesystem: true
+    capabilities:
+      drop: ["ALL"]
+
+# Centralized port definitions. This is the single source of truth for all service ports.
+ports:
+  gateway-api: 10000
+  orchestrator: 10001
+  identity-service: 10002
+  policy-engine: 10003
+  memory-gateway: 10004
+  slm-service: 10005
+  tool-service: 10006
+  analytics-service: 10007
+  settings-service: 10008
+  billing-service: 10009
+  constitution-service: 10010
+  task-capsule-repo: 10011
+  jobs: 10012
+  # Ensure all services have a port defined, even if disabled by default
+  "self-provisioning": 10013
+  "evolution-engine": 10014
+  "marketplace-service": 10015
+  "voice-interface": 10016
+  "recall-service": 10017
+  "notification-service": 10018
+  "model-proxy": 10019
+  "capsule-service": 10020
+  "kamachiq-service": 10021
+  "mao-service": 10022
+  "token-estimator": 10023
+  "flink-service": 10024
+  "airflow-service": 10025
+
+# Centralized secrets configuration
+secrets:
+  enabled: true
+  name: soma-secrets
+  generateDevSecrets: true
+  identityJwt: ""
+  gatewayJwt: ""
 
 # Kafka (Bitnami) configuration – KRaft mode
 defaultKafka:
   enabled: true
   replicaCount: 3
-  ## Enable KRaft (no Zookeeper)
   kraft:
     enabled: true
   resources:
@@ -20,117 +64,56 @@ defaultKafka:
     requests:
       cpu: "250m"
       memory: "256Mi"
-
-# Kafka KRaft configuration - disabled for local development
-kafka:
-  enabled: false
-  replicaCount: 3
-  kraft:
-    enabled: true
-  resources:
-    limits:
-      cpu: "500m"
-      memory: "512Mi"
-    requests:
-      cpu: "250m"
-      memory: "256Mi"
-  persistence:
-    enabled: false
 
 # Service definitions – each microservice can override these defaults
 services:
   jobs:
+    enabled: false
+  slm-service:
     enabled: true
     replicaCount: 1
-    image: "ghcr.io/somatechlat/soma-jobs:80e1d6f"
-    imagePullPolicy: Never
-    port: 1000
-  somallm-provider:
-    enabled: true
-    replicaCount: 1
-    image: "ghcr.io/somatechlat/soma-somallm-provider:80e1d6f"
-    imagePullPolicy: Never
-    port: 1001
+    image: "somaagent/soma-slm-service"
   policy-engine:
     enabled: true
-    replicaCount: 1
-    image: "ghcr.io/somatechlat/soma-policy-engine:80e1d6f"
-    imagePullPolicy: Never
-    port: 1002
+    image: "somaagent/soma-policy-engine"
   memory-gateway:
-    enabled: true
-    replicaCount: 1
-    image: "ghcr.io/somatechlat/soma-memory-gateway:80e1d6f"
-    imagePullPolicy: Never
-    port: 1003
+    enabled: false
   orchestrator:
     enabled: true
-    replicaCount: 1
-    image: "ghcr.io/somatechlat/soma-orchestrator:80e1d6f"
-    imagePullPolicy: Never
-    port: 1004
+    image: "somaagent/soma-orchestrator"
+    env:
+      - name: TEMPORAL_ENABLED
+        value: "false"
   settings-service:
-    enabled: true
-    replicaCount: 1
-    image: "ghcr.io/somatechlat/soma-settings-service:80e1d6f"
-    imagePullPolicy: Never
-    port: 1005
+    enabled: false
   task-capsule-repo:
-    enabled: true
-    replicaCount: 1
-    image: "ghcr.io/somatechlat/soma-task-capsule-repo:80e1d6f"
-    imagePullPolicy: Never
-    port: 1006
+    enabled: false
   gateway-api:
     enabled: true
     replicaCount: 1
-    image: "ghcr.io/somatechlat/soma-gateway-api:80e1d6f"
-    imagePullPolicy: Never
-    port: {{ .Values.hubPort }}   # hub on 10000
+    image: "somaagent/soma-gateway-api"
+    envFromSecret: "soma-secrets"
   identity-service:
     enabled: true
-    replicaCount: 1
-    image: "ghcr.io/somatechlat/soma-identity-service:80e1d6f"
-    imagePullPolicy: Never
-    port: 1007
+    image: "somaagent/soma-identity-service"
+    envFromSecret: "soma-secrets"
+    env:
+      - name: REDIS_URL
+        value: ""
   constitution-service:
-    enabled: true
-    replicaCount: 1
-    image: "ghcr.io/somatechlat/soma-constitution-service:80e1d6f"
-    imagePullPolicy: Never
-    port: 1008
+    enabled: false
   analytics-service:
-    enabled: true
-    replicaCount: 1
-    image: "ghcr.io/somatechlat/soma-analytics-service:80e1d6f"
-    imagePullPolicy: Never
-    port: 1009
+    enabled: false
   billing-service:
-    enabled: true
-    replicaCount: 1
-    image: "ghcr.io/somatechlat/soma-billing-service:80e1d6f"
-    imagePullPolicy: Never
-    port: 1010
+    enabled: false
 
 # Ingress configuration
 ingress:
-  enabled: true
-  className: nginx
-  annotations:
-    kubernetes.io/ingress.class: nginx
-    nginx.ingress.kubernetes.io/rewrite-target: /$2
-  hosts:
-    - host: soma-agent.local
-      paths:
-        - path: /jobs(/|$)(.*)
-          pathType: Prefix
-        - path: /policy(/|$)(.*)
-          pathType: Prefix
-        - path: /memory(/|$)(.*)
-          pathType: Prefix
-        - path: /orchestrator(/|$)(.*)
-          pathType: Prefix
-        - path: /settings(/|$)(.*)
-          pathType: Prefix
-        - path: /capsules(/|$)(.*)
-          pathType: Prefix
+  enabled: false
+  # other ingress fields left unchanged but will be ignored when disabled
+
+monitoring:
+  serviceMonitors:
+    enabled: false
+    namespace: observability
+    interval: 30s

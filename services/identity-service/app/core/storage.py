@@ -3,8 +3,8 @@
 from __future__ import annotations
 
 import json
-from datetime import datetime, timezone
-from typing import Iterable, Optional
+from collections.abc import Iterable
+from datetime import datetime
 
 from redis.asyncio import Redis
 
@@ -15,6 +15,8 @@ class IdentityStore:
     """Persistence abstraction for identity data."""
 
     def __init__(self, client: Redis, namespace: str = "identity") -> None:
+        if client is None:
+            raise ValueError("IdentityStore requires a Redis client; none provided")
         self._client = client
         self._ns = namespace
 
@@ -45,7 +47,7 @@ class IdentityStore:
         await self._client.sadd(self._users_index, record.user_id)
         return record
 
-    async def get_user(self, user_id: str) -> Optional[UserRecord]:
+    async def get_user(self, user_id: str) -> UserRecord | None:
         raw = await self._client.get(self._user_key(user_id))
         if raw is None:
             return None
@@ -70,7 +72,7 @@ class IdentityStore:
         await self._client.set(self._training_key(lock.tenant_id), lock.model_dump_json())
         return lock
 
-    async def get_training_lock(self, tenant_id: str) -> Optional[TrainingLockStatus]:
+    async def get_training_lock(self, tenant_id: str) -> TrainingLockStatus | None:
         raw = await self._client.get(self._training_key(tenant_id))
         if raw is None:
             return None
@@ -83,7 +85,7 @@ class IdentityStore:
         payload = json.dumps(claims)
         await self._client.setex(self._token_key(jti), ttl_seconds, payload)
 
-    async def get_token_claims(self, jti: str) -> Optional[dict]:
+    async def get_token_claims(self, jti: str) -> dict | None:
         raw = await self._client.get(self._token_key(jti))
         if raw is None:
             return None
@@ -92,13 +94,13 @@ class IdentityStore:
     async def revoke_token(self, jti: str) -> None:
         await self._client.delete(self._token_key(jti))
 
-    async def token_ttl(self, jti: str) -> Optional[int]:
+    async def token_ttl(self, jti: str) -> int | None:
         ttl = await self._client.ttl(self._token_key(jti))
         if ttl is None or ttl < 0:
             return None
         return int(ttl)
 
-    async def get_constitution_hash(self, tenant_id: str) -> Optional[str]:
+    async def get_constitution_hash(self, tenant_id: str) -> str | None:
         return await self._client.get(self._constitution_key(tenant_id))
 
     # ------------------------------------------------------------------
@@ -127,4 +129,4 @@ class IdentityStore:
 
 
 def utc_from_timestamp(timestamp: int | float) -> datetime:
-    return datetime.fromtimestamp(timestamp, tz=timezone.utc)
+    return datetime.fromtimestamp(timestamp, tz=datetime.UTC)

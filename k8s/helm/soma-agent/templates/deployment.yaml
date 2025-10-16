@@ -1,12 +1,14 @@
 {{- $namespace := .Values.global.namespace | default .Release.Namespace -}}
 {{- range $name, $svc := .Values.services }}
 {{- if $svc.enabled }}
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: {{ $name }}
   namespace: {{ $namespace }}
   labels:
+    app: {{ $name }}
     app.kubernetes.io/name: {{ $name }}
     app.kubernetes.io/part-of: {{ $.Chart.Name }}
 spec:
@@ -17,19 +19,34 @@ spec:
   template:
     metadata:
       labels:
+        app: {{ $name }}
         app.kubernetes.io/name: {{ $name }}
         app.kubernetes.io/part-of: {{ $.Chart.Name }}
     spec:
       containers:
         - name: {{ $name }}
-          image: {{ $svc.image }}
+          image: "{{ if contains ":" (last (splitList "/" (printf "%v" $svc.image))) }}{{ printf "%v" $svc.image }}{{ else }}{{ printf "%v:%v" $svc.image ($.Values.global.imageTag | default "latest") }}{{ end }}"
           imagePullPolicy: {{ $svc.imagePullPolicy | default $.Values.global.imagePullPolicy }}
+          securityContext:
+{{ toYaml ($svc.securityContext | default $.Values.global.securityContext) | indent 12 }}
           ports:
-            - containerPort: {{ $svc.port }}
+            - containerPort: {{ index $.Values.ports $name }}
+          {{- if $svc.envFromSecret }}
+          envFrom:
+            - secretRef:
+                name: {{ $svc.envFromSecret }}
+          {{- end }}
+          {{- if $svc.env }}
+          env:
+          {{- range $env := $svc.env }}
+            - name: {{ $env.name }}
+              value: {{ $env.value | quote }}
+          {{- end }}
+          {{- end }}
           livenessProbe:
             httpGet:
               path: /health
-              port: {{ $svc.port }}
+              port: {{ index $.Values.ports $name }}
             initialDelaySeconds: 10
             periodSeconds: 30
             timeoutSeconds: 5
@@ -37,17 +54,24 @@ spec:
           readinessProbe:
             httpGet:
               path: /health
-              port: {{ $svc.port }}
+              port: {{ index $.Values.ports $name }}
             initialDelaySeconds: 5
             periodSeconds: 10
             timeoutSeconds: 3
             failureThreshold: 3
-{{- if $svc.resources }}
           resources:
+{{- if $svc.resources }}
             limits:
 {{ toYaml $svc.resources.limits | indent 14 }}
             requests:
 {{ toYaml $svc.resources.requests | indent 14 }}
+{{- else }}
+            requests:
+              cpu: "100m"
+              memory: "128Mi"
+            limits:
+              cpu: "1000m"
+              memory: "512Mi"
 {{- end }}
 {{- end }}
 {{- end }}

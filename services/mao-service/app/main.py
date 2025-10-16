@@ -416,4 +416,6 @@ async def project_stream(websocket: WebSocket, project_id: str):
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8007)
+    import os
+    port = int(os.getenv("PORT", "10007")) # Default to 10007 if not set
+    uvicorn.run(app, host="0.0.0.0", port=port)

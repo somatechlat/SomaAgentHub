@@ -44,23 +44,23 @@ spec:
         env:
         # Real service discovery
         - name: POLICY_ENGINE_URL
-          value: "http://policy-engine:1002"
+          value: "http://policy-engine:1002/v1/evaluate"
         - name: SOMALLM_PROVIDER_URL
           value: "http://somallm-provider:1001"
         - name: SOMALLM_PROVIDER_HEALTH_URL
-          value: "http://somallm-provider:1001/v1/health"
+          value: "http://somallm-provider:1001/health"
         - name: GATEWAY_API_URL
           value: "http://gateway-api:8080"
         - name: IDENTITY_SERVICE_URL
-          value: "http://identity-service:1007"
+          value: "http://identity-service:1007/v1/tokens/issue"
         
         # Real Temporal connection
         - name: TEMPORAL_HOST
-          value: "temporal.observability:7233"
+          value: "temporal-frontend.somaagent:7233"
         - name: TEMPORAL_NAMESPACE
-          value: "somaagent"
+          value: "default"
         - name: TEMPORAL_TASK_QUEUE
-          value: "kamachiq-tasks"
+          value: "somagent.session.workflows"
         
         # Real observability
         - name: OTEL_EXPORTER_OTLP_ENDPOINT

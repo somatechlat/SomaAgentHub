@@ -1,0 +1,10 @@
+# kind-cluster-persistent.yaml
+# This configuration file instructs Kind to create a cluster
+# with a host-path mount for persistent data storage.
+kind: Cluster
+apiVersion: kind.x-k8s.io/v1alpha4
+nodes:
+- role: control-plane
+  extraMounts:
+  - hostPath: ./.persistent_volumes
+    containerPath: /mnt/data

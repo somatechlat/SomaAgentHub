@@ -1,0 +1,111 @@
+name: CI Integration
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ main ]
+
+jobs:
+  integration:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:15-alpine
+        env:
+          POSTGRES_USER: soma
+          POSTGRES_PASSWORD: soma_pass
+          POSTGRES_DB: soma
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U $POSTGRES_USER"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+      redis:
+        image: redis:7-alpine
+        ports: ["6379:6379"]
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          find services -name requirements.txt -exec cat {} + > combined-requirements.txt
+          pip install -r combined-requirements.txt
+          pip install -r requirements-dev.txt
+      - name: Lint with ruff
+        run: ruff check .
+      - name: Type check with mypy
+        run: mypy .
+      - name: Run tests
+        env:
+          POSTGRES_URL: postgresql://soma:soma_pass@localhost:5432/soma
+          REDIS_URL: redis://localhost:6379/0
+        run: pytest -q --maxfail=1 --disable-warnings
+
+      - name: Setup Kind cluster for integration testing
+        uses: helm/kind-action@v1
+        with:
+          cluster_name: soma-test
+
+      - name: Install Helm
+        uses: azure/setup-helm@v4
+
+      - name: Add Bitnami repo for Kafka/Redis
+        run: helm repo add bitnami https://charts.bitnami.com/bitnami && helm repo update
+
+      - name: Update app Helm dependencies
+        working-directory: ./k8s/helm/soma-agent
+        run: helm dependency update .
+
+      - name: Update infra Helm dependencies
+        working-directory: ./infra/helm/soma-infra
+        run: helm dependency update .
+
+      - name: Lint Helm chart
+        working-directory: ./k8s/helm/soma-agent
+        run: helm lint .
+
+      - name: Render Helm templates (validate)
+        working-directory: ./k8s/helm/soma-agent
+        run: helm template soma-agent . > /dev/null
+
+      - name: Lint infra Helm chart
+        working-directory: ./infra/helm/soma-infra
+        run: helm lint .
+
+      - name: Render infra templates (validate)
+        working-directory: ./infra/helm/soma-infra
+        run: helm template soma-infra . -f values-dev.yaml > /dev/null
+
+      - name: Deploy infra (dev) to Kind
+        run: |
+          helm upgrade --install soma-infra ./infra/helm/soma-infra \
+            --namespace soma-infra --create-namespace \
+            -f ./infra/helm/soma-infra/values-dev.yaml \
+            --wait --timeout=300s
+          kubectl -n soma-infra get pods
+          kubectl -n soma-infra wait --for=condition=Ready pods --all --timeout=300s || true
+
+      - name: Deploy apps (dev) to Kind
+        run: |
+          helm upgrade --install soma-agent-hub ./k8s/helm/soma-agent \
+            --namespace soma-agent-hub --create-namespace \
+            -f ./k8s/helm/soma-agent/values-dev.yaml \
+            --wait --timeout=300s
+          kubectl -n soma-agent-hub get pods
+          kubectl -n soma-agent-hub wait --for=condition=Ready pods --all --timeout=300s || true
+
+      - name: Smoke test health endpoints
+        run: |
+          kubectl -n soma-agent-hub get svc
+          kubectl -n soma-agent-hub run curl --restart=Never --image=curlimages/curl:8.10.1 --rm -i -- \
+            sh -c 'curl -sf http://gateway-api:8080/health && curl -sf http://identity-service:8000/health && curl -sf http://orchestrator:1004/health && curl -sf http://slm-service:1001/health'

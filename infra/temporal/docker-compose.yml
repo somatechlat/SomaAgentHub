@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   # PostgreSQL for Temporal
   temporal-postgres:
@@ -10,7 +8,7 @@ services:
       POSTGRES_PASSWORD: temporal
       POSTGRES_DB: temporal
     ports:
-      - "5433:5432"
+      - "5434:5432"
     volumes:
       - temporal-postgres-data:/var/lib/postgresql/data
     healthcheck:
@@ -19,7 +17,7 @@ services:
       timeout: 5s
       retries: 5
     networks:
-      - somagent-network
+      - somaagenthub-network
 
   # Temporal Server
   temporal:
@@ -49,7 +47,7 @@ services:
       timeout: 10s
       retries: 5
     networks:
-      - somagent-network
+      - somaagenthub-network
 
   # Temporal Web UI
   temporal-ui:
@@ -65,7 +63,7 @@ services:
     ports:
       - "8088:8080"
     networks:
-      - somagent-network
+      - somaagenthub-network
 
   # Temporal Admin Tools
   temporal-admin-tools:
@@ -80,7 +78,7 @@ services:
     stdin_open: true
     tty: true
     networks:
-      - somagent-network
+      - somaagenthub-network
     entrypoint: /bin/bash
 
 volumes:
@@ -88,6 +86,6 @@ volumes:
     driver: local
 
 networks:
-  somagent-network:
+  somaagenthub-network:
     external: true
-    name: somagent-network
+    name: somaagenthub-network

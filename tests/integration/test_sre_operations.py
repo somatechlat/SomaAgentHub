@@ -80,7 +80,7 @@ class TestChaosEngineering:
         experiment = ChaosExperiment(
             name="test_pod_failure",
             type=ExperimentType.POD_FAILURE,
-            target_service="somallm-provider",
+            target_service="slm-service",
             duration="1m",
             description="Test pod failure",
             params={"mode": "one"}
@@ -99,7 +99,7 @@ class TestChaosEngineering:
         experiment = ChaosExperiment(
             name="test_network_delay",
             type=ExperimentType.NETWORK_DELAY,
-            target_service="somallm-provider",
+            target_service="slm-service",
             duration="2m",
             description="Test network delay",
             params={

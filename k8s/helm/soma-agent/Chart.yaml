@@ -1,5 +1,5 @@
 apiVersion: v2
-name: soma-agent
+name: soma-agent-hub   # renamed from soma-agent-hub
 description: A Helm chart for deploying the Soma Agent microservices stack on Kubernetes with Kafka KRaft.
 type: application
 version: 0.1.0

@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 from dataclasses import asdict, is_dataclass
-from datetime import timedelta
 from typing import Any, Dict, List
 from uuid import uuid4
 
@@ -37,7 +36,7 @@ class SessionStartRequest(BaseModel):
 
 class SessionStartResponse(BaseModel):
     workflow_id: str
-    run_id: str
+    run_id: str | None = None
     session_id: str
     task_queue: str
 
@@ -93,8 +92,36 @@ def _normalize_result(result_obj: Any) -> Dict[str, Any] | None:
 
 
 @router.post("/sessions/start", response_model=SessionStartResponse, status_code=status.HTTP_202_ACCEPTED)
-async def start_session(payload: SessionStartRequest, client: temporal_client.Client = Depends(get_temporal_client)) -> SessionStartResponse:
-    """Kick off the Temporal session workflow and return identifiers for tracking."""
+async def start_session(request: Request, client: temporal_client.Client = Depends(get_temporal_client)) -> SessionStartResponse:
+    """Kick off the Temporal session workflow and return identifiers for tracking.
+
+    This handler is tolerant in dev to payloads that provide either
+    (tenant, user) or (tenant_id, user_id) to accommodate slightly
+    different gateway forwards during local debugging.
+    """
+    body = await request.json()
+
+    # Normalize tenant/user fields from either canonical or legacy names
+    tenant = body.get("tenant") or body.get("tenant_id")
+    user = body.get("user") or body.get("user_id")
+    prompt = body.get("prompt")
+    model = body.get("model") or "somagent-demo"
+    metadata = body.get("metadata") or {}
+
+    if not tenant or not user or not prompt:
+        raise HTTPException(
+            status_code=400,
+            detail="Missing required fields: tenant, user, and prompt are required",
+        )
+
+    # Build a validated request model for downstream code clarity
+    payload = SessionStartRequest(
+        tenant=tenant,
+        user=user,
+        prompt=prompt,
+        model=model,
+        metadata=metadata,
+    )
 
     session_id = payload.metadata.get("session_id") or f"session-{uuid4()}"
     workflow_id = f"session-{session_id}"
@@ -111,13 +138,31 @@ async def start_session(payload: SessionStartRequest, client: temporal_client.Cl
         ),
         id=workflow_id,
         task_queue=settings.temporal_task_queue,
-        start_timeout=timedelta(seconds=10),
-        run_timeout=timedelta(minutes=5),
     )
 
+    # Some Temporal client/server combinations may return None for run_id
+    # in development setups. Be tolerant during dev smoke tests and coerce
+    # a missing run_id to an empty string while logging the handle for
+    # diagnostic purposes.
+    try:
+        hid = getattr(handle, "id", None) or workflow_id
+        rid = getattr(handle, "run_id", None) or ""
+    except Exception:
+        # Fallback if handle is an unexpected type
+        hid = workflow_id
+        rid = ""
+
+    # Helpful debug log when running locally to surface Temporal client returns
+    try:
+        import logging
+
+        logging.getLogger("orchestrator").debug("workflow handle: %s", repr(handle))
+    except Exception:
+        pass
+
     return SessionStartResponse(
-        workflow_id=handle.id,
-        run_id=handle.run_id,
+        workflow_id=hid,
+        run_id=rid,
         session_id=session_id,
         task_queue=settings.temporal_task_queue,
     )
@@ -177,8 +222,6 @@ async def start_multi_agent(
         ),
         id=workflow_id,
         task_queue=settings.temporal_task_queue,
-        start_timeout=timedelta(seconds=10),
-        run_timeout=timedelta(minutes=15),
     )
 
     return MultiAgentStartResponse(

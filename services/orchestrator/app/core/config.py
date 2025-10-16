@@ -20,9 +20,11 @@ class Settings(BaseSettings):
     service_name: str = Field(default="orchestrator-service")
 
     # Temporal configuration
-    temporal_target_host: str = Field(default="temporal:7233", alias="TEMPORAL_TARGET_HOST")
+    # Accept TEMPORAL_HOST (preferred) with fallback to legacy TEMPORAL_TARGET_HOST
+    temporal_target_host: str = Field(default="localhost:7233", alias="TEMPORAL_HOST")
     temporal_namespace: str = Field(default="default", alias="TEMPORAL_NAMESPACE")
     temporal_task_queue: str = Field(default="somagent.session.workflows", alias="TEMPORAL_TASK_QUEUE")
+    temporal_enabled: bool = Field(default=False, alias="TEMPORAL_ENABLED")
 
     # Kafka audit stream
     kafka_bootstrap_servers: Optional[str] = Field(default=None, alias="KAFKA_BOOTSTRAP_SERVERS")
@@ -41,13 +43,14 @@ class Settings(BaseSettings):
         alias="NOTIFICATION_SERVICE_URL",
     )
 
-    # SomaLLM provider (formerly SLM service)
+    # SLM service (formerly SomaLLM provider)
+    # Default to in-cluster DNS for slm-service on port 1001
     somallm_provider_url: AnyUrl = Field(
-        default="http://somallm-provider-service:8003",
+        default="http://slm-service:1001",
         alias="SOMALLM_PROVIDER_URL",
     )
     somallm_provider_health_url: AnyUrl = Field(
-        default="http://somallm-provider-service:8003/health",
+        default="http://slm-service:1001/health",
         alias="SOMALLM_PROVIDER_HEALTH_URL",
     )
 
@@ -86,6 +89,11 @@ class Settings(BaseSettings):
             object.__setattr__(self, "somallm_provider_url", legacy_base)
         if legacy_health and not os.getenv("SOMALLM_PROVIDER_HEALTH_URL"):
             object.__setattr__(self, "somallm_provider_health_url", legacy_health)
+
+        # Backward compatibility for Temporal host env var name
+        legacy_temporal = os.getenv("TEMPORAL_TARGET_HOST")
+        if legacy_temporal and not os.getenv("TEMPORAL_HOST"):
+            object.__setattr__(self, "temporal_target_host", legacy_temporal)
         super().model_post_init(__context)
 
 

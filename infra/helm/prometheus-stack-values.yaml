@@ -1,5 +1,5 @@
 # Prometheus Stack Values for Sprint-6 Observability
-# Includes Prometheus, Grafana, Alertmanager
+# Includes Prometheus and Alertmanager (Grafana disabled)
 
 # Prometheus configuration
 prometheus:
@@ -28,30 +28,8 @@ prometheus:
             requests:
               storage: 10Gi
 
-# Grafana configuration
 grafana:
-  enabled: true
-  adminPassword: "admin"  # Change in production (Sprint-6 Vault)
-  service:
-    type: NodePort
-  resources:
-    requests:
-      cpu: 100m
-      memory: 256Mi
-    limits:
-      cpu: 200m
-      memory: 512Mi
-  
-  # Pre-configure datasources
-  datasources:
-    datasources.yaml:
-      apiVersion: 1
-      datasources:
-        - name: Prometheus
-          type: prometheus
-          url: http://prometheus-kube-prometheus-prometheus:9090
-          access: proxy
-          isDefault: true
+  enabled: false
 
 # Alertmanager configuration
 alertmanager:

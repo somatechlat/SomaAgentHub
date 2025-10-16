@@ -14,7 +14,7 @@ from .auth import decode_token
 from .config import get_settings
 from .context import build_request_context, reset_request_context, set_request_context
 
-ALLOWED_ANON_PATHS = {"/health", "/docs", "/openapi.json"}
+ALLOWED_ANON_PATHS = {"/health", "/ready", "/docs", "/openapi.json"}
 
 
 class ContextMiddleware(BaseHTTPMiddleware):
@@ -23,6 +23,7 @@ class ContextMiddleware(BaseHTTPMiddleware):
     def __init__(self, app) -> None:  # type: ignore[override]
         super().__init__(app)
         settings = get_settings()
+        self._settings = settings
         self._defaults = {
             "client_type_header": settings.client_type_header,
             "deployment_mode_header": settings.deployment_mode_header,
@@ -31,6 +32,10 @@ class ContextMiddleware(BaseHTTPMiddleware):
             "default_deployment_mode": settings.default_deployment_mode,
         }
         self._allowed_tenants = set(settings.allowed_tenants())
+
+        environment = (settings.environment or "development").lower()
+        self._allow_anonymous = environment != "production"
+        self._anonymous_user = os.getenv("SOMAGENT_GATEWAY_ANON_USER", "dev-user")
         
         # Check if OPA is configured
         self._opa_enabled = bool(os.getenv("OPA_URL"))
@@ -47,11 +52,21 @@ class ContextMiddleware(BaseHTTPMiddleware):
             return await call_next(request)
 
         auth_header = request.headers.get("Authorization")
-        if not auth_header or not auth_header.startswith("Bearer "):
+        claims: dict[str, str | list[str] | None]
+        using_token = False
+        if auth_header and auth_header.startswith("Bearer "):
+            token = auth_header.split(" ", 1)[1]
+            claims = decode_token(token)
+            using_token = True
+        elif self._allow_anonymous:
+            tenant_id = self._defaults.get("default_tenant_id") or "demo"
+            claims = {
+                "tenant_id": tenant_id,
+                "sub": self._anonymous_user,
+                "capabilities": [],
+            }
+        else:
             return JSONResponse(status_code=status.HTTP_401_UNAUTHORIZED, content={"detail": "Missing bearer token"})
-
-        token = auth_header.split(" ", 1)[1]
-        claims = decode_token(token)
 
         try:
             ctx = build_request_context(request, self._defaults, claims)
@@ -68,7 +83,7 @@ class ContextMiddleware(BaseHTTPMiddleware):
             )
 
         # OPA policy check (if enabled)
-        if self._opa_enabled:
+        if self._opa_enabled and using_token:
             try:
                 authorized = await self._opa_client.check_authorization(
                     tenant_id=ctx.tenant_id,

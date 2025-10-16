@@ -9,23 +9,13 @@ Provides reusable fixtures for testing tool adapters with real API endpoints.
 import os
 import pytest
 import asyncio
-from typing import Dict, Any, Optional
-from datetime import datetime, timedelta
-import json
+from typing import Dict, Any
+from datetime import datetime
 
 # Tool adapter imports
 import sys
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '../../services/tool-service'))
 
-from adapters.plane_adapter import PlaneAdapter
-from adapters.github_adapter import GitHubAdapter
-from adapters.notion_adapter import NotionAdapter
-from adapters.slack_adapter import SlackAdapter
-from adapters.terraform_adapter import TerraformAdapter
-from adapters.aws_adapter import AWSAdapter
-from adapters.kubernetes_adapter import KubernetesAdapter
-from adapters.jira_adapter import JiraAdapter
-from adapters.playwright_adapter import PlaywrightAdapter
 from tool_registry import tool_registry
 
 
@@ -104,6 +94,7 @@ def plane_adapter(test_config, check_test_credentials):
     if not test_config["plane_api_key"]:
         pytest.skip("Plane.so test credentials not configured")
     
+    from adapters.plane_adapter import PlaneAdapter
     return PlaneAdapter(
         api_url=test_config["plane_api_url"],
         api_key=test_config["plane_api_key"],
@@ -114,6 +105,7 @@ def plane_adapter(test_config, check_test_credentials):
 @pytest.fixture
 def github_adapter(test_config, check_test_credentials):
     """GitHub adapter configured for test organization."""
+    from adapters.github_adapter import GitHubAdapter
     return GitHubAdapter(token=test_config["github_token"])
 
 
@@ -123,12 +115,14 @@ def notion_adapter(test_config):
     if not test_config["notion_token"]:
         pytest.skip("Notion test credentials not configured")
     
+    from adapters.notion_adapter import NotionAdapter
     return NotionAdapter(token=test_config["notion_token"])
 
 
 @pytest.fixture
 def slack_adapter(test_config, check_test_credentials):
     """Slack adapter configured for test workspace."""
+    from adapters.slack_adapter import SlackAdapter
     return SlackAdapter(bot_token=test_config["slack_token"])
 
 
@@ -137,19 +131,20 @@ def terraform_adapter(test_config, tmp_path):
     """Terraform adapter with temporary working directory."""
     working_dir = tmp_path / "terraform"
     working_dir.mkdir()
+    from adapters.terraform_adapter import TerraformAdapter
     return TerraformAdapter(working_dir=str(working_dir))
 
 
 @pytest.fixture
 def aws_adapter(test_config):
-    """AWS adapter configured for test account."""
+    """AWS adapter configured for test account (real boto3)."""
     if not test_config["aws_access_key"]:
         pytest.skip("AWS test credentials not configured")
-    
+    from adapters.aws_adapter import AWSAdapter
     return AWSAdapter(
-        access_key_id=test_config["aws_access_key"],
-        secret_access_key=test_config["aws_secret_key"],
-        region=test_config["aws_region"]
+        aws_access_key_id=test_config["aws_access_key"],
+        aws_secret_access_key=test_config["aws_secret_key"],
+        region_name=test_config["aws_region"],
     )
 
 
@@ -159,7 +154,7 @@ def kubernetes_adapter(test_config):
     kubeconfig = os.path.expanduser(test_config["kubeconfig_path"])
     if not os.path.exists(kubeconfig):
         pytest.skip("Kubernetes test cluster not configured")
-    
+    from adapters.kubernetes_adapter import KubernetesAdapter
     return KubernetesAdapter(kubeconfig_path=kubeconfig)
 
 
@@ -169,6 +164,7 @@ def jira_adapter(test_config):
     if not test_config["jira_url"] or not test_config["jira_api_token"]:
         pytest.skip("Jira test credentials not configured")
     
+    from adapters.jira_adapter import JiraAdapter
     return JiraAdapter(
         url=test_config["jira_url"],
         email=test_config["jira_email"],
@@ -179,6 +175,7 @@ def jira_adapter(test_config):
 @pytest.fixture
 async def playwright_adapter():
     """Playwright adapter for browser automation tests."""
+    from adapters.playwright_adapter import PlaywrightAdapter
     adapter = PlaywrightAdapter()
     yield adapter
     # Cleanup is handled by adapter's context manager
@@ -324,8 +321,8 @@ def performance_tracker():
         metrics["avg_latency"] = sum(sorted_latencies) / len(sorted_latencies)
         metrics["max_latency"] = max(sorted_latencies)
         metrics["success_rate"] = (len(metrics["api_calls"]) - len(metrics["errors"])) / len(metrics["api_calls"])
-        
-        print(f"\n=== Performance Metrics ===")
+
+        print("\n=== Performance Metrics ===")
         print(f"Total API calls: {len(metrics['api_calls'])}")
         print(f"Success rate: {metrics['success_rate']*100:.2f}%")
         print(f"Avg latency: {metrics['avg_latency']:.2f}ms")

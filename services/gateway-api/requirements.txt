@@ -8,3 +8,5 @@ prometheus-client>=0.20.0
 opentelemetry-instrumentation-fastapi>=0.48b0
 opentelemetry-sdk>=1.25.0
 opentelemetry-exporter-otlp>=1.25.0
+opentelemetry-exporter-prometheus
+pyyaml>=6.0

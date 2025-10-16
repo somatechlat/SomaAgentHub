@@ -17,7 +17,7 @@ SERVICES=(
     "policy-engine"
     "settings-service"
     "task-capsule-repo"
-    "somallm-provider"
+    "slm-service"
     "gateway-api"
     "identity-service"
     "constitution-service"
@@ -28,11 +28,7 @@ SERVICES=(
 # Function to build and push a single service
 build_service() {
     local service=$1
-    local build_dir="$service"
-    if [ "$service" = "somallm-provider" ]; then
-        build_dir="slm-service"
-    fi
-    local service_dir="services/${build_dir}"
+    local service_dir="services/${service}"
     
     if [ ! -d "$service_dir" ]; then
         echo "⚠️  Skipping ${service} - directory not found"
@@ -40,6 +36,23 @@ build_service() {
     fi
     
     echo "🔨 Building ${service}..."
+
+    # Collect image tags (primary registry + dockerhub mirror + legacy aliases)
+    local image_tags=(
+        "${REGISTRY}/soma-${service}:${TAG}"
+        "${REGISTRY}/soma-${service}:latest"
+        "somaagent/soma-${service}:${TAG}"
+        "somaagent/soma-${service}:latest"
+    )
+
+    if [ "$service" = "slm-service" ]; then
+        image_tags+=(
+            "${REGISTRY}/soma-somallm-provider:${TAG}"
+            "${REGISTRY}/soma-somallm-provider:latest"
+            "somaagent/soma-somallm-provider:${TAG}"
+            "somaagent/soma-somallm-provider:latest"
+        )
+    fi
     
     # Create Dockerfile if it doesn't exist
     if [ ! -f "${service_dir}/Dockerfile" ]; then
@@ -61,17 +74,19 @@ EOF
     fi
     
     # Build image
-    docker build -t "${REGISTRY}/soma-${service}:${TAG}" -t "${REGISTRY}/soma-${service}:latest" "${service_dir}"
+    docker build $(for tag in "${image_tags[@]}"; do printf ' -t %s' "$tag"; done) "${service_dir}"
     
     # Load image into Kind cluster if it exists
-    if kind get clusters | grep -q "soma-agent"; then
+    if kind get clusters | grep -q "soma-agent-hub"; then
         echo "📥 Loading ${service} into Kind cluster..."
-        kind load docker-image "${REGISTRY}/soma-${service}:${TAG}" --name soma-agent
-        kind load docker-image "${REGISTRY}/soma-${service}:latest" --name soma-agent
+        for tag in "${image_tags[@]}"; do
+            kind load docker-image "$tag" --name soma-agent-hub
+        done
     else
-        echo "📤 Pushing ${service}... (skipping - no credentials)"
-        # docker push "${REGISTRY}/soma-${service}:${TAG}"
-        # docker push "${REGISTRY}/soma-${service}:latest"
+    echo "📤 Pushing ${service}... (skipping - no credentials)"
+    # for tag in "${image_tags[@]}"; do
+    #   docker push "$tag"
+    # done
     fi
     
     echo "✅ ${service} complete"
@@ -85,4 +100,4 @@ done
 echo "🎉 All images built and pushed successfully!"
 echo ""
 echo "To deploy with Helm:"
-echo "  helm upgrade --install soma-agent ./k8s/helm/soma-agent --set global.imageTag=${TAG}"
+echo "  helm upgrade --install soma-agent-hub ./k8s/helm/soma-agent --set global.imageTag=${TAG}"

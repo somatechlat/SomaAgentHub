@@ -5,11 +5,11 @@ from __future__ import annotations
 from fastapi import FastAPI
 from fastapi.responses import Response
 from prometheus_client import CONTENT_TYPE_LATEST, generate_latest
+from services.common.observability import setup_observability
 from temporalio import client as temporal_client
 
 from .api.routes import router as orchestrator_router
 from .core.config import settings
-from .observability import setup_observability
 
 
 def create_app() -> FastAPI:
@@ -20,20 +20,35 @@ def create_app() -> FastAPI:
 
     @app.on_event("startup")
     async def _startup_temporal_client() -> None:
-        app.state.temporal_client = await temporal_client.Client.connect(
-            settings.temporal_target_host,
-            namespace=settings.temporal_namespace,
-        )
+        if settings.temporal_enabled:
+            app.state.temporal_client = await temporal_client.Client.connect(
+                settings.temporal_target_host,
+                namespace=settings.temporal_namespace,
+            )
 
     @app.on_event("shutdown")
     async def _shutdown_temporal_client() -> None:
         client = getattr(app.state, "temporal_client", None)
         if client is not None:
-            await client.close()
+            close_fn = getattr(client, "close", None)
+            if close_fn is not None:
+                # Some Temporal client versions provide an async close method
+                try:
+                    await close_fn()
+                except TypeError:
+                    # close_fn may be a sync callable; call it directly
+                    close_fn()
 
     @app.get("/health", tags=["system"])
     async def healthcheck() -> dict[str, str]:
         return {"status": "ok", "service": settings.service_name}
+
+    @app.get("/ready", tags=["system"])
+    async def ready() -> dict[str, str]:
+        # Basic readiness check: temporal client present
+        if settings.temporal_enabled and getattr(app.state, "temporal_client", None) is None:
+            return {"status": "starting"}
+        return {"status": "ready"}
 
     @app.get("/metrics", tags=["system"])
     async def metrics() -> Response:

@@ -3,21 +3,22 @@
 from __future__ import annotations
 
 import asyncio
+
+from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager, suppress
 from datetime import timedelta
-from typing import AsyncIterator
+from os import environ, getenv
 
 from fastapi import FastAPI
 from fastapi.responses import Response
 from prometheus_client import CONTENT_TYPE_LATEST, generate_latest
-from redis.asyncio import Redis, from_url as redis_from_url
+from services.common.observability import setup_observability
 
 from .api.routes import router
 from .core.audit import AuditLogger
 from .core.config import settings
 from .core.key_manager import KeyManager
 from .core.storage import IdentityStore
-from .observability import setup_observability
 
 
 async def _rotation_worker(key_manager: KeyManager, interval: float, stop_event: asyncio.Event) -> None:
@@ -27,7 +28,7 @@ async def _rotation_worker(key_manager: KeyManager, interval: float, stop_event:
             try:
                 await asyncio.wait_for(stop_event.wait(), timeout=interval)
                 return
-            except asyncio.TimeoutError:
+            except TimeoutError:
                 continue
     except asyncio.CancelledError:  # pragma: no cover - shutdown handling
         raise
@@ -35,7 +36,16 @@ async def _rotation_worker(key_manager: KeyManager, interval: float, stop_event:
 
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncIterator[None]:
-    redis: Redis = redis_from_url(str(settings.redis_url), decode_responses=True)
+    configured_redis_url = settings.redis.url or settings.redis_url or getenv("REDIS_URL")
+    if not configured_redis_url:
+        raise RuntimeError("Identity service requires REDIS_URL to be configured")
+
+    environ.setdefault("REDIS_URL", configured_redis_url)
+    from services.common.redis_client import get_redis_client
+
+    redis_client_wrap = get_redis_client()
+    redis = await redis_client_wrap.get_client()
+
     identity_store = IdentityStore(redis)
     key_manager = KeyManager(
         redis,
@@ -45,7 +55,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     )
     await key_manager.start()
 
-    audit_logger = AuditLogger(settings.audit_bootstrap_servers, settings.audit_topic)
+    audit_logger = AuditLogger(settings)
     await audit_logger.start()
 
     stop_event = asyncio.Event()
@@ -54,6 +64,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     )
 
     app.state.redis = redis
+    app.state.redis_client = redis_client_wrap
     app.state.identity_store = identity_store
     app.state.key_manager = key_manager
     app.state.audit_logger = audit_logger
@@ -68,14 +79,20 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         with suppress(asyncio.CancelledError):
             await rotation_task
         await key_manager.stop()
-        await audit_logger.stop()
-        await identity_store.close()
+        with suppress(Exception):
+            await audit_logger.stop()
+        with suppress(Exception):
+            await identity_store.close()
+        # Close shared Redis pool if we created it
+        if redis_client_wrap is not None:
+            with suppress(Exception):
+                await redis_client_wrap.close()
 
 
 def create_app() -> FastAPI:
     app = FastAPI(
         title="SomaGent Identity Service",
-        version="0.2.0",
+        version=settings.service_version,
         description="Handles user authentication, JWT tokens, and identity management.",
         lifespan=lifespan,
     )
@@ -90,15 +107,21 @@ def create_app() -> FastAPI:
     async def metrics() -> Response:
         return Response(generate_latest(), media_type=CONTENT_TYPE_LATEST)
 
+    @app.get("/ready", tags=["system"])
+    async def ready() -> dict[str, str]:
+        # Consider ready if key manager and identity store have been initialized
+        healthy = hasattr(app.state, "identity_store") and hasattr(app.state, "key_manager")
+        return {"status": "ready" if healthy else "starting"}
+
     @app.get("/")
     async def root() -> dict[str, str]:
         return {"message": "SomaGent Identity Service"}
 
     app.include_router(router)
-    
+
     # REAL OpenTelemetry instrumentation - no mocks, exports to Prometheus
-    setup_observability("identity-service", app, service_version="0.2.0")
-    
+    setup_observability(settings.service_name, app, service_version=settings.service_version)
+
     return app
 
 

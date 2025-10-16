@@ -1,0 +1,25 @@
+# k8s/local/persistence.yaml
+# This manifest defines a PersistentVolume that uses the host path
+# mounted by Kind, making it available for applications in the cluster.
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: local-persistent-storage
+spec:
+  capacity:
+    storage: 10Gi # The size can be adjusted, but this is a good default for local dev.
+  volumeMode: Filesystem
+  accessModes:
+  - ReadWriteOnce
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: standard # We will use the default 'standard' storage class.
+  local:
+    path: /mnt/data # This is the path inside the Kind node that maps to our .persistent_volumes directory.
+  nodeAffinity:
+    required:
+      nodeSelectorTerms:
+      - matchExpressions:
+        - key: kubernetes.io/hostname
+          operator: In
+          values:
+          - soma-agent-hub-control-plane

@@ -14,7 +14,7 @@ TEST_CONFIG = {
     "gateway_api": "http://localhost:10000",
     "policy_engine": "http://localhost:1002",
     "identity_service": "http://localhost:1007",
-    "slm_service": "http://localhost:10000",  # hub (somallm-provider) same as gateway
+    "slm_service": "http://localhost:10000",  # hub (slm-service) same as gateway
     "analytics_service": "http://localhost:1009",
 }
 

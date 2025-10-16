@@ -2,16 +2,15 @@
 
 from __future__ import annotations
 
-from typing import Any, Dict
-
 import time
+from typing import Any
 
-import httpx
 from fastapi import APIRouter, Depends, HTTPException, status
+from httpx import AsyncClient, HTTPError
 
-from ..core.config import Settings, get_settings
-from ..core.moderation import ModerationError, ModerationGuard
+from ..config import GatewaySettings, get_sah_settings
 from ..core.metrics import observe_forward_latency, record_moderation_decision
+from ..core.moderation import ModerationError, ModerationGuard
 from ..dependencies import moderation_guard_dependency, request_context_dependency
 from ..models.context import RequestContext
 from ..models.sessions import ModerationDetail, SessionCreateRequest, SessionCreateResponse
@@ -36,13 +35,14 @@ def read_status(ctx: RequestContext = Depends(request_context_dependency)) -> di
 def _build_orchestrator_payload(
     payload: SessionCreateRequest,
     ctx: RequestContext,
-) -> Dict[str, Any]:
-    data: Dict[str, Any] = {
+) -> dict[str, Any]:
+    data: dict[str, Any] = {
         "prompt": payload.prompt,
         "capsule_id": payload.capsule_id,
         "metadata": payload.metadata,
-        "tenant_id": ctx.tenant_id,
-        "user_id": ctx.user_id,
+        # Orchestrator expects 'tenant' and 'user' field names
+        "tenant": ctx.tenant_id,
+        "user": ctx.user_id,
         "capabilities": ctx.capabilities,
         "client_type": ctx.client_type,
         "deployment_mode": ctx.deployment_mode,
@@ -50,8 +50,8 @@ def _build_orchestrator_payload(
     return data
 
 
-def _build_forward_headers(ctx: RequestContext) -> Dict[str, str]:
-    headers = {
+def _build_forward_headers(ctx: RequestContext) -> dict[str, str]:
+    headers: dict[str, str] = {
         "X-Tenant-ID": ctx.tenant_id,
         "X-Client-Type": ctx.client_type,
         "X-Deployment-Mode": ctx.deployment_mode,
@@ -68,7 +68,7 @@ async def create_session(
     payload: SessionCreateRequest,
     ctx: RequestContext = Depends(request_context_dependency),
     guard: ModerationGuard = Depends(moderation_guard_dependency),
-    settings: Settings = Depends(get_settings),
+    settings: GatewaySettings = Depends(get_sah_settings),
 ) -> SessionCreateResponse:
     """Moderate input before forwarding to orchestrator."""
 
@@ -113,14 +113,15 @@ async def create_session(
     )
 
     start = time.perf_counter()
-    async with httpx.AsyncClient(timeout=15.0) as client:
+    async with AsyncClient(timeout=15.0) as client:
         try:
+            # Forward the prepared payload to the Orchestrator
             resp = await client.post(
                 f"{settings.orchestrator_url}/v1/sessions/start",
                 json=forward_payload,
                 headers=headers,
             )
-        except httpx.HTTPError as exc:  # noqa: BLE001
+        except HTTPError as exc:  # noqa: BLE001
             observe_forward_latency(ctx.tenant_id, time.perf_counter() - start)
             raise HTTPException(
                 status_code=status.HTTP_502_BAD_GATEWAY,
@@ -134,7 +135,7 @@ async def create_session(
             detail=f"Orchestrator error: {resp.text}",
         )
 
-    orchestrator_data: Dict[str, Any] = resp.json()
+    orchestrator_data: dict[str, Any] = resp.json()
     observe_forward_latency(ctx.tenant_id, time.perf_counter() - start)
     moderation = ModerationDetail(
         strike_count=verdict.strike_count,

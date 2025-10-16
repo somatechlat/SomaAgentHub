@@ -1,0 +1,44 @@
+# Development-specific values for the soma-agent-hub Helm chart.
+# These settings override the base values.yaml for a lightweight local setup.
+
+global:
+  imagePullPolicy: IfNotPresent
+  imageTag: "dev"
+
+# For local development, we can run with a single replica for each service.
+services:
+  gateway-api:
+    replicaCount: 1
+  orchestrator:
+    replicaCount: 1
+    # Disable Temporal for basic local development to save resources
+    env:
+      - name: TEMPORAL_ENABLED
+        value: "false"
+  identity-service:
+    replicaCount: 1
+  policy-engine:
+    replicaCount: 1
+  slm-service:
+    enabled: true # Explicitly enable slm-service for dev
+    replicaCount: 1
+
+# Disable Kafka for local development to conserve resources.
+defaultKafka:
+  enabled: false
+
+# Use a simple NodePort for the gateway in local Kind clusters for easy access.
+ingress:
+  enabled: false
+
+# Add persistence configuration for stateful services
+persistence:
+  enabled: true
+  storageClassName: standard
+  size: 1Gi
+
+# Override the gateway service type to NodePort for local access
+gateway-api:
+  service:
+    type: NodePort
+    nodePort: 30000 # Use a port in the standard NodePort range

@@ -12,7 +12,6 @@ import os
 from typing import Optional
 
 from opentelemetry import metrics, trace
-from opentelemetry.exporter.otlp.proto.grpc.metric_exporter import OTLPMetricExporter
 from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import OTLPSpanExporter
 from opentelemetry.exporter.prometheus import PrometheusMetricReader
 from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
@@ -92,12 +91,34 @@ class OpenTelemetryConfig:
         FastAPIInstrumentor.instrument_app(app)
         logger.info(f"FastAPI instrumentation enabled for {self.service_name}")
 
+    def _setup_loki_logging(self) -> None:
+        """Optionally configure Loki logging if LOKI_URL is provided and handler is available."""
+        loki_url = os.getenv("LOKI_URL")
+        if not loki_url:
+            return
+        try:
+            from logging_loki import LokiHandler  # type: ignore
+
+            handler = LokiHandler(
+                url=f"{loki_url.rstrip('/')}/loki/api/v1/push",
+                tags={"service": self.service_name, "environment": self.environment},
+                version="1",
+            )
+            root = logging.getLogger()
+            root.addHandler(handler)
+            if not root.level or root.level == logging.NOTSET:
+                root.setLevel(logging.INFO)
+            logger.info(f"Loki logging enabled: {loki_url}")
+        except Exception as e:
+            logger.warning(f"Loki logging not configured: {e}")
+
     def setup_all(self, app=None) -> None:
         """Set up all OpenTelemetry components."""
         logger.info(f"Initializing OpenTelemetry for {self.service_name}...")
 
         self.setup_tracing()
         self.setup_metrics()
+        self._setup_loki_logging()
 
         if app is not None:
             self.instrument_fastapi(app)

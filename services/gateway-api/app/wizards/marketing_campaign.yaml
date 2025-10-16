@@ -1,0 +1,329 @@
+# Marketing Campaign Wizard Schema
+# This defines the interactive wizard flow for creating a multi-channel marketing campaign
+
+wizard_id: marketing_campaign_v1
+title: "Multi-Channel Marketing Campaign"
+description: "Launch a comprehensive marketing campaign across email, blog, and social channels"
+version: "1.0.0"
+
+# Campaign objectives and agent assignments
+agents:
+  - role: strategist
+    responsibility: Research and strategy development
+  - role: content_writer
+    responsibility: Draft messaging and copy
+  - role: designer
+    responsibility: Create visual assets
+  - role: distribution_manager
+    responsibility: Schedule and track distribution
+
+# Step-by-step wizard questions
+questions:
+  - id: campaign_name
+    step: 1
+    prompt: "What is the name of this marketing campaign?"
+    type: text
+    required: true
+    placeholder: "e.g., Fall 2025 Product Launch"
+    validation:
+      min_length: 3
+      max_length: 100
+
+  - id: campaign_type
+    step: 2
+    prompt: "What type of campaign is this?"
+    type: select
+    required: true
+    options:
+      - value: product_launch
+        label: "Product Launch"
+        description: "Announce a new product or feature"
+      - value: brand_awareness
+        label: "Brand Awareness"
+        description: "Build brand recognition and reach"
+      - value: lead_generation
+        label: "Lead Generation"
+        description: "Generate qualified leads and contacts"
+      - value: event_promotion
+        label: "Event Promotion"
+        description: "Promote webinar, conference, or event"
+      - value: content_series
+        label: "Content Series"
+        description: "Multi-part educational content"
+    default: product_launch
+
+  - id: target_audience
+    step: 3
+    prompt: "Who is the target audience?"
+    type: multi_text
+    required: true
+    placeholder: "e.g., Enterprise CTOs, DevOps Engineers, Startup Founders"
+    help: "Enter one or more audience segments (comma-separated)"
+
+  - id: channels
+    step: 4
+    prompt: "Which channels will you use?"
+    type: multi_select
+    required: true
+    min_selections: 1
+    options:
+      - value: email
+        label: "Email Marketing"
+        tools: ["mailchimp", "sendgrid"]
+      - value: blog
+        label: "Blog Posts"
+        tools: ["wordpress", "ghost", "notion"]
+      - value: social_linkedin
+        label: "LinkedIn"
+        tools: ["linkedin_api", "buffer"]
+      - value: social_twitter
+        label: "Twitter/X"
+        tools: ["twitter_api", "buffer"]
+      - value: social_facebook
+        label: "Facebook"
+        tools: ["facebook_api", "buffer"]
+      - value: slack_community
+        label: "Slack Community"
+        tools: ["slack"]
+      - value: paid_ads
+        label: "Paid Advertising"
+        tools: ["google_ads", "facebook_ads"]
+
+  - id: launch_date
+    step: 5
+    prompt: "When should the campaign launch?"
+    type: date
+    required: true
+    validation:
+      min_date: "today"
+      max_date: "+6 months"
+    default: "+2 weeks"
+
+  - id: budget
+    step: 6
+    prompt: "What is the campaign budget? (optional)"
+    type: number
+    required: false
+    unit: "USD"
+    placeholder: "e.g., 5000"
+    validation:
+      min: 0
+      max: 1000000
+
+  - id: key_messages
+    step: 7
+    prompt: "What are the key messages or talking points?"
+    type: long_text
+    required: true
+    placeholder: "e.g., Revolutionary AI agent platform. 10x faster deployment. Enterprise-grade security."
+    rows: 5
+    help: "These will guide content creation across all channels"
+
+  - id: success_metrics
+    step: 8
+    prompt: "How will you measure success?"
+    type: multi_select
+    required: true
+    options:
+      - value: impressions
+        label: "Total Impressions"
+      - value: clicks
+        label: "Click-through Rate"
+      - value: leads
+        label: "Qualified Leads"
+      - value: signups
+        label: "Product Sign-ups"
+      - value: engagement
+        label: "Social Engagement"
+      - value: conversions
+        label: "Sales Conversions"
+      - value: brand_sentiment
+        label: "Brand Sentiment"
+
+  - id: brand_voice
+    step: 9
+    prompt: "What brand voice should we use?"
+    type: select
+    required: true
+    options:
+      - value: professional
+        label: "Professional & Authoritative"
+      - value: friendly
+        label: "Friendly & Approachable"
+      - value: technical
+        label: "Technical & Detailed"
+      - value: bold
+        label: "Bold & Disruptive"
+      - value: educational
+        label: "Educational & Informative"
+    default: professional
+
+  - id: approval_required
+    step: 10
+    prompt: "Should content require approval before publishing?"
+    type: boolean
+    required: true
+    default: true
+    help: "If enabled, all content will be submitted for review via GitHub PRs or Slack notifications"
+
+# Execution modules triggered after wizard completion
+modules:
+  - id: research_phase
+    title: "Research & Strategy"
+    agent: strategist
+    dependencies: []
+    tasks:
+      - action: notion.search_database
+        description: "Gather background research and market data"
+      - action: plane.create_cycle
+        description: "Allocate sprint capacity for campaign tasks"
+    outputs:
+      - research_brief
+      - competitive_analysis
+
+  - id: content_creation
+    title: "Content Creation"
+    agent: content_writer
+    dependencies: [research_phase]
+    tasks:
+      - action: memory_gateway.retrieve
+        description: "Retrieve brand voice guidelines"
+        params:
+          query: "brand voice, messaging guidelines"
+      - action: chat_completions
+        description: "Generate content variations"
+        params:
+          prompt_template: "campaign_copy_generator"
+          variables:
+            - campaign_name
+            - key_messages
+            - brand_voice
+            - target_audience
+    outputs:
+      - email_drafts
+      - blog_posts
+      - social_posts
+
+  - id: design_assets
+    title: "Visual Asset Creation"
+    agent: designer
+    dependencies: [content_creation]
+    tasks:
+      - action: figma.render_component
+        description: "Generate campaign visuals"
+        params:
+          template: "campaign_asset_template"
+          variables:
+            - campaign_name
+            - brand_colors
+    outputs:
+      - social_graphics
+      - email_headers
+      - blog_images
+
+  - id: review_approval
+    title: "Review & Approval"
+    agent: distribution_manager
+    dependencies: [content_creation, design_assets]
+    condition: approval_required == true
+    tasks:
+      - action: github.create_pull_request
+        description: "Submit blog posts for review"
+        params:
+          repo: "marketing-content"
+          branch: "campaign/{campaign_name}"
+          files: "{blog_posts}"
+      - action: slack.send_message
+        description: "Request stakeholder approval"
+        params:
+          channel: "#marketing-approvals"
+          message: "Campaign {campaign_name} ready for review"
+          attachments: "{figma_links}"
+    outputs:
+      - approval_status
+
+  - id: distribution
+    title: "Content Distribution"
+    agent: distribution_manager
+    dependencies: [review_approval]
+    tasks:
+      - action: conditional_distribution
+        description: "Distribute to selected channels"
+        logic:
+          - if: channels contains "email"
+            then: mailchimp.create_campaign
+          - if: channels contains "blog"
+            then: github.trigger_workflow
+          - if: channels contains "social_linkedin"
+            then: linkedin.schedule_post
+          - if: channels contains "social_twitter"
+            then: twitter.schedule_post
+          - if: channels contains "slack_community"
+            then: slack.schedule_message
+    outputs:
+      - distribution_schedule
+
+  - id: analytics_tracking
+    title: "Analytics & Monitoring"
+    agent: distribution_manager
+    dependencies: [distribution]
+    tasks:
+      - action: memory_gateway.remember
+        description: "Store campaign metadata for attribution"
+        params:
+          key: "campaign:{campaign_name}"
+          metadata:
+            launch_date: "{launch_date}"
+            channels: "{channels}"
+            metrics: "{success_metrics}"
+    outputs:
+      - metrics_query_hint
+      - logs_label_hint
+
+# Validation rules
+validation:
+  - rule: "If channels includes 'paid_ads', budget must be > 0"
+    error: "Paid advertising requires a budget allocation"
+  
+  - rule: "launch_date must be at least 7 days from today if approval_required is true"
+    error: "Campaigns requiring approval need at least 7 days lead time"
+
+# Tool recommendations
+tool_recommendations:
+  email:
+    preferred: mailchimp
+    alternatives: [sendgrid, mailgun]
+    oss_option: listmonk
+  
+  blog:
+    preferred: wordpress
+    alternatives: [ghost, medium]
+    oss_option: ghost
+  
+  social:
+    preferred: buffer
+    alternatives: [hootsuite, sprout_social]
+    oss_option: "direct API calls"
+  
+  design:
+    preferred: figma
+    alternatives: [canva, adobe_creative_cloud]
+    oss_option: inkscape
+
+# Success criteria
+success_criteria:
+  - all_modules_completed: true
+  - approval_received: true  # if approval_required
+  - content_published: true
+  - analytics_tracking_active: true
+
+# Estimated execution time
+estimated_duration:
+  research_phase: "2-4 hours"
+  content_creation: "4-8 hours"
+  design_assets: "2-4 hours"
+  review_approval: "1-3 days"
+  distribution: "1 hour"
+  analytics_tracking: "30 minutes"
+  
+  total: "3-5 days (including approval wait time)"

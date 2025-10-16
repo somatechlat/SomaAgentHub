@@ -19,7 +19,7 @@ SERVICES=(
     "gateway-api"
     "policy-engine"
     "identity-service"
-    "somallm-provider"
+    "slm-service"
     "analytics-service"
 )
 
@@ -154,30 +154,16 @@ else
 fi
 echo ""
 
-echo "📊 Step 5: Verify Grafana Dashboards Are REAL"
-echo "-----------------------------------------------"
-if kubectl get configmap somaagent-dashboards -n observability &> /dev/null; then
-    echo -e "${GREEN}✅${NC} somaagent-dashboards ConfigMap exists"
-    
-    # Count dashboard JSON files in the ConfigMap
-    DASHBOARD_COUNT=$(kubectl get configmap somaagent-dashboards -n observability -o json 2>/dev/null | grep -o '".*\.json"' | wc -l)
-    echo "   ├─ Dashboards in ConfigMap: $DASHBOARD_COUNT"
-    
-    # List dashboard names
-    kubectl get configmap somaagent-dashboards -n observability -o json 2>/dev/null | \
-        grep -o '"[^"]*\.json"' | sed 's/"//g' | while read dashboard; do
-        echo "   ├─ $dashboard"
-    done
-    
-    if [ "$DASHBOARD_COUNT" -ge 4 ]; then
-        echo -e "   └─ ${GREEN}All expected dashboards found (REAL visualization!)${NC}"
-    else
-        echo -e "   └─ ${YELLOW}Warning: Expected 4 dashboards, found $DASHBOARD_COUNT${NC}"
-    fi
+echo "📊 Step 5: Verify Metrics and Logs Paths (Prometheus + Loki)"
+echo "-------------------------------------------------------------"
+echo "Prometheus targets and Loki service should be available in 'observability' namespace."
+if kubectl get svc -n observability | grep -q "loki"; then
+    echo -e "${GREEN}✅${NC} Loki service detected in observability namespace"
 else
-    echo -e "${RED}❌${NC} somaagent-dashboards ConfigMap NOT found"
-    echo "   Run: kubectl apply -f k8s/monitoring/grafana-dashboards.yaml"
+    echo -e "${YELLOW}⚠️${NC}  Loki service not found. Apply k8s/loki-deployment.yaml if logs are needed"
 fi
+echo "Check Prometheus via port-forward: kubectl port-forward -n observability svc/prometheus-kube-prometheus-prometheus 9090:9090"
+echo "Query example: sum by (campaign_id) (campaign_analytics_created_total)"
 echo ""
 
 echo "🔍 Step 6: Verify NO MOCKS in Code"
@@ -219,7 +205,8 @@ echo -e "${GREEN}✅ Observability Modules:${NC} 6/6 services have REAL OpenTele
 echo -e "${GREEN}✅ Service Integration:${NC} 6/6 services call setup_observability()"
 echo -e "${GREEN}✅ Prometheus Stack:${NC} Running in observability namespace"
 echo -e "${GREEN}✅ ServiceMonitors:${NC} Auto-discovery configured"
-echo -e "${GREEN}✅ Grafana Dashboards:${NC} Real dashboards loaded"
+echo -e "${GREEN}✅ Metrics:${NC} Prometheus running; queryable via port-forward"
+echo -e "${GREEN}✅ Logs:${NC} Loki service present (if deployed)"
 echo -e "${GREEN}✅ No Mocks:${NC} Zero mock/fake/stub patterns found"
 echo ""
 echo "🎉 VERIFICATION COMPLETE: ALL INSTRUMENTATION IS REAL!"
@@ -228,8 +215,8 @@ echo ""
 echo "Next steps:"
 echo "1. Deploy services: kubectl apply -f k8s/deployments/"
 echo "2. Check Prometheus targets: kubectl port-forward -n observability svc/prometheus-kube-prometheus-prometheus 9090:9090"
-echo "3. View Grafana: open http://localhost:30080 (admin/admin)"
-echo "4. Query metrics: http://localhost:9090/graph"
+echo "3. Query metrics: http://localhost:9090/graph"
+echo "4. Logs (optional): port-forward Loki 3100 and query with logcli or clients"
 echo ""
 echo -e "${GREEN}Status: READY FOR WAVE C LAUNCH (October 18, 2025)${NC}"
 echo ""

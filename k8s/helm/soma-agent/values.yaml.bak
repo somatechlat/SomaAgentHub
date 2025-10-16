@@ -1,10 +1,13 @@
-# Default values for soma-agent Helm chart.
+# Default values for soma-agent-hub Helm chart.
 # These values are used to render the templates under templates/.
 
 # Global settings
 global:
   imagePullPolicy: IfNotPresent
-  namespace: soma-agent
+  namespace: soma-agent-hub   # renamed from soma-agent-hub
+
+# Default hub port for gateway-api (used in service definition)
+hubPort: 10000
 
 # Kafka (Bitnami) configuration – KRaft mode
 defaultKafka:
@@ -44,50 +47,74 @@ services:
     replicaCount: 1
     image: "ghcr.io/somatechlat/soma-jobs:80e1d6f"
     imagePullPolicy: Never
-    port: 8000
-    resources:
-      limits:
-        cpu: "500m"
-        memory: "512Mi"
-      requests:
-        cpu: "250m"
-        memory: "256Mi"
-  slm-service:
+    port: 1000
+  somallm-provider:
     enabled: true
     replicaCount: 1
-    image: "ghcr.io/somatechlat/soma-slm-service:80e1d6f"
+    image: "ghcr.io/somatechlat/soma-somallm-provider:80e1d6f"
     imagePullPolicy: Never
-    port: 8001
+    port: 1001
   policy-engine:
     enabled: true
     replicaCount: 1
     image: "ghcr.io/somatechlat/soma-policy-engine:80e1d6f"
     imagePullPolicy: Never
-    port: 8100
+    port: 1002
   memory-gateway:
     enabled: true
     replicaCount: 1
     image: "ghcr.io/somatechlat/soma-memory-gateway:80e1d6f"
     imagePullPolicy: Never
-    port: 9696
+    port: 1003
   orchestrator:
     enabled: true
     replicaCount: 1
     image: "ghcr.io/somatechlat/soma-orchestrator:80e1d6f"
     imagePullPolicy: Never
-    port: 8002
+    port: 1004
   settings-service:
     enabled: true
     replicaCount: 1
     image: "ghcr.io/somatechlat/soma-settings-service:80e1d6f"
     imagePullPolicy: Never
-    port: 8004
+    port: 1005
   task-capsule-repo:
     enabled: true
     replicaCount: 1
     image: "ghcr.io/somatechlat/soma-task-capsule-repo:80e1d6f"
     imagePullPolicy: Never
-    port: 8005
+    port: 1006
+  gateway-api:
+    enabled: true
+    replicaCount: 1
+    image: "ghcr.io/somatechlat/soma-gateway-api:80e1d6f"
+    imagePullPolicy: Never
+    port: 10000   # hub on 10000
+  identity-service:
+    enabled: true
+    replicaCount: 1
+    image: "ghcr.io/somatechlat/soma-identity-service:80e1d6f"
+    imagePullPolicy: Never
+    port: 1007
+  constitution-service:
+    enabled: true
+    replicaCount: 1
+    image: "ghcr.io/somatechlat/soma-constitution-service:80e1d6f"
+    imagePullPolicy: Never
+    port: 1008
+  analytics-service:
+    enabled: true
+    replicaCount: 1
+    image: "ghcr.io/somatechlat/soma-analytics-service:80e1d6f"
+    imagePullPolicy: Never
+    port: 1009
+  billing-service:
+    enabled: true
+    replicaCount: 1
+    image: "ghcr.io/somatechlat/soma-billing-service:80e1d6f"
+    imagePullPolicy: Never
+    port: 1010
+
 # Ingress configuration
 ingress:
   enabled: true
@@ -96,11 +123,9 @@ ingress:
     kubernetes.io/ingress.class: nginx
     nginx.ingress.kubernetes.io/rewrite-target: /$2
   hosts:
-    - host: soma-agent.local
+    - host: soma-agent-hub.local   # updated ingress host
       paths:
         - path: /jobs(/|$)(.*)
-          pathType: Prefix
-        - path: /slm(/|$)(.*)
           pathType: Prefix
         - path: /policy(/|$)(.*)
           pathType: Prefix

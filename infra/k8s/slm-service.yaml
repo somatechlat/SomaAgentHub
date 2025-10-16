@@ -1,43 +1,41 @@
 ---
-# Real Kubernetes deployment for SomaLLM provider
-# Sprint-6: Production SomaLLM inference with real models
-
+# Production deployment for the SomaLanguage Model (SLM) service (formerly somallm-provider)
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: somallm-provider
-  namespace: somaagent
+  name: slm-service
+  namespace: soma-agent-hub
   labels:
-    app: somallm-provider
+    app: slm-service
     component: inference
     monitoring: enabled
 spec:
   replicas: 2
   selector:
     matchLabels:
-      app: somallm-provider
+      app: slm-service
   template:
     metadata:
       labels:
-        app: somallm-provider
+        app: slm-service
         component: inference
         monitoring: enabled
       annotations:
         prometheus.io/scrape: "true"
-        prometheus.io/port: "8003"
+        prometheus.io/port: "1001"
         prometheus.io/path: "/metrics"
     spec:
       containers:
-      - name: somallm-provider
-        image: somaagent/somallm-provider:latest
+      - name: slm-service
+        image: somaagent/soma-slm-service:latest
         imagePullPolicy: IfNotPresent
         
         ports:
         - name: http
-          containerPort: 8003
+          containerPort: 1001
           protocol: TCP
         - name: metrics
-          containerPort: 8003
+          containerPort: 1001
           protocol: TCP
         
         env:
@@ -57,7 +55,7 @@ spec:
         - name: OTEL_EXPORTER_OTLP_ENDPOINT
           value: "http://prometheus-prometheus.observability:9090"
         - name: OTEL_SERVICE_NAME
-          value: "somallm-provider"
+          value: "slm-service"
         - name: ENVIRONMENT
           value: "production"
         
@@ -108,17 +106,42 @@ spec:
       volumes:
       - name: models
         persistentVolumeClaim:
-          claimName: somallm-models
+          claimName: slm-service-models
       - name: cache
         emptyDir: {}
 
+# ClusterIP Service exposing SLM HTTP port
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: slm-service
+  namespace: soma-agent-hub
+  labels:
+    app: slm-service
+    monitoring: enabled
+spec:
+  type: ClusterIP
+  selector:
+    app: slm-service
+  ports:
+    - name: http
+      port: 1001
+      targetPort: 1001
+      protocol: TCP
+    - name: metrics
+      port: 1001
+      targetPort: 1001
+      protocol: TCP
+
+# Persistent volume claim for model storage
 ---
 # Real PVC for model storage
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
-  name: somallm-models
-  namespace: somaagent
+  name: slm-service-models
+  namespace: soma-agent-hub
 spec:
   accessModes:
   - ReadOnlyMany
