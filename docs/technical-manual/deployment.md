@@ -33,20 +33,26 @@ make --version        # GNU Make 3.81+
 # 1. Clone and setup
 git clone https://github.com/somatechlat/SomaAgentHub.git
 cd SomaAgentHub
-make setup
+python -m venv .venv
+source .venv/bin/activate
+pip install -r requirements-dev.txt
 
-# 2. Configure (if needed - edit .env)
-# Skip if using defaults (suitable for dev)
+# 2. Create local developer network
+make dev-network
 
-# 3. Start all services
-make docker-compose-up
+# 3. Start Temporal + Redis infrastructure
+make dev-up
 
-# 4. Verify health
-docker-compose ps
-curl http://localhost:10000/health
+# 4. Start application services
+make dev-start-services
+
+# 5. Verify health
+curl http://localhost:10000/ready
+curl http://localhost:10001/ready
+curl http://localhost:10002/ready
 ```
 
-**Expected result: All 15+ containers running with health status ✅**
+**Expected result: Gateway (10000), Orchestrator (10001), Identity (10002) all ready ✅**
 
 ---
 

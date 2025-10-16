@@ -43,12 +43,13 @@ SomaAgentHub is the coordination layer that powers the Soma platform. The hub co
 
 ### Core Services
 
-| Service | Port | Purpose |
+| Service | Default Port | Purpose |
 | --- | --- | --- |
-| **Gateway API** | 8080 | Public ingress for UI, CLI, and partner integrations. Handles wizard flows and session fan-out. |
-| **Orchestrator** | 1004 | Coordinates multi-agent workflows, talks to Temporal, identity, and policy services. |
-| **Policy Engine** | 1002 | Enforces constitutional rules with Redis-backed caching and constitution service integration. |
-| **Identity Service** | 1007 | Issues access tokens and validates identities for every agent-facing request. |
+| **Gateway API** | 10000 | Public ingress for UI, CLI, and partner integrations. Handles wizard flows and session fan-out. |
+| **Orchestrator** | 10001 | Coordinates multi-agent workflows, talks to Temporal, identity, and policy services. |
+| **Identity Service** | 10002 | Issues access tokens and validates identities for every agent-facing request. |
+| **Memory Gateway** | 8000 | Stores and retrieves long-term context via Qdrant for agent recall. |
+| **Policy Engine** | (custom) | Enforces constitutional rules with Redis-backed caching and constitution service integration. |
 | **Memory Gateway** | 8000 | Stores and retrieves long-term context via Qdrant or in-memory fallback for development. |
 
 ### System Components
