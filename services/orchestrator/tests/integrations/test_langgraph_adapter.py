@@ -8,6 +8,12 @@ import pytest
 
 from services.orchestrator.app.integrations import langgraph_adapter
 
+# FIXME: These tests use DummyStateGraph/DummyCompiledGraph instead of real LangGraph.
+# The monkeypatch prevents real LangGraph from executing.
+# Tests prove NOTHING about real multi-agent workflows.
+# Replace with real integration tests using actual langgraph library.
+# See TEST_REFACTORING_ROADMAP.md for details.
+
 
 class DummyLogger:
     def info(self, *args: Any, **kwargs: Any) -> None:  # pragma: no cover - stub

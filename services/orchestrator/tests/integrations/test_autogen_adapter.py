@@ -7,6 +7,13 @@ import pytest
 
 from services.orchestrator.app.integrations import autogen_adapter
 
+# FIXME: These tests use DummyAssistantAgent/DummyUserProxyAgent/etc instead of real AutoGen.
+# The monkeypatch prevents real AutoGen from executing.
+# Tests prove NOTHING about real multi-agent group chat behavior.
+# Replace with real integration tests using actual autogen library,
+# or delete these tests if AutoGen is not actually used in production.
+# See TEST_REFACTORING_ROADMAP.md for details.
+
 
 class DummyLogger:
     def info(self, *args: Any, **kwargs: Any) -> None:  # pragma: no cover - simple stub

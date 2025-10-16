@@ -7,6 +7,13 @@ import pytest
 
 from services.orchestrator.app.integrations import crewai_adapter
 
+# FIXME: These tests use DummyAgent/DummyTask/DummyCrew instead of real CrewAI.
+# The monkeypatch prevents real CrewAI from executing.
+# Tests prove NOTHING about real crew delegation or task execution behavior.
+# Replace with real integration tests using actual crewai library,
+# or delete these tests if CrewAI is not actually used in production.
+# See TEST_REFACTORING_ROADMAP.md for details.
+
 
 class DummyLogger:
     def info(self, *args: Any, **kwargs: Any) -> None:  # pragma: no cover - stub

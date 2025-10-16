@@ -2,6 +2,11 @@ from fastapi import status
 
 from services.orchestrator.app.core.config import settings
 
+# FIXME: These tests use FakeTemporalClient which never fails.
+# They don't test real Temporal behavior (timeouts, retries, errors).
+# Replace with real integration tests using docker-compose Temporal server.
+# See TEST_REFACTORING_ROADMAP.md for details.
+
 
 def test_session_start_initiates_temporal_workflow(api_client):
     client, fake_temporal = api_client
