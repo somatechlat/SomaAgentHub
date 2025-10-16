@@ -53,7 +53,7 @@ class OpenTelemetryConfig:
     def setup_tracing(self) -> None:
         provider = TracerProvider(resource=self.resource)
         if self.enable_otlp:
-            otlp_endpoint = os.getenv("OTEL_EXPORTER_OTLP_ENDPOINT", "http://tempo.observability:4317")
+            otlp_endpoint = os.getenv("OTEL_EXPORTER_OTLP_ENDPOINT", "http://otel-collector:4317")
             exporter = OTLPSpanExporter(endpoint=otlp_endpoint, insecure=True)
             provider.add_span_processor(BatchSpanProcessor(exporter))
             logger.info(f"OTLP trace exporter enabled: {otlp_endpoint}")
@@ -97,12 +97,14 @@ def setup_observability(
     environment: str | None = None,
 ) -> OpenTelemetryConfig:
     env = environment or os.getenv("ENVIRONMENT", "development")
+    # Enable OTLP by default in development, allow override via env var
+    enable_otlp = os.getenv("ENABLE_OTLP", "true" if env == "development" else "false").lower() == "true"
     config = OpenTelemetryConfig(
         service_name=service_name,
         service_version=service_version,
         environment=env,
         enable_prometheus=True,
-        enable_otlp=os.getenv("ENABLE_OTLP", "false").lower() == "true",
+        enable_otlp=enable_otlp,
     )
     config.setup_all(app)
     return config

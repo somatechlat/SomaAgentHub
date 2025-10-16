@@ -239,6 +239,154 @@ services:
     networks:
       - somaagenthub-network
 
+  # --- Secrets Management ---
+  vault:
+    build:
+      context: .
+      dockerfile: infra/vault/Dockerfile
+    container_name: somaagenthub-vault
+    restart: unless-stopped
+    environment:
+      - VAULT_DEV_ROOT_TOKEN_ID=root
+      - VAULT_DEV_LISTEN_ADDRESS=0.0.0.0:8200
+    ports:
+      - "${VAULT_PORT:-8200}:8200"
+    volumes:
+      - vault-data:/vault/file
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - curl -f http://127.0.0.1:8200/v1/sys/health || exit 1
+      interval: 10s
+      timeout: 5s
+      retries: 6
+    networks:
+      - somaagenthub-network
+
+  # --- Observability Infrastructure ---
+  loki:
+    image: grafana/loki:latest
+    container_name: somaagenthub-loki
+    restart: unless-stopped
+    command: -config.file=/etc/loki/local-config.yaml
+    ports:
+      - "${LOKI_PORT:-3100}:3100"
+    volumes:
+      - ./infra/observability/loki-config.yaml:/etc/loki/local-config.yaml
+      - loki-data:/loki
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - curl -f http://127.0.0.1:3100/ready || exit 1
+      interval: 10s
+      timeout: 5s
+      retries: 6
+    networks:
+      - somaagenthub-network
+
+  tempo:
+    image: grafana/tempo:latest
+    container_name: somaagenthub-tempo
+    restart: unless-stopped
+    command:
+      - "-config.file=/etc/tempo/local-config.yaml"
+    ports:
+      - "${TEMPO_OTLP_GRPC_PORT:-4317}:4317"
+      - "${TEMPO_OTLP_HTTP_PORT:-4318}:4318"
+    volumes:
+      - ./infra/observability/tempo-config.yaml:/etc/tempo/local-config.yaml
+      - tempo-data:/var/tempo
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - curl -f http://127.0.0.1:3200/status || exit 1
+      interval: 10s
+      timeout: 5s
+      retries: 6
+    networks:
+      - somaagenthub-network
+
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:latest
+    container_name: somaagenthub-otel-collector
+    restart: unless-stopped
+    command:
+      - "--config=/etc/otel-collector-config.yaml"
+    volumes:
+      - ./infra/observability/otel-collector-config.yaml:/etc/otel-collector-config.yaml
+    ports:
+      - "${OTEL_GRPC_PORT:-4317}:4317"
+      - "${OTEL_HTTP_PORT:-4318}:4318"
+      - "${OTEL_PROMETHEUS_PORT:-8888}:8888"
+    environment:
+      - GOGC=80
+    healthcheck:
+      test:
+        - CMD
+        - /healthcheck
+      interval: 10s
+      timeout: 5s
+      retries: 6
+    depends_on:
+      loki:
+        condition: service_healthy
+      tempo:
+        condition: service_healthy
+    networks:
+      - somaagenthub-network
+
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: somaagenthub-prometheus
+    restart: unless-stopped
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--storage.tsdb.path=/prometheus"
+    ports:
+      - "${PROMETHEUS_PORT:-9090}:9090"
+    volumes:
+      - ./infra/observability/prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus-data:/prometheus
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - curl -f http://127.0.0.1:9090/-/healthy || exit 1
+      interval: 10s
+      timeout: 5s
+      retries: 6
+    networks:
+      - somaagenthub-network
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: somaagenthub-grafana
+    restart: unless-stopped
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_INSTALL_PLUGINS=grafana-piechart-panel
+    ports:
+      - "${GRAFANA_PORT:-3000}:3000"
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - ./infra/observability/grafana-datasources.yaml:/etc/grafana/provisioning/datasources/datasources.yaml
+    depends_on:
+      prometheus:
+        condition: service_healthy
+      loki:
+        condition: service_healthy
+      tempo:
+        condition: service_healthy
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - curl -f http://127.0.0.1:3000/api/health || exit 1
+      interval: 10s
+      timeout: 5s
+      retries: 6
+    networks:
+      - somaagenthub-network
+
 volumes:
   temporal-postgres-data:
     driver: local
@@ -258,6 +406,21 @@ volumes:
   minio-data:
     driver: local
     name: somaagenthub_minio_data
+  vault-data:
+    driver: local
+    name: somaagenthub_vault_data
+  loki-data:
+    driver: local
+    name: somaagenthub_loki_data
+  tempo-data:
+    driver: local
+    name: somaagenthub_tempo_data
+  prometheus-data:
+    driver: local
+    name: somaagenthub_prometheus_data
+  grafana-data:
+    driver: local
+    name: somaagenthub_grafana_data
 
 networks:
   somaagenthub-network:
