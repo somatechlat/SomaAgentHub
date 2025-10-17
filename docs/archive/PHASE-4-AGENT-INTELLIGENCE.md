@@ -487,7 +487,7 @@ Root: "Plan marketing campaign"
 kubectl port-forward -n soma-agent-hub svc/prometheus 9090:9090 &
 
 # Query metrics
-curl http://localhost:9090/api/v1/query?query=langgraph_workflow_duration_seconds
+curl http://localhost:10010/api/v1/query?query=langgraph_workflow_duration_seconds
 
 # Expected metrics:
 # - langgraph_workflow_duration_seconds (histogram)

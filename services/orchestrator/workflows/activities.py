@@ -5,53 +5,59 @@ Sprint-5: HTTP service integrations for autonomous execution.
 
 from __future__ import annotations
 
-import httpx
+import os
 from datetime import datetime
-from typing import List, Dict, Any
+from typing import Any
 
+import httpx
 from temporalio import activity
+
+from common.config.runtime import runtime_default
 
 from ..core.config import settings
 
 # Real service endpoints (configured via environment)
 POLICY_ENGINE_URL = str(settings.policy_engine_url)
 SOMALLM_PROVIDER_URL = str(settings.somallm_provider_url)
-GATEWAY_API_URL = "http://gateway-api:8080"
+GATEWAY_API_URL = os.getenv(
+    "GATEWAY_API_URL",
+    runtime_default("http://gateway-api:10000", "http://gateway-api:8080"),
+)
 
 
 @activity.defn
-async def decompose_project(project_description: str, user_id: str) -> List[Dict[str, Any]]:
+async def decompose_project(project_description: str, user_id: str) -> list[dict[str, Any]]:
     """
     Decompose project into executable tasks.
-    
+
     Calls the SLM service (formerly SomaLLMProvider) to analyze the project description
     and generate a task breakdown.
-    
+
     Args:
         project_description: Natural language project requirements
         user_id: User initiating the project
-        
+
     Returns:
         List of task dictionaries with dependencies
     """
     activity.logger.info(f"Decomposing project for user {user_id}")
-    
+
     # Prompt for project decomposition
     decomposition_prompt = f"""
     Analyze this project and break it down into concrete, executable tasks:
-    
+
     Project: {project_description}
-    
+
     For each task, provide:
     1. Task name
     2. Task type (code, research, design, test, etc.)
     3. Requirements/specifications
     4. Dependencies (which tasks must complete first)
     5. Estimated complexity (simple/medium/complex)
-    
+
     Output as structured JSON.
     """
-    
+
     # HTTP call to SLM service
     async with httpx.AsyncClient(timeout=httpx.Timeout(10.0, connect=5.0), limits=httpx.Limits(max_connections=200, max_keepalive_connections=50)) as client:
         try:
@@ -65,10 +71,10 @@ async def decompose_project(project_description: str, user_id: str) -> List[Dict
                 timeout=30.0,
             )
             response.raise_for_status()
-            
+
             result = response.json()
             activity.logger.info(f"SLM decomposition completed: {result['model']}")
-            
+
             # Parse the completion into structured tasks
             # In production, this would use proper JSON parsing
             # For now, create a simple task structure
@@ -101,7 +107,7 @@ async def decompose_project(project_description: str, user_id: str) -> List[Dict
                     "complexity": "medium",
                 },
             ]
-            
+
             return {
                 "project_description": project_description,
                 "tasks": tasks,
@@ -112,28 +118,28 @@ async def decompose_project(project_description: str, user_id: str) -> List[Dict
                 ),
                 "decomposition_model": result["model"],
             }
-            
+
         except Exception as e:
             activity.logger.error(f"Project decomposition failed: {e}")
             raise
 
 
 @activity.defn
-async def create_task_plan(task_breakdown: Dict[str, Any]) -> Dict[str, Any]:
+async def create_task_plan(task_breakdown: dict[str, Any]) -> dict[str, Any]:
     """
     Create execution plan with dependency-based waves.
-    
+
     activity that analyzes task dependencies and creates
     an execution plan with parallel waves.
     """
     activity.logger.info("Creating task execution plan")
-    
+
     tasks = task_breakdown["tasks"]
-    
+
     # Build dependency graph (algorithm)
     waves = []
     completed_tasks = set()
-    
+
     while len(completed_tasks) < len(tasks):
         # Find tasks with all dependencies satisfied (logic)
         ready_tasks = [
@@ -141,21 +147,21 @@ async def create_task_plan(task_breakdown: Dict[str, Any]) -> Dict[str, Any]:
             if t["id"] not in completed_tasks
             and all(dep in completed_tasks for dep in t.get("dependencies", []))
         ]
-        
+
         if not ready_tasks:
             # Circular dependency detected
             raise ValueError("Circular dependency in task graph")
-        
+
         waves.append({
             "wave_number": len(waves) + 1,
             "tasks": ready_tasks,
             "parallel_count": len(ready_tasks),
         })
-        
+
         completed_tasks.update(t["id"] for t in ready_tasks)
-    
+
     activity.logger.info(f"Execution plan created: {len(waves)} waves")
-    
+
     return {
         "waves": waves,
         "total_waves": len(waves),
@@ -164,24 +170,24 @@ async def create_task_plan(task_breakdown: Dict[str, Any]) -> Dict[str, Any]:
 
 
 @activity.defn
-async def spawn_agent(agent_type: str, requirements: Dict[str, Any]) -> Dict[str, Any]:
+async def spawn_agent(agent_type: str, requirements: dict[str, Any]) -> dict[str, Any]:
     """
     Spawn a new agent instance for task execution.
-    
+
     activity that creates an agent with specific capabilities.
     In production, this would allocate resources, load models, etc.
     """
     activity.logger.info(f"Spawning {agent_type} agent")
-    
+
     # Generate unique agent ID (REAL)
     agent_id = f"agent_{agent_type}_{datetime.utcnow().timestamp()}"
-    
+
     # In production, this would:
     # 1. Allocate compute resources
     # 2. Load required models
     # 3. Initialize agent state
     # 4. Register in agent registry
-    
+
     return {
         "agent_id": agent_id,
         "agent_type": agent_type,
@@ -193,28 +199,28 @@ async def spawn_agent(agent_type: str, requirements: Dict[str, Any]) -> Dict[str
 
 @activity.defn
 async def execute_task(
-    task: Dict[str, Any],
-    agent_instance: Dict[str, Any],
+    task: dict[str, Any],
+    agent_instance: dict[str, Any],
     user_id: str,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """
     Execute a single task with policy checks.
-    
+
     Runs the task using the SLM service (formerly SomaLLMProvider) after policy validation.
-    
+
     Args:
         task: Task specification with id, description, type
         agent_instance: Spawned agent instance details
         user_id: User context for policy checks
-        
+
     Returns:
         Task execution results with output and metrics
     """
     agent_id = agent_instance["agent_id"]
     activity.logger.info(f"Agent {agent_id} executing task {task['id']}")
-    
+
     start_time = datetime.utcnow()
-    
+
     # Step 1: Policy check (call to policy engine)
     async with httpx.AsyncClient(timeout=httpx.Timeout(10.0, connect=5.0), limits=httpx.Limits(max_connections=200, max_keepalive_connections=50)) as client:
         try:
@@ -233,7 +239,7 @@ async def execute_task(
             )
             policy_response.raise_for_status()
             policy_result = policy_response.json()
-            
+
             if not policy_result["allowed"]:
                 activity.logger.warning(f"Task blocked by policy: {policy_result['reasons']}")
                 return {
@@ -242,18 +248,18 @@ async def execute_task(
                     "details": policy_result,
                     "duration_ms": 0,
                 }
-            
+
             # Step 2: Execute task logic (SLM service call)
             task_prompt = f"""
             Execute this task:
-            
+
             Task: {task['name']}
             Description: {task['description']}
             Requirements: {', '.join(task['requirements'])}
-            
+
             Provide the implementation or result.
             """
-            
+
             llm_response = await client.post(
                 f"{SOMALLM_PROVIDER_URL}/v1/infer/sync",
                 json={
@@ -265,11 +271,11 @@ async def execute_task(
             )
             llm_response.raise_for_status()
             llm_result = llm_response.json()
-            
+
             duration_ms = int((datetime.utcnow() - start_time).total_seconds() * 1000)
-            
+
             activity.logger.info(f"Task completed in {duration_ms}ms")
-            
+
             return {
                 "status": "completed",
                 "output": llm_result["completion"],
@@ -278,7 +284,7 @@ async def execute_task(
                 "duration_ms": duration_ms,
                 "policy_score": policy_result["score"],
             }
-            
+
         except Exception as e:
             activity.logger.error(f"Task execution failed: {e}")
             return {
@@ -290,34 +296,34 @@ async def execute_task(
 
 @activity.defn
 async def review_output(
-    task_results: List[Dict[str, Any]],
+    task_results: list[dict[str, Any]],
     project_description: str
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """
     Quality gate review of task outputs.
-    
+
     activity that analyzes outputs for quality and completeness.
     """
     activity.logger.info(f"Reviewing {len(task_results)} task outputs")
-    
+
     # Calculate quality metrics (logic)
     completed_tasks = sum(1 for r in task_results if r["status"] == "completed")
     failed_tasks = sum(1 for r in task_results if r["status"] == "failed")
     blocked_tasks = sum(1 for r in task_results if r["status"] == "blocked")
-    
+
     success_rate = completed_tasks / len(task_results) if task_results else 0
-    
+
     # Quality score (calculation)
     quality_score = success_rate * 100
-    
+
     # Determine approval status
     auto_approved = quality_score >= 70  # 70% threshold for auto-approval
-    
+
     activity.logger.info(
         f"Quality review: {quality_score:.1f}% "
         f"({completed_tasks} completed, {failed_tasks} failed, {blocked_tasks} blocked)"
     )
-    
+
     return {
         "status": "approved" if auto_approved else "needs_review",
         "score": quality_score,
@@ -332,23 +338,23 @@ async def review_output(
 
 @activity.defn
 async def aggregate_results(
-    task_results: List[Dict[str, Any]],
-    review_result: Dict[str, Any]
-) -> Dict[str, Any]:
+    task_results: list[dict[str, Any]],
+    review_result: dict[str, Any]
+) -> dict[str, Any]:
     """
     Aggregate task results into final project output.
-    
+
     activity that combines outputs and creates deliverables.
     """
     activity.logger.info("Aggregating final project results")
-    
+
     # Collect all outputs (aggregation)
     outputs = [r.get("output", "") for r in task_results if r["status"] == "completed"]
-    
+
     # Calculate total execution metrics (metrics)
     total_duration_ms = sum(r.get("duration_ms", 0) for r in task_results)
     total_tokens = sum(r.get("tokens_used", 0) for r in task_results)
-    
+
     return {
         "deliverables": outputs,
         "total_outputs": len(outputs),

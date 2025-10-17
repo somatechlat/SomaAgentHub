@@ -7,6 +7,7 @@ from pathlib import Path
 
 from pydantic import AliasChoices, Field
 
+from common.config.runtime import runtime_default
 from common.config.settings import Settings as SharedSettings
 
 
@@ -50,7 +51,7 @@ class GatewaySettings(SharedSettings):
         ),
     )
     orchestrator_url: str = Field(
-        default="http://orchestrator:1004",
+        default=runtime_default("http://orchestrator:10001", "http://orchestrator:1004"),
         validation_alias=AliasChoices(
             "SOMASTACK_SA01_URL",
             "SOMAGENT_GATEWAY_ORCHESTRATOR_URL",
@@ -58,7 +59,7 @@ class GatewaySettings(SharedSettings):
         ),
     )
     redis_url: str | None = Field(
-        default="redis://redis.soma-infra.svc.cluster.local:6379/0",
+        default=runtime_default("redis://redis:6379/0", "redis://redis.soma-infra.svc.cluster.local:6379/0"),
         validation_alias=AliasChoices(
             "SOMASTACK_REDIS_URL",
             "SOMASTACK_SAH_REDIS_URL",
@@ -67,7 +68,7 @@ class GatewaySettings(SharedSettings):
         ),
     )
     kafka_bootstrap_servers_raw: str | None = Field(
-        default="kafka.soma-infra.svc.cluster.local:9092",
+        default=runtime_default("kafka:9092", "kafka.soma-infra.svc.cluster.local:9092"),
         validation_alias=AliasChoices(
             "SOMASTACK_KAFKA_BOOTSTRAP_SERVERS",
             "SOMASTACK_SAH_KAFKA_BOOTSTRAP_SERVERS",
@@ -76,7 +77,7 @@ class GatewaySettings(SharedSettings):
         ),
     )
     auth_url_raw: str | None = Field(
-        default="http://auth.soma-infra.svc.cluster.local:8080",
+        default=runtime_default("http://identity-service:10002", "http://auth.soma-infra.svc.cluster.local:8080"),
         validation_alias=AliasChoices(
             "SOMASTACK_AUTH_URL",
             "SOMASTACK_SAH_AUTH_URL",

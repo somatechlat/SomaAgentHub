@@ -98,18 +98,18 @@ make docker-compose-up
 ✓ gateway-api:10000 (health: ✅)
 ✓ orchestrator:10001 (health: ✅)
 ✓ identity-service:10002 (health: ✅)
-✓ redis:6379 (health: ✅)
-✓ app-postgres:5432 (health: ✅)
-✓ qdrant:6333 (health: ✅)
-✓ clickhouse:8123 (health: ✅)
-✓ minio:9000 (health: ✅)
-✓ temporal-server:7233 (health: ✅)
-✓ vault:8200 (health: ✅)
-✓ prometheus:9090 (health: ✅)
-✓ grafana:3000 (health: ✅)
-✓ loki:3100 (health: ✅)
-✓ tempo:3200 (health: ✅)
-✓ otel-collector:4317 (health: ✅)
+✓ redis:10003 (container 6379, health: ✅)
+✓ app-postgres:10004 (container 5432, health: ✅)
+✓ qdrant:10005 (health: ✅)
+✓ clickhouse:10006 (health: ✅)
+✓ minio:10007 (API) / 10008 (console) (health: ✅)
+✓ temporal-server:7233 (internal-only, health: ✅)
+✓ vault:10009 (health: ✅)
+✓ prometheus:10010 (health: ✅)
+✓ grafana:10011 (health: ✅)
+✓ loki:10012 (health: ✅)
+✓ tempo:10013 (gRPC) / 10014 (HTTP) (health: ✅)
+✓ otel-collector:10015 (gRPC) / 10016 (HTTP) / 10017 (metrics) (health: ✅)
 ```
 
 ### 4. Verify All Services Healthy
@@ -121,21 +121,21 @@ docker-compose ps
 **Expected output (all HEALTHY or UP):**
 ```
 NAME                          STATUS              PORTS
-somaagenthub-gateway-api      Up 2 minutes        0.0.0.0:10000->10000/tcp
-somaagenthub-orchestrator     Up 2 minutes        0.0.0.0:10001->10001/tcp
-somaagenthub-identity-service Up 2 minutes        0.0.0.0:10002->10002/tcp
-somaagenthub-redis            Up 2 minutes        0.0.0.0:6379->6379/tcp
-somaagenthub-app-postgres     Up 2 minutes (healthy)   0.0.0.0:5432->5432/tcp
-somaagenthub-qdrant           Up 2 minutes (healthy)   0.0.0.0:6333->6333/tcp
-somaagenthub-clickhouse       Up 2 minutes (healthy)   0.0.0.0:8123->8123/tcp
-somaagenthub-minio            Up 2 minutes (healthy)   0.0.0.0:9000->9000/tcp
-somaagenthub-temporal-server  Up 2 minutes (healthy)   0.0.0.0:7233->7233/tcp
-somaagenthub-vault            Up 2 minutes (healthy)   0.0.0.0:8200->8200/tcp
-somaagenthub-prometheus       Up 2 minutes (healthy)   0.0.0.0:9090->9090/tcp
-somaagenthub-grafana          Up 2 minutes (healthy)   0.0.0.0:3000->3000/tcp
-somaagenthub-loki             Up 2 minutes (healthy)   0.0.0.0:3100->3100/tcp
-somaagenthub-tempo            Up 2 minutes (healthy)   0.0.0.0:3200->3200/tcp
-somaagenthub-otel-collector   Up 2 minutes (healthy)   0.0.0.0:4317->4317/tcp
+somaagenthub_gateway-api      Up 2 minutes        0.0.0.0:10000->10000/tcp
+somaagenthub_orchestrator     Up 2 minutes        0.0.0.0:10001->10001/tcp
+somaagenthub_identity-service Up 2 minutes        0.0.0.0:10002->10002/tcp
+somaagenthub_redis            Up 2 minutes        0.0.0.0:10003->6379/tcp
+somaagenthub_app-postgres     Up 2 minutes (healthy)   0.0.0.0:10004->5432/tcp
+somaagenthub_qdrant           Up 2 minutes (healthy)   0.0.0.0:10005->6333/tcp
+somaagenthub_clickhouse       Up 2 minutes (healthy)   0.0.0.0:10006->8123/tcp
+somaagenthub_minio            Up 2 minutes (healthy)   0.0.0.0:10007->9000/tcp, 0.0.0.0:10008->9001/tcp
+somaagenthub_temporal         Up 2 minutes (healthy)   7233-7235/tcp
+somaagenthub_vault            Up 2 minutes (healthy)   0.0.0.0:10009->8200/tcp
+somaagenthub_prometheus       Up 2 minutes (healthy)   0.0.0.0:10010->9090/tcp
+somaagenthub_grafana          Up 2 minutes (healthy)   0.0.0.0:10011->3000/tcp
+somaagenthub_loki             Up 2 minutes (healthy)   0.0.0.0:10012->3100/tcp
+somaagenthub_tempo            Up 2 minutes (healthy)   0.0.0.0:10013->4317/tcp, 0.0.0.0:10014->4318/tcp
+somaagenthub_otel-collector   Up 2 minutes (healthy)   0.0.0.0:10015->4317/tcp, 0.0.0.0:10016->4318/tcp, 0.0.0.0:10017->8888/tcp
 ```
 
 ✅ **All services running? Excellent! You're ready to develop.**
@@ -257,26 +257,26 @@ curl -X GET http://localhost:10002/health
 
 | Service | Endpoint | Use Case |
 |---------|----------|----------|
-| **PostgreSQL** | `localhost:5432` | Application state, Temporal workflows |
-| **Redis** | `localhost:6379` | Session caching, real-time data |
-| **Qdrant** | `localhost:6333` (HTTP) | Vector search, semantic memory |
-| **ClickHouse** | `localhost:8123` (HTTP) | Analytic queries, event logs |
-| **MinIO** | `localhost:9000` (API), `9001` (Console) | S3-compatible object storage |
+| **PostgreSQL** | `localhost:10004` | Application state, Temporal workflows |
+| **Redis** | `localhost:10003` | Session caching, real-time data |
+| **Qdrant** | `localhost:10005` (HTTP) | Vector search, semantic memory |
+| **ClickHouse** | `localhost:10006` (HTTP) | Analytic queries, event logs |
+| **MinIO** | `localhost:10007` (API), `10008` (Console) | S3-compatible object storage |
 
 ### Observability Stack
 
 | Service | URL | Purpose |
 |---------|-----|---------|
-| **Grafana** | http://localhost:3000 | Metrics dashboards |
-| **Prometheus** | http://localhost:9090 | Metrics scraping & queries |
-| **Loki** | http://localhost:3100 | Log aggregation |
-| **Tempo** | http://localhost:4317 (OTLP) | Distributed tracing |
+| **Grafana** | http://localhost:10011 | Metrics dashboards |
+| **Prometheus** | http://localhost:10010 | Metrics scraping & queries |
+| **Loki** | http://localhost:10012 | Log aggregation |
+| **Tempo** | OTLP gRPC `http://localhost:10013` *(default, optional)* | Distributed tracing (internal OTLP ingestion; HTTP query API requires exec/port-forward) |
 
 ### Infrastructure Services
 
 | Service | Endpoint | Function |
 |---------|----------|----------|
-| **Vault** | `http://localhost:8200` | Secrets management |
+| **Vault** | `http://localhost:10009` | Secrets management |
 | **Temporal Server** | `localhost:7233` (gRPC) | Workflow orchestration |
 
 ---
@@ -321,23 +321,23 @@ curl -s http://localhost:10000/health | jq .
 # Expected: JSON response with status
 
 # 4. Test PostgreSQL connection
-psql -h localhost -U somaagent -d somaagent -c "SELECT version();"
+psql -h localhost -p 10004 -U somaagent -d somaagent -c "SELECT version();"
 # Expected: PostgreSQL 16.x running
 
 # 5. Test Redis connection
-redis-cli -h localhost ping
+redis-cli -h localhost -p 10003 ping
 # Expected: PONG
 
 # 6. Test Qdrant API
-curl -s http://localhost:6333/health | jq .
+curl -s http://localhost:10005/healthz | jq .
 # Expected: Status 200
 
 # 7. Test Grafana dashboard
-curl -s http://localhost:3000/api/health | jq .
+curl -s http://localhost:10011/api/health | jq .
 # Expected: OK
 
 # 8. Verify metrics collection
-curl -s http://localhost:9090/api/v1/targets | jq '.data.activeTargets | length'
+curl -s http://localhost:10010/api/v1/targets | jq '.data.activeTargets | length'
 # Expected: 15+ active targets
 ```
 
@@ -361,21 +361,21 @@ Error response from daemon: OCI runtime create failed: ... memory: ...
 
 ---
 
-#### Issue: Port conflicts (port 6379 already in use)
+#### Issue: Port conflicts (port 10003 already in use)
 
 **Symptom:**
 ```
-Error: listen tcp 127.0.0.1:6379: bind: address already in use
+Error: listen tcp 127.0.0.1:10003: bind: address already in use
 ```
 
 **Fix:**
 ```bash
-# Find what's using port 6379
-lsof -i :6379
+# Find what's using port 10003
+lsof -i :10003
 # Kill the process (if not our container)
 kill -9 <PID>
 # Or use different port in .env
-echo "REDIS_PORT=6380" >> .env
+echo "REDIS_PORT=10303" >> .env
 ```
 
 ---
@@ -401,7 +401,7 @@ make docker-compose-up
 
 **Symptom:**
 ```
-curl http://localhost:8200/v1/sys/seal-status
+curl http://localhost:10009/v1/sys/seal-status
 # Returns: "sealed": true
 ```
 

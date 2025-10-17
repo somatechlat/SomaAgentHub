@@ -179,9 +179,9 @@ For detailed troubleshooting of individual services, refer to the following comm
 | **Gateway API** | 10000 | `GET /ready` | 502 Bad Gateway | Check if Orchestrator (10001) and Identity (10002) are healthy |
 | **Orchestrator** | 10001 | `GET /ready` | Temporal connection failed | Ensure Temporal server is running with `docker ps \| grep temporal` |
 | **Identity Service** | 10002 | `GET /ready` | Redis unavailable | Check Redis health: `redis-cli ping` should return PONG |
-| **Redis** | 10003 | `redis-cli ping` | Connection refused | Restart with: `docker restart somaagenthub-redis` |
-| **Memory Gateway** | 8000 | `GET /healthz` | Qdrant unavailable | Check Qdrant: `curl http://localhost:10005/healthz` |
-| **Qdrant** | 10005 | `GET /healthz` | Storage full | Check volume: `docker exec somaagenthub-qdrant du -sh /qdrant/storage` |
+| **Redis** | 10003 | `redis-cli ping` | Connection refused | Restart with: `docker restart somaagenthub_redis` |
+| **Memory Gateway** | 10018→8000 | `GET /healthz` | Qdrant unavailable | Check Qdrant: `curl http://localhost:10005/healthz` |
+| **Qdrant** | 10005 | `GET /healthz` | Storage full | Check volume: `docker exec somaagenthub_qdrant du -sh /qdrant/storage` |
 | **ClickHouse** | 10006 | `GET /ping` | Port conflict | Free port 10006: `lsof -i :10006` and kill process |
 | **MinIO** | 10007/10008 | `GET /minio/health/live` | Login failed | Use default credentials: `somaagent` / `local-developer` |
 

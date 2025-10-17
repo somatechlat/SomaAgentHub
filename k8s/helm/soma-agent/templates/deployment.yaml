@@ -36,12 +36,39 @@ spec:
             - secretRef:
                 name: {{ $svc.envFromSecret }}
           {{- end }}
-          {{- if $svc.env }}
           env:
+            - name: ENABLE_OTLP
+              value: {{ ternary "true" "false" ($.Values.global.observability.enableOtlp | default false) | quote }}
+            - name: OTEL_EXPORTER_OTLP_ENDPOINT
+              value: {{ ($.Values.global.observability.otlpEndpoint | default "http://otel-collector.observability:4317") | quote }}
+            - name: ENVIRONMENT
+              value: {{ $.Values.global.environment | default "production" | quote }}
+          {{- if $.Values.global.spiffe.enabled }}
+            - name: ENABLE_SPIFFE
+              value: "true"
+            - name: SPIFFE_TRUST_DOMAIN
+              value: {{ $.Values.global.spiffe.trustDomain | default "somaagent.io" | quote }}
+            - name: SPIFFE_CERT_DIR
+              value: {{ $.Values.global.spiffe.certDir | default "/var/run/secrets/spiffe" | quote }}
+            - name: SPIFFE_WORKLOAD_SOCKET
+              value: {{ $.Values.global.spiffe.socketPath | default "/run/spire/sockets/agent.sock" | quote }}
+          {{- else }}
+            - name: ENABLE_SPIFFE
+              value: "false"
+          {{- end }}
+          {{- if $svc.env }}
           {{- range $env := $svc.env }}
             - name: {{ $env.name }}
               value: {{ $env.value | quote }}
           {{- end }}
+          {{- end }}
+          {{- if $.Values.global.spiffe.enabled }}
+          volumeMounts:
+            - name: spiffe-agent-socket
+              mountPath: {{ $.Values.global.spiffe.socketMountPath | default "/run/spire/sockets" | quote }}
+              readOnly: true
+            - name: spiffe-cert-dir
+              mountPath: {{ $.Values.global.spiffe.certDir | default "/var/run/secrets/spiffe" | quote }}
           {{- end }}
           livenessProbe:
             httpGet:
@@ -73,5 +100,14 @@ spec:
               cpu: "1000m"
               memory: "512Mi"
 {{- end }}
+      {{- if $.Values.global.spiffe.enabled }}
+      volumes:
+        - name: spiffe-agent-socket
+          hostPath:
+            path: {{ $.Values.global.spiffe.hostSocketPath | default "/run/spire/sockets" | quote }}
+            type: DirectoryOrCreate
+        - name: spiffe-cert-dir
+          emptyDir: {}
+      {{- end }}
 {{- end }}
 {{- end }}

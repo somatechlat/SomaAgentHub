@@ -138,8 +138,8 @@ docker-compose logs --tail=100 | grep -i error
 docker-compose exec app-postgres pg_isready
 
 # 5. Monitor alerting
-open http://localhost:3000  # Grafana
-open http://localhost:9090  # Prometheus
+open http://localhost:10011  # Grafana
+open http://localhost:10010  # Prometheus
 ```
 
 ### Weekly Maintenance

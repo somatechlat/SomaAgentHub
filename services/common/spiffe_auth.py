@@ -30,7 +30,7 @@ class SPIFFEAuthenticator:
     def __init__(self, socket_path: str = "unix:///run/spire/sockets/agent.sock"):
         """Initialize SPIFFE authenticator."""
 
-        self.socket_path = socket_path
+        self.socket_path = os.getenv("SPIFFE_WORKLOAD_SOCKET", socket_path)
         self.identity: SPIFFEIdentity | None = None
 
         # Default paths for X.509 materials
@@ -61,6 +61,10 @@ class SPIFFEAuthenticator:
             key_path=str(self.cert_dir / "svid_key.pem"),
             bundle_path=str(self.cert_dir / "bundle.pem")
         )
+
+        missing = [path for path in (identity.cert_path, identity.key_path, identity.bundle_path) if not Path(path).exists()]
+        if missing:
+            raise FileNotFoundError("Missing SPIFFE materials: " + ", ".join(missing))
 
         self.identity = identity
         logger.info(f"Fetched SPIFFE identity: {spiffe_id}")
@@ -139,7 +143,7 @@ def get_authenticator() -> SPIFFEAuthenticator:
     return _authenticator
 
 
-def init_spiffe(service_name: str) -> SPIFFEIdentity:
+def init_spiffe(service_name: str, *, optional: bool = True) -> SPIFFEIdentity | None:
     """
     Initialize SPIFFE authentication for a service.
 
@@ -149,5 +153,23 @@ def init_spiffe(service_name: str) -> SPIFFEIdentity:
     Returns:
         SPIFFEIdentity for the service
     """
+    enabled = os.getenv("ENABLE_SPIFFE", "true").lower() == "true"
+    if not enabled:
+        logger.info("SPIFFE initialization skipped: ENABLE_SPIFFE is false")
+        return None
+
     auth = get_authenticator()
-    return auth.fetch_identity(service_name)
+    try:
+        identity = auth.fetch_identity(service_name)
+    except FileNotFoundError as exc:
+        logger.warning("SPIFFE identity material not found for %s: %s", service_name, exc)
+        if optional:
+            return None
+        raise
+    except Exception as exc:  # pragma: no cover - defensive path
+        logger.warning("SPIFFE initialization failed for %s: %s", service_name, exc)
+        if optional:
+            return None
+        raise
+
+    return identity

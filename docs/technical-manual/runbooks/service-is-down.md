@@ -14,7 +14,7 @@ This runbook is triggered when the `up` metric from Prometheus is `0` for a core
 ### 1. Triage & Diagnosis
 
 **Initial Checks:**
-- **Grafana Dashboard**: [Platform Overview Dashboard](http://localhost:3000/d/platform-overview)
+- **Grafana Dashboard**: [Platform Overview Dashboard](http://localhost:10011/d/platform-overview)
 - **Alerting Service**: Check which service is reported as down in the alert notification.
 
 **Diagnostic Steps:**

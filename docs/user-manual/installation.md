@@ -78,7 +78,7 @@ docker compose ps
 - **Gateway API**: http://localhost:10000
 - **API Documentation**: http://localhost:10000/docs
 - **Temporal Web UI**: http://localhost:8233
-- **Admin Console**: http://localhost:3000
+- **Admin Console**: http://localhost:10011
 
 ---
 

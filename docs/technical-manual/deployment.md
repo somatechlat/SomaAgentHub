@@ -70,19 +70,19 @@ curl http://localhost:10002/ready
 │  ├─ Orchestrator (10001)                  │
 │  ├─ Identity Service (10002)              │
 │  │                                        │
-│  ├─ PostgreSQL (5432)                     │
-│  ├─ Redis (6379)                         │
-│  ├─ Qdrant (6333)                        │
-│  ├─ ClickHouse (8123)                    │
-│  ├─ MinIO (9000)                         │
+│  ├─ PostgreSQL (10004→5432)              │
+│  ├─ Redis (10003→6379)                   │
+│  ├─ Qdrant (10005→6333)                  │
+│  ├─ ClickHouse (10006→8123)              │
+│  ├─ MinIO (10007→9000, 10008→9001)       │
 │  ├─ Temporal (7233)                      │
 │  │                                        │
-│  ├─ Vault (8200)                         │
-│  ├─ Prometheus (9090)                    │
-│  ├─ Grafana (3000)                       │
-│  ├─ Loki (3100)                          │
-│  ├─ Tempo (3200)                         │
-│  └─ OTEL Collector (4317)                │
+│  ├─ Vault (10009→8200)                   │
+│  ├─ Prometheus (10010→9090)              │
+│  ├─ Grafana (10011→3000)                 │
+│  ├─ Loki (10012→3100)                    │
+│  ├─ Tempo (10013/10014→4317/4318)        │
+│  └─ OTEL Collector (10015/10016/10017→4317/4318/8888) │
 │                                             │
 │  Volumes: 8+ persistent data volumes        │
 │                                             │
@@ -107,10 +107,14 @@ REDIS_URL=redis://redis:6379/0
 TEMPORAL_HOST=temporal-server:7233
 
 # Observability
-PROMETHEUS_PORT=9090
-GRAFANA_PORT=3000
-LOKI_PORT=3100
-TEMPO_PORT=3200
+PROMETHEUS_PORT=10010
+GRAFANA_PORT=10011
+LOKI_PORT=10012
+TEMPO_OTLP_GRPC_PORT=10013
+TEMPO_OTLP_HTTP_PORT=10014
+OTEL_GRPC_PORT=10015
+OTEL_HTTP_PORT=10016
+OTEL_PROMETHEUS_PORT=10017
 
 # Secrets (dev only - use Vault in production)
 SOMAGENT_IDENTITY_JWT_SECRET=dev-secret
@@ -566,20 +570,20 @@ grpcurl -plaintext localhost:7233 temporal.api.workflowservice.v1.WorkflowServic
 
 ```bash
 # Access Prometheus
-curl http://localhost:9090/api/v1/query?query=up
+curl http://localhost:10010/api/v1/query?query=up
 
 # Query active targets
-curl http://localhost:9090/api/v1/targets
+curl http://localhost:10010/api/v1/targets
 
 # Query service latency
-curl 'http://localhost:9090/api/v1/query?query=histogram_quantile(0.95,rate(request_duration_seconds_bucket[5m]))'
+curl 'http://localhost:10010/api/v1/query?query=histogram_quantile(0.95,rate(request_duration_seconds_bucket[5m]))'
 ```
 
 ### Grafana Dashboards
 
 ```bash
 # Access Grafana UI
-open http://localhost:3000
+open http://localhost:10011
 
 # Default credentials (change immediately in production!)
 # Email: admin

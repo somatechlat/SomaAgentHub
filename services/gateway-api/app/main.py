@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+import logging
 from typing import Any
 
 import httpx
@@ -12,12 +13,15 @@ from prometheus_client import CONTENT_TYPE_LATEST, generate_latest
 from pydantic import BaseModel
 
 from services.common.observability import setup_observability
+from services.common.spiffe_auth import init_spiffe
 
 from .api.routes import router as api_router
 from .config import get_sah_settings
 from .core.middleware import ContextMiddleware
 from .core.redis import close_redis_client, get_redis_client
 from .wizard_engine import wizard_engine
+
+logger = logging.getLogger(__name__)
 
 settings = get_sah_settings()
 
@@ -41,6 +45,13 @@ class WizardAnswerRequest(BaseModel):
 
 
 setup_observability(settings.service_name or "sah", app, service_version=settings.service_version)
+
+# Attempt SPIFFE initialization early to ensure SVID material is available for downstream calls.
+spiffe_identity = init_spiffe(settings.service_name or "sah")
+if spiffe_identity:
+    logger.info("SPIFFE identity loaded", extra={"spiffe_id": spiffe_identity.spiffe_id})
+else:
+    logger.info("SPIFFE identity not initialized; falling back to non-mTLS workload identity")
 
 
 @app.on_event("shutdown")

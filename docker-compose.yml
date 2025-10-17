@@ -2,13 +2,15 @@
 # This file defines the complete, persistent, multi-service Docker environment
 # for local development, mirroring the Kubernetes deployment.
 
+name: somaagenthub
+
 services:
   # --- Application Services ---
   gateway-api:
     build:
       context: .
       dockerfile: services/gateway-api/Dockerfile
-    container_name: somaagenthub-gateway-api
+    container_name: somaagenthub_gateway-api
     restart: unless-stopped
     ports:
       - "${GATEWAY_API_PORT:-10000}:10000"
@@ -40,7 +42,7 @@ services:
     build:
       context: .
       dockerfile: services/orchestrator/Dockerfile
-    container_name: somaagenthub-orchestrator
+    container_name: somaagenthub_orchestrator
     restart: unless-stopped
     ports:
       - "${ORCHESTRATOR_PORT:-10001}:10001"
@@ -64,7 +66,7 @@ services:
     build:
       context: .
       dockerfile: services/identity-service/Dockerfile
-    container_name: somaagenthub-identity-service
+    container_name: somaagenthub_identity-service
     restart: unless-stopped
     ports:
       - "${IDENTITY_SERVICE_PORT:-10002}:10002"
@@ -87,7 +89,7 @@ services:
 
   app-postgres:
     image: postgres:16.4-alpine
-    container_name: somaagenthub-app-postgres
+    container_name: somaagenthub_app-postgres
     restart: unless-stopped
     ports:
       - "${APP_POSTGRES_PORT:-10004}:5432"
@@ -110,7 +112,7 @@ services:
   # --- Infrastructure Services ---
   temporal-postgres:
     image: postgres:15-alpine
-    container_name: somaagenthub-temporal-postgres
+    container_name: somaagenthub_temporal-postgres
     restart: unless-stopped
     environment:
       - POSTGRES_USER=temporal
@@ -130,7 +132,7 @@ services:
 
   temporal-server:
     image: temporalio/auto-setup:1.22.4
-    container_name: somaagenthub-temporal
+    container_name: somaagenthub_temporal
     restart: unless-stopped
     depends_on:
       temporal-postgres:
@@ -163,7 +165,7 @@ services:
 
   redis:
     image: redis:7-alpine
-    container_name: somaagenthub-redis
+    container_name: somaagenthub_redis
     restart: unless-stopped
     ports:
       - "${REDIS_PORT:-10003}:6379"
@@ -182,7 +184,7 @@ services:
 
   qdrant:
     image: qdrant/qdrant:v1.11.0@sha256:22a2d455837380d5fa1a3455b87b4fe7af30aa4f4712f8a57027c61022113796
-    container_name: somaagenthub-qdrant
+    container_name: somaagenthub_qdrant
     restart: unless-stopped
     ports:
       - "${QDRANT_PORT:-10005}:6333"
@@ -200,7 +202,7 @@ services:
 
   clickhouse:
     image: clickhouse/clickhouse-server:24.7-alpine@sha256:3187267104ffa306377a9d41eedcdb9c3fade52db855f92021fb1498a070c7fb
-    container_name: somaagenthub-clickhouse
+    container_name: somaagenthub_clickhouse
     restart: unless-stopped
     ports:
       - "${CLICKHOUSE_HTTP_PORT:-10006}:8123"
@@ -218,7 +220,7 @@ services:
 
   minio:
     image: minio/minio:latest@sha256:a1a8bd4ac40ad7881a245bab97323e18f971e4d4cba2c2007ec1bedd21cbaba2
-    container_name: somaagenthub-minio
+    container_name: somaagenthub_minio
     restart: unless-stopped
     environment:
       - MINIO_ROOT_USER=somaagent
@@ -244,13 +246,13 @@ services:
     build:
       context: .
       dockerfile: infra/vault/Dockerfile
-    container_name: somaagenthub-vault
+    container_name: somaagenthub_vault
     restart: unless-stopped
     environment:
       - VAULT_DEV_ROOT_TOKEN_ID=root
       - VAULT_DEV_LISTEN_ADDRESS=0.0.0.0:8200
     ports:
-      - "${VAULT_PORT:-8200}:8200"
+      - "${VAULT_PORT:-10009}:8200"
     volumes:
       - vault-data:/vault/file
     healthcheck:
@@ -266,11 +268,11 @@ services:
   # --- Observability Infrastructure ---
   loki:
     image: grafana/loki:latest
-    container_name: somaagenthub-loki
+    container_name: somaagenthub_loki
     restart: unless-stopped
     command: -config.file=/etc/loki/local-config.yaml
     ports:
-      - "${LOKI_PORT:-3100}:3100"
+      - "${LOKI_PORT:-10012}:3100"
     volumes:
       - ./infra/observability/loki-config.yaml:/etc/loki/local-config.yaml
       - loki-data:/loki
@@ -286,13 +288,13 @@ services:
 
   tempo:
     image: grafana/tempo:latest
-    container_name: somaagenthub-tempo
+    container_name: somaagenthub_tempo
     restart: unless-stopped
     command:
       - "-config.file=/etc/tempo/local-config.yaml"
     ports:
-      - "${TEMPO_OTLP_GRPC_PORT:-4317}:4317"
-      - "${TEMPO_OTLP_HTTP_PORT:-4318}:4318"
+      - "${TEMPO_OTLP_GRPC_PORT:-10013}:4317"
+      - "${TEMPO_OTLP_HTTP_PORT:-10014}:4318"
     volumes:
       - ./infra/observability/tempo-config.yaml:/etc/tempo/local-config.yaml
       - tempo-data:/var/tempo
@@ -308,16 +310,16 @@ services:
 
   otel-collector:
     image: otel/opentelemetry-collector-contrib:latest
-    container_name: somaagenthub-otel-collector
+    container_name: somaagenthub_otel-collector
     restart: unless-stopped
     command:
       - "--config=/etc/otel-collector-config.yaml"
     volumes:
       - ./infra/observability/otel-collector-config.yaml:/etc/otel-collector-config.yaml
     ports:
-      - "${OTEL_GRPC_PORT:-4317}:4317"
-      - "${OTEL_HTTP_PORT:-4318}:4318"
-      - "${OTEL_PROMETHEUS_PORT:-8888}:8888"
+      - "${OTEL_GRPC_PORT:-10015}:4317"
+      - "${OTEL_HTTP_PORT:-10016}:4318"
+      - "${OTEL_PROMETHEUS_PORT:-10017}:8888"
     environment:
       - GOGC=80
     healthcheck:
@@ -337,13 +339,13 @@ services:
 
   prometheus:
     image: prom/prometheus:latest
-    container_name: somaagenthub-prometheus
+    container_name: somaagenthub_prometheus
     restart: unless-stopped
     command:
       - "--config.file=/etc/prometheus/prometheus.yml"
       - "--storage.tsdb.path=/prometheus"
     ports:
-      - "${PROMETHEUS_PORT:-9090}:9090"
+      - "${PROMETHEUS_PORT:-10010}:9090"
     volumes:
       - ./infra/observability/prometheus.yml:/etc/prometheus/prometheus.yml
       - prometheus-data:/prometheus
@@ -359,14 +361,14 @@ services:
 
   grafana:
     image: grafana/grafana:latest
-    container_name: somaagenthub-grafana
+    container_name: somaagenthub_grafana
     restart: unless-stopped
     environment:
       - GF_SECURITY_ADMIN_PASSWORD=admin
       - GF_SECURITY_ADMIN_USER=admin
       - GF_INSTALL_PLUGINS=grafana-piechart-panel
     ports:
-      - "${GRAFANA_PORT:-3000}:3000"
+      - "${GRAFANA_PORT:-10011}:3000"
     volumes:
       - grafana-data:/var/lib/grafana
       - ./infra/observability/grafana-datasources.yaml:/etc/grafana/provisioning/datasources/datasources.yaml

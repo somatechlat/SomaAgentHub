@@ -506,7 +506,7 @@ curl -X POST http://localhost:10000/v1/chat/completions \
 
 ```bash
 # Access monitoring
-open http://localhost:3000  # Grafana dashboards
+open http://localhost:10011  # Grafana dashboards
 open http://localhost:8233  # Temporal workflows
 curl http://localhost:10000/metrics  # Prometheus metrics
 ```

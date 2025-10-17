@@ -8,6 +8,7 @@ from pathlib import Path
 
 from pydantic import AliasChoices, Field
 
+from common.config.runtime import runtime_default
 from common.config.settings import Settings as SharedSettings
 
 
@@ -57,7 +58,10 @@ class IdentitySettings(SharedSettings):
         ),
     )
     jwk_set_url: str = Field(
-        default="https://auth.soma-infra.svc.cluster.local:8080/.well-known/jwks.json",
+        default=runtime_default(
+            "http://identity-service:10002/.well-known/jwks.json",
+            "https://auth.soma-infra.svc.cluster.local:8080/.well-known/jwks.json",
+        ),
         validation_alias=AliasChoices(
             "SOMASTACK_IDENTITY_JWK_SET_URL",
             "SOMAGENT_IDENTITY_JWK_SET_URL",
@@ -65,7 +69,7 @@ class IdentitySettings(SharedSettings):
         ),
     )
     redis_url: str | None = Field(
-        default="redis://redis.soma-infra.svc.cluster.local:6379/0",
+        default=runtime_default("redis://redis:6379/0", "redis://redis.soma-infra.svc.cluster.local:6379/0"),
         validation_alias=AliasChoices(
             "SOMASTACK_REDIS_URL",
             "SOMASTACK_IDENTITY_REDIS_URL",
@@ -105,7 +109,7 @@ class IdentitySettings(SharedSettings):
         ),
     )
     clickhouse_host_raw: str | None = Field(
-        default="clickhouse.soma-infra.svc.cluster.local",
+        default=runtime_default("clickhouse", "clickhouse.soma-infra.svc.cluster.local"),
         validation_alias=AliasChoices(
             "SOMASTACK_CLICKHOUSE_HOST",
             "SOMASTACK_IDENTITY_CLICKHOUSE_HOST",

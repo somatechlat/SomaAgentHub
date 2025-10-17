@@ -9,7 +9,6 @@ from __future__ import annotations
 
 import logging
 import os
-from typing import Optional
 
 from opentelemetry import metrics, trace
 from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import OTLPSpanExporter
@@ -19,6 +18,8 @@ from opentelemetry.sdk.metrics import MeterProvider
 from opentelemetry.sdk.resources import Resource
 from opentelemetry.sdk.trace import TracerProvider
 from opentelemetry.sdk.trace.export import BatchSpanProcessor
+
+from common.config.runtime import default_otlp_grpc_endpoint
 
 logger = logging.getLogger(__name__)
 
@@ -59,7 +60,7 @@ class OpenTelemetryConfig:
 
         # Add OTLP exporter if enabled (for Tempo in Sprint-6)
         if self.enable_otlp:
-            otlp_endpoint = os.getenv("OTEL_EXPORTER_OTLP_ENDPOINT", "http://tempo.observability:4317")
+            otlp_endpoint = os.getenv("OTEL_EXPORTER_OTLP_ENDPOINT", default_otlp_grpc_endpoint())
             otlp_exporter = OTLPSpanExporter(endpoint=otlp_endpoint, insecure=True)
             trace_provider.add_span_processor(BatchSpanProcessor(otlp_exporter))
             logger.info(f"OTLP trace exporter enabled: {otlp_endpoint}")
@@ -79,7 +80,7 @@ class OpenTelemetryConfig:
 
         # OTLP metrics exporter if enabled
         if self.enable_otlp:
-            otlp_endpoint = os.getenv("OTEL_EXPORTER_OTLP_ENDPOINT", "http://tempo.observability:4317")
+            otlp_endpoint = os.getenv("OTEL_EXPORTER_OTLP_ENDPOINT", default_otlp_grpc_endpoint())
             logger.info(f"OTLP metrics exporter configured: {otlp_endpoint}")
 
         meter_provider = MeterProvider(resource=self.resource, metric_readers=readers)
@@ -141,7 +142,7 @@ def setup_observability(
     service_name: str,
     app=None,
     service_version: str = "0.1.0",
-    environment: Optional[str] = None,
+    environment: str | None = None,
 ) -> OpenTelemetryConfig:
     """
     Quick setup function for OpenTelemetry in SomaAgent services.

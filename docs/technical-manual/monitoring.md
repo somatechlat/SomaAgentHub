@@ -23,17 +23,17 @@ After deployment, you can access the monitoring tools via `kubectl port-forward`
 
 ```bash
 # Port-forward Grafana
-kubectl port-forward svc/prometheus-grafana 3000:80 -n observability
+kubectl port-forward svc/prometheus-grafana 10011:80 -n observability
 
 # Port-forward Prometheus
-kubectl port-forward svc/prometheus-prometheus 9090:9090 -n observability
+kubectl port-forward svc/prometheus-prometheus 10010:9090 -n observability
 
 # Port-forward Alertmanager
-kubectl port-forward svc/prometheus-alertmanager 9093:9093 -n observability
+kubectl port-forward svc/prometheus-alertmanager 10019:9093 -n observability
 ```
-- **Grafana**: `http://localhost:3000` (default login: `admin`/`prom-operator`)
-- **Prometheus**: `http://localhost:9090`
-- **Alertmanager**: `http://localhost:9093`
+- **Grafana**: `http://localhost:10011` (default login: `admin`/`prom-operator`)
+- **Prometheus**: `http://localhost:10010`
+- **Alertmanager**: `http://localhost:10019`
 
 ---
 

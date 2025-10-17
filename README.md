@@ -43,14 +43,13 @@ SomaAgentHub is the coordination layer that powers the Soma platform. The hub co
 
 ### Core Services
 
-| Service | Default Port | Purpose |
+| Service | Host Port | Purpose |
 | --- | --- | --- |
 | **Gateway API** | 10000 | Public ingress for UI, CLI, and partner integrations. Handles wizard flows and session fan-out. |
 | **Orchestrator** | 10001 | Coordinates multi-agent workflows, talks to Temporal, identity, and policy services. |
 | **Identity Service** | 10002 | Issues access tokens and validates identities for every agent-facing request. |
-| **Memory Gateway** | 8000 | Stores and retrieves long-term context via Qdrant for agent recall. |
-| **Policy Engine** | (custom) | Enforces constitutional rules with Redis-backed caching and constitution service integration. |
-| **Memory Gateway** | 8000 | Stores and retrieves long-term context via Qdrant or in-memory fallback for development. |
+| **Memory Gateway** | 10018 *(optional)* | Stores and retrieves long-term context via Qdrant for agent recall when the service is enabled. |
+| **Policy Engine** | 10020 *(optional)* | Enforces constitutional rules with Redis-backed caching and constitution service integration when deployed. |
 
 ### System Components
 
@@ -61,16 +60,16 @@ SomaAgentHub is the coordination layer that powers the Soma platform. The hub co
 │                                         │
 │  ┌──────────────┐  ┌──────────────┐     │
 │  │ Gateway API  │  │ Policy Engine│     │
-│  │    (8080)    │  │    (1002)    │     │
+│  │   (10000)    │  │   (10020)    │     │
 │  └──────┬───────┘  └──────┬───────┘     │
 │         │                 │              │
 │  ┌──────────────────────────────────┐    │
-│  │        Orchestrator (1004)       │    │
+│  │       Orchestrator (10001)       │    │
 │  │   Temporal Workflows & Sessions  │    │
 │  └──────────────────────────────────┘    │
 │                │                          │
 │  ┌──────────────────────────────────┐    │
-│  │       Memory Gateway (8000)      │    │
+│  │      Memory Gateway (10018)      │    │
 │  │   Vector + KV Recall for Agents  │    │
 │  └──────────────────────────────────┘    │
 │                                         │
@@ -123,7 +122,7 @@ make dev-start-services
 
 **Port-Forward the Gateway**
 ```bash
-make port-forward-gateway LOCAL=8080 REMOTE=8080
+make port-forward-gateway LOCAL=8080 REMOTE=10000
 ```
 
 **Run End-to-End Smoke Tests**

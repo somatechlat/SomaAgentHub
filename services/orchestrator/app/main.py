@@ -2,14 +2,19 @@
 
 from __future__ import annotations
 
+import logging
+
 from fastapi import FastAPI
 from fastapi.responses import Response
 from prometheus_client import CONTENT_TYPE_LATEST, generate_latest
 from services.common.observability import setup_observability
+from services.common.spiffe_auth import init_spiffe
 from temporalio import client as temporal_client
 
 from .api.routes import router as orchestrator_router
 from .core.config import settings
+
+logger = logging.getLogger(__name__)
 
 
 def create_app() -> FastAPI:
@@ -17,6 +22,12 @@ def create_app() -> FastAPI:
 
     # Sprint-6: Initialize OpenTelemetry instrumentation
     setup_observability("orchestrator", app, service_version="0.1.0")
+
+    spiffe_identity = init_spiffe(settings.service_name)
+    if spiffe_identity:
+        logger.info("SPIFFE identity loaded", extra={"spiffe_id": spiffe_identity.spiffe_id})
+    else:
+        logger.info("SPIFFE identity not initialized; continuing without workload SVID")
 
     @app.on_event("startup")
     async def _startup_temporal_client() -> None:

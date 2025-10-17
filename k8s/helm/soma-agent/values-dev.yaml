@@ -4,6 +4,13 @@
 global:
   imagePullPolicy: IfNotPresent
   imageTag: "dev"
+  environment: development
+  observability:
+    enableOtlp: false
+    otlpEndpoint: "http://otel-collector.observability:4317"
+  spiffe:
+    enabled: false
+    trustDomain: "somaagent.io"
 
 # For local development, we can run with a single replica for each service.
 services:

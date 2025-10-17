@@ -12,6 +12,17 @@ global:
     readOnlyRootFilesystem: true
     capabilities:
       drop: ["ALL"]
+  environment: production
+  observability:
+    enableOtlp: true
+    otlpEndpoint: "http://otel-collector.observability:4317"
+  spiffe:
+    enabled: true
+    trustDomain: "somaagent.io"
+    certDir: "/var/run/secrets/spiffe"
+    socketPath: "/run/spire/sockets/agent.sock"
+    socketMountPath: "/run/spire/sockets"
+    hostSocketPath: "/run/spire/sockets"
 
 # Centralized port definitions. This is the single source of truth for all service ports.
 ports:

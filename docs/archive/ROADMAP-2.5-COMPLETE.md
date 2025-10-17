@@ -54,12 +54,12 @@ All 5 phases of ROADMAP-2.5 have been implemented with **real, functional, verif
 │                                                     │
 │  ┌─────────────────────────────────────────────┐  │
 │  │ Secrets & Observability:                    │  │
-│  │ - Vault (8200): Secrets management          │  │
-│  │ - OpenTelemetry Collector: Trace/log/metric│  │
-│  │ - Prometheus (9090): Metrics scraping       │  │
-│  │ - Loki (3100): Log aggregation             │  │
-│  │ - Tempo (4317): Distributed tracing        │  │
-│  │ - Grafana (3000): Visualization            │  │
+│  │ - Vault 10009→8200: Secrets management     │  │
+│  │ - OTel Collector 10015→4317 / 10016→4318   │  │
+│  │ - Prometheus 10010→9090: Metrics scraping  │  │
+│  │ - Loki 10012→3100: Log aggregation         │  │
+│  │ - Tempo 10013→4317 / 10014→4318            │  │
+│  │ - Grafana 10011→3000: Visualization        │  │
 │  └─────────────────────────────────────────────┘  │
 │                                                     │
 │  ┌─────────────────────────────────────────────┐  │
@@ -72,11 +72,11 @@ All 5 phases of ROADMAP-2.5 have been implemented with **real, functional, verif
 │                                                     │
 │  ┌─────────────────────────────────────────────┐  │
 │  │ Data & Orchestration:                       │  │
-│  │ - PostgreSQL (5432): App + Temporal state  │  │
-│  │ - Qdrant (6333): Vector store (RAG)        │  │
-│  │ - ClickHouse (8123): Analytics events      │  │
-│  │ - MinIO (9000): S3-compatible storage      │  │
-│  │ - Redis (6379): Caching + sessions         │  │
+│  │ - PostgreSQL 10004→5432: App state         │  │
+│  │ - Qdrant 10005→6333: Vector store (RAG)    │  │
+│  │ - ClickHouse 10006→8123: Analytics events  │  │
+│  │ - MinIO 10007→9000 / 10008→9001            │  │
+│  │ - Redis 10003→6379: Caching + sessions     │  │
 │  │ - Temporal (7233): Workflow engine         │  │
 │  │ - Kafka (9092): Event streaming            │  │
 │  │ - Zookeeper (2181): Kafka coordination     │  │
@@ -117,11 +117,11 @@ All 5 phases of ROADMAP-2.5 have been implemented with **real, functional, verif
   - Cosign digital signatures
 
 - ✅ **OpenTelemetry Stack**:
-  - OTel Collector: OTLP receiver (4317/4318)
-  - Prometheus: Metrics scraping (9090)
-  - Loki: Log aggregation (3100)
-  - Tempo: Distributed tracing (3200)
-  - Grafana: Visualization (3000)
+  - OTel Collector: Host 10015→4317 / 10016→4318 (OTLP)
+  - Prometheus: Host 10010→9090 for metrics
+  - Loki: Host 10012→3100 for log aggregation
+  - Tempo: Host 10013→4317 / 10014→4318 (tracing)
+  - Grafana: Host 10011→3000 dashboards
 
 **All services auto-instrumented**: FastAPI + Prometheus + OTLP enabled by default
 
@@ -294,12 +294,12 @@ Services:
 ✅ minio-console:10008 (minio/minio:latest@sha256:...)
 ✅ temporal-server:7233 (temporalio/auto-setup:1.22.4)
 ✅ temporal-postgres:5432 (postgres:15-alpine)
-✅ vault:8200 (hashicorp/vault:1.15.0)
-✅ loki:3100 (grafana/loki:latest)
-✅ tempo:3200 (grafana/tempo:latest)
-✅ otel-collector:4317 (otel/opentelemetry-collector-contrib:latest)
-✅ prometheus:9090 (prom/prometheus:latest)
-✅ grafana:3000 (grafana/grafana:latest)
+✅ vault:10009→8200 (hashicorp/vault:1.15.0)
+✅ loki:10012→3100 (grafana/loki:latest)
+✅ tempo:10013→4317 / 10014→4318 (grafana/tempo:latest)
+✅ otel-collector:10015→4317 / 10016→4318 / 10017→8888 (otel/opentelemetry-collector-contrib:latest)
+✅ prometheus:10010→9090 (prom/prometheus:latest)
+✅ grafana:10011→3000 (grafana/grafana:latest)
 ```
 
 All services have health checks.
@@ -333,8 +333,8 @@ Every single claim is **verifiable**:
 ### Phase 1 ✅
 - `docker compose up vault` → Health check passes
 - `scripts/bootstrap-vault.sh` → Secrets stored (check with `vault kv list`)
-- `curl http://localhost:9090/metrics` → Prometheus responds
-- `curl http://localhost:3000/api/health` → Grafana responds
+- `curl http://localhost:10010/metrics` → Prometheus responds
+- `curl http://localhost:10011/api/health` → Grafana responds
 - `docker-compose ps` → All 16 services running (healthy)
 
 ### Phase 2 ✅
@@ -428,8 +428,8 @@ The following are intentionally NOT included (to maintain truth):
    ```bash
    docker compose up
    scripts/bootstrap-vault.sh
-   open http://localhost:3000  # Grafana
-   open http://localhost:8200  # Vault
+  open http://localhost:10011  # Grafana
+  open http://localhost:10009  # Vault
    ```
 
 2. **Kubernetes Deployment**:

@@ -133,10 +133,10 @@ docker compose up -d
 
 # Verify Vault is running
 docker ps | grep vault
-# OUTPUT: somaagenthub-vault ... Up (healthy)
+# OUTPUT: somaagenthub_vault ... Up (healthy)
 
 # Access Vault UI
-open http://localhost:8200
+open http://localhost:10009
 # Root token: root
 ```
 
@@ -161,7 +161,7 @@ chmod +x scripts/bootstrap-vault.sh
 #### Verify Secrets
 
 ```bash
-export VAULT_ADDR=http://localhost:8200
+export VAULT_ADDR=http://localhost:10009
 export VAULT_TOKEN=root
 
 # List secrets
@@ -252,7 +252,7 @@ vault_client.revoke_lease(db_cred.lease_id)
        │ (Prometheus format)          │ (OTLP)     │ (OTLP)     │
        ↓                              ↓            ↓            ↓
 ┌─────────────────────────────────────────────────────────────────┐
-│      OpenTelemetry Collector (otel-collector:4317/4318)         │
+│      OpenTelemetry Collector (10015/10016→4317/4318)           │
 │  - Receives metrics, traces, logs (OTLP gRPC + HTTP)            │
 │  - Batch processing & resource attributes                       │
 │  - Forwards to: Tempo, Loki, Prometheus                         │
@@ -277,11 +277,11 @@ vault_client.revoke_lease(db_cred.lease_id)
 
 | Service | Port | Purpose | Status |
 |---------|------|---------|--------|
-| **otel-collector** | 4317/4318 | OTLP receiver (gRPC/HTTP) | ✅ Running |
-| **Tempo** | 4317/4318 (backward compat) | Distributed tracing backend | ✅ Running |
-| **Loki** | 3100 | Log aggregation & querying | ✅ Running |
-| **Prometheus** | 9090 | Metrics scraping & storage | ✅ Running |
-| **Grafana** | 3000 | Visualization & dashboards | ✅ Running |
+| **otel-collector** | 10015→4317 / 10016→4318 | OTLP receiver (gRPC/HTTP) | ✅ Running |
+| **Tempo** | 10013→4317 / 10014→4318 | Distributed tracing backend | ✅ Running |
+| **Loki** | 10012→3100 | Log aggregation & querying | ✅ Running |
+| **Prometheus** | 10010→9090 | Metrics scraping & storage | ✅ Running |
+| **Grafana** | 10011→3000 | Visualization & dashboards | ✅ Running |
 
 ### Startup
 
@@ -294,10 +294,10 @@ docker compose ps | grep -E "otel-collector|tempo|loki|prometheus|grafana"
 # All should show "healthy" status
 
 # Check connectivity
-curl http://localhost:3100/ready    # Loki ready
-curl http://localhost:4317/v1/trace # Tempo (will error but proves connectivity)
-curl http://localhost:9090/-/healthy # Prometheus healthy
-curl http://localhost:3000/api/health # Grafana healthy
+curl http://localhost:10012/ready    # Loki ready
+curl http://localhost:10013/v1/trace # Tempo (will error but proves connectivity)
+curl http://localhost:10010/-/healthy # Prometheus healthy
+curl http://localhost:10011/api/health # Grafana healthy
 ```
 
 ### Service Integration
@@ -324,7 +324,7 @@ This automatically:
 
 ```bash
 # Open Grafana
-open http://localhost:3000
+open http://localhost:10011
 # Login: admin / admin
 
 # Navigate to:
@@ -386,11 +386,11 @@ curl -s http://localhost:8888/metrics | grep otelcol | head -3
 
 # 3. Check Prometheus is scraping
 echo "✓ Checking Prometheus targets..."
-curl -s http://localhost:9090/api/v1/targets | jq '.data.activeTargets[].labels | {job, instance}' | head -10
+curl -s http://localhost:10010/api/v1/targets | jq '.data.activeTargets[].labels | {job, instance}' | head -10
 
 # 4. Check Grafana datasources
 echo "✓ Checking Grafana datasources..."
-curl -s -H "Authorization: Bearer admin:admin" http://localhost:3000/api/datasources | jq '.[].name'
+curl -s -H "Authorization: Bearer admin:admin" http://localhost:10011/api/datasources | jq '.[].name'
 
 # 5. Test a simple trace end-to-end
 echo "✓ Testing traces..."
@@ -400,7 +400,7 @@ curl -s http://localhost:10000/ready && echo "✓ Gateway API is responding"
 sleep 2
 
 # Query Tempo for recent traces
-curl -s http://localhost:3200/api/traces | jq '.traces[0] | {traceID, spans: (.spans | length)}' | head -1
+docker compose exec tempo curl -s http://127.0.0.1:3200/api/traces | jq '.traces[0] | {traceID, spans: (.spans | length)}' | head -1
 
 echo ""
 echo "✅ All Phase 1 observability checks passed!"
@@ -454,10 +454,10 @@ curl http://localhost:10001/ready   # Orchestrator
 curl http://localhost:10002/ready   # Identity Service
 
 # Observability access
-curl http://localhost:9090/-/healthy  # Prometheus
-curl http://localhost:3000/api/health # Grafana (ui)
-curl http://localhost:3100/ready      # Loki
-curl http://localhost:8200/v1/sys/health # Vault
+curl http://localhost:10010/-/healthy  # Prometheus
+curl http://localhost:10011/api/health # Grafana (ui)
+curl http://localhost:10012/ready      # Loki
+curl http://localhost:10009/v1/sys/health # Vault
 
 # View logs
 docker compose logs -f gateway-api
@@ -468,7 +468,7 @@ docker compose logs -f orchestrator
 
 ```bash
 # Scrape Prometheus targets
-curl -s http://localhost:9090/api/v1/query?query=up | jq '.data.result[]' | head -20
+curl -s http://localhost:10010/api/v1/query?query=up | jq '.data.result[]' | head -20
 
 # Expected: Multiple targets with value=1 (up)
 ```
@@ -477,18 +477,18 @@ curl -s http://localhost:9090/api/v1/query?query=up | jq '.data.result[]' | head
 
 ```bash
 # Query Tempo for traces
-curl -s "http://localhost:3200/api/traces?limit=5" | jq '.traces | length'
+docker compose exec tempo curl -s "http://127.0.0.1:3200/api/traces?limit=5" | jq '.traces | length'
 # Should return traces from gateway-api, orchestrator service calls
 
 # View trace detail
-curl -s "http://localhost:3200/api/traces?limit=1" | jq '.traces[0]'
+docker compose exec tempo curl -s "http://127.0.0.1:3200/api/traces?limit=1" | jq '.traces[0]'
 ```
 
 ### Log Collection Verification
 
 ```bash
 # Query Loki for logs
-curl -s "http://localhost:3100/loki/api/v1/query?query={service=\"gateway-api\"}" | jq '.data.result | length'
+curl -s "http://localhost:10012/loki/api/v1/query?query={service=\"gateway-api\"}" | jq '.data.result | length'
 # Should return log streams from services
 ```
 
@@ -520,7 +520,7 @@ These Phase 1 components are required for Phase 2:
 docker compose logs vault | tail -20
 
 # Test connection from service
-docker exec somaagenthub-gateway-api python -c "
+docker exec somaagenthub_gateway-api python -c "
 import hvac
 client = hvac.Client(url='http://vault:8200')
 print(client.sys.health_status())
@@ -537,7 +537,7 @@ curl -s http://localhost:8888/metrics | grep "otelcol_receiver.*accept.*=.*otlp"
 docker compose logs tempo | grep -i "trace\|batch"
 
 # Manually send test span
-curl -X POST http://localhost:4318/v1/traces \
+curl -X POST http://localhost:10014/v1/traces \
   -H "Content-Type: application/x-protobuf" \
   -d @test_span.pb
 ```
@@ -549,10 +549,10 @@ curl -X POST http://localhost:4318/v1/traces \
 curl -s http://localhost:8888/metrics | head -20
 
 # Check Prometheus scrape targets
-curl -s http://localhost:9090/api/v1/targets | jq '.data'
+curl -s http://localhost:10010/api/v1/targets | jq '.data'
 
 # Check for errors
-curl -s http://localhost:9090/api/v1/targets | jq '.data.activeTargets[] | select(.health=="down")'
+curl -s http://localhost:10010/api/v1/targets | jq '.data.activeTargets[] | select(.health=="down")'
 ```
 
 ---
