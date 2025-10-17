@@ -44,6 +44,7 @@ class SessionStartResult:
     slm_response: Dict[str, Any]
     audit_event_id: str
     completed_at: datetime
+    volcano_job: Optional[Dict[str, Any]] = None
 
 
 @dataclass
@@ -72,6 +73,23 @@ class SlmRequest:
 
 
 # ---------------------------------------------------------------------------
+# Helpers
+# ---------------------------------------------------------------------------
+
+
+def _identity_endpoint(base_url: str) -> str:
+    normalized = base_url.rstrip("/")
+    suffix = "/v1/tokens/issue"
+    return normalized if normalized.endswith(suffix) else f"{normalized}{suffix}"
+
+
+def _policy_endpoint(base_url: str) -> str:
+    normalized = base_url.rstrip("/")
+    suffix = "/v1/evaluate"
+    return normalized if normalized.endswith(suffix) else f"{normalized}{suffix}"
+
+
+# ---------------------------------------------------------------------------
 # Activities – executed by Temporal workers.
 # ---------------------------------------------------------------------------
 
@@ -81,7 +99,8 @@ async def evaluate_policy(ctx: PolicyEvaluationContext) -> Dict[str, Any]:
     """Invoke the policy engine using the real HTTP endpoint."""
 
     async with httpx.AsyncClient(timeout=10.0) as client:
-        response = await client.post(settings.policy_engine_url, json=ctx.payload)
+        endpoint = _policy_endpoint(str(settings.policy_engine_url))
+        response = await client.post(endpoint, json=ctx.payload)
         response.raise_for_status()
         payload = response.json()
     return payload if isinstance(payload, dict) else {"raw": payload}
@@ -90,7 +109,8 @@ async def evaluate_policy(ctx: PolicyEvaluationContext) -> Dict[str, Any]:
 @activity.defn(name="issue-identity-token")
 async def issue_identity_token(req: IdentityTokenRequest) -> Dict[str, Any]:
     async with httpx.AsyncClient(timeout=10.0) as client:
-        response = await client.post(settings.identity_service_url, json=asdict(req))
+        endpoint = _identity_endpoint(str(settings.identity_service_url))
+        response = await client.post(endpoint, json=asdict(req))
         response.raise_for_status()
         payload = response.json()
     return payload if isinstance(payload, dict) else {"raw": payload}
@@ -207,6 +227,39 @@ class SessionWorkflow:
                 completed_at=datetime.now(timezone.utc),
             )
 
+        volcano_job_result: dict[str, Any] | None = None
+        if settings.enable_volcano_scheduler:
+            volcano_payload: dict[str, Any] = {
+                "session_id": payload.session_id,
+                "tenant": payload.tenant,
+                "user": payload.user,
+                "wait": payload.metadata.get("volcano_wait", True),
+            }
+            for key, meta_key in {
+                "queue": "volcano_queue",
+                "command": "volcano_command",
+                "image": "volcano_image",
+                "env": "volcano_env",
+                "cpu": "volcano_cpu",
+                "memory": "volcano_memory",
+                "timeout_seconds": "volcano_timeout_seconds",
+            }.items():
+                value = payload.metadata.get(meta_key)
+                if value is not None:
+                    volcano_payload[key] = value
+
+            try:
+                volcano_job_result = await workflow.execute_activity(
+                    "launch-volcano-session-job",
+                    volcano_payload,
+                    start_to_close_timeout=timedelta(
+                        seconds=settings.volcano_job_timeout_seconds + 30
+                    ),
+                )
+                logger.info("Volcano job submitted with result %s", volcano_job_result)
+            except Exception as exc:  # pragma: no cover - best effort integration
+                logger.warning("Volcano submission failed: %s", exc)
+
         token_req = IdentityTokenRequest(
             user_id=payload.user,
             tenant_id=payload.tenant,
@@ -255,6 +308,7 @@ class SessionWorkflow:
             slm_response=slm_response,
             audit_event_id=audit_event_id,
             completed_at=datetime.now(timezone.utc),
+            volcano_job=volcano_job_result,
         )
         logger.info("Session workflow completed", result=result.__dict__)
         return result

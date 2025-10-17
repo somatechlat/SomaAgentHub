@@ -24,7 +24,7 @@ spec:
         monitoring: enabled
       annotations:
         prometheus.io/scrape: "true"
-        prometheus.io/port: "1002"
+        prometheus.io/port: "10020"
         prometheus.io/path: "/metrics"
     spec:
       containers:
@@ -34,24 +34,16 @@ spec:
         
         ports:
         - name: http
-          containerPort: 1002
+          containerPort: 10020
           protocol: TCP
         - name: metrics
-          containerPort: 1102
+          containerPort: 10020
           protocol: TCP
         
         env:
-        # Real Redis connection
-        - name: REDIS_HOST
-          value: "redis.somaagent"
-        - name: REDIS_PORT
-          value: "6379"
-        - name: REDIS_DB
-          value: "0"
-        
-        # Real constitution service
-        - name: CONSTITUTION_SERVICE_URL
-          value: "http://constitution-service:1008"
+        # Redis connection (optional; falls back to in-process cache if unset)
+        - name: REDIS_URL
+          value: "redis://redis.somaagent:6379/0"
         
         # Real observability
         - name: OTEL_EXPORTER_OTLP_ENDPOINT
@@ -60,12 +52,6 @@ spec:
           value: "policy-engine"
         - name: ENVIRONMENT
           value: "production"
-        
-        # Real policy settings
-        - name: CACHE_TTL_SECONDS
-          value: "300"
-        - name: MAX_VIOLATIONS_BEFORE_BLOCK
-          value: "3"
         
         resources:
           requests:
@@ -115,11 +101,11 @@ spec:
   type: ClusterIP
   ports:
   - name: http
-    port: 1002
+    port: 10020
     targetPort: http
     protocol: TCP
   - name: metrics
-    port: 1102
+    port: 10020
     targetPort: metrics
     protocol: TCP
   selector:

@@ -126,8 +126,9 @@ Example remember request:
 
 ## 📚 Related Docs
 
-- `docs/CANONICAL_ROADMAP.md` (Sprint 2 focuses on data layer improvements).
-- `docs/runbook.md` (backup/restore procedures include memory considerations).
+- `docs/development-manual/index.md` (tracks backlog items for optional services).
+- `docs/technical-manual/architecture.md` (describes memory flows alongside orchestrator/gateway).
+- `docs/technical-manual/runbooks/service-is-down.md` (extend with memory-specific recovery steps when the service is enabled).
 
 ---
 

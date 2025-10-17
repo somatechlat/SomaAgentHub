@@ -33,6 +33,9 @@ When an alert fires or an operational task is required, follow these steps:
 - [**RUNBOOK-103: Restarting a Service**](./restarting-a-service.md)
 - [**RUNBOOK-104: Database Backup and Restore**](./database-backup-restore.md)
 
+### Scheduler Operations
+- [**RUNBOOK-301: Volcano Scheduler Operations**](./volcano-operations.md)
+
 ### Security Operations
 - [**RUNBOOK-201: Rotating Secrets**](./rotating-secrets.md)
 - [**RUNBOOK-202: Investigating a Security Alert**](./investigating-security-alert.md)

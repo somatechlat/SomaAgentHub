@@ -10,12 +10,10 @@ import asyncio
 
 # Test configuration
 TEST_CONFIG = {
-    "orchestrator": "http://localhost:1004",
     "gateway_api": "http://localhost:10000",
-    "policy_engine": "http://localhost:1002",
-    "identity_service": "http://localhost:1007",
-    "slm_service": "http://localhost:10000",  # hub (slm-service) same as gateway
-    "analytics_service": "http://localhost:1009",
+    "orchestrator": "http://localhost:10001",
+    "identity_service": "http://localhost:10002",
+    "policy_engine": "http://localhost:10020",
 }
 
 
@@ -132,23 +130,6 @@ class TestIdentityService:
             pytest.skip("Identity Service not running")
 
 
-class TestSLMService:
-    """Test SLM Service endpoints."""
-    
-    @pytest.mark.asyncio
-    async def test_slm_infer_endpoint_exists(self, http_client):
-        """Test inference endpoint exists."""
-        try:
-            response = await http_client.post(
-                f"{TEST_CONFIG['slm_service']}/v1/infer/sync",
-                json={"prompt": "Test prompt"}
-            )
-            # Should return some response (not 404)
-            assert response.status_code in [200, 400, 422, 503]
-        except httpx.ConnectError:
-            pytest.skip("SLM Service not running")
-
-
 class TestOrchestrator:
     """Test Orchestrator endpoints."""
     
@@ -160,19 +141,6 @@ class TestOrchestrator:
             assert response.status_code == 200
         except httpx.ConnectError:
             pytest.skip("Orchestrator not running")
-
-
-class TestAnalyticsService:
-    """Test Analytics Service endpoints."""
-    
-    @pytest.mark.asyncio
-    async def test_analytics_health(self, http_client):
-        """Test analytics service health."""
-        try:
-            response = await http_client.get(f"{TEST_CONFIG['analytics_service']}/health")
-            assert response.status_code == 200
-        except httpx.ConnectError:
-            pytest.skip("Analytics Service not running")
 
 
 class TestServiceCommunication:

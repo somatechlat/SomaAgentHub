@@ -24,7 +24,7 @@ spec:
         monitoring: enabled
       annotations:
         prometheus.io/scrape: "true"
-        prometheus.io/port: "8080"
+        prometheus.io/port: "10000"
         prometheus.io/path: "/metrics"
     spec:
       containers:
@@ -34,22 +34,20 @@ spec:
         
         ports:
         - name: http
-          containerPort: 8080
+          containerPort: 10000
           protocol: TCP
         - name: metrics
-          containerPort: 8080
+          containerPort: 10000
           protocol: TCP
         
         env:
         # Real backend services
         - name: SOMAGENT_GATEWAY_ORCHESTRATOR_URL
-          value: "http://orchestrator:1004"
-        - name: POLICY_ENGINE_URL
-          value: "http://policy-engine:1002"
+          value: "http://orchestrator:10001"
         - name: IDENTITY_SERVICE_URL
-          value: "http://identity-service:1007"
+          value: "http://identity-service:10002"
         - name: SOMALLM_PROVIDER_URL
-          value: "http://somallm-provider:1001"
+          value: "http://slm-service:1001"
         
         # Real observability
         - name: OTEL_EXPORTER_OTLP_ENDPOINT
@@ -107,11 +105,11 @@ spec:
   type: LoadBalancer
   ports:
   - name: http
-    port: 8080
+    port: 10000
     targetPort: http
     protocol: TCP
   - name: metrics
-    port: 8080
+    port: 10000
     targetPort: metrics
     protocol: TCP
   selector:

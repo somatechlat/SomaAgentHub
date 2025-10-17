@@ -31,10 +31,10 @@ class Settings(BaseSettings):
 
     # Policy & identity services (real HTTP endpoints)
     policy_engine_url: AnyUrl = Field(
-        default="http://policy-engine:8000/v1/evaluate", alias="POLICY_ENGINE_URL"
+        default="http://policy-engine:10020/v1/evaluate", alias="POLICY_ENGINE_URL"
     )
     identity_service_url: AnyUrl = Field(
-        default="http://identity-service:8000/v1/tokens/issue", alias="IDENTITY_SERVICE_URL"
+        default="http://identity-service:10002/v1/tokens/issue", alias="IDENTITY_SERVICE_URL"
     )
 
     # Notification service used to broadcast orchestration milestones
@@ -53,6 +53,16 @@ class Settings(BaseSettings):
         default="http://slm-service:1001/health",
         alias="SOMALLM_PROVIDER_HEALTH_URL",
     )
+
+    # Volcano scheduler integration (optional)
+    enable_volcano_scheduler: bool = Field(default=False, alias="ENABLE_VOLCANO_SCHEDULER")
+    volcano_namespace: str = Field(default="soma-agent-hub", alias="VOLCANO_NAMESPACE")
+    volcano_default_queue: str = Field(default="interactive", alias="VOLCANO_DEFAULT_QUEUE")
+    volcano_session_image: str = Field(default="python:3.11-slim", alias="VOLCANO_SESSION_IMAGE")
+    volcano_session_cpu: str = Field(default="500m", alias="VOLCANO_SESSION_CPU")
+    volcano_session_memory: str = Field(default="512Mi", alias="VOLCANO_SESSION_MEMORY")
+    volcano_job_timeout_seconds: int = Field(default=300, alias="VOLCANO_JOB_TIMEOUT_SECONDS")
+    kubectl_binary: str = Field(default="kubectl", alias="KUBECTL_BINARY")
 
     # Constitution service manifest signing
     constitution_service_url: AnyUrl = Field(

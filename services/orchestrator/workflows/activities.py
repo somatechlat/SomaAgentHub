@@ -5,6 +5,7 @@ Sprint-5: HTTP service integrations for autonomous execution.
 
 from __future__ import annotations
 
+import asyncio
 import os
 from datetime import datetime
 from typing import Any
@@ -16,13 +17,93 @@ from common.config.runtime import runtime_default
 
 from ..core.config import settings
 
+try:  # pragma: no cover - optional dependency during spike
+    from ..app.workflows.volcano_launcher import (
+        VolcanoJobLauncher,
+        VolcanoJobSpec,
+        VolcanoLauncherError,
+        default_session_spec,
+    )
+except Exception:  # pragma: no cover - kubectl/PyYAML missing locally
+    VolcanoJobLauncher = None  # type: ignore[assignment]
+    VolcanoJobSpec = None  # type: ignore[assignment]
+    VolcanoLauncherError = RuntimeError  # type: ignore[assignment]
+    default_session_spec = None  # type: ignore[assignment]
+
+
+def _ensure_endpoint(url: str, expected_path: str) -> str:
+    """Ensure *url* includes *expected_path* at the end."""
+
+    normalized = url.rstrip("/")
+    suffix = expected_path if expected_path.startswith("/") else f"/{expected_path}"
+    return normalized if normalized.endswith(suffix) else f"{normalized}{suffix}"
+
+
 # Real service endpoints (configured via environment)
-POLICY_ENGINE_URL = str(settings.policy_engine_url)
+POLICY_ENGINE_URL = _ensure_endpoint(str(settings.policy_engine_url), "/v1/evaluate")
 SOMALLM_PROVIDER_URL = str(settings.somallm_provider_url)
 GATEWAY_API_URL = os.getenv(
     "GATEWAY_API_URL",
     runtime_default("http://gateway-api:10000", "http://gateway-api:8080"),
 )
+
+
+@activity.defn(name="launch-volcano-session-job")
+async def launch_volcano_session_job(payload: dict[str, Any]) -> dict[str, Any]:
+    """Submit a Volcano job for the session workflow (feature-flagged)."""
+
+    if not settings.enable_volcano_scheduler:
+        activity.logger.info("Volcano scheduler disabled; skipping job launch")
+        return {"status": "disabled"}
+
+    if default_session_spec is None or VolcanoJobLauncher is None:
+        raise RuntimeError(
+            "Volcano launcher not available. Ensure PyYAML/kubectl are installed in the worker image."
+        )
+
+    session_id: str = (
+        payload.get("session_id")
+        or payload.get("workflow_id")
+        or payload.get("job_name")
+        or "session"
+    )
+    spec: VolcanoJobSpec = default_session_spec(session_id)
+
+    if queue := payload.get("queue"):
+        spec.queue = queue
+    if command := payload.get("command"):
+        spec.command = list(command)
+    if image := payload.get("image"):
+        spec.image = image
+    if env := payload.get("env"):
+        spec.env = {**spec.env, **env}
+    if cpu := payload.get("cpu"):
+        spec.cpu = cpu
+    if memory := payload.get("memory"):
+        spec.memory = memory
+
+    try:
+        launcher = VolcanoJobLauncher()
+    except VolcanoLauncherError as exc:  # type: ignore[misc]
+        raise RuntimeError(f"Volcano launcher unavailable: {exc}") from exc
+
+    job_name = await asyncio.to_thread(launcher.submit, spec)
+    activity.logger.info("Submitted Volcano job %s", job_name)
+
+    should_wait = payload.get("wait", True)
+    timeout_seconds = int(payload.get("timeout_seconds", settings.volcano_job_timeout_seconds))
+    logs: str | None = None
+
+    if should_wait:
+        await asyncio.to_thread(launcher.wait_for_completion, job_name, timeout_seconds)
+        logs = await asyncio.to_thread(launcher.fetch_logs, job_name)
+
+    return {
+        "status": "submitted",
+        "job_name": job_name,
+        "waited": should_wait,
+        "logs": logs,
+    }
 
 
 @activity.defn

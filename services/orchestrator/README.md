@@ -35,6 +35,7 @@ Key components:
 - `app/api/routes.py` – REST endpoints for orchestrating sessions and workflows.
 - `app/core/config.py` – Pydantic settings with Temporal, policy, identity toggles.
 - `app/workflows/` – Temporal workflow and activity implementations.
+- `app/workflows/volcano_launcher.py` – Feature-flagged helper to submit jobs to Volcano via kubectl.
 
 ---
 
@@ -52,7 +53,7 @@ source .venv/bin/activate
 pip install -e .[dev]
 export TEMPORAL_HOST="localhost:7233"
 export TEMPORAL_NAMESPACE="default"
-uvicorn app.main:app --reload --host 0.0.0.0 --port 60002
+uvicorn app.main:app --reload --host 0.0.0.0 --port 10001
 ```
 
 Launch workers (if defined):
@@ -66,12 +67,22 @@ python -m app.worker --task-queue somagent.session.workflows
 
 | Variable | Description | Default |
 | --- | --- | --- |
-| `TEMPORAL_HOST` | Temporal frontend host:port | `temporal-frontend.somaagent:7233` |
+| `TEMPORAL_HOST` | Temporal frontend host:port | `localhost:7233` (append `:7233` for remote clusters) |
 | `TEMPORAL_NAMESPACE` | Temporal namespace | `default` |
 | `TEMPORAL_TASK_QUEUE` | Queue for workflows | `somagent.session.workflows` |
-| `POLICY_ENGINE_URL` | Policy engine endpoint | `http://policy-engine:1002/v1/evaluate` |
-| `IDENTITY_SERVICE_URL` | Identity token issuer | `http://identity-service:1007/v1/tokens/issue` |
-| `OTEL_EXPORTER_OTLP_ENDPOINT` | Observability exporter | `http://prometheus-prometheus.observability:9090` |
+| `POLICY_ENGINE_URL` | Policy engine base URL | `http://policy-engine:10020` (the service appends `/v1/evaluate`) |
+| `IDENTITY_SERVICE_URL` | Identity service base URL | `http://identity-service:10002` (the service appends `/v1/tokens/issue`) |
+| `OTEL_EXPORTER_OTLP_ENDPOINT` | Optional OTEL exporter | unset |
+| `ENABLE_VOLCANO_SCHEDULER` | Enable Volcano-backed job submission for sessions | `false` |
+| `VOLCANO_NAMESPACE` | Namespace where PodGroups/Jobs are created | `soma-agent-hub` |
+| `VOLCANO_DEFAULT_QUEUE` | Volcano queue used for session workloads | `interactive` |
+| `VOLCANO_SESSION_IMAGE` | Container image scheduled for session jobs | `python:3.11-slim` |
+| `VOLCANO_SESSION_CPU` | CPU request/limit for session jobs | `500m` |
+| `VOLCANO_SESSION_MEMORY` | Memory request/limit for session jobs | `512Mi` |
+| `VOLCANO_JOB_TIMEOUT_SECONDS` | Wait timeout when tracking a session job | `300` |
+| `KUBECTL_BINARY` | Path to kubectl binary inside the worker | `kubectl` |
+
+> When Volcano integration is enabled, session metadata keys such as `volcano_queue`, `volcano_command`, `volcano_image`, and `volcano_wait` can override the defaults per request.
 
 ---
 
@@ -127,9 +138,9 @@ Refer to `app/api/routes.py` for the latest endpoint list.
 
 ## 📚 Related Docs
 
-- `docs/Kubernetes-Setup.md` for deployment instructions.
-- `docs/runbook.md` for scaling and failover procedures.
-- `docs/CANONICAL_ROADMAP.md` for upcoming orchestrator milestones.
+- `docs/technical-manual/deployment.md` for deployment and upgrade steps.
+- `docs/development-manual/local-setup.md` for local environment expectations.
+- `docs/technical-manual/runbooks/service-is-down.md` for the baseline recovery checklist.
 
 ---
 

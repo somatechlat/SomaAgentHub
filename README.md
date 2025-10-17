@@ -48,8 +48,8 @@ SomaAgentHub is the coordination layer that powers the Soma platform. The hub co
 | **Gateway API** | 10000 | Public ingress for UI, CLI, and partner integrations. Handles wizard flows and session fan-out. |
 | **Orchestrator** | 10001 | Coordinates multi-agent workflows, talks to Temporal, identity, and policy services. |
 | **Identity Service** | 10002 | Issues access tokens and validates identities for every agent-facing request. |
-| **Memory Gateway** | 10018 *(optional)* | Stores and retrieves long-term context via Qdrant for agent recall when the service is enabled. |
-| **Policy Engine** | 10020 *(optional)* | Enforces constitutional rules with Redis-backed caching and constitution service integration when deployed. |
+| **Memory Gateway** | 10018 *(optional, not in docker-compose)* | Stores and retrieves long-term context via Qdrant for agent recall when the service is enabled. |
+| **Policy Engine** | 10020 *(optional, not in docker-compose)* | Provides rule-based guardrails when deployed alongside orchestrator. |
 
 ### System Components
 
@@ -136,11 +136,12 @@ make k8s-smoke
 
 | Document | Purpose |
 | --- | --- |
-| `docs/INDEX.md` | Master index for architecture, operations, and roadmap content. |
-| `docs/CANONICAL_ROADMAP.md` | Sequenced delivery plan with sprint-ready milestones. |
-| `docs/runbook.md` | Operational runbook covering deployments, recovery, and observability. |
-| `docs/Kubernetes-Setup.md` | Step-by-step guide for installing the hub on Kubernetes clusters. |
-| `docs/CRITICAL_FIXES_REPORT.md` | Traceability for infrastructure fixes and resilience improvements. |
+| `docs/development-manual/index.md` | Development workflows, local setup, and sprint notes. |
+| `docs/technical-manual/index.md` | Architecture, deployment, monitoring, and runbook index. |
+| `docs/onboarding-manual/index.md` | Context and ramp-up material for new contributors. |
+| `docs/user-manual/index.md` | End-user capabilities and feature walkthroughs. |
+| `docs/style-guide.md` | Source of truth for documentation tone, formatting, and terminology. |
+| `PORT_REFERENCE.md` | Verified mapping between host/container ports and documentation references. |
 
 Service-specific READMEs live beside the code under `services/`, and infra playbooks are captured in `infra/` and `k8s/` directories.
 
@@ -148,7 +149,7 @@ Service-specific READMEs live beside the code under `services/`, and infra playb
 
 ## 🎯 Project Status
 
-- **Core Services** – Gateway, orchestrator, policy, identity, and memory services ship with production manifests and health checks.
+- **Core Services** – Gateway, orchestrator, and identity ship with production manifests; policy engine and memory gateway are optional and disabled in the default docker-compose stack.
 - **Infrastructure** – Helm chart, Kind bootstrap, and Terraform modules (see `infra/terraform/`) keep environments reproducible.
 - **Observability** – Prometheus, Grafana, Loki, and alert routing are wired through `k8s/monitoring/` and Make targets.
 - **Compliance & Policy** – Constitution and policy artifacts live under `services/constitution-service` and integrate with the policy engine.
@@ -180,7 +181,7 @@ Service-specific READMEs live beside the code under `services/`, and infra playb
 
 ## 🤝 Contributing
 
-1. Fork the repository and create a feature branch from `soma_integration`.
+1. Fork the repository and create a feature branch from `main`.
 2. Enable the repo virtual environment and install dev tooling:
    ```bash
    python -m venv .venv
@@ -198,7 +199,7 @@ Service-specific READMEs live beside the code under `services/`, and infra playb
 
 ## 📞 Support & Next Steps
 
-Questions, bug reports, or feature requests? Open an issue or start a discussion in this repository. For deployment assistance, follow the runbook in `docs/runbook.md` and the Kubernetes guide in `docs/Kubernetes-Setup.md`.
+Questions, bug reports, or feature requests? Open an issue or start a discussion in this repository. For deployment assistance, follow the runbooks under `docs/technical-manual/runbooks/` (start with `service-is-down.md`) and the deployment guide in `docs/technical-manual/deployment.md`.
 
 ---
 

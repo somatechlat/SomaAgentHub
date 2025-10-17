@@ -14,13 +14,8 @@ services:
     restart: unless-stopped
     ports:
       - "${GATEWAY_API_PORT:-10000}:10000"
-    environment:
-      - PORT=10000
-      - ORCHESTRATOR_URL=http://orchestrator:10001
-      - IDENTITY_SERVICE_URL=http://identity-service:10002
-      - REDIS_URL=redis://redis:6379/0
-      - AUTH_URL=http://identity-service:10002
-      - KAFKA_BOOTSTRAP_SERVERS=redis:6379
+    env_file:
+      - .env
     depends_on:
       orchestrator:
         condition: service_healthy
@@ -46,9 +41,8 @@ services:
     restart: unless-stopped
     ports:
       - "${ORCHESTRATOR_PORT:-10001}:10001"
-    environment:
-      - PORT=10001
-      - TEMPORAL_HOST=temporal-server:7233
+    env_file:
+      - .env
     depends_on:
       temporal-server:
         condition: service_healthy
@@ -70,10 +64,8 @@ services:
     restart: unless-stopped
     ports:
       - "${IDENTITY_SERVICE_PORT:-10002}:10002"
-    environment:
-      - PORT=10002
-      - REDIS_URL=redis://redis:6379/0
-      - SOMAGENT_IDENTITY_JWT_SECRET=dev-secret
+    env_file:
+      - .env
     depends_on:
       redis:
         condition: service_healthy
@@ -93,10 +85,8 @@ services:
     restart: unless-stopped
     ports:
       - "${APP_POSTGRES_PORT:-10004}:5432"
-    environment:
-      - POSTGRES_USER=somaagent
-      - POSTGRES_PASSWORD=somaagent
-      - POSTGRES_DB=somaagent
+    env_file:
+      - .env
     volumes:
       - app-postgres-data:/var/lib/postgresql/data
     healthcheck:
@@ -114,10 +104,8 @@ services:
     image: postgres:15-alpine
     container_name: somaagenthub_temporal-postgres
     restart: unless-stopped
-    environment:
-      - POSTGRES_USER=temporal
-      - POSTGRES_PASSWORD=temporal
-      - POSTGRES_DB=temporal
+    env_file:
+      - .env
     volumes:
       - temporal-postgres-data:/var/lib/postgresql/data
     healthcheck:
@@ -137,29 +125,8 @@ services:
     depends_on:
       temporal-postgres:
         condition: service_healthy
-    environment:
-      - DB=postgresql
-      - DB_PORT=5432
-      - POSTGRES_USER=temporal
-      - POSTGRES_PWD=temporal
-      - POSTGRES_SEEDS=temporal-postgres
-      - DYNAMIC_CONFIG_FILE_PATH=config/dynamicconfig/development-sql.yaml
-      - ENABLE_ES=false
-      - ES_SEEDS=
-      - LOG_LEVEL=info
-    networks:
-      - somaagenthub-network
-    healthcheck:
-      test:
-        - CMD
-        - tctl
-        - --address
-        - temporal-server:7233
-        - cluster
-        - health
-      interval: 15s
-      timeout: 10s
-      retries: 10
+    env_file:
+      - .env
     volumes:
       - ./infra/temporal/config:/etc/temporal/config/dynamicconfig:ro
 
@@ -222,9 +189,8 @@ services:
     image: minio/minio:latest@sha256:a1a8bd4ac40ad7881a245bab97323e18f971e4d4cba2c2007ec1bedd21cbaba2
     container_name: somaagenthub_minio
     restart: unless-stopped
-    environment:
-      - MINIO_ROOT_USER=somaagent
-      - MINIO_ROOT_PASSWORD=local-developer
+    env_file:
+      - .env
     command: server /data --console-address :9001
     ports:
       - "${MINIO_API_PORT:-10007}:9000"
@@ -248,9 +214,8 @@ services:
       dockerfile: infra/vault/Dockerfile
     container_name: somaagenthub_vault
     restart: unless-stopped
-    environment:
-      - VAULT_DEV_ROOT_TOKEN_ID=root
-      - VAULT_DEV_LISTEN_ADDRESS=0.0.0.0:8200
+    env_file:
+      - .env
     ports:
       - "${VAULT_PORT:-10009}:8200"
     volumes:
@@ -320,8 +285,8 @@ services:
       - "${OTEL_GRPC_PORT:-10015}:4317"
       - "${OTEL_HTTP_PORT:-10016}:4318"
       - "${OTEL_PROMETHEUS_PORT:-10017}:8888"
-    environment:
-      - GOGC=80
+    env_file:
+      - .env
     healthcheck:
       test:
         - CMD
@@ -363,10 +328,8 @@ services:
     image: grafana/grafana:latest
     container_name: somaagenthub_grafana
     restart: unless-stopped
-    environment:
-      - GF_SECURITY_ADMIN_PASSWORD=admin
-      - GF_SECURITY_ADMIN_USER=admin
-      - GF_INSTALL_PLUGINS=grafana-piechart-panel
+    env_file:
+      - .env
     ports:
       - "${GRAFANA_PORT:-10011}:3000"
     volumes:

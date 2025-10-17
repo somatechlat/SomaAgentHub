@@ -16,3 +16,4 @@ openai>=1.0.0
 pyautogen>=0.2.0
 crewai>=0.28.8
 langgraph>=0.0.39
+PyYAML>=6.0

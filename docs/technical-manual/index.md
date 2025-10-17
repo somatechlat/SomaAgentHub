@@ -17,6 +17,7 @@ Welcome to the Technical Manual. This guide is for **SREs, DevOps Engineers, and
 | **[Monitoring](./monitoring.md)** | Observability, dashboards, alerts | SRE/Ops |
 | **[Security](./security/)** | Access control, secrets, hardening | Security/SRE |
 | **[Runbooks](./runbooks/)** | Operational procedures, incident response | All operators |
+| **[Volcano Scheduler](./volcano-scheduler.md)** | Batch scheduler deployment and operations | Platform/SRE |
 
 ---
 
@@ -76,13 +77,15 @@ technical-manual/
 │  ├─ index.md                       # Security overview
 │  ├─ secrets-policy.md              # Secrets management (Vault)
 │  └─ rbac-matrix.md                 # Access control matrix
+├─ volcano-scheduler.md              # Volcano scheduler integration guide
 ├─ runbooks/
 │  ├─ index.md                       # Runbook overview
 │  ├─ gateway-api.md                 # Gateway API procedures
 │  ├─ orchestrator.md                # Orchestrator procedures
 │  ├─ postgres-database.md           # Database management
 │  ├─ incident-response.md           # Emergency procedures
-│  └─ scaling-procedures.md          # Scaling operations
+│  ├─ scaling-procedures.md          # Scaling operations
+│  └─ volcano-operations.md          # Volcano scheduler runbook
 └─ backup-and-recovery.md            # Disaster recovery
 ```
 

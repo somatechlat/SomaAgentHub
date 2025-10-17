@@ -107,6 +107,9 @@ orchestrator-deployment.yaml
 final-push-*.sh
 run_full_k8s_test.sh
 
+# Environment variables
+.env
+
 # Local environment configuration
 .dev_bind_ports.env
 *.local.env

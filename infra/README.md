@@ -35,7 +35,7 @@
 
 1. Update manifests and Terraform modules in sync with application changes.
 2. Validate with `kubectl apply --dry-run=client` or `terraform plan` before merging.
-3. Document significant updates in `docs/runbook.md` and `docs/CRITICAL_FIXES_REPORT.md` when applicable.
+3. Document significant updates in `docs/changelog.md` and update the relevant guides under `docs/technical-manual/runbooks/` when applicable.
 4. Version Helm chart changes and update `Chart.yaml` accordingly.
 
 ---

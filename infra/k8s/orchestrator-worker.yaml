@@ -33,13 +33,13 @@ spec:
         - name: TEMPORAL_TASK_QUEUE
           value: "somagent.session.workflows"
         - name: POLICY_ENGINE_URL
-          value: "http://policy-engine:1002/v1/evaluate"
+          value: "http://policy-engine:10020"
         - name: IDENTITY_SERVICE_URL
-          value: "http://identity-service:1007/v1/tokens/issue"
+          value: "http://identity-service:10002"
         - name: SOMALLM_PROVIDER_URL
-          value: "http://somallm-provider:1001"
+          value: "http://slm-service:1001"
         - name: SOMALLM_PROVIDER_HEALTH_URL
-          value: "http://somallm-provider:1001/health"
+          value: "http://slm-service:1001/health"
         resources:
           requests:
             cpu: "250m"

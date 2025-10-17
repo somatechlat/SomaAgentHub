@@ -1,0 +1,38 @@
+apiVersion: scheduling.volcano.sh/v1beta1
+kind: Queue
+metadata:
+  name: interactive
+  labels:
+    app.kubernetes.io/managed-by: somaagenthub
+spec:
+  reclaimable: true
+  weight: 3
+  capability:
+    cpu: "24"
+    memory: "48Gi"
+---
+apiVersion: scheduling.volcano.sh/v1beta1
+kind: Queue
+metadata:
+  name: batch
+  labels:
+    app.kubernetes.io/managed-by: somaagenthub
+spec:
+  reclaimable: true
+  weight: 2
+  capability:
+    cpu: "48"
+    memory: "96Gi"
+---
+apiVersion: scheduling.volcano.sh/v1beta1
+kind: Queue
+metadata:
+  name: analytics
+  labels:
+    app.kubernetes.io/managed-by: somaagenthub
+spec:
+  reclaimable: true
+  weight: 1
+  capability:
+    cpu: "64"
+    memory: "128Gi"

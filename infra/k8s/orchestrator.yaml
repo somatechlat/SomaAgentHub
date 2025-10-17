@@ -25,7 +25,7 @@ spec:
         monitoring: enabled
       annotations:
         prometheus.io/scrape: "true"
-        prometheus.io/port: "1004"
+        prometheus.io/port: "10001"
         prometheus.io/path: "/metrics"
     spec:
       containers:
@@ -35,24 +35,24 @@ spec:
         
         ports:
         - name: http
-          containerPort: 1004
+          containerPort: 10001
           protocol: TCP
         - name: metrics
-          containerPort: 1005
+          containerPort: 10001
           protocol: TCP
         
         env:
         # Real service discovery
         - name: POLICY_ENGINE_URL
-          value: "http://policy-engine:1002/v1/evaluate"
+          value: "http://policy-engine:10020"
         - name: SOMALLM_PROVIDER_URL
-          value: "http://somallm-provider:1001"
+          value: "http://slm-service:1001"
         - name: SOMALLM_PROVIDER_HEALTH_URL
-          value: "http://somallm-provider:1001/health"
+          value: "http://slm-service:1001/health"
         - name: GATEWAY_API_URL
-          value: "http://gateway-api:8080"
+          value: "http://gateway-api:10000"
         - name: IDENTITY_SERVICE_URL
-          value: "http://identity-service:1007/v1/tokens/issue"
+          value: "http://identity-service:10002"
         
         # Real Temporal connection
         - name: TEMPORAL_HOST
@@ -159,11 +159,11 @@ spec:
   type: ClusterIP
   ports:
   - name: http
-    port: 1004
+    port: 10001
     targetPort: http
     protocol: TCP
   - name: metrics
-    port: 1005
+    port: 10001
     targetPort: metrics
     protocol: TCP
   selector:

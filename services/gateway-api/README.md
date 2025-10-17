@@ -52,8 +52,8 @@ python -m venv .venv
 source .venv/bin/activate
 pip install -e .[dev]
 export SOMAGENT_GATEWAY_REDIS_URL="redis://localhost:6379/0"
-export SOMAGENT_GATEWAY_ORCHESTRATOR_URL="http://localhost:60002"
-uvicorn app.main:app --reload --host 0.0.0.0 --port 8080
+export SOMAGENT_GATEWAY_ORCHESTRATOR_URL="http://localhost:10001"
+uvicorn app.main:app --reload --host 0.0.0.0 --port 10000
 ```
 
 ### Useful Commands
@@ -69,10 +69,9 @@ Environment variables (see `app/core/config.py`):
 
 | Variable | Description | Default |
 | --- | --- | --- |
-| `SOMAGENT_GATEWAY_REDIS_URL` | Redis connection string for session state | `redis://localhost:6380/0` in dev helper |
-| `SOMAGENT_GATEWAY_ORCHESTRATOR_URL` | Base URL for orchestrator service | `http://orchestrator:1004` |
-| `POLICY_ENGINE_URL` | Policy engine evaluate endpoint | `http://policy-engine:1002` |
-| `IDENTITY_SERVICE_URL` | JWT issuance and validation | `http://identity-service:1007` |
+| `SOMAGENT_GATEWAY_REDIS_URL` | Redis connection string for session state | `redis://redis:6379/0` |
+| `SOMAGENT_GATEWAY_ORCHESTRATOR_URL` | Base URL for orchestrator service | `http://orchestrator:10001` |
+| `AUTH_URL` / `IDENTITY_SERVICE_URL` | Identity service base URL | `http://identity-service:10002` |
 | `KAFKA_BOOTSTRAP_SERVERS` | Optional connection for stream integrations | unset |
 
 ---
@@ -105,7 +104,7 @@ Authentication flows rely on Identity Service tokens passed in headers; see plat
 
 ## 🛡️ Security & Policy
 
-- All wizard execution requests evaluated via Policy Engine when `POLICY_ENGINE_URL` set.
+- Policy enforcement is handled downstream by the orchestrator; direct policy hooks in the gateway are future work.
 - Identity tokens validated before orchestrator calls.
 - Rate limiting handled upstream (API Gateway / Ingress); future work tracked in roadmap.
 
@@ -133,8 +132,8 @@ Authentication flows rely on Identity Service tokens passed in headers; see plat
 ## 📚 Related Docs
 
 - Root `README.md` for platform overview.
-- `docs/runbook.md` for operational procedures.
-- `docs/Kubernetes-Setup.md` for deployment instructions.
+- `docs/development-manual/local-setup.md` for local environment bootstrapping.
+- `docs/technical-manual/deployment.md` for deployment instructions.
 
 ---
 

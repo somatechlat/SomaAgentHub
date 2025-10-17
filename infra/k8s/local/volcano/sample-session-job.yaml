@@ -1,0 +1,47 @@
+apiVersion: scheduling.volcano.sh/v1beta1
+kind: PodGroup
+metadata:
+  name: session-sample
+  labels:
+    app.kubernetes.io/managed-by: somaagenthub
+    volcano.sh/queue-name: interactive
+spec:
+  minMember: 1
+  minResources:
+    cpu: "1"
+    memory: "512Mi"
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: session-sample
+  labels:
+    app.kubernetes.io/managed-by: somaagenthub
+  annotations:
+    scheduling.k8s.io/group-name: session-sample
+    volcano.sh/queue-name: interactive
+    volcano.sh/task-spec: |
+      {"minMember":1,"minResources":{"cpu":"1","memory":"512Mi"}}
+spec:
+  completions: 1
+  parallelism: 1
+  template:
+    metadata:
+      labels:
+        app: session-sample
+    spec:
+      restartPolicy: Never
+      containers:
+        - name: session-worker
+          image: python:3.11-slim
+          command:
+            - python
+            - -c
+            - |
+              import json; import time; import random; import sys
+              payload = {"workflow_id": "demo-session", "timestamp": time.time()}
+              print("Submitting session workload:", json.dumps(payload))
+              duration = random.uniform(2.0, 5.0)
+              time.sleep(duration)
+              print(f"Session workload finished in {duration:.2f}s")
+              sys.exit(0)

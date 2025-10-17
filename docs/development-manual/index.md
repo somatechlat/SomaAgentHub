@@ -17,6 +17,7 @@ Welcome to the Development Manual. This guide is for **software engineers, devel
 | **[Coding Standards](./coding-standards.md)** | Code style, linting, formatting | 20 min |
 | **[Testing Guidelines](./testing-guidelines.md)** | Unit, integration, e2e testing | 30 min |
 | **[API Reference](./api-reference.md)** | Service endpoints & data models | Reference |
+| **[Volcano Integration Roadmap](./volcano-integration-roadmap.md)** | Scheduler adoption plan & recovery checklist | Reference |
 | **[Contribution Process](./contribution-process.md)** | Git workflow, PR process, code review | 20 min |
 
 ---
@@ -44,6 +45,7 @@ Welcome to the Development Manual. This guide is for **software engineers, devel
 | **[Testing Guidelines](testing-guidelines.md)** | Unit, integration, and E2E testing procedures |
 | **[API Reference](api-reference.md)** | Complete API documentation and examples |
 | **[Contribution Process](contribution-process.md)** | Git workflow, PR process, and code reviews |
+| **[Volcano Integration Roadmap](volcano-integration-roadmap.md)** | Sprint plan and continuity guide for Volcano adoption |
 
 ---
 

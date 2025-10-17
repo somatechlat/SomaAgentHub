@@ -47,7 +47,7 @@ helm upgrade --install soma-agent ./k8s/helm/soma-agent \
 
 - All manifests remain environment-agnostic; use Helm values or Kustomize overlays for environment-specific settings.
 - Follow naming convention `soma-agent-hub` for namespaces and labels (`app.kubernetes.io/part-of=soma-agent`).
-- Update documentation (`docs/Kubernetes-Setup.md`, `docs/runbook.md`) whenever chart behavior changes.
+- Update documentation (`docs/technical-manual/deployment.md`, runbooks under `docs/technical-manual/runbooks/`) whenever chart behavior changes.
 
 ---
 
