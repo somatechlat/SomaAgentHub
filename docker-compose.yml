@@ -1,11 +1,11 @@
 # docker-compose.yml
-# This file defines the complete, persistent, multi-service Docker environment
-# for local development, mirroring the Kubernetes deployment.
+# CANONICAL Docker Compose file for SomaAgentHub
+# All services use the 10000+ port range for consistency
 
 name: somaagenthub
 
 services:
-  # --- Application Services ---
+  # --- Core Application Services ---
   gateway-api:
     build:
       context: .
@@ -14,8 +14,11 @@ services:
     restart: unless-stopped
     ports:
       - "${GATEWAY_API_PORT:-10000}:10000"
-    env_file:
-      - .env
+    environment:
+      - SOMAGENT_GATEWAY_REDIS_URL=redis://redis:6379/0
+      - SOMAGENT_GATEWAY_ORCHESTRATOR_URL=http://orchestrator:10001
+      - SOMAGENT_GATEWAY_JWT_SECRET=${SOMAGENT_IDENTITY_JWT_SECRET:-dev-secret}
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4317
     depends_on:
       orchestrator:
         condition: service_healthy
@@ -24,9 +27,7 @@ services:
       redis:
         condition: service_healthy
     healthcheck:
-      test:
-        - CMD-SHELL
-        - python -c "import urllib.request; urllib.request.urlopen('http://127.0.0.1:10000/ready', timeout=3)"
+      test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://127.0.0.1:10000/ready', timeout=3)\""]
       interval: 10s
       timeout: 5s
       retries: 6
@@ -41,15 +42,17 @@ services:
     restart: unless-stopped
     ports:
       - "${ORCHESTRATOR_PORT:-10001}:10001"
-    env_file:
-      - .env
+    environment:
+      - TEMPORAL_HOST=temporal-server:7233
+      - TEMPORAL_NAMESPACE=${TEMPORAL_NAMESPACE:-default}
+      - TEMPORAL_TASK_QUEUE=${TEMPORAL_TASK_QUEUE:-somagent.session.workflows}
+      - TEMPORAL_ENABLED=${TEMPORAL_ENABLED:-true}
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4317
     depends_on:
       temporal-server:
         condition: service_healthy
     healthcheck:
-      test:
-        - CMD-SHELL
-        - python -c "import urllib.request; urllib.request.urlopen('http://127.0.0.1:10001/ready', timeout=3)"
+      test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://127.0.0.1:10001/ready', timeout=3)\""]
       interval: 10s
       timeout: 5s
       retries: 6
@@ -64,35 +67,15 @@ services:
     restart: unless-stopped
     ports:
       - "${IDENTITY_SERVICE_PORT:-10002}:10002"
-    env_file:
-      - .env
+    environment:
+      - REDIS_URL=redis://redis:6379/0
+      - SOMAGENT_IDENTITY_JWT_SECRET=${SOMAGENT_IDENTITY_JWT_SECRET:-dev-secret}
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4317
     depends_on:
       redis:
         condition: service_healthy
     healthcheck:
-      test:
-        - CMD-SHELL
-        - python -c "import urllib.request; urllib.request.urlopen('http://127.0.0.1:10002/ready', timeout=3)"
-      interval: 10s
-      timeout: 5s
-      retries: 6
-    networks:
-      - somaagenthub-network
-
-  app-postgres:
-    image: postgres:16.4-alpine
-    container_name: somaagenthub_app-postgres
-    restart: unless-stopped
-    ports:
-      - "${APP_POSTGRES_PORT:-10004}:5432"
-    env_file:
-      - .env
-    volumes:
-      - app-postgres-data:/var/lib/postgresql/data
-    healthcheck:
-      test:
-        - CMD-SHELL
-        - pg_isready -U "${POSTGRES_USER:-somaagent}" -d "${POSTGRES_DB:-somaagent}"
+      test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://127.0.0.1:10002/health', timeout=3)\""]
       interval: 10s
       timeout: 5s
       retries: 6
@@ -100,18 +83,38 @@ services:
       - somaagenthub-network
 
   # --- Infrastructure Services ---
+  app-postgres:
+    image: postgres:16.4-alpine
+    container_name: somaagenthub_app-postgres
+    restart: unless-stopped
+    ports:
+      - "${APP_POSTGRES_PORT:-10004}:5432"
+    environment:
+      - POSTGRES_USER=${APP_POSTGRES_USER:-somaagent}
+      - POSTGRES_PASSWORD=${APP_POSTGRES_PASSWORD:-somaagent}
+      - POSTGRES_DB=${APP_POSTGRES_DB:-somaagent}
+    volumes:
+      - app-postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${APP_POSTGRES_USER:-somaagent} -d ${APP_POSTGRES_DB:-somaagent}"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+    networks:
+      - somaagenthub-network
+
   temporal-postgres:
     image: postgres:15-alpine
     container_name: somaagenthub_temporal-postgres
     restart: unless-stopped
-    env_file:
-      - .env
+    environment:
+      - POSTGRES_USER=${TEMPORAL_POSTGRES_USER:-temporal}
+      - POSTGRES_PASSWORD=${TEMPORAL_POSTGRES_PASSWORD:-temporal}
+      - POSTGRES_DB=${TEMPORAL_POSTGRES_DB:-temporal}
     volumes:
       - temporal-postgres-data:/var/lib/postgresql/data
     healthcheck:
-      test:
-        - CMD-SHELL
-        - pg_isready -U "${POSTGRES_USER:-temporal}" -d "${POSTGRES_DB:-temporal}"
+      test: ["CMD-SHELL", "pg_isready -U ${TEMPORAL_POSTGRES_USER:-temporal} -d ${TEMPORAL_POSTGRES_DB:-temporal}"]
       interval: 10s
       timeout: 5s
       retries: 6
@@ -125,10 +128,22 @@ services:
     depends_on:
       temporal-postgres:
         condition: service_healthy
-    env_file:
-      - .env
+    environment:
+      - DB=postgresql
+      - DB_PORT=5432
+      - POSTGRES_USER=${TEMPORAL_POSTGRES_USER:-temporal}
+      - POSTGRES_PWD=${TEMPORAL_POSTGRES_PASSWORD:-temporal}
+      - POSTGRES_SEEDS=temporal-postgres
+      - DYNAMIC_CONFIG_FILE_PATH=config/dynamicconfig/development-sql.yaml
     volumes:
       - ./infra/temporal/config:/etc/temporal/config/dynamicconfig:ro
+    healthcheck:
+      test: ["CMD", "tctl", "--address", "temporal-server:7233", "cluster", "health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+    networks:
+      - somaagenthub-network
 
   redis:
     image: redis:7-alpine
@@ -139,10 +154,7 @@ services:
     volumes:
       - redis-data:/data
     healthcheck:
-      test:
-        - CMD
-        - redis-cli
-        - ping
+      test: ["CMD", "redis-cli", "ping"]
       interval: 10s
       timeout: 5s
       retries: 6
@@ -158,9 +170,7 @@ services:
     volumes:
       - qdrant-data:/qdrant/storage
     healthcheck:
-      test:
-        - CMD-SHELL
-        - curl -f http://127.0.0.1:6333/healthz || exit 1
+      test: ["CMD-SHELL", "curl -f http://127.0.0.1:6333/healthz || exit 1"]
       interval: 15s
       timeout: 5s
       retries: 6
@@ -176,9 +186,7 @@ services:
     volumes:
       - clickhouse-data:/var/lib/clickhouse
     healthcheck:
-      test:
-        - CMD-SHELL
-        - curl -f http://127.0.0.1:8123/ping || exit 1
+      test: ["CMD-SHELL", "curl -f http://127.0.0.1:8123/ping || exit 1"]
       interval: 15s
       timeout: 5s
       retries: 6
@@ -189,8 +197,9 @@ services:
     image: minio/minio:latest@sha256:a1a8bd4ac40ad7881a245bab97323e18f971e4d4cba2c2007ec1bedd21cbaba2
     container_name: somaagenthub_minio
     restart: unless-stopped
-    env_file:
-      - .env
+    environment:
+      - MINIO_ROOT_USER=${MINIO_ROOT_USER:-somaagent}
+      - MINIO_ROOT_PASSWORD=${MINIO_ROOT_PASSWORD:-local-developer}
     command: server /data --console-address :9001
     ports:
       - "${MINIO_API_PORT:-10007}:9000"
@@ -198,9 +207,7 @@ services:
     volumes:
       - minio-data:/data
     healthcheck:
-      test:
-        - CMD-SHELL
-        - curl -f http://127.0.0.1:9000/minio/health/live || exit 1
+      test: ["CMD-SHELL", "curl -f http://127.0.0.1:9000/minio/health/live || exit 1"]
       interval: 15s
       timeout: 5s
       retries: 6
@@ -214,16 +221,15 @@ services:
       dockerfile: infra/vault/Dockerfile
     container_name: somaagenthub_vault
     restart: unless-stopped
-    env_file:
-      - .env
+    environment:
+      - VAULT_DEV_ROOT_TOKEN_ID=${VAULT_DEV_ROOT_TOKEN_ID:-root}
+      - VAULT_DEV_LISTEN_ADDRESS=0.0.0.0:8200
     ports:
       - "${VAULT_PORT:-10009}:8200"
     volumes:
       - vault-data:/vault/file
     healthcheck:
-      test:
-        - CMD-SHELL
-        - curl -f http://127.0.0.1:8200/v1/sys/health || exit 1
+      test: ["CMD-SHELL", "curl -f http://127.0.0.1:8200/v1/sys/health || exit 1"]
       interval: 10s
       timeout: 5s
       retries: 6
@@ -231,77 +237,6 @@ services:
       - somaagenthub-network
 
   # --- Observability Infrastructure ---
-  loki:
-    image: grafana/loki:latest
-    container_name: somaagenthub_loki
-    restart: unless-stopped
-    command: -config.file=/etc/loki/local-config.yaml
-    ports:
-      - "${LOKI_PORT:-10012}:3100"
-    volumes:
-      - ./infra/observability/loki-config.yaml:/etc/loki/local-config.yaml
-      - loki-data:/loki
-    healthcheck:
-      test:
-        - CMD-SHELL
-        - curl -f http://127.0.0.1:3100/ready || exit 1
-      interval: 10s
-      timeout: 5s
-      retries: 6
-    networks:
-      - somaagenthub-network
-
-  tempo:
-    image: grafana/tempo:latest
-    container_name: somaagenthub_tempo
-    restart: unless-stopped
-    command:
-      - "-config.file=/etc/tempo/local-config.yaml"
-    ports:
-      - "${TEMPO_OTLP_GRPC_PORT:-10013}:4317"
-      - "${TEMPO_OTLP_HTTP_PORT:-10014}:4318"
-    volumes:
-      - ./infra/observability/tempo-config.yaml:/etc/tempo/local-config.yaml
-      - tempo-data:/var/tempo
-    healthcheck:
-      test:
-        - CMD-SHELL
-        - curl -f http://127.0.0.1:3200/status || exit 1
-      interval: 10s
-      timeout: 5s
-      retries: 6
-    networks:
-      - somaagenthub-network
-
-  otel-collector:
-    image: otel/opentelemetry-collector-contrib:latest
-    container_name: somaagenthub_otel-collector
-    restart: unless-stopped
-    command:
-      - "--config=/etc/otel-collector-config.yaml"
-    volumes:
-      - ./infra/observability/otel-collector-config.yaml:/etc/otel-collector-config.yaml
-    ports:
-      - "${OTEL_GRPC_PORT:-10015}:4317"
-      - "${OTEL_HTTP_PORT:-10016}:4318"
-      - "${OTEL_PROMETHEUS_PORT:-10017}:8888"
-    env_file:
-      - .env
-    healthcheck:
-      test:
-        - CMD
-        - /healthcheck
-      interval: 10s
-      timeout: 5s
-      retries: 6
-    depends_on:
-      loki:
-        condition: service_healthy
-      tempo:
-        condition: service_healthy
-    networks:
-      - somaagenthub-network
-
   prometheus:
     image: prom/prometheus:latest
     container_name: somaagenthub_prometheus
@@ -309,15 +244,17 @@ services:
     command:
       - "--config.file=/etc/prometheus/prometheus.yml"
       - "--storage.tsdb.path=/prometheus"
+      - "--web.console.libraries=/etc/prometheus/console_libraries"
+      - "--web.console.templates=/etc/prometheus/consoles"
+      - "--storage.tsdb.retention.time=200h"
+      - "--web.enable-lifecycle"
     ports:
       - "${PROMETHEUS_PORT:-10010}:9090"
     volumes:
-      - ./infra/observability/prometheus.yml:/etc/prometheus/prometheus.yml
+      - ./infra/monitoring/prometheus.yml:/etc/prometheus/prometheus.yml
       - prometheus-data:/prometheus
     healthcheck:
-      test:
-        - CMD-SHELL
-        - curl -f http://127.0.0.1:9090/-/healthy || exit 1
+      test: ["CMD-SHELL", "curl -f http://127.0.0.1:9090/-/healthy || exit 1"]
       interval: 10s
       timeout: 5s
       retries: 6
@@ -328,8 +265,9 @@ services:
     image: grafana/grafana:latest
     container_name: somaagenthub_grafana
     restart: unless-stopped
-    env_file:
-      - .env
+    environment:
+      - GF_SECURITY_ADMIN_USER=${GF_SECURITY_ADMIN_USER:-admin}
+      - GF_SECURITY_ADMIN_PASSWORD=${GF_SECURITY_ADMIN_PASSWORD:-admin}
     ports:
       - "${GRAFANA_PORT:-10011}:3000"
     volumes:
@@ -338,14 +276,8 @@ services:
     depends_on:
       prometheus:
         condition: service_healthy
-      loki:
-        condition: service_healthy
-      tempo:
-        condition: service_healthy
     healthcheck:
-      test:
-        - CMD-SHELL
-        - curl -f http://127.0.0.1:3000/api/health || exit 1
+      test: ["CMD-SHELL", "curl -f http://127.0.0.1:3000/api/health || exit 1"]
       interval: 10s
       timeout: 5s
       retries: 6
@@ -374,12 +306,6 @@ volumes:
   vault-data:
     driver: local
     name: somaagenthub_vault_data
-  loki-data:
-    driver: local
-    name: somaagenthub_loki_data
-  tempo-data:
-    driver: local
-    name: somaagenthub_tempo_data
   prometheus-data:
     driver: local
     name: somaagenthub_prometheus_data

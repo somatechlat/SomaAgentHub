@@ -33,7 +33,7 @@
 ### 2.1 Prometheus Snapshot
 
 ```bash
-PROM_URL="http://localhost:9090"   # Port-forward or use service DNS
+PROM_URL="http://localhost:10010"   # Port-forward or use service DNS
 START="2025-10-01T00:00:00Z"
 END="2025-10-07T23:59:59Z"
 

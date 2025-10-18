@@ -39,18 +39,18 @@ class Settings(BaseSettings):
 
     # Notification service used to broadcast orchestration milestones
     notification_service_url: Optional[AnyUrl] = Field(
-        default="http://notification-service:8084/v1/notifications",
+        default="http://notification-service:10026/v1/notifications",
         alias="NOTIFICATION_SERVICE_URL",
     )
 
     # SLM service (formerly SomaLLM provider)
     # Default to in-cluster DNS for slm-service on port 1001
     somallm_provider_url: AnyUrl = Field(
-        default="http://slm-service:1001",
+        default="http://slm-service:10022",
         alias="SOMALLM_PROVIDER_URL",
     )
     somallm_provider_health_url: AnyUrl = Field(
-        default="http://slm-service:1001/health",
+        default="http://slm-service:10022/health",
         alias="SOMALLM_PROVIDER_HEALTH_URL",
     )
 
@@ -66,7 +66,7 @@ class Settings(BaseSettings):
 
     # Constitution service manifest signing
     constitution_service_url: AnyUrl = Field(
-        default="http://constitution-service:8007/v1",
+        default="http://constitution-service:10024/v1",
         alias="CONSTITUTION_SERVICE_URL",
     )
     manifest_signing_enabled: bool = Field(

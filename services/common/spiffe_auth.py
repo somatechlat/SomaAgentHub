@@ -34,9 +34,14 @@ class SPIFFEAuthenticator:
         self.identity: SPIFFEIdentity | None = None
 
         # Default paths for X.509 materials
-        cert_dir_path = os.getenv("SPIFFE_CERT_DIR", "/var/run/secrets/spiffe")
+        cert_dir_path = os.getenv("SPIFFE_CERT_DIR", "/tmp/spiffe")
         self.cert_dir = Path(cert_dir_path)
-        self.cert_dir.mkdir(parents=True, exist_ok=True)
+        try:
+            self.cert_dir.mkdir(parents=True, exist_ok=True)
+        except PermissionError:
+            # Fallback to /tmp if /var/run/secrets is not writable
+            self.cert_dir = Path("/tmp/spiffe")
+            self.cert_dir.mkdir(parents=True, exist_ok=True)
 
     def fetch_identity(self, service_name: str) -> SPIFFEIdentity:
         """
@@ -153,7 +158,7 @@ def init_spiffe(service_name: str, *, optional: bool = True) -> SPIFFEIdentity |
     Returns:
         SPIFFEIdentity for the service
     """
-    enabled = os.getenv("ENABLE_SPIFFE", "true").lower() == "true"
+    enabled = os.getenv("ENABLE_SPIFFE", "false").lower() == "true"
     if not enabled:
         logger.info("SPIFFE initialization skipped: ENABLE_SPIFFE is false")
         return None

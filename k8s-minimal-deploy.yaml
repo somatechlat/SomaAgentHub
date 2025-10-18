@@ -1,0 +1,94 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: soma-config
+  namespace: soma-agent-hub
+data:
+  REDIS_URL: "redis://redis:6379/0"
+  TEMPORAL_HOST: "temporal-server:7233"
+  SOMAGENT_IDENTITY_JWT_SECRET: "dev-secret"
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: redis
+  namespace: soma-agent-hub
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: redis
+  template:
+    metadata:
+      labels:
+        app: redis
+    spec:
+      containers:
+      - name: redis
+        image: redis:7-alpine
+        ports:
+        - containerPort: 6379
+        livenessProbe:
+          exec:
+            command: ["redis-cli", "ping"]
+          initialDelaySeconds: 30
+          periodSeconds: 10
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: redis
+  namespace: soma-agent-hub
+spec:
+  selector:
+    app: redis
+  ports:
+  - port: 6379
+    targetPort: 6379
+  type: ClusterIP
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: app-postgres
+  namespace: soma-agent-hub
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: app-postgres
+  template:
+    metadata:
+      labels:
+        app: app-postgres
+    spec:
+      containers:
+      - name: postgres
+        image: postgres:16.4-alpine
+        env:
+        - name: POSTGRES_USER
+          value: "somaagent"
+        - name: POSTGRES_PASSWORD
+          value: "somaagent"
+        - name: POSTGRES_DB
+          value: "somaagent"
+        ports:
+        - containerPort: 5432
+        livenessProbe:
+          exec:
+            command: ["pg_isready", "-U", "somaagent", "-d", "somaagent"]
+          initialDelaySeconds: 30
+          periodSeconds: 10
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: app-postgres
+  namespace: soma-agent-hub
+spec:
+  selector:
+    app: app-postgres
+  ports:
+  - port: 5432
+    targetPort: 5432
+  type: ClusterIP

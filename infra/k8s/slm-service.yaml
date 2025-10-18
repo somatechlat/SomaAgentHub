@@ -53,7 +53,7 @@ spec:
         
         # Real observability
         - name: OTEL_EXPORTER_OTLP_ENDPOINT
-          value: "http://prometheus-prometheus.observability:9090"
+          value: "http://prometheus-prometheus.observability:10010"
         - name: OTEL_SERVICE_NAME
           value: "slm-service"
         - name: ENVIRONMENT

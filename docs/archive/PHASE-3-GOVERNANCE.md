@@ -76,7 +76,7 @@ kubectl get pods -n openfga-system
 kubectl port-forward -n openfga-system svc/openfga 8080:8080 &
 
 # 2. Create OpenFGA store
-curl -X POST http://localhost:8080/stores \
+curl -X POST http://localhost:10000/stores \
   -H "Content-Type: application/json" \
   -d '{"name":"soma-agent-hub"}'
 
@@ -91,12 +91,12 @@ curl -X POST http://localhost:8080/stores \
 STORE_ID="01ARZ3NDEKTSV4RRFFQ69G5FAV"  # Replace with actual ID
 
 # 3. Upload authorization model
-curl -X POST http://localhost:8080/stores/$STORE_ID/models \
+curl -X POST http://localhost:10000/stores/$STORE_ID/models \
   -H "Content-Type: application/json" \
   -d @infra/openfga/model.fga
 
 # 4. Verify model is installed
-curl http://localhost:8080/stores/$STORE_ID/models | jq '.models[0].schema_version'
+curl http://localhost:10000/stores/$STORE_ID/models | jq '.models[0].schema_version'
 # Expected: "1.1"
 ```
 
@@ -106,7 +106,7 @@ curl http://localhost:8080/stores/$STORE_ID/models | jq '.models[0].schema_versi
 STORE_ID="01ARZ3NDEKTSV4RRFFQ69G5FAV"
 
 # 1. Add relationship: user:alice is admin of organization:acme
-curl -X POST http://localhost:8080/stores/$STORE_ID/write \
+curl -X POST http://localhost:10000/stores/$STORE_ID/write \
   -H "Content-Type: application/json" \
   -d '{
     "writes": {
@@ -121,7 +121,7 @@ curl -X POST http://localhost:8080/stores/$STORE_ID/write \
   }'
 
 # 2. Add relationship: user:bob is viewer of project:acme-prod
-curl -X POST http://localhost:8080/stores/$STORE_ID/write \
+curl -X POST http://localhost:10000/stores/$STORE_ID/write \
   -H "Content-Type: application/json" \
   -d '{
     "writes": {
@@ -136,7 +136,7 @@ curl -X POST http://localhost:8080/stores/$STORE_ID/write \
   }'
 
 # 3. Check authorization: Can alice edit project:acme-prod?
-curl -X POST http://localhost:8080/stores/$STORE_ID/check \
+curl -X POST http://localhost:10000/stores/$STORE_ID/check \
   -H "Content-Type: application/json" \
   -d '{
     "tuple_key": {
@@ -148,7 +148,7 @@ curl -X POST http://localhost:8080/stores/$STORE_ID/check \
 # Expected: {"allowed": true} (alice is admin of organization)
 
 # 4. Check authorization: Can bob execute project:acme-prod?
-curl -X POST http://localhost:8080/stores/$STORE_ID/check \
+curl -X POST http://localhost:10000/stores/$STORE_ID/check \
   -H "Content-Type: application/json" \
   -d '{
     "tuple_key": {

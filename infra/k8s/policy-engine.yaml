@@ -43,11 +43,11 @@ spec:
         env:
         # Redis connection (optional; falls back to in-process cache if unset)
         - name: REDIS_URL
-          value: "redis://redis.somaagent:6379/0"
+          value: "redis://redis.somaagent:10003/0"
         
         # Real observability
         - name: OTEL_EXPORTER_OTLP_ENDPOINT
-          value: "http://prometheus-prometheus.observability:9090"
+          value: "http://prometheus-prometheus.observability:10010"
         - name: OTEL_SERVICE_NAME
           value: "policy-engine"
         - name: ENVIRONMENT
