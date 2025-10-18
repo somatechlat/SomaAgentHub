@@ -63,7 +63,7 @@ kubectl get pods -n "${NAMESPACE}"
 
 cat <<'EOT'
 Next steps:
-  1. Apply queue and PodGroup manifests under infra/k8s/local/volcano/.
+  1. Apply queue and PodGroup manifests under infra/k8s/local (to be created).
   2. Point orchestrator feature flag ENABLE_VOLCANO_SCHEDULER=true when ready to test.
   3. Deploy ServiceMonitors to scrape Volcano metrics.
 EOT

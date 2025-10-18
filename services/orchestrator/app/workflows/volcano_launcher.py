@@ -179,7 +179,14 @@ class VolcanoJobLauncher:
             yaml.safe_dump(podgroup, sort_keys=False),
             yaml.safe_dump(job, sort_keys=False),
         ]
-        return "---\n".join(part.strip() for part in manifest_parts if part)
+        rendered = ""
+        for idx, part in enumerate(manifest_parts):
+            if not part:
+                continue
+            if idx > 0 and rendered:
+                rendered += "---\n"
+            rendered += part if part.endswith("\n") else f"{part}\n"
+        return rendered.rstrip() + "\n"
 
     def _kubectl(
         self,

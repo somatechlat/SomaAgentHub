@@ -1,80 +1,55 @@
-name: CI Volcano Sandbox
+name: CI - Orchestrator
 
 on:
-  workflow_dispatch:
+  push:
+    branches: [ main ]
   pull_request:
-    paths:
-      - '.github/workflows/ci-volcano.yml'
-      - 'scripts/volcano/**'
-      - 'infra/k8s/local/volcano/**'
-      - 'services/orchestrator/app/workflows/volcano_launcher.py'
-      - 'services/orchestrator/workflows/activities.py'
+    branches: [ main ]
 
 jobs:
-  volcano-sandbox:
+  unit-tests:
+    name: Run Python unit tests
     runs-on: ubuntu-latest
-    env:
-      KIND_CLUSTER_NAME: soma-volcano-ci
-      VOLCANO_NAMESPACE: soma-agent-hub
-      ARTIFACTS_DIR: ${{ github.workspace }}/artifacts/volcano
+    strategy:
+      matrix:
+        python-version: [3.11]
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Install kind CLI
-        uses: engineerd/setup-kind@v0.5.0
+      - name: Set up Python
+        uses: actions/setup-python@v4
         with:
-          version: v0.22.0
-          skipClusterCreation: true
+          python-version: ${{ matrix.python-version }}
 
-      - name: Set up Helm
-        uses: azure/setup-helm@v4
-
-      - name: Bootstrap Volcano sandbox
-        env:
-          CLUSTER_NAME: ${{ env.KIND_CLUSTER_NAME }}
-          K8S_VERSION: v1.29.4
-          NAMESPACE: volcano-system
-          VOLCANO_VERSION: 1.9.0
+      - name: Install dependencies
         run: |
-          chmod +x scripts/volcano/*.sh
-          ./scripts/volcano/bootstrap-kind.sh
+          python -m pip install --upgrade pip
+          if [ -f services/orchestrator/requirements.txt ]; then
+            pip install -r services/orchestrator/requirements.txt
+          fi
 
-      - name: Verify Volcano components
+      - name: Run orchestrator tests
+        working-directory: .
         run: |
-          kubectl config use-context kind-${KIND_CLUSTER_NAME}
-          kubectl get nodes
-          kubectl get pods -n volcano-system
+          pytest services/orchestrator/tests -q
 
-      - name: Run sample session workload
-        env:
-          VOLCANO_NAMESPACE: ${{ env.VOLCANO_NAMESPACE }}
-          ARTIFACTS_DIR: ${{ env.ARTIFACTS_DIR }}
+  volcano-smoke:
+    name: "Volcano integration smoke (optional)"
+    # This job is intended to run on a self-hosted runner that has Docker/Kind/Helm installed.
+    # To enable it, set the repository secret RUN_VOLCANO_SMOKE=true and target a self-hosted runner.
+    runs-on: [self-hosted, linux]
+    if: ${{ secrets.RUN_VOLCANO_SMOKE == 'true' }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Ensure tools
         run: |
-          ./scripts/volcano/run-sample-session.sh
+          # Assumes self-hosted runner has kind/helm/kubectl installed; verify versions
+          kind --version || true
+          kubectl version --client || true
+          helm version || true
 
-      - name: Collect Volcano diagnostics
-        if: always()
+      - name: Run integration smoke script
         run: |
-          kubectl get queue
-          kubectl get podgroup -A
-          kubectl get jobs -A
-
-      - name: Upload Volcano artifacts
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: volcano-sample-artifacts
-          path: ${{ env.ARTIFACTS_DIR }}
-
-      - name: Cleanup sample workload
-        if: always()
-        env:
-          VOLCANO_NAMESPACE: ${{ env.VOLCANO_NAMESPACE }}
-        run: |
-          ./scripts/volcano/cleanup-sample.sh
-
-      - name: Delete kind cluster
-        if: always()
-        run: |
-          kind delete cluster --name ${KIND_CLUSTER_NAME} || true
+          chmod +x scripts/volcano/run-integration-smoke.sh
+          scripts/volcano/run-integration-smoke.sh

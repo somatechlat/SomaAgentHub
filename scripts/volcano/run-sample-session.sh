@@ -10,11 +10,6 @@ TIMEOUT_SECONDS=${VOLCANO_SAMPLE_TIMEOUT_SECONDS:-300}
 
 mkdir -p "${ARTIFACTS_DIR}"
 
-if ! kubectl get namespace "${NAMESPACE}" >/dev/null 2>&1; then
-  echo "[volcano] Creating namespace ${NAMESPACE}..."
-  kubectl create namespace "${NAMESPACE}" >/dev/null
-fi
-
 echo "[volcano] Applying queue definitions..."
 kubectl apply -f infra/k8s/local/volcano/queues.yaml >/dev/null
 
