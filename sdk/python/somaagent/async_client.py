@@ -27,9 +27,6 @@ class AsyncSomaAgentClient:
             timeout: Request timeout in seconds
         """
         self.api_key = api_key or os.getenv("SOMAAGENT_API_KEY")
-        if not self.api_key:
-            raise AuthenticationError("API key is required")
-        
         self.base_url = base_url or os.getenv(
             "SOMAAGENT_API_URL",
             "https://api.somaagent.io"
@@ -39,13 +36,11 @@ class AsyncSomaAgentClient:
     
     async def __aenter__(self):
         """Async context manager entry."""
-        self.session = aiohttp.ClientSession(
-            headers={
-                "Authorization": f"Bearer {self.api_key}",
-                "User-Agent": "somaagent-python/0.1.0"
-            },
-            timeout=self.timeout
-        )
+        headers = {"User-Agent": "somaagent-python/0.1.0"}
+        if self.api_key:
+            headers["Authorization"] = f"Bearer {self.api_key}"
+
+        self.session = aiohttp.ClientSession(headers=headers, timeout=self.timeout)
         return self
     
     async def __aexit__(self, exc_type, exc_val, exc_tb):

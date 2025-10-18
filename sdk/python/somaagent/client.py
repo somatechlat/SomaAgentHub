@@ -27,19 +27,16 @@ class SomaAgentClient:
             timeout: Request timeout in seconds
         """
         self.api_key = api_key or os.getenv("SOMAAGENT_API_KEY")
-        if not self.api_key:
-            raise AuthenticationError("API key is required")
-        
         self.base_url = base_url or os.getenv(
             "SOMAAGENT_API_URL",
             "https://api.somaagent.io"
         )
         self.timeout = timeout
         self.session = requests.Session()
-        self.session.headers.update({
-            "Authorization": f"Bearer {self.api_key}",
-            "User-Agent": "somaagent-python/0.1.0"
-        })
+        headers = {"User-Agent": "somaagent-python/0.1.0"}
+        if self.api_key:
+            headers["Authorization"] = f"Bearer {self.api_key}"
+        self.session.headers.update(headers)
     
     def _request(
         self,

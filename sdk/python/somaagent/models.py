@@ -33,7 +33,7 @@ class Conversation:
 
 @dataclass
 class Capsule:
-    """Task capsule."""
+    """Marketplace capsule metadata."""
     
     id: str
     name: str
@@ -45,6 +45,21 @@ class Capsule:
     rating: float
     install_count: int
     created_at: datetime
+    metadata: Dict[str, Any] = field(default_factory=dict)
+
+
+@dataclass
+class Task:
+    """Project or workflow task description."""
+    
+    id: str
+    status: str
+    name: Optional[str] = None
+    description: Optional[str] = None
+    assignee: Optional[str] = None
+    dependencies: List[str] = field(default_factory=list)
+    created_at: datetime = field(default_factory=datetime.utcnow)
+    updated_at: datetime = field(default_factory=datetime.utcnow)
     metadata: Dict[str, Any] = field(default_factory=dict)
 
 
