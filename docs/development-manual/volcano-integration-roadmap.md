@@ -41,7 +41,6 @@
 - Author a Volcano architecture RFC describing queue hierarchy, priority policies, and integration touchpoints with Temporal.
 - Stand up a Volcano-enabled kind cluster; automate bootstrap scripts within `scripts/volcano/`.
 	- Use `scripts/volcano/bootstrap-kind.sh` as the baseline provisioning script.
-- Wire the sandbox validation script into CI via `.github/workflows/ci-volcano.yml` so every change exercises the sample PodGroup/Job.
 - Validate CRDs (`PodGroup`, `Queue`, `JobFlow`) and scheduler plugin configuration.
 - Document the sandbox deployment process in `docs/technical-manual/volcano-scheduler.md`.
 - Draft metric baseline strategy and begin exporting Prometheus/Temporal snapshots (`volcano-integration-notes/baseline-metrics.md`).

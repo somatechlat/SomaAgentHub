@@ -40,11 +40,9 @@ jobs:
           chmod +x scripts/volcano/*.sh
           ./scripts/volcano/bootstrap-kind.sh
 
-      - name: Select kind context
-        run: kubectl config use-context kind-${KIND_CLUSTER_NAME}
-
       - name: Verify Volcano components
         run: |
+          kubectl config use-context kind-${KIND_CLUSTER_NAME}
           kubectl get nodes
           kubectl get pods -n volcano-system
 
@@ -53,13 +51,11 @@ jobs:
           VOLCANO_NAMESPACE: ${{ env.VOLCANO_NAMESPACE }}
           ARTIFACTS_DIR: ${{ env.ARTIFACTS_DIR }}
         run: |
-          kubectl config use-context kind-${KIND_CLUSTER_NAME}
           ./scripts/volcano/run-sample-session.sh
 
       - name: Collect Volcano diagnostics
         if: always()
         run: |
-          kubectl config use-context kind-${KIND_CLUSTER_NAME}
           kubectl get queue
           kubectl get podgroup -A
           kubectl get jobs -A
@@ -76,7 +72,6 @@ jobs:
         env:
           VOLCANO_NAMESPACE: ${{ env.VOLCANO_NAMESPACE }}
         run: |
-          kubectl config use-context kind-${KIND_CLUSTER_NAME}
           ./scripts/volcano/cleanup-sample.sh
 
       - name: Delete kind cluster

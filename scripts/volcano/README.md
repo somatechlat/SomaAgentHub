@@ -5,7 +5,6 @@ Utilities for provisioning and managing the local Volcano sandbox referenced in 
 - `bootstrap-kind.sh` – Creates a multi-node kind cluster and installs Volcano v1.9.0.
 - `run-sample-session.sh` – Applies queue definitions, submits the sample session PodGroup/Job, and stores artifacts.
 - `cleanup-sample.sh` – Removes sample resources (and optionally the interactive queue) after validation.
-- `.github/workflows/ci-volcano.yml` – GitHub Actions workflow that runs `bootstrap-kind.sh`, `run-sample-session.sh`, and `cleanup-sample.sh` to validate the sandbox on every relevant PR.
 
 Prerequisites:
 - `kind` v0.22+

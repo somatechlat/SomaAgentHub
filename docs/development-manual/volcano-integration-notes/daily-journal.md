@@ -4,7 +4,7 @@
 
 **Audience:** Project contributors, leads reviewing status updates.
 
-**Last Updated:** 2025-10-18
+**Last Updated:** 2025-10-17
 
 ---
 
@@ -38,27 +38,6 @@
 ---
 
 ## Journal
-
-## 2025-10-18 (Sprint 1 – CI automation)
-
-**Focus:**
-- Automate Volcano sandbox validation inside GitHub Actions and harden helper scripts.
-
-**Progress:**
-- Added `CI Volcano Sandbox` workflow that provisions kind, installs Volcano, runs the sample session job, archives artifacts, and tears everything down automatically.
-- Updated `run-sample-session.sh` to create the target namespace when missing and ensured every kubectl invocation in CI selects the correct context.
-- Harmonised script logging prefixes and post-install guidance in `bootstrap-kind.sh`/`cleanup-sample.sh` so CI output maps cleanly to runbook steps.
-
-**Blockers / Risks:**
-- Workflow duration may increase overall CI wall-clock time; need follow-up metrics once it runs routinely.
-
-**Next Steps:**
-- Fold workflow status into dashboards and alert on failures affecting Volcano readiness.
-- Evaluate extending smoke to run orchestrator job submission once feature flag enables live integration tests.
-
-**Links:**
-- `.github/workflows/ci-volcano.yml`
-- `scripts/volcano/run-sample-session.sh`
 
 ## 2025-10-17 (Sprint 1 – tooling pass)
 
