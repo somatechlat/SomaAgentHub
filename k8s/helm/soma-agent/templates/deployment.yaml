@@ -23,6 +23,9 @@ spec:
         app.kubernetes.io/name: {{ $name }}
         app.kubernetes.io/part-of: {{ $.Chart.Name }}
     spec:
+      {{- if and $svc.serviceAccount $svc.serviceAccount.name }}
+      serviceAccountName: {{ $svc.serviceAccount.name }}
+      {{- end }}
       containers:
         - name: {{ $name }}
           image: "{{ if contains ":" (last (splitList "/" (printf "%v" $svc.image))) }}{{ printf "%v" $svc.image }}{{ else }}{{ printf "%v:%v" $svc.image ($.Values.global.imageTag | default "latest") }}{{ end }}"
@@ -43,6 +46,29 @@ spec:
               value: {{ ($.Values.global.observability.otlpEndpoint | default "http://otel-collector.observability:4317") | quote }}
             - name: ENVIRONMENT
               value: {{ $.Values.global.environment | default "production" | quote }}
+          {{- if and $svc.volcano $svc.volcano.enabled }}
+            - name: ENABLE_VOLCANO_SCHEDULER
+              value: "true"
+            - name: VOLCANO_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+            - name: VOLCANO_DEFAULT_QUEUE
+              value: {{ $svc.volcano.defaultQueue | default "interactive" | quote }}
+            - name: VOLCANO_SESSION_IMAGE
+              value: {{ $svc.volcano.sessionImage | default "python:3.11-slim" | quote }}
+            - name: VOLCANO_SESSION_CPU
+              value: {{ $svc.volcano.sessionCpu | default "500m" | quote }}
+            - name: VOLCANO_SESSION_MEMORY
+              value: {{ $svc.volcano.sessionMemory | default "512Mi" | quote }}
+            - name: VOLCANO_JOB_TIMEOUT_SECONDS
+              value: {{ printf "%v" ($svc.volcano.jobTimeoutSeconds | default 300) | quote }}
+          {{- else }}
+            - name: ENABLE_VOLCANO_SCHEDULER
+              value: "false"
+          {{- end }}
+            - name: KUBECTL_BINARY
+              value: "kubectl"
           {{- if $.Values.global.spiffe.enabled }}
             - name: ENABLE_SPIFFE
               value: "true"

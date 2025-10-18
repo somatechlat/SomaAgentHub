@@ -95,6 +95,16 @@ services:
     env:
       - name: TEMPORAL_ENABLED
         value: "false"
+    serviceAccount:
+      create: true
+      name: orchestrator
+    volcano:
+      enabled: false
+      defaultQueue: interactive
+      sessionImage: python:3.11-slim
+      sessionCpu: 500m
+      sessionMemory: 512Mi
+      jobTimeoutSeconds: 300
   settings-service:
     enabled: false
   task-capsule-repo:

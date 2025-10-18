@@ -1,0 +1,43 @@
+{{- $namespace := .Values.global.namespace | default .Release.Namespace -}}
+{{- $svc := index .Values.services "orchestrator" -}}
+{{- if and $svc.enabled $svc.volcano $svc.volcano.enabled }}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: orchestrator-volcano
+  namespace: {{ $namespace }}
+  labels:
+    app: orchestrator
+    app.kubernetes.io/part-of: {{ $.Chart.Name }}
+rules:
+  - apiGroups: ["batch"]
+    resources: ["jobs"]
+    verbs: ["create", "get", "list", "watch", "delete"]
+  - apiGroups: [""]
+    resources: ["pods", "pods/log"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["scheduling.volcano.sh"]
+    resources: ["podgroups"]
+    verbs: ["create", "get", "list", "watch", "delete"]
+  - apiGroups: ["scheduling.volcano.sh"]
+    resources: ["queues"]
+    verbs: ["get", "list", "watch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: orchestrator-volcano
+  namespace: {{ $namespace }}
+  labels:
+    app: orchestrator
+    app.kubernetes.io/part-of: {{ $.Chart.Name }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: orchestrator-volcano
+subjects:
+  - kind: ServiceAccount
+    name: {{ $svc.serviceAccount.name | default "orchestrator" }}
+    namespace: {{ $namespace }}
+{{- end }}

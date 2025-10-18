@@ -48,13 +48,18 @@ kubectl get validatingwebhookconfiguration | grep volcano
 kubectl apply -f infra/k8s/local/volcano/queues.yaml
 kubectl apply -f infra/k8s/local/volcano/sample-session-job.yaml
 
-# 5. Monitor job execution
+# 5. Grant orchestrator RBAC permissions (cluster or staging)
+kubectl apply -f infra/k8s/orchestrator-rbac.yaml
+
+# 6. Monitor job execution
 kubectl get podgroup session-sample
 kubectl logs job/session-sample
 
 # Convenience scripts (optional)
 scripts/volcano/run-sample-session.sh    # apply, wait, and collect artifacts
 scripts/volcano/cleanup-sample.sh        # remove sample resources when finished
+
+> The orchestrator container image now bundles `kubectl` so jobs can be submitted directly from the worker pods.
 ```
 
 > Tip: To provision a local sandbox quickly, run `scripts/volcano/bootstrap-kind.sh`. The script creates a three-node kind cluster and installs Volcano using the configuration above.

@@ -27,6 +27,7 @@
 | Describe PodGroup | `kubectl describe podgroup <name>` | Review `Status` and `Events`. |
 | Tail scheduler logs | `kubectl logs -n soma-agent-hub deployment/volcano-scheduler -f` | Filter for `Warning`/`Error`. |
 | Cleanup sample job | `scripts/volcano/cleanup-sample.sh` | Deletes `session-sample` job/PodGroup artifacts. |
+| Verify orchestrator RBAC | `kubectl get rolebinding orchestrator-volcano -n <ns>` | Ensure Volcano permissions remain in place. |
 
 ---
 

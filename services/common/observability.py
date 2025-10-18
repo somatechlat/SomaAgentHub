@@ -11,7 +11,10 @@ import os
 
 from opentelemetry import metrics, trace
 from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import OTLPSpanExporter
-from opentelemetry.exporter.prometheus import PrometheusMetricReader
+try:
+    from opentelemetry.exporter.prometheus import PrometheusMetricReader
+except ImportError:  # pragma: no cover - optional dependency
+    PrometheusMetricReader = None  # type: ignore[assignment]
 from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
 from opentelemetry.sdk.metrics import MeterProvider
 from opentelemetry.sdk.resources import Resource
@@ -63,8 +66,13 @@ class OpenTelemetryConfig:
     def setup_metrics(self) -> None:
         readers = []
         if self.enable_prometheus:
-            readers.append(PrometheusMetricReader())
-            logger.info(f"Prometheus metrics reader enabled on port {self.prometheus_port}")
+            if PrometheusMetricReader is None:
+                logger.warning(
+                    "Prometheus exporter not installed; metrics endpoint will be disabled."
+                )
+            else:
+                readers.append(PrometheusMetricReader())
+                logger.info(f"Prometheus metrics reader enabled on port {self.prometheus_port}")
         meter_provider = MeterProvider(resource=self.resource, metric_readers=readers)
         metrics.set_meter_provider(meter_provider)
         logger.info(f"Metrics initialized for service: {self.service_name}")

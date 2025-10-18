@@ -10,6 +10,15 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 
 WORKDIR /app
 
+# Install kubectl for Volcano job submissions
+RUN apt-get update \
+	&& apt-get install -y --no-install-recommends ca-certificates curl \
+	&& curl -fsSLo /usr/local/bin/kubectl "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl" \
+	&& chmod +x /usr/local/bin/kubectl \
+	&& apt-get purge -y curl \
+	&& apt-get autoremove -y \
+	&& rm -rf /var/lib/apt/lists/*
+
 # Install dependencies
 COPY services/orchestrator/requirements.txt ./requirements.txt
 RUN pip install --no-cache-dir -r requirements.txt

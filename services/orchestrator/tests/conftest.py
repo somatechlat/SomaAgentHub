@@ -1,13 +1,22 @@
 from __future__ import annotations
-from __future__ import annotations
 
 from datetime import datetime, timezone
+from pathlib import Path
 from types import SimpleNamespace
 from typing import Any, Dict, Tuple
 from uuid import uuid4
 
 import pytest
 from fastapi.testclient import TestClient
+
+import sys
+import os
+
+ROOT = Path(__file__).resolve().parents[3]
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
+
+os.environ.setdefault("ENABLE_SPIFFE", "false")
 
 from services.orchestrator.app.main import create_app
 from services.orchestrator.app.workflows.mao import AgentExecutionResult, MAOResult
@@ -106,6 +115,8 @@ class FakeTemporalClient:
 @pytest.fixture
 def api_client(monkeypatch: pytest.MonkeyPatch) -> Tuple[TestClient, FakeTemporalClient]:
     fake_client = FakeTemporalClient()
+
+    monkeypatch.setenv("TEMPORAL_ENABLED", "true")
 
     async def _connect(*args: Any, **kwargs: Any) -> FakeTemporalClient:
         return fake_client

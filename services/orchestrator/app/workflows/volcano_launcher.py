@@ -12,6 +12,7 @@ import subprocess
 import textwrap
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, field
+from typing import Any
 
 import yaml
 
@@ -34,6 +35,9 @@ class VolcanoJobSpec:
     min_member: int = 1
     cpu: str = "500m"
     memory: str = "512Mi"
+    parallelism: int = 1
+    completions: int = 1
+    ttl_seconds_after_finished: int | None = None
 
 
 class VolcanoJobLauncher:
@@ -100,8 +104,12 @@ class VolcanoJobLauncher:
     def _render_manifest(self, spec: VolcanoJobSpec) -> str:
         """Return PodGroup + Job manifest as YAML string."""
 
+        min_member = max(1, spec.min_member)
+        parallelism = max(1, spec.parallelism)
+        completions = max(1, spec.completions)
+
         task_spec_json = json.dumps({
-            "minMember": spec.min_member,
+            "minMember": min_member,
             "minResources": {"cpu": spec.cpu, "memory": spec.memory},
         })
 
@@ -117,10 +125,39 @@ class VolcanoJobLauncher:
                 },
             },
             "spec": {
-                "minMember": spec.min_member,
+                "minMember": min_member,
                 "minResources": {"cpu": spec.cpu, "memory": spec.memory},
             },
         }
+
+        job_spec: dict[str, Any] = {
+            "parallelism": parallelism,
+            "completions": completions,
+            "template": {
+                "metadata": {"labels": {"app": spec.job_name}},
+                "spec": {
+                    "restartPolicy": "Never",
+                    "containers": [
+                        {
+                            "name": "worker",
+                            "image": spec.image,
+                            "command": list(spec.command),
+                            "env": [
+                                {"name": key, "value": value}
+                                for key, value in spec.env.items()
+                            ],
+                            "resources": {
+                                "requests": {"cpu": spec.cpu, "memory": spec.memory},
+                                "limits": {"cpu": spec.cpu, "memory": spec.memory},
+                            },
+                        }
+                    ],
+                },
+            },
+        }
+
+        if spec.ttl_seconds_after_finished is not None:
+            job_spec["ttlSecondsAfterFinished"] = spec.ttl_seconds_after_finished
 
         job = {
             "apiVersion": "batch/v1",
@@ -135,36 +172,21 @@ class VolcanoJobLauncher:
                     "volcano.sh/task-spec": task_spec_json,
                 },
             },
-            "spec": {
-                "template": {
-                    "metadata": {"labels": {"app": spec.job_name}},
-                    "spec": {
-                        "restartPolicy": "Never",
-                        "containers": [
-                            {
-                                "name": "worker",
-                                "image": spec.image,
-                                "command": list(spec.command),
-                                "env": [
-                                    {"name": key, "value": value}
-                                    for key, value in spec.env.items()
-                                ],
-                                "resources": {
-                                    "requests": {"cpu": spec.cpu, "memory": spec.memory},
-                                    "limits": {"cpu": spec.cpu, "memory": spec.memory},
-                                },
-                            }
-                        ],
-                    },
-                },
-            },
+            "spec": job_spec,
         }
 
         manifest_parts = [
             yaml.safe_dump(podgroup, sort_keys=False),
             yaml.safe_dump(job, sort_keys=False),
         ]
-        return "---\n".join(part.strip() for part in manifest_parts if part)
+        rendered = ""
+        for idx, part in enumerate(manifest_parts):
+            if not part:
+                continue
+            if idx > 0 and rendered:
+                rendered += "---\n"
+            rendered += part if part.endswith("\n") else f"{part}\n"
+        return rendered.rstrip() + "\n"
 
     def _kubectl(
         self,
@@ -225,8 +247,11 @@ def default_session_spec(session_id: str) -> VolcanoJobSpec:
         queue=settings.volcano_default_queue,
         image=settings.volcano_session_image,
         command=default_command,
+        min_member=1,
         cpu=settings.volcano_session_cpu,
         memory=settings.volcano_session_memory,
+        parallelism=1,
+        completions=1,
     )
 
 

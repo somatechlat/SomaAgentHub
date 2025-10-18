@@ -53,6 +53,24 @@ spec:
           value: "http://gateway-api:10000"
         - name: IDENTITY_SERVICE_URL
           value: "http://identity-service:10002"
+        - name: ENABLE_VOLCANO_SCHEDULER
+          value: "true"
+        - name: VOLCANO_NAMESPACE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
+        - name: VOLCANO_DEFAULT_QUEUE
+          value: "interactive"
+        - name: VOLCANO_SESSION_IMAGE
+          value: "python:3.11-slim"
+        - name: VOLCANO_SESSION_CPU
+          value: "500m"
+        - name: VOLCANO_SESSION_MEMORY
+          value: "512Mi"
+        - name: VOLCANO_JOB_TIMEOUT_SECONDS
+          value: "300"
+        - name: KUBECTL_BINARY
+          value: "kubectl"
         
         # Real Temporal connection
         - name: TEMPORAL_HOST
@@ -145,6 +163,7 @@ spec:
                   values:
                   - orchestrator
               topologyKey: kubernetes.io/hostname
+      serviceAccountName: orchestrator
 
 ---
 apiVersion: v1

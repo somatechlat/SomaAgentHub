@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import asyncio
 import os
+from collections.abc import Mapping, Sequence
 from datetime import datetime
 from typing import Any
 
@@ -15,7 +16,7 @@ from temporalio import activity
 
 from common.config.runtime import runtime_default
 
-from ..core.config import settings
+from ..app.core.config import settings
 
 try:  # pragma: no cover - optional dependency during spike
     from ..app.workflows.volcano_launcher import (
@@ -37,6 +38,55 @@ def _ensure_endpoint(url: str, expected_path: str) -> str:
     normalized = url.rstrip("/")
     suffix = expected_path if expected_path.startswith("/") else f"/{expected_path}"
     return normalized if normalized.endswith(suffix) else f"{normalized}{suffix}"
+
+
+def _coerce_positive_int(value: Any, field_name: str) -> int:
+    try:
+        coerced = int(value)
+    except (TypeError, ValueError) as exc:  # pragma: no cover - defensive branch
+        raise ValueError(f"{field_name} must be a positive integer (got {value!r})") from exc
+    if coerced < 1:
+        raise ValueError(f"{field_name} must be >= 1 (got {coerced})")
+    return coerced
+
+
+def _coerce_non_negative_int(value: Any, field_name: str) -> int:
+    try:
+        coerced = int(value)
+    except (TypeError, ValueError) as exc:  # pragma: no cover - defensive branch
+        raise ValueError(f"{field_name} must be a non-negative integer (got {value!r})") from exc
+    if coerced < 0:
+        raise ValueError(f"{field_name} must be >= 0 (got {coerced})")
+    return coerced
+
+
+def _normalize_command(command: Any) -> list[str]:
+    """Return a shell-safe command list from the payload override."""
+
+    if isinstance(command, str):
+        stripped = command.strip()
+        if not stripped:
+            raise ValueError("command override cannot be empty")
+        return ["/bin/sh", "-c", stripped]
+
+    if isinstance(command, Sequence) and not isinstance(command, (bytes, bytearray)):
+        command_list = list(command)
+        if not command_list:
+            raise ValueError("command override cannot be empty")
+        if not all(isinstance(item, str) for item in command_list):
+            raise ValueError("command sequence must only contain strings")
+        return command_list
+
+    raise ValueError("command override must be a string or sequence of strings")
+
+
+def _normalize_env(env_mapping: Mapping[Any, Any]) -> dict[str, str]:
+    normalized: dict[str, str] = {}
+    for key, value in env_mapping.items():
+        if not isinstance(key, str):
+            raise ValueError("environment variable names must be strings")
+        normalized[key] = str(value)
+    return normalized
 
 
 # Real service endpoints (configured via environment)
@@ -70,17 +120,32 @@ async def launch_volcano_session_job(payload: dict[str, Any]) -> dict[str, Any]:
     spec: VolcanoJobSpec = default_session_spec(session_id)
 
     if queue := payload.get("queue"):
-        spec.queue = queue
-    if command := payload.get("command"):
-        spec.command = list(command)
+        spec.queue = str(queue)
+    if "command" in payload:
+        spec.command = _normalize_command(payload.get("command"))
     if image := payload.get("image"):
-        spec.image = image
-    if env := payload.get("env"):
-        spec.env = {**spec.env, **env}
+        spec.image = str(image)
+    if "env" in payload:
+        env_override = payload.get("env")
+        if not isinstance(env_override, Mapping):
+            raise ValueError("env override must be a mapping of string keys to values")
+        spec.env = {**spec.env, **_normalize_env(env_override)}
     if cpu := payload.get("cpu"):
-        spec.cpu = cpu
+        spec.cpu = str(cpu)
     if memory := payload.get("memory"):
-        spec.memory = memory
+        spec.memory = str(memory)
+    if "min_member" in payload:
+        spec.min_member = _coerce_positive_int(payload.get("min_member"), "min_member")
+    if "parallelism" in payload:
+        spec.parallelism = _coerce_positive_int(payload.get("parallelism"), "parallelism")
+    if "completions" in payload:
+        spec.completions = _coerce_positive_int(payload.get("completions"), "completions")
+    if "ttl_seconds_after_finished" in payload:
+        spec.ttl_seconds_after_finished = _coerce_non_negative_int(
+            payload.get("ttl_seconds_after_finished"), "ttl_seconds_after_finished"
+        )
+
+    spec.min_member = max(spec.min_member, spec.parallelism)
 
     try:
         launcher = VolcanoJobLauncher()
@@ -94,9 +159,18 @@ async def launch_volcano_session_job(payload: dict[str, Any]) -> dict[str, Any]:
     timeout_seconds = int(payload.get("timeout_seconds", settings.volcano_job_timeout_seconds))
     logs: str | None = None
 
+    wait_error: Exception | None = None
     if should_wait:
-        await asyncio.to_thread(launcher.wait_for_completion, job_name, timeout_seconds)
-        logs = await asyncio.to_thread(launcher.fetch_logs, job_name)
+        try:
+            await asyncio.to_thread(launcher.wait_for_completion, job_name, timeout_seconds)
+        except VolcanoLauncherError as exc:  # type: ignore[misc]
+            wait_error = exc
+        try:
+            logs = await asyncio.to_thread(launcher.fetch_logs, job_name)
+        except VolcanoLauncherError as exc:  # type: ignore[misc]
+            activity.logger.warning("Failed to stream Volcano logs for %s: %s", job_name, exc)
+        if wait_error is not None:
+            raise RuntimeError(f"Volcano job {job_name} failed to complete: {wait_error}") from wait_error
 
     return {
         "status": "submitted",

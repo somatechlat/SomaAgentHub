@@ -2,6 +2,7 @@ apiVersion: scheduling.volcano.sh/v1beta1
 kind: PodGroup
 metadata:
   name: session-sample
+  namespace: soma-agent-hub
   labels:
     app.kubernetes.io/managed-by: somaagenthub
     volcano.sh/queue-name: interactive
@@ -15,6 +16,7 @@ apiVersion: batch/v1
 kind: Job
 metadata:
   name: session-sample
+  namespace: soma-agent-hub
   labels:
     app.kubernetes.io/managed-by: somaagenthub
   annotations:
