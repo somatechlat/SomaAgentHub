@@ -39,6 +39,53 @@
 
 ## Journal
 
+## 2025-10-17 (Sprint 3 – observability & policy)
+
+**Focus:**
+- Wire production-grade observability and compliance hooks for Volcano scheduling.
+
+**Progress:**
+- Added Prometheus `volcano-control-plane` scrape and ServiceMonitors for scheduler/controller pods (`infra/monitoring/prometheus.yml`, `k8s/monitoring/servicemonitors.yaml`).
+- Published Grafana dashboard **Volcano Scheduler Operations** covering queue depth, latency, and preemption metrics (`infra/monitoring/grafana/dashboards/volcano-operations.json`).
+- Introduced Volcano-specific alert rules (backlog, latency, preemption) and extended runbook guidance for on-call usage (`infra/monitoring/alerting-rules.yml`, `docs/technical-manual/runbooks/volcano-operations.md`).
+- Enriched audit events with Volcano job metadata to satisfy compliance requirements (`services/orchestrator/app/workflows/session.py`).
+
+**Blockers / Risks:**
+- Need to validate ServiceMonitor label selectors against production chart overrides during next staging deploy.
+
+**Next Steps:**
+- Feed Volcano metrics into existing capacity reports and baseline dashboards.
+- Capture synthetic alert fire/drill evidence for release readiness review.
+
+**Links:**
+- `infra/monitoring/prometheus.yml`
+- `k8s/monitoring/servicemonitors.yaml`
+- `infra/monitoring/grafana/dashboards/volcano-operations.json`
+- `infra/monitoring/alerting-rules.yml`
+- `services/orchestrator/app/workflows/session.py`
+
+## 2025-10-17 (Sprint 2 – integration coverage)
+
+**Focus:**
+- Validate end-to-end Volcano submission path with real cluster automation.
+
+**Progress:**
+- Added `tests/integration/volcano/test_volcano_launcher_e2e.py` to submit jobs via `VolcanoJobLauncher` against a live kind + Volcano sandbox.
+- Introduced shared sandbox fixture that provisions queues via `infra/k8s/local/volcano/queues.yaml` and waits for readiness.
+- Updated `.github/workflows/ci-volcano.yml` to install dev dependencies and execute the new integration suite alongside the smoke script.
+
+**Blockers / Risks:**
+- End-to-end tests require self-hosted runner with `kind`, `kubectl`, and `helm`; need to ensure the runner pool stays healthy.
+
+**Next Steps:**
+- Extend coverage to Temporal session workflow path once staging metrics are available.
+- Capture job runtime metrics from CI runs and roll them into baseline dashboards.
+
+**Links:**
+- `tests/integration/volcano/test_volcano_launcher_e2e.py`
+- `.github/workflows/ci-volcano.yml`
+- `tests/integration/volcano/conftest.py`
+
 ## 2025-10-17 (Sprint 1 – tooling pass)
 
 **Focus:**

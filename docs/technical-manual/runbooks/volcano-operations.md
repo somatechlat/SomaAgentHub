@@ -28,6 +28,8 @@
 | Tail scheduler logs | `kubectl logs -n soma-agent-hub deployment/volcano-scheduler -f` | Filter for `Warning`/`Error`. |
 | Cleanup sample job | `scripts/volcano/cleanup-sample.sh` | Deletes `session-sample` job/PodGroup artifacts. |
 | Verify orchestrator RBAC | `kubectl get rolebinding orchestrator-volcano -n <ns>` | Ensure Volcano permissions remain in place. |
+| Grafana dashboard | Grafana → **Volcano Scheduler Operations** | Queue depth, scheduling latency, preemptions. |
+| Prometheus queries | `volcano_queue_pending_pods`, `volcano_job_scheduling_duration_seconds_bucket` | Confirm metrics scraping from `volcano-system`. |
 
 ---
 
@@ -93,6 +95,19 @@
 4. Communicate capacity state to stakeholders and update status page.
 
 **Verification:** SLA metrics fall back within target range; queue length decreases.
+
+---
+
+## Monitoring & Alerts
+
+- **Metrics Source:** Scheduler and controller services in `volcano-system` expose Prometheus metrics at `/metrics`; they are scraped via the `volcano-control-plane` Prometheus job or the `volcano-scheduler`/`volcano-controller` ServiceMonitors.
+- **Key Metrics:**
+  - `volcano_queue_pending_pods{queue="interactive"}` — backlog size per queue.
+  - `volcano_queue_running_pods{queue="interactive"}` — active pods admitted by Volcano.
+  - `volcano_job_scheduling_duration_seconds_bucket` — histogram for admission latency; use `histogram_quantile` for P95.
+  - `volcano_pod_preemptions_total` — cumulative pod preemptions.
+- **Dashboards:** Grafana dashboard **Volcano Scheduler Operations** covers queue depth trends, scheduling latency (average and P95), preemption rate, and PodGroup wait distribution.
+- **Alerts:** Prometheus rules `VolcanoQueueBacklog`, `VolcanoSchedulingLatencyHigh`, and `VolcanoPreemptionSpike` raise warning/critical signals when backlogs grow, latency breaches 60s P95, or preemption spikes persist.
 
 ---
 

@@ -284,6 +284,42 @@ groups:
           description: "{{ $labels.container }} throttled {{ $value }}s in last 5min"
 
   # ============================================================================
+  # VOLCANO SCHEDULER ALERTS
+  # ============================================================================
+  - name: volcano
+    interval: 30s
+    rules:
+      - alert: VolcanoQueueBacklog
+        expr: sum(volcano_queue_pending_pods) by (queue) > 10
+        for: 10m
+        labels:
+          severity: warning
+          component: volcano
+        annotations:
+          summary: "Volcano queue backlog detected"
+          description: "Queue {{ $labels.queue }} has {{ $value }} pending pods for 10 minutes"
+
+      - alert: VolcanoSchedulingLatencyHigh
+        expr: histogram_quantile(0.95, sum(rate(volcano_job_scheduling_duration_seconds_bucket[5m])) by (le)) > 60
+        for: 5m
+        labels:
+          severity: critical
+          component: volcano
+        annotations:
+          summary: "Volcano job scheduling latency P95 > 60s"
+          description: "Scheduler P95 latency is {{ $value }}s"
+
+      - alert: VolcanoPreemptionSpike
+        expr: rate(volcano_pod_preemptions_total[5m]) > 0.2
+        for: 5m
+        labels:
+          severity: warning
+          component: volcano
+        annotations:
+          summary: "Volcano preemption spike detected"
+          description: "{{ $value }} preemptions per second observed across queues"
+
+  # ============================================================================
   # SECURITY ALERTS
   # ============================================================================
   - name: security

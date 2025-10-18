@@ -1,0 +1,155 @@
+{
+  "dashboard": {
+    "title": "Volcano Scheduler Operations",
+    "uid": "volcano-ops",
+    "tags": ["volcano", "scheduler", "observability"],
+    "timezone": "browser",
+    "schemaVersion": 27,
+    "version": 1,
+    "refresh": "30s",
+    "templating": {
+      "list": [
+        {
+          "name": "queue",
+          "label": "Volcano Queue",
+          "type": "query",
+          "datasource": "Prometheus",
+          "definition": "label_values(volcano_queue_pending_pods, queue)",
+          "refresh": 1,
+          "sort": 1,
+          "regex": "",
+          "hide": 0
+        }
+      ]
+    },
+    "panels": [
+      {
+        "id": 1,
+        "title": "Pending Pods (Current)",
+        "type": "stat",
+        "gridPos": {"h": 4, "w": 6, "x": 0, "y": 0},
+        "targets": [
+          {
+            "expr": "sum(volcano_queue_pending_pods{queue=~\"$queue\"})",
+            "refId": "A"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "short",
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {"value": null, "color": "green"},
+                {"value": 5, "color": "yellow"},
+                {"value": 10, "color": "red"}
+              ]
+            }
+          }
+        }
+      },
+      {
+        "id": 2,
+        "title": "Queue Depth Trend",
+        "type": "timeseries",
+        "gridPos": {"h": 8, "w": 12, "x": 6, "y": 0},
+        "targets": [
+          {
+            "expr": "sum(volcano_queue_pending_pods{queue=~\"$queue\"})",
+            "legendFormat": "Pending",
+            "refId": "A"
+          },
+          {
+            "expr": "sum(volcano_queue_running_pods{queue=~\"$queue\"})",
+            "legendFormat": "Running",
+            "refId": "B"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "short"
+          }
+        }
+      },
+      {
+        "id": 3,
+        "title": "Job Scheduling P95 (s)",
+        "type": "timeseries",
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 4},
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.95, sum(rate(volcano_job_scheduling_duration_seconds_bucket{queue=~\"$queue\"}[5m])) by (le))",
+            "legendFormat": "P95",
+            "refId": "A"
+          },
+          {
+            "expr": "sum(rate(volcano_job_scheduling_duration_seconds_sum{queue=~\"$queue\"}[5m])) / sum(rate(volcano_job_scheduling_duration_seconds_count{queue=~\"$queue\"}[5m]))",
+            "legendFormat": "Average",
+            "refId": "B"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "s",
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {"value": null, "color": "green"},
+                {"value": 30, "color": "yellow"},
+                {"value": 60, "color": "red"}
+              ]
+            }
+          }
+        }
+      },
+      {
+        "id": 4,
+        "title": "Preemptions per Minute",
+        "type": "timeseries",
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 4},
+        "targets": [
+          {
+            "expr": "rate(volcano_pod_preemptions_total{queue=~\"$queue\"}[5m]) * 60",
+            "legendFormat": "Preemptions",
+            "refId": "A"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "short",
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {"value": null, "color": "green"},
+                {"value": 1, "color": "yellow"},
+                {"value": 3, "color": "red"}
+              ]
+            }
+          }
+        }
+      },
+      {
+        "id": 5,
+        "title": "Admission Latency Histogram",
+        "type": "heatmap",
+        "gridPos": {"h": 8, "w": 24, "x": 0, "y": 12},
+        "targets": [
+          {
+            "expr": "sum(rate(volcano_podgroup_wait_duration_seconds_bucket{queue=~\"$queue\"}[5m])) by (le)",
+            "refId": "A"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "s"
+          }
+        },
+        "options": {
+          "legend": {
+            "show": true
+          }
+        }
+      }
+    ]
+  }
+}

@@ -132,14 +132,16 @@ If any step fails, consult the runbook (`./runbooks/volcano-operations.md`).
 
 ## Monitoring & Alerts
 
-- **Metrics Source:** Volcano exposes metrics via the scheduler and controller pods at `/metrics`.
-- **Dashboards:** Extend Grafana with queue depth, job latency, eviction counts, and PodGroup wait time.
-- **Alert Suggestions:**
-  - `QueuePendingJobs > threshold` for more than 5 minutes.
-  - `PodGroupUnschedulable` events over 3 minutes.
-  - Scheduler pod restarts exceeding 3 per hour.
+- **Metrics Source:** Prometheus scrapes scheduler/controller endpoints via the `volcano-control-plane` job defined in `infra/monitoring/prometheus.yml`, the scheduler `ServiceMonitor`, and controller `PodMonitor` manifests under `k8s/monitoring/servicemonitors.yaml` (controller metrics exposed on port `10252`).
+- **Key Metrics:**
+  - `volcano_queue_pending_pods` / `volcano_queue_running_pods` — backlog and admitted workload by queue.
+  - `volcano_job_scheduling_duration_seconds_bucket` — histogram for scheduling latency (combine with `histogram_quantile` for P95).
+  - `volcano_pod_preemptions_total` — preemption activity per queue.
+  - `process_resident_memory_bytes{job=~"volcano-control-plane.*"}` — scheduler/controller resource footprint.
+- **Dashboards:** Grafana **Volcano Scheduler Operations** dashboard (`infra/monitoring/grafana/dashboards/volcano-operations.json`) tracks queue depth, scheduling latency (average & P95), PodGroup wait distribution, and preemption frequency.
+- **Alerting Rules:** `infra/monitoring/alerting-rules.yml` adds `VolcanoQueueBacklog`, `VolcanoSchedulingLatencyHigh`, and `VolcanoPreemptionSpike` to surface backlog, latency, and preemption anomalies.
 
-Integrate scrapes in `infra/monitoring/prometheus/values.yaml` and add alert rules in `k8s/monitoring/alerts/volcano-rules.yaml`.
+Integrate scrapes in `infra/monitoring/prometheus.yml` and deploy the monitoring assets via `k8s/monitoring`.
 
 ---
 

@@ -126,3 +126,45 @@ spec:
       - somaagent
       - soma-agent-hub
       - soma-memory
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: volcano-scheduler
+  namespace: observability
+  labels:
+    release: prometheus
+    component: volcano
+spec:
+  selector:
+    matchLabels:
+      app: volcano-scheduler
+  namespaceSelector:
+    matchNames:
+      - volcano-system
+  endpoints:
+    - port: metrics
+      path: /metrics
+      interval: 30s
+      scrapeTimeout: 10s
+---
+apiVersion: monitoring.coreos.com/v1
+kind: PodMonitor
+metadata:
+  name: volcano-controller
+  namespace: observability
+  labels:
+    release: prometheus
+    component: volcano
+spec:
+  namespaceSelector:
+    matchNames:
+      - volcano-system
+  selector:
+    matchLabels:
+      app: volcano-controller
+  podMetricsEndpoints:
+    - targetPort: 10252
+      path: /metrics
+      interval: 30s
+      scrapeTimeout: 10s

@@ -284,17 +284,29 @@ class SessionWorkflow:
             start_to_close_timeout=timedelta(seconds=60),
         )
 
+        audit_payload: dict[str, Any] = {
+            "session_id": payload.session_id,
+            "tenant": payload.tenant,
+            "user": payload.user,
+            "status": "accepted",
+            "policy": policy,
+            "token_claims": {k: v for k, v in token.items() if k != "access_token"},
+            "slm_model": payload.model,
+        }
+        if volcano_job_result:
+            volcano_details: dict[str, Any] = {
+                "job_name": volcano_job_result.get("job_name"),
+                "status": volcano_job_result.get("status"),
+                "waited": volcano_job_result.get("waited"),
+            }
+            logs = volcano_job_result.get("logs")
+            if isinstance(logs, str) and logs.strip():
+                volcano_details["logs"] = logs[:2048]
+            audit_payload["volcano_job"] = volcano_details
+
         audit_event_id = await workflow.execute_activity(
             emit_audit_event,
-            {
-                "session_id": payload.session_id,
-                "tenant": payload.tenant,
-                "user": payload.user,
-                "status": "accepted",
-                "policy": policy,
-                "token_claims": {k: v for k, v in token.items() if k != "access_token"},
-                "slm_model": payload.model,
-            },
+            audit_payload,
             start_to_close_timeout=timedelta(seconds=10),
         )
 

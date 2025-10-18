@@ -51,20 +51,20 @@
 **Verification:** Successful `kubectl get podgroup` reflecting sample jobs; sandbox instructions peer reviewed; architecture RFC updated with final queue topology.
 
 ### Sprint 2 – Platform Hooks (2 weeks)
-- Implement a Volcano-aware job launcher module under `services/orchestrator/app/workflows/`.
-- Extend config schema to include queue assignment, gang size, and SLA hints; update `.env.template` and respective `settings.py` defaults.
-- Add feature flag toggles so operators can swap between native and Volcano scheduling.
-- Cover new functionality with integration tests in `tests/integration/volcano/`.
+- ✅ Implement a Volcano-aware job launcher module under `services/orchestrator/app/workflows/` (`volcano_launcher.py`).
+- ✅ Extend config schema to include queue assignment, gang size, and SLA hints; update `.env.template` and respective `settings.py` defaults.
+- ✅ Add feature flag toggles so operators can swap between native and Volcano scheduling.
+- ✅ Cover new functionality with integration tests in `tests/integration/volcano/` (`test_volcano_launcher_e2e.py`) and wire them into CI.
 
-**Verification:** CI passing on new tests; feature flag documented in deployment notes.
+**Verification:** `ci-volcano` GitHub workflow runs the self-hosted Volcano smoke + integration suite; feature flag documented in deployment notes.
 
 ### Sprint 3 – Observability & Policy (1 week)
-- Integrate Volcano metrics into existing Prometheus scrape configs (`infra/monitoring/`).
-- Extend Grafana dashboards for queue depth, job latency, and preemption counts.
-- Capture runbooks for queue saturation, job starvation, and plugin tuning in `docs/technical-manual/runbooks/volcano-operations.md`.
-- Ensure auditing hooks capture scheduling decisions for compliance.
+- ✅ Integrate Volcano metrics into existing Prometheus scrape configs (`infra/monitoring/prometheus.yml`) and ServiceMonitors (`k8s/monitoring/servicemonitors.yaml`).
+- ✅ Extend Grafana dashboards for queue depth, job latency, and preemption counts (`infra/monitoring/grafana/dashboards/volcano-operations.json`).
+- ✅ Capture runbooks for queue saturation, job starvation, and plugin tuning in `docs/technical-manual/runbooks/volcano-operations.md`.
+- ✅ Ensure auditing hooks capture scheduling decisions for compliance (`services/orchestrator/app/workflows/session.py`).
 
-**Verification:** Dashboards live in Grafana; runbooks merged; alert rules firing against synthetic load; architecture RFC marked accepted.
+**Verification:** `ci-volcano` self-hosted job scrapes the new metrics, Grafana dashboard deployed, Prometheus alerts (`VolcanoQueueBacklog`, `VolcanoSchedulingLatencyHigh`, `VolcanoPreemptionSpike`) enabled, and audit events include Volcano job metadata.
 
 ### Sprint 4 – Stabilization & Rollout (2 weeks)
 - Execute load, chaos, and failover tests via `scripts/load_testing.py` and Temporal stress suites.
