@@ -126,6 +126,14 @@ Ensure orchestrator job templates emitted by Temporal include these annotations 
 | 4. PodGroup admission | `kubectl describe podgroup <name>` | `Status: Running` with all members bound |
 | 5. Metrics scrape | Check Prometheus targets | Volcano exporter targets `up == 1` |
 
+### CI Validation Pipeline
+
+| Workflow | Trigger | What it Verifies |
+|----------|---------|------------------|
+| `CI Volcano Sandbox` (`.github/workflows/ci-volcano.yml`) | `workflow_dispatch`, PRs touching Volcano assets | Provisioning of kind + Volcano, queue/application of sandbox manifests, sample session job execution, artifact capture, teardown success |
+
+> The workflow uses the helper scripts under `scripts/volcano/` and creates artifacts in `artifacts/volcano/` for post-run inspection. Treat failures as infrastructure regressions and investigate before merging related changes.
+
 If any step fails, consult the runbook (`./runbooks/volcano-operations.md`).
 
 ---

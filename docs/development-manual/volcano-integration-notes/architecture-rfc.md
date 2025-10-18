@@ -65,6 +65,7 @@ Define the target architecture for introducing the Volcano batch scheduler into 
 - Sandbox provisioning automated via `scripts/volcano/bootstrap-kind.sh` for developer validation.
 - Sample PodGroup + job manifest (`infra/k8s/local/volcano/sample-session-job.yaml`) demonstrates minimum viable integration.
 - Python helper `services/orchestrator/app/workflows/volcano_launcher.py` wraps kubectl for early-stage submissions.
+- CI workflow `CI Volcano Sandbox` provisions the sandbox via GitHub Actions and exercises the sample job to guard against regressions.
 
 ### 5.4 Observability
 
