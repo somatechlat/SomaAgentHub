@@ -21,4 +21,4 @@ if [[ "${DELETE_QUEUE}" == "true" ]]; then
   echo "[volcano] Deleted queue/interactive (cluster-scoped)."
 fi
 
-echo "Cleanup complete."
+echo "[volcano] Cleanup complete."
