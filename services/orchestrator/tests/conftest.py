@@ -116,7 +116,13 @@ class FakeTemporalClient:
 def api_client(monkeypatch: pytest.MonkeyPatch) -> Tuple[TestClient, FakeTemporalClient]:
     fake_client = FakeTemporalClient()
 
-    monkeypatch.setenv("TEMPORAL_ENABLED", "true")
+    # Ensure the in-memory settings object enables Temporal so create_app
+    # initialises the temporal client in startup handlers. Setting the
+    # environment variable here is too late because Settings is cached.
+    monkeypatch.setattr(
+        "services.orchestrator.app.core.config.settings.temporal_enabled",
+        True,
+    )
 
     async def _connect(*args: Any, **kwargs: Any) -> FakeTemporalClient:
         return fake_client
