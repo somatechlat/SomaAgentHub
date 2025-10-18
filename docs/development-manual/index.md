@@ -1,360 +1,621 @@
-# Development Manual
+# SomaAgentHub Development Manual
 
-**Contributor guide for developers building and extending SomaAgentHub.**
+**Complete guide for software engineers and contributors**
 
-Welcome to the Development Manual. This guide is for **software engineers, developers, and contributors** who build, test, and extend the SomaAgentHub codebase.
-
----
-
-## 📚 Quick Navigation
-
-### Core Documentation
-
-| Section | Purpose | Time |
-|---------|---------|------|
-| **[Local Setup](./local-setup.md)** | Get your development environment ready | 15 min |
-| **[Codebase Overview](../onboarding-manual/codebase-walkthrough.md)** | Understand project structure & architecture | 30 min |
-| **[Coding Standards](./coding-standards.md)** | Code style, linting, formatting | 20 min |
-| **[Testing Guidelines](./testing-guidelines.md)** | Unit, integration, e2e testing | 30 min |
-| **[API Reference](./api-reference.md)** | Service endpoints & data models | Reference |
-| **[Volcano Integration Roadmap](./volcano-integration-roadmap.md)** | Scheduler adoption plan & recovery checklist | Reference |
-| **[Contribution Process](./contribution-process.md)** | Git workflow, PR process, code review | 20 min |
+> Master the development, testing, and contribution processes for SomaAgentHub's enterprise agent orchestration platform.
 
 ---
 
-## 🎯 Your First Day
+## 📋 Overview
 
-**Get up and running in 2 hours:**
+This Development Manual provides comprehensive guidance for engineers working on SomaAgentHub. It covers local development setup, coding standards, testing practices, API development, and contribution workflows.
 
-### Quick Start
+### Target Audience
 
-1. Clone: `git clone https://github.com/somatechlat/SomaAgentHub.git && cd SomaAgentHub`
-2. Setup: `make setup && docker-compose up -d`
-3. Verify: `curl http://localhost:10000/health`
-4. Explore: Read [Codebase Walkthrough](../onboarding-manual/codebase-walkthrough.md)
-5. Contribute: Pick a `good-first-issue` and make your first PR
+- **Software Engineers** - Core platform development
+- **Frontend Developers** - UI and dashboard development
+- **Backend Developers** - Service and API development
+- **DevOps Engineers** - Infrastructure as code and automation
+- **Open Source Contributors** - Community contributions and extensions
+
+---
+
+## 🏗️ Development Architecture
+
+**SomaAgentHub Development Stack:**
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                Development Environment                       │
+├─────────────────────────────────────────────────────────────┤
+│                                                             │
+│  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐         │
+│  │   Python    │  │ TypeScript  │  │    Bash     │         │
+│  │  Services   │  │   React     │  │   Scripts   │         │
+│  │  (FastAPI)  │  │    Apps     │  │ (Automation)│         │
+│  └─────────────┘  └─────────────┘  └─────────────┘         │
+│                                                             │
+│  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐         │
+│  │   Docker    │  │ Kubernetes  │  │   Temporal  │         │
+│  │ Containers  │  │   Local     │  │  Workflows  │         │
+│  │   (Kind)    │  │  (Kind)     │  │   (Local)   │         │
+│  └─────────────┘  └─────────────┘  └─────────────┘         │
+│                                                             │
+└─────────────────────────────────────────────────────────────┘
+                              │
+┌─────────────────────────────────────────────────────────────┐
+│                   Development Tools                         │
+├─────────────────────────────────────────────────────────────┤
+│                                                             │
+│  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐         │
+│  │    Ruff     │  │    MyPy     │  │   Pytest    │         │
+│  │  (Linting)  │  │ (Type Check)│  │  (Testing)  │         │
+│  └─────────────┘  └─────────────┘  └─────────────┘         │
+│                                                             │
+│  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐         │
+│  │ Pre-commit  │  │   GitHub    │  │    Make     │         │
+│  │   Hooks     │  │   Actions   │  │ (Automation)│         │
+│  └─────────────┘  └─────────────┘  └─────────────┘         │
+│                                                             │
+└─────────────────────────────────────────────────────────────┘
+```
 
 ---
 
 ## 📚 Manual Contents
 
-| Section | Description |
-|---------|-------------|
-| **[Local Environment Setup](local-setup.md)** | Complete development environment configuration |
-| **[Coding Standards](coding-standards.md)** | Style guides, linting rules, and best practices |
-| **[Testing Guidelines](testing-guidelines.md)** | Unit, integration, and E2E testing procedures |
-| **[API Reference](api-reference.md)** | Complete API documentation and examples |
-| **[Contribution Process](contribution-process.md)** | Git workflow, PR process, and code reviews |
-| **[Volcano Integration Roadmap](volcano-integration-roadmap.md)** | Sprint plan and continuity guide for Volcano adoption |
+| Section | Description | Audience |
+|---------|-------------|----------|
+| [Local Setup](local-setup.md) | Development environment configuration | All developers |
+| [Coding Standards](coding-standards.md) | Style guides and best practices | All developers |
+| [Testing Guidelines](testing-guidelines.md) | Testing strategies and frameworks | All developers |
+| [API Reference](api-reference.md) | REST API documentation | Backend developers |
+| [Contribution Process](contribution-process.md) | Git workflow and PR guidelines | All contributors |
 
----
+### Specialized Development
 
-## 🏗️ Codebase Overview
-
-### Repository Structure
-```
-somaAgentHub/
-├── services/                    # Microservices (14 services)
-│   ├── gateway-api/            # Main API gateway
-│   ├── orchestrator/           # Workflow coordination
-│   ├── policy-engine/          # Constitutional AI governance
-│   ├── memory-gateway/         # Vector memory & RAG
-│   ├── identity-service/       # Authentication & RBAC
-│   └── ...                     # Other services
-├── infra/                      # Infrastructure as Code
-│   ├── k8s/                   # Kubernetes manifests
-│   ├── helm/                  # Helm charts
-│   └── terraform/             # Terraform modules
-├── sdk/                       # Client SDKs
-│   └── python/                # Python client library
-├── tests/                     # Integration & E2E tests
-├── scripts/                   # Build & deployment scripts
-└── docs/                      # Documentation (this manual)
-```
-
-### Technology Stack
-- **Languages**: Python 3.11+, TypeScript, Bash
-- **Frameworks**: FastAPI, React, Temporal
-- **Databases**: PostgreSQL, Redis, Qdrant
-- **Infrastructure**: Kubernetes, Helm, Docker
-- **Testing**: pytest, Jest, Playwright
-- **CI/CD**: GitHub Actions, Make
-
-### Key Design Principles
-1. **Microservices Architecture** - Independent, deployable services
-2. **API-First Design** - OpenAPI specifications for all services
-3. **Cloud-Native** - 12-factor app methodology
-4. **Test-Driven Development** - Comprehensive test coverage
-5. **Infrastructure as Code** - Everything versioned and reproducible
+- [Volcano Integration](volcano-integration-roadmap.md) - Kubernetes batch job scheduling
+- [Agent Development](agent-development.md) - Creating custom agents
+- [Frontend Development](frontend-development.md) - React/TypeScript UI development
+- [Infrastructure Development](infrastructure-development.md) - Terraform and Kubernetes
 
 ---
 
 ## 🚀 Quick Start for Developers
 
 ### 1. Environment Setup
+
+**Prerequisites:**
+```bash
+# Required tools
+python --version  # 3.11+
+node --version    # 18+
+docker --version  # 20+
+kubectl version   # 1.24+
+helm version      # 3+
+```
+
+**Repository Setup:**
 ```bash
 # Clone repository
-git clone https://github.com/somatechlat/somaAgentHub.git
-cd somaAgentHub
+git clone https://github.com/somatechlat/SomaAgentHub.git
+cd SomaAgentHub
 
-# Set up Python virtual environment
+# Set up Python environment
 python -m venv .venv
-source .venv/bin/activate  # On Windows: .venv\Scripts\activate
+source .venv/bin/activate  # Linux/Mac
+# .venv\Scripts\activate   # Windows
+
+# Install dependencies
 pip install -r requirements-dev.txt
 
-# Install development tools
-make install-dev-tools
+# Install pre-commit hooks
+pre-commit install
+```
 
-# Start local development environment
+### 2. Local Development
+
+**Start Infrastructure:**
+```bash
+# Start local Kubernetes cluster
+make start-cluster
+
+# Start core services
 make dev-up
+
+# Verify services
+make k8s-smoke
 ```
 
-### 2. Run Your First Test
+**Development Workflow:**
 ```bash
-# Unit tests
-pytest tests/unit/
+# Start service in development mode
+cd services/gateway-api
+uvicorn app.main:app --reload --host 0.0.0.0 --port 10000
 
-# Integration tests
-make integration-test
+# Run tests
+pytest tests/
 
-# E2E tests
-make e2e-test
-
-# Specific service tests
-pytest services/gateway-api/tests/
-```
-
-### 3. Make Your First Change
-```bash
-# Create feature branch
-git checkout -b feature/your-feature-name
-
-# Make changes and run tests
-pytest services/gateway-api/tests/
+# Check code quality
 ruff check .
 mypy .
-
-# Run local smoke tests
-make dev-smoke-test
-
-# Commit and push
-git add .
-git commit -m "feat: add new feature"
-git push origin feature/your-feature-name
 ```
 
----
+### 3. Testing & Validation
 
-## 🔧 Development Workflow
-
-### Daily Development Commands
+**Run Test Suite:**
 ```bash
-# Start development environment
-make dev-up
-
-# Run specific service locally
-make dev-run-gateway
-make dev-run-orchestrator
-
-# Watch for changes and restart
-make dev-watch
-
-# Stop development environment
-make dev-down
-
-# Clean up everything
-make dev-clean
-```
-
-### Code Quality Checks
-```bash
-# Run all quality checks
-make lint
-
-# Individual checks
-ruff check .                    # Linting
-ruff format .                   # Code formatting  
-mypy .                         # Type checking
-pytest --cov=services/         # Test coverage
-bandit -r services/            # Security scanning
-```
-
-### Service Development
-```bash
-# Add new service
-make create-service SERVICE_NAME=my-new-service
-
-# Generate API client from OpenAPI spec
-make generate-client SERVICE=gateway-api
-
-# Update database migrations
-make migrate SERVICE=identity-service
-
-# Build service Docker image
-make build-service SERVICE=gateway-api
-```
-
----
-
-## 📊 Testing Strategy
-
-### Test Pyramid
-1. **Unit Tests (70%)** - Fast, isolated tests for individual functions/classes
-2. **Integration Tests (20%)** - Service-to-service communication tests
-3. **E2E Tests (10%)** - Full user journey tests
-
-### Test Categories
-- **Unit Tests**: `/services/{service}/tests/unit/`
-- **Integration Tests**: `/tests/integration/`  
-- **E2E Tests**: `/tests/e2e/`
-- **Load Tests**: `/tests/performance/`
-- **Chaos Tests**: `/tests/chaos/`
-
-### Running Tests
-```bash
-# All tests
-make test
-
-# Specific test categories
+# Unit tests
 make test-unit
-make test-integration  
+
+# Integration tests
+make test-integration
+
+# End-to-end tests
 make test-e2e
 
-# Service-specific tests
-make test-service SERVICE=orchestrator
-
-# Coverage report
-make test-coverage
+# All tests
+make test-all
 ```
 
----
-
-## 🛠️ Service Development Guide
-
-### Creating a New Service
-
-1. **Generate Service Skeleton**
+**Code Quality Checks:**
 ```bash
-make create-service SERVICE_NAME=my-service PORT=8099
-```
+# Linting and formatting
+make lint
 
-2. **Service Structure**
-```
-services/my-service/
-├── app/
-│   ├── __init__.py
-│   ├── main.py              # FastAPI application
-│   ├── api/                 # API routes
-│   ├── core/               # Business logic
-│   ├── models/             # Data models
-│   └── deps.py             # Dependencies
-├── tests/
-├── Dockerfile
-├── requirements.txt
-└── openapi.yaml           # API specification
-```
+# Type checking
+make type-check
 
-3. **Essential Files**
-```python
-# app/main.py
-from fastapi import FastAPI
-from app.api.routes import router
+# Security scanning
+make security-scan
 
-app = FastAPI(title="My Service", version="1.0.0")
-app.include_router(router, prefix="/v1")
-
-@app.get("/health")
-def health_check():
-    return {"status": "healthy"}
-```
-
-### API Development Standards
-
-1. **OpenAPI Specification** - All endpoints must be documented
-2. **Versioned APIs** - Use `/v1/`, `/v2/` prefixes
-3. **Standard HTTP Status Codes** - Follow REST conventions
-4. **Error Handling** - Consistent error response format
-5. **Authentication** - JWT token validation on protected endpoints
-
-### Database Integration
-```python
-# models/example.py
-from sqlalchemy import Column, Integer, String
-from app.db.base_class import Base
-
-class ExampleModel(Base):
-    __tablename__ = "examples"
-    
-    id = Column(Integer, primary_key=True, index=True)
-    name = Column(String, index=True)
-    description = Column(String)
-
-# Alembic migration
-alembic revision --autogenerate -m "Add example model"
-alembic upgrade head
+# All quality checks
+make quality-check
 ```
 
 ---
 
-## 🎯 Contribution Guidelines
+## 🏗️ Project Structure
 
-### Git Workflow
-1. **Fork Repository** (external contributors)
-2. **Create Feature Branch** from `main`
-3. **Make Changes** following coding standards
-4. **Write Tests** for new functionality
-5. **Run Quality Checks** before committing
-6. **Submit Pull Request** with clear description
-7. **Address Review Feedback**
-8. **Merge After Approval**
+### Repository Organization
 
-### Commit Message Convention
+```
+SomaAgentHub/
+├── services/                 # Microservices (Python FastAPI)
+│   ├── gateway-api/         # Public API gateway
+│   ├── orchestrator/        # Workflow orchestration
+│   ├── identity-service/    # Authentication & authorization
+│   ├── policy-engine/       # Governance & compliance
+│   ├── memory-gateway/      # Vector storage & context
+│   └── common/              # Shared libraries
+├── apps/                    # Frontend applications
+│   ├── admin-console/       # React admin interface
+│   └── mobile-app/          # React Native mobile app
+├── sdk/                     # Client SDKs
+│   └── python/              # Python SDK
+├── infra/                   # Infrastructure as Code
+│   ├── terraform/           # Cloud infrastructure
+│   ├── k8s/                 # Kubernetes manifests
+│   └── helm/                # Helm charts
+├── scripts/                 # Automation scripts
+├── tests/                   # Test suites
+│   ├── unit/                # Unit tests
+│   ├── integration/         # Integration tests
+│   └── e2e/                 # End-to-end tests
+└── docs/                    # Documentation
+```
+
+### Service Architecture
+
+**Microservices Pattern:**
+- **Independent deployments** - Each service can be deployed separately
+- **Technology diversity** - Services can use different tech stacks
+- **Fault isolation** - Service failures don't cascade
+- **Team ownership** - Clear service boundaries and responsibilities
+
+**Communication Patterns:**
+- **Synchronous** - HTTP/REST for request-response
+- **Asynchronous** - Redis pub/sub for events
+- **Workflow** - Temporal for durable processes
+- **Streaming** - Kafka for high-volume data
+
+---
+
+## 🛠️ Development Tools
+
+### Code Quality Tools
+
+**Linting & Formatting:**
 ```bash
-# Format: type(scope): description
-feat(gateway): add new authentication endpoint
-fix(orchestrator): resolve workflow timeout issue
-docs(api): update OpenAPI specifications
-test(memory): add unit tests for recall functionality
-chore(ci): update GitHub Actions workflow
+# Ruff - Fast Python linter and formatter
+ruff check .                 # Check for issues
+ruff format .                # Format code
+ruff check --fix .           # Auto-fix issues
+
+# Configuration in pyproject.toml
+[tool.ruff]
+line-length = 120
+target-version = "py311"
 ```
 
-### Pull Request Process
-1. **Clear Title and Description**
-2. **Link Related Issues** (#123)
-3. **Include Screenshots** (for UI changes)
-4. **Add Breaking Change Notes** (if applicable)
-5. **Ensure CI Passes** (all checks green)
-6. **Request Reviews** from code owners
+**Type Checking:**
+```bash
+# MyPy - Static type checking
+mypy services/              # Check all services
+mypy services/gateway-api/  # Check specific service
+
+# Configuration in pyproject.toml
+[tool.mypy]
+python_version = "3.11"
+strict = true
+```
+
+**Testing:**
+```bash
+# Pytest - Testing framework
+pytest                      # Run all tests
+pytest tests/unit/          # Run unit tests
+pytest -v --cov=app        # Run with coverage
+
+# Configuration in pyproject.toml
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+```
+
+### Development Automation
+
+**Make Targets:**
+```bash
+# Development
+make dev-up                 # Start local infrastructure
+make dev-start-services     # Start core services
+make dev-down               # Stop local infrastructure
+
+# Testing
+make test-unit              # Unit tests
+make test-integration       # Integration tests
+make test-e2e               # End-to-end tests
+
+# Quality
+make lint                   # Code linting
+make format                 # Code formatting
+make type-check             # Type checking
+
+# Build & Deploy
+make build-changed          # Build modified services
+make deploy-dev             # Deploy to development
+make k8s-smoke              # Smoke tests
+```
+
+**Pre-commit Hooks:**
+```yaml
+# .pre-commit-config.yaml
+repos:
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.1.6
+    hooks:
+      - id: ruff
+        args: [--fix, --exit-non-zero-on-fix]
+      - id: ruff-format
+
+  - repo: https://github.com/pre-commit/mirrors-mypy
+    rev: v1.7.1
+    hooks:
+      - id: mypy
+        additional_dependencies: [types-all]
+```
 
 ---
 
-## 📚 Resources & References
+## 🔧 Development Workflows
 
-### Documentation
-- **[Architecture Decisions](../technical-manual/architecture.md)** - System design rationale
-- **[API Integration Guide](../SOMAGENTHUB_INTEGRATION_GUIDE.md)** - Complete API examples
-- **[Deployment Guide](../technical-manual/deployment.md)** - Production deployment
+### Feature Development
 
-### External Resources
-- **[FastAPI Documentation](https://fastapi.tiangolo.com/)**
-- **[Temporal Documentation](https://docs.temporal.io/)**
-- **[PostgreSQL Documentation](https://www.postgresql.org/docs/)**
-- **[Kubernetes API Reference](https://kubernetes.io/docs/reference/)**
+**1. Create Feature Branch:**
+```bash
+# Create and switch to feature branch
+git checkout -b feature/agent-performance-optimization
 
-### Development Tools
-- **IDE Extensions**: Python, Kubernetes, Docker plugins
-- **Debugging**: VS Code debugger configurations in `.vscode/`
-- **Database GUI**: pgAdmin, DBeaver for PostgreSQL management
-- **API Testing**: Postman collections in `/api-collections/`
+# Make changes
+# ... edit files ...
+
+# Commit changes
+git add .
+git commit -m "feat: optimize agent execution performance
+
+- Implement connection pooling for external APIs
+- Add caching layer for frequently accessed data
+- Reduce memory allocation in hot paths
+- Add performance metrics and monitoring"
+```
+
+**2. Testing & Quality:**
+```bash
+# Run tests locally
+make test-all
+
+# Check code quality
+make quality-check
+
+# Fix any issues
+ruff check --fix .
+mypy services/
+```
+
+**3. Create Pull Request:**
+```bash
+# Push feature branch
+git push origin feature/agent-performance-optimization
+
+# Create PR via GitHub CLI or web interface
+gh pr create --title "feat: optimize agent execution performance" \
+             --body "Improves agent performance by 40% through connection pooling and caching"
+```
+
+### Bug Fix Workflow
+
+**1. Reproduce Issue:**
+```bash
+# Create bug fix branch
+git checkout -b bugfix/workflow-timeout-handling
+
+# Write failing test
+# tests/test_workflow_timeout.py
+
+# Verify test fails
+pytest tests/test_workflow_timeout.py -v
+```
+
+**2. Implement Fix:**
+```bash
+# Fix the issue
+# services/orchestrator/app/workflows/session.py
+
+# Verify test passes
+pytest tests/test_workflow_timeout.py -v
+
+# Run full test suite
+make test-all
+```
+
+**3. Submit Fix:**
+```bash
+# Commit fix
+git add .
+git commit -m "fix: handle workflow timeouts gracefully
+
+- Add proper timeout handling in session workflows
+- Implement exponential backoff for retries
+- Add comprehensive error logging
+- Update timeout configuration documentation
+
+Fixes #123"
+
+# Push and create PR
+git push origin bugfix/workflow-timeout-handling
+gh pr create --title "fix: handle workflow timeouts gracefully"
+```
 
 ---
 
-## 🔗 Related Manuals
+## 📊 Development Metrics
 
-- **[User Manual](../user-manual/)** - Understanding the user experience you're building
-- **[Technical Manual](../technical-manual/)** - Deployment and operational context  
-- **[Onboarding Manual](../onboarding-manual/)** - Quick project orientation
+### Code Quality Metrics
+
+**Coverage Targets:**
+- **Unit Tests**: > 80% line coverage
+- **Integration Tests**: > 70% feature coverage
+- **E2E Tests**: > 90% critical path coverage
+
+**Performance Targets:**
+- **Build Time**: < 5 minutes for full build
+- **Test Execution**: < 10 minutes for full test suite
+- **Local Startup**: < 2 minutes for development environment
+
+**Quality Gates:**
+- **Linting**: Zero violations (enforced by CI)
+- **Type Checking**: Zero errors (enforced by CI)
+- **Security Scanning**: Zero high/critical vulnerabilities
+- **Documentation**: All public APIs documented
+
+### Development Velocity
+
+**Sprint Metrics:**
+- **Story Points Completed**: Track team velocity
+- **Cycle Time**: Time from commit to production
+- **Lead Time**: Time from idea to production
+- **Deployment Frequency**: Daily deployments target
+
+**Quality Metrics:**
+- **Bug Escape Rate**: < 5% of stories have post-release bugs
+- **Technical Debt**: < 20% of sprint capacity
+- **Code Review Time**: < 24 hours average
+- **PR Size**: < 400 lines changed average
 
 ---
 
-**Ready to contribute to SomaAgentHub? Start with the [Local Setup Guide](local-setup.md) and join our community of developers building the future of agent orchestration!**
+## 🔍 Debugging & Troubleshooting
+
+### Local Development Issues
+
+**Service Won't Start:**
+```bash
+# Check dependencies
+make dev-up
+kubectl get pods -n soma-agent-hub
+
+# Check service logs
+docker logs somaagenthub_gateway-api
+kubectl logs -n soma-agent-hub deployment/gateway-api
+
+# Check configuration
+cat .env
+soma config validate
+```
+
+**Tests Failing:**
+```bash
+# Run specific test with verbose output
+pytest tests/test_specific.py -v -s
+
+# Run with debugger
+pytest tests/test_specific.py --pdb
+
+# Check test dependencies
+make test-deps-check
+```
+
+**Performance Issues:**
+```bash
+# Profile Python code
+python -m cProfile -o profile.stats app/main.py
+python -c "import pstats; pstats.Stats('profile.stats').sort_stats('cumulative').print_stats(20)"
+
+# Memory profiling
+pip install memory-profiler
+python -m memory_profiler app/main.py
+```
+
+### Integration Debugging
+
+**Service Communication:**
+```bash
+# Test service connectivity
+curl -f http://localhost:10000/health
+curl -f http://localhost:10001/ready
+
+# Check network policies
+kubectl get networkpolicies -n soma-agent-hub
+
+# Trace requests
+kubectl logs -f deployment/gateway-api -n soma-agent-hub
+```
+
+**Database Issues:**
+```bash
+# Check database connectivity
+kubectl exec -it deployment/app-postgres -n soma-agent-hub -- psql -U somaagent -d somaagent
+
+# Check Redis connectivity
+kubectl exec -it deployment/redis -n soma-agent-hub -- redis-cli ping
+
+# Check Temporal connectivity
+kubectl exec -it deployment/temporal-server -n soma-agent-hub -- tctl cluster health
+```
+
+---
+
+## 📚 Learning Resources
+
+### Getting Started
+
+**Essential Reading:**
+1. **[Local Setup](local-setup.md)** - Set up your development environment
+2. **[Coding Standards](coding-standards.md)** - Learn our coding conventions
+3. **[Testing Guidelines](testing-guidelines.md)** - Understand our testing approach
+4. **[Contribution Process](contribution-process.md)** - Learn our Git workflow
+
+**Video Tutorials:**
+- **"SomaAgentHub Development Environment Setup"** (15 minutes)
+- **"Creating Your First Service"** (30 minutes)
+- **"Testing Strategies and Best Practices"** (25 minutes)
+- **"Debugging Distributed Systems"** (20 minutes)
+
+### Advanced Topics
+
+**Architecture Deep Dives:**
+- **Microservices Communication Patterns**
+- **Temporal Workflow Development**
+- **Kubernetes Operator Development**
+- **Performance Optimization Techniques**
+
+**Specialized Development:**
+- **Agent Development SDK**
+- **Custom Integration Development**
+- **Frontend Component Library**
+- **Infrastructure as Code Patterns**
+
+### Community Resources
+
+**Internal Resources:**
+- **Engineering Wiki** - Internal documentation and processes
+- **Tech Talks** - Weekly presentations on technical topics
+- **Code Review Guidelines** - Best practices for code reviews
+- **Architecture Decision Records (ADRs)** - Design decisions and rationale
+
+**External Resources:**
+- **FastAPI Documentation** - Web framework documentation
+- **Temporal Documentation** - Workflow engine documentation
+- **Kubernetes Documentation** - Container orchestration
+- **React Documentation** - Frontend framework
+
+---
+
+## 🤝 Contributing
+
+### Contribution Guidelines
+
+**Code Contributions:**
+1. **Fork the repository** and create a feature branch
+2. **Follow coding standards** and write tests
+3. **Submit a pull request** with clear description
+4. **Respond to code review** feedback promptly
+5. **Ensure CI passes** before requesting final review
+
+**Documentation Contributions:**
+1. **Identify documentation gaps** or outdated content
+2. **Follow the style guide** for consistency
+3. **Include examples** and practical guidance
+4. **Test documentation** with real scenarios
+5. **Submit PR** with documentation updates
+
+**Bug Reports:**
+1. **Search existing issues** to avoid duplicates
+2. **Provide detailed reproduction steps**
+3. **Include environment information**
+4. **Attach relevant logs** and error messages
+5. **Follow up** on requests for additional information
+
+### Recognition & Rewards
+
+**Contributor Recognition:**
+- **Monthly contributor highlights** in team meetings
+- **Contribution leaderboard** on internal wiki
+- **Conference speaking opportunities** for major contributions
+- **Mentorship opportunities** for experienced contributors
+
+**Career Development:**
+- **Technical leadership** opportunities on major features
+- **Cross-team collaboration** on platform initiatives
+- **Open source maintainer** roles for external projects
+- **Technical writing** and documentation leadership
+
+---
+
+## 🔄 What's Next?
+
+### Immediate Actions
+
+1. **Set up your development environment** with [Local Setup](local-setup.md)
+2. **Review [Coding Standards](coding-standards.md)** to understand our conventions
+3. **Read [Testing Guidelines](testing-guidelines.md)** for our testing approach
+4. **Follow [Contribution Process](contribution-process.md)** for your first PR
+
+### Advanced Development
+
+- **[API Reference](api-reference.md)** - Detailed API documentation
+- **[Agent Development](agent-development.md)** - Create custom agents
+- **[Frontend Development](frontend-development.md)** - UI and dashboard development
+- **[Infrastructure Development](infrastructure-development.md)** - Platform and tooling
+
+### Continuous Learning
+
+- **Attend tech talks** and engineering meetings
+- **Participate in code reviews** to learn from others
+- **Contribute to open source** projects and community
+- **Share knowledge** through documentation and presentations
+
+---
+
+**Ready to start developing? Begin with [Local Setup](local-setup.md) to configure your development environment, then explore our [Coding Standards](coding-standards.md) to understand our development practices.**

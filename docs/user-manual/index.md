@@ -1,97 +1,124 @@
 # SomaAgentHub User Manual
 
-Welcome to **SomaAgentHub** - The Next Generation Agent Orchestration Platform.
+**Complete guide for end-users, product managers, and business stakeholders**
 
-This User Manual provides everything you need to effectively use SomaAgentHub for autonomous agent workflows, multi-agent coordination, and intelligent task automation.
-
----
-
-## 🎯 What is SomaAgentHub?
-
-SomaAgentHub is an enterprise-grade platform that orchestrates autonomous agent systems with parallel execution, real-time coordination, and production-ready deployment capabilities. It enables you to:
-
-- **Coordinate Multiple Agents** - Orchestrate complex workflows across specialized AI agents
-- **Execute Tasks Intelligently** - Run autonomous workflows with built-in retry logic and fault tolerance  
-- **Manage Conversations** - Handle multi-turn dialogues with persistent memory and context
-- **Integrate Tools** - Connect to 16+ external services (GitHub, Slack, AWS, databases, etc.)
-- **Scale Production Workloads** - Deploy on Kubernetes with monitoring and governance
+> Learn how to use SomaAgentHub to orchestrate autonomous agent workflows, manage multi-agent projects, and leverage enterprise-grade AI infrastructure.
 
 ---
 
-## 📖 Manual Contents
+## 📋 What is SomaAgentHub?
+
+SomaAgentHub is an enterprise-grade agent orchestration platform that enables you to:
+
+- **Coordinate Multiple AI Agents** – Run complex workflows with specialized agents working together
+- **Manage Long-Running Projects** – Execute autonomous software development and business process automation
+- **Ensure Governance & Compliance** – Built-in policy enforcement and audit trails
+- **Scale with Enterprise Infrastructure** – Production-ready Kubernetes deployment with monitoring
+
+---
+
+## 🚀 Quick Start
+
+### 1. Access the Platform
+
+**Web Interface:**
+```
+http://your-somagenthub-instance:10000
+```
+
+**CLI Access:**
+```bash
+# Install the SomaAgent CLI
+pip install somaagent-cli
+
+# Configure your endpoint
+soma config set-endpoint http://your-instance:10000
+soma auth login
+```
+
+### 2. Your First Agent Workflow
+
+1. **Navigate to Wizards** in the web interface
+2. **Select "Project Creation Wizard"**
+3. **Define your project requirements:**
+   - Project name and description
+   - Required tools and integrations
+   - Approval workflows
+4. **Launch the workflow** and monitor progress
+5. **Review results** and approve next steps
+
+---
+
+## 📚 Manual Contents
 
 | Section | Description |
 |---------|-------------|
-| **[Installation](installation.md)** | Get SomaAgentHub running on your system |
-| **[Quick Start Tutorial](quick-start-tutorial.md)** | Your first workflow in under 10 minutes |
-| **[Core Features](features/)** | Detailed guides for each platform capability |
-| **[FAQ & Troubleshooting](faq.md)** | Common questions and solutions |
+| [Installation](installation.md) | How to access and set up SomaAgentHub |
+| [Quick Start Tutorial](quick-start-tutorial.md) | Step-by-step first workflow |
+| [Core Features](features/index.md) | Detailed feature documentation |
+| [FAQ](faq.md) | Common questions and troubleshooting |
+
+### Core Features
+
+- [Multi-Agent Orchestration](features/multi-agent-orchestration.md) - Coordinate specialized agents
+- [Workflow Management](features/workflow-management.md) - Design and execute complex workflows  
+- [Session Management](features/session-management.md) - Stateful conversations and context
+- [Policy & Governance](features/policy-governance.md) - Compliance and rule enforcement
+- [Tool Integration](features/tool-integration.md) - Connect external systems and APIs
+- [Intelligent Memory](features/intelligent-memory.md) - Persistent context and knowledge
+- [API Gateway](features/api-gateway.md) - Programmatic access and integrations
+- [Monitoring & Observability](features/monitoring-observability.md) - Track performance and health
 
 ---
 
-## 🚀 Key Features Overview
+## 🎯 Use Cases
 
-### Multi-Agent Orchestration
-- **Temporal-Powered Workflows** - Durable, resumable agent workflows
-- **Agent Coordination** - Parallel and sequential agent collaboration
-- **Task Capsules** - Reusable workflow templates and components
+### Autonomous Software Development
+Create complete software projects from requirements to deployment:
+- **Requirements Analysis** → **Architecture Design** → **Code Generation** → **Testing** → **Deployment**
 
-### Intelligent Memory
-- **Vector Memory** - Semantic search and context retrieval via Qdrant
-- **Conversation History** - Persistent dialogue state across sessions
-- **Context Sharing** - Real-time state synchronization between agents
+### Business Process Automation  
+Automate complex multi-step business workflows:
+- **Document Processing** → **Data Validation** → **Approval Routing** → **System Updates**
 
-### Production Infrastructure  
-- **Kubernetes Native** - Full containerized deployment with Helm charts
-- **Policy Enforcement** - Constitutional AI governance and safety guardrails
-- **Monitoring & Observability** - Prometheus metrics, Grafana dashboards, health checks
+### Research & Analysis
+Coordinate research agents for comprehensive analysis:
+- **Data Collection** → **Analysis** → **Report Generation** → **Presentation Creation**
 
-### Developer Experience
-- **REST APIs** - OpenAI-compatible chat completions and workflow management
-- **Tool Integrations** - Pre-built adapters for popular services and databases
-- **Local Development** - Kind-based local clusters for rapid iteration
+### Customer Support Automation
+Multi-tier support with escalation:
+- **Initial Triage** → **Knowledge Base Search** → **Expert Consultation** → **Resolution**
 
 ---
 
-## 🎭 Who Should Use This Manual?
+## 🔐 Security & Compliance
 
-| User Type | Primary Use Cases |
-|-----------|------------------|
-| **Product Managers** | Understanding platform capabilities, planning AI automation projects |
-| **Solution Architects** | Designing agent workflows, integration planning |
-| **Business Analysts** | Configuring workflows, managing approval processes |
-| **End Users** | Interacting with deployed agent systems, managing sessions |
-| **QA Engineers** | Testing agent workflows, validation procedures |
+SomaAgentHub includes enterprise-grade security features:
 
----
-
-## 🌟 Getting Started
-
-Ready to begin? Here's your learning path:
-
-1. **Start Here**: Follow the [Installation Guide](installation.md) to set up SomaAgentHub
-2. **Learn by Doing**: Complete the [Quick Start Tutorial](quick-start-tutorial.md) 
-3. **Explore Features**: Browse the [Features Directory](features/) for detailed capabilities
-4. **Get Help**: Check the [FAQ](faq.md) for common questions and solutions
+- **Identity & Access Management** - Role-based access control
+- **Policy Engine** - Automated compliance checking
+- **Audit Trails** - Complete workflow history
+- **Data Encryption** - End-to-end security
+- **Zero-Trust Architecture** - SPIFFE/SPIRE integration
 
 ---
 
-## 💡 Need Technical Details?
+## 📞 Getting Help
 
-This User Manual focuses on **using** SomaAgentHub effectively. For technical implementation details, see:
-
-- **[Technical Manual](../technical-manual/)** - Deployment, operations, and system administration
-- **[Development Manual](../development-manual/)** - Code contribution and local development
-- **[Onboarding Manual](../onboarding-manual/)** - Quick team member onboarding and project context
-
----
-
-## 📞 Support & Resources
-
-- **Documentation**: Complete guides in this manual and the [project documentation](../)
-- **Community**: Open issues and discussions in the GitHub repository
-- **Integration Examples**: Live examples in the [Integration Guide](../SOMAGENTHUB_INTEGRATION_GUIDE.md)
+- **Documentation**: Browse this manual for detailed guides
+- **Support Portal**: Submit tickets for technical issues  
+- **Community Forum**: Connect with other users
+- **Training Resources**: Video tutorials and workshops
 
 ---
 
-**Ready to harness the power of autonomous agents? Let's get started!**
+## 🔄 What's Next?
+
+1. **Complete the [Quick Start Tutorial](quick-start-tutorial.md)** to run your first workflow
+2. **Explore [Core Features](features/index.md)** to understand platform capabilities  
+3. **Review [FAQ](faq.md)** for common questions and solutions
+4. **Contact your administrator** for advanced configuration and integrations
+
+---
+
+**Ready to orchestrate the future of work with autonomous agents? Let's get started!**
