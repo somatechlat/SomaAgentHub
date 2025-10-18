@@ -99,7 +99,7 @@ class ToolServiceClient:
     """
     
     def __init__(self):
-        self.base_url = str(settings.tool_service_url or "http://tool-service:8080")
+        self.base_url = str(settings.tool_service_url or os.getenv("TOOL_SERVICE_URL", "http://tool-service:8080"))
         self.timeout = httpx.Timeout(60.0, connect=10.0)
     
     async def execute(
@@ -174,7 +174,7 @@ class SLMServiceClient:
     """Client for SLM Service (content generation)."""
     
     def __init__(self):
-        self.base_url = str(settings.somallm_provider_url or "http://gateway-api:8080")
+        self.base_url = str(settings.somallm_provider_url or os.getenv("SOMALLM_PROVIDER_URL", "http://gateway-api:8080"))
         self.timeout = httpx.Timeout(120.0, connect=10.0)
     
     async def chat_completion(

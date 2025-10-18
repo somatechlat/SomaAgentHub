@@ -116,14 +116,15 @@ SERVICE_SLOS: List[SLO] = [
 class SLOTracker:
     """Track SLO compliance and error budgets."""
     
-    def __init__(self, prometheus_url: str = "http://prometheus:9090"):
+    def __init__(self, prometheus_url: str = None):
         """
         Initialize SLO tracker.
         
         Args:
             prometheus_url: Prometheus server URL
         """
-        self.prometheus_url = prometheus_url
+        import os
+        self.prometheus_url = prometheus_url or os.getenv("PROMETHEUS_URL", "http://prometheus:9090")
     
     def calculate_availability(
         self,

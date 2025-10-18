@@ -35,7 +35,10 @@ async def main():
     """
     
     # Connect to Temporal
-    client = await Client.connect("localhost:7233", namespace="default")
+    import os
+    temporal_host = os.getenv("TEMPORAL_HOST", "localhost:7233")
+    temporal_namespace = os.getenv("TEMPORAL_NAMESPACE", "default")
+    client = await Client.connect(temporal_host, namespace=temporal_namespace)
     
     logger.info("✅ Connected to Temporal server")
     

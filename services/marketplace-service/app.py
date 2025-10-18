@@ -20,7 +20,7 @@ from sqlalchemy.orm import Session, sessionmaker
 logger = logging.getLogger(__name__)
 
 # Database setup
-DATABASE_URL = "postgresql://somagent:somagent@localhost:5432/somagent"
+DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://somagent:somagent@localhost:5432/somagent")
 engine = create_engine(DATABASE_URL)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()

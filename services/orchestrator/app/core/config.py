@@ -31,26 +31,26 @@ class Settings(BaseSettings):
 
     # Policy & identity services (real HTTP endpoints)
     policy_engine_url: AnyUrl = Field(
-        default="http://policy-engine:10020/v1/evaluate", alias="POLICY_ENGINE_URL"
+        default=os.getenv("POLICY_ENGINE_URL", "http://policy-engine:10020") + "/v1/evaluate", alias="POLICY_ENGINE_URL"
     )
     identity_service_url: AnyUrl = Field(
-        default="http://identity-service:10002/v1/tokens/issue", alias="IDENTITY_SERVICE_URL"
+        default=os.getenv("IDENTITY_TOKEN_ISSUE_URL", "http://identity-service:10002/v1/tokens/issue"), alias="IDENTITY_SERVICE_URL"
     )
 
     # Notification service used to broadcast orchestration milestones
     notification_service_url: Optional[AnyUrl] = Field(
-        default="http://notification-service:10026/v1/notifications",
+        default=os.getenv("NOTIFICATION_SERVICE_URL", "http://notification-service:10026") + "/v1/notifications",
         alias="NOTIFICATION_SERVICE_URL",
     )
 
     # SLM service (formerly SomaLLM provider)
     # Default to in-cluster DNS for slm-service on port 1001
     somallm_provider_url: AnyUrl = Field(
-        default="http://slm-service:10022",
+        default=os.getenv("SLM_SERVICE_URL", "http://slm-service:10022"),
         alias="SOMALLM_PROVIDER_URL",
     )
     somallm_provider_health_url: AnyUrl = Field(
-        default="http://slm-service:10022/health",
+        default=os.getenv("SLM_HEALTH_URL", "http://slm-service:10022/health"),
         alias="SOMALLM_PROVIDER_HEALTH_URL",
     )
 
@@ -66,7 +66,7 @@ class Settings(BaseSettings):
 
     # Constitution service manifest signing
     constitution_service_url: AnyUrl = Field(
-        default="http://constitution-service:10024/v1",
+        default=os.getenv("CONSTITUTION_SERVICE_URL", "http://constitution-service:10024") + "/v1",
         alias="CONSTITUTION_SERVICE_URL",
     )
     manifest_signing_enabled: bool = Field(

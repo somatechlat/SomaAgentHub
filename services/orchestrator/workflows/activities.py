@@ -94,7 +94,7 @@ POLICY_ENGINE_URL = _ensure_endpoint(str(settings.policy_engine_url), "/v1/evalu
 SOMALLM_PROVIDER_URL = str(settings.somallm_provider_url)
 GATEWAY_API_URL = os.getenv(
     "GATEWAY_API_URL",
-    runtime_default("http://gateway-api:10000", "http://gateway-api:8080"),
+    runtime_default(os.getenv("GATEWAY_API_URL", "http://gateway-api:10000"), "http://gateway-api:8080"),
 )
 
 

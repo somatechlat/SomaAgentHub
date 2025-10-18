@@ -59,7 +59,7 @@ class IdentitySettings(SharedSettings):
     )
     jwk_set_url: str = Field(
         default=runtime_default(
-            "http://identity-service:10002/.well-known/jwks.json",
+            os.getenv("IDENTITY_JWKS_URL", "http://identity-service:10002/.well-known/jwks.json"),
             "https://auth.soma-infra.svc.cluster.local:8080/.well-known/jwks.json",
         ),
         validation_alias=AliasChoices(
@@ -69,7 +69,7 @@ class IdentitySettings(SharedSettings):
         ),
     )
     redis_url: str | None = Field(
-        default=runtime_default("redis://redis:6379/0", "redis://redis.soma-infra.svc.cluster.local:6379/0"),
+        default=runtime_default(os.getenv("REDIS_URL", "redis://redis:6379/0"), "redis://redis.soma-infra.svc.cluster.local:6379/0"),
         validation_alias=AliasChoices(
             "SOMASTACK_REDIS_URL",
             "SOMASTACK_IDENTITY_REDIS_URL",

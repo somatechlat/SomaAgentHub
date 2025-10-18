@@ -14,7 +14,7 @@ class Settings(BaseSettings):
     sandbox_base_path: str = "/tmp/somagent/sandbox"
     release_signing_secret: str = "development-secret"
     default_rate_limit_per_minute: int = 30
-    analytics_url: str | None = "http://analytics-service:8000"
+    analytics_url: str | None = os.getenv("ANALYTICS_SERVICE_URL", "http://analytics-service:10023")
     billing_default_currency: str = "USD"
     model_config = SettingsConfigDict(env_prefix="SOMAGENT_TOOL_", extra="allow")
 

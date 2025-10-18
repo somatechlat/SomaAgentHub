@@ -11,6 +11,7 @@ from typing import List, Dict, Any, Optional
 from datetime import datetime
 import asyncio
 import uuid
+import os
 
 from temporalio.client import Client as TemporalClient, WorkflowHandle
 from temporalio.common import RetryPolicy
@@ -115,7 +116,7 @@ async def startup_event():
     global temporal_client
     
     temporal_client = await TemporalClient.connect(
-        "localhost:7233",  # Temporal server address
+        os.getenv("TEMPORAL_HOST", "localhost:7233"),  # Temporal server address
         namespace="default",
     )
     

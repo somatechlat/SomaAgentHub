@@ -196,7 +196,7 @@ async def execute_capsule(task_config: Dict[str, Any]) -> Dict[str, Any]:
         
         # Call capsule execution API
         response = requests.post(
-            "http://task-capsule-repo:8000/v1/capsules/execute",
+            f"{os.getenv('TASK_CAPSULE_REPO_URL', 'http://task-capsule-repo:8000')}/v1/capsules/execute",
             json={
                 "capsule_id": capsule_id,
                 "persona_id": task_config.get("persona_id"),
@@ -388,8 +388,10 @@ async def _store_workspace_metadata(
 ) -> None:
     """Store workspace metadata in Redis."""
     import redis.asyncio as redis
+    import os
     
-    client = redis.from_url("redis://localhost:6379")
+    redis_url = os.getenv("REDIS_URL", "redis://localhost:6379")
+    client = redis.from_url(redis_url)
     try:
         await client.hset(
             f"workspace:{workspace_id}",
@@ -403,8 +405,10 @@ async def _store_workspace_metadata(
 async def _get_workspace_metadata(workspace_id: str) -> Dict[str, Any]:
     """Retrieve workspace metadata from Redis."""
     import redis.asyncio as redis
+    import os
     
-    client = redis.from_url("redis://localhost:6379")
+    redis_url = os.getenv("REDIS_URL", "redis://localhost:6379")
+    client = redis.from_url(redis_url)
     try:
         data = await client.hgetall(f"workspace:{workspace_id}")
         if not data:
@@ -417,8 +421,10 @@ async def _get_workspace_metadata(workspace_id: str) -> Dict[str, Any]:
 async def _delete_workspace_metadata(workspace_id: str) -> None:
     """Delete workspace metadata from Redis."""
     import redis.asyncio as redis
+    import os
     
-    client = redis.from_url("redis://localhost:6379")
+    redis_url = os.getenv("REDIS_URL", "redis://localhost:6379")
+    client = redis.from_url(redis_url)
     try:
         await client.delete(f"workspace:{workspace_id}")
     finally:
