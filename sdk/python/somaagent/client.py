@@ -144,6 +144,11 @@ class SomaAgentClient:
         """Get conversation by ID."""
         response = self._request("GET", f"/v1/conversations/{conversation_id}")
         return Conversation(**response)
+
+    def health(self) -> Dict[str, Any]:
+        """Return API health status."""
+
+        return self._request("GET", "/health")
     
     # Capsules
     def list_capsules(

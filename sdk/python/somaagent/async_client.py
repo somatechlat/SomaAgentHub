@@ -151,6 +151,11 @@ class AsyncSomaAgentClient:
         """Get conversation by ID."""
         response = await self._request("GET", f"/v1/conversations/{conversation_id}")
         return Conversation(**response)
+
+    async def health(self) -> Dict[str, Any]:
+        """Return API health status."""
+
+        return await self._request("GET", "/health")
     
     # Capsules
     async def list_capsules(
