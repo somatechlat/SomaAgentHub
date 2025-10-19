@@ -27,7 +27,7 @@ logger = logging.getLogger(__name__)
 
 
 async def run_worker(
-    temporal_host: str = "localhost:7233",
+    temporal_host: str = "localhost:10009",
     task_queue: str = "kamachiq-tasks",
     namespace: str = "default",
 ):
@@ -119,12 +119,12 @@ async def main():
     Main entry point for Temporal worker.
     
     Environment variables:
-    - TEMPORAL_HOST: Temporal server address (default: localhost:7233)
+    - TEMPORAL_HOST: Temporal server address (default: localhost:10009)
     - TEMPORAL_NAMESPACE: Namespace (default: default)
     - TEMPORAL_TASK_QUEUE: Task queue (default: kamachiq-tasks)
     - RUN_EXAMPLE: If "true", run example workflow (default: false)
     """
-    temporal_host = os.getenv("TEMPORAL_HOST", "localhost:7233")
+    temporal_host = os.getenv("TEMPORAL_HOST", "localhost:10009")
     namespace = os.getenv("TEMPORAL_NAMESPACE", "default")
     task_queue = os.getenv("TEMPORAL_TASK_QUEUE", "kamachiq-tasks")
     run_example = os.getenv("RUN_EXAMPLE", "false").lower() == "true"
@@ -163,7 +163,7 @@ if __name__ == "__main__":
         RUN_EXAMPLE=true python temporal_worker.py
         
         # Connect to remote Temporal
-        TEMPORAL_HOST=temporal.observability:7233 python temporal_worker.py
+        TEMPORAL_HOST=temporal.observability:10009 python temporal_worker.py
     """
     try:
         asyncio.run(main())

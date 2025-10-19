@@ -21,7 +21,7 @@ class Settings(BaseSettings):
 
     # Temporal configuration
     # Accept TEMPORAL_HOST (preferred) with fallback to legacy TEMPORAL_TARGET_HOST
-    temporal_target_host: str = Field(default="localhost:7233", alias="TEMPORAL_HOST")
+    temporal_target_host: str = Field(default="localhost:10009", alias="TEMPORAL_HOST")
     temporal_namespace: str = Field(default="default", alias="TEMPORAL_NAMESPACE")
     temporal_task_queue: str = Field(default="somagent.session.workflows", alias="TEMPORAL_TASK_QUEUE")
     temporal_enabled: bool = Field(default=False, alias="TEMPORAL_ENABLED")

@@ -116,7 +116,7 @@ async def startup_event():
     global temporal_client
     
     temporal_client = await TemporalClient.connect(
-        os.getenv("TEMPORAL_HOST", "localhost:7233"),  # Temporal server address
+        os.getenv("TEMPORAL_HOST", "localhost:10009"),  # Temporal server address
         namespace="default",
     )
     

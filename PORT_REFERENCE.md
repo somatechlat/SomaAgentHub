@@ -46,7 +46,7 @@ This document defines the official port allocation for all SomaAgentHub services
 ### Internal Services (No External Ports)
 | Service | Container Port | Description |
 |---------|----------------|-------------|
-| **temporal-server** | 7233 | Workflow engine (internal) |
+| **temporal-server** | 10009 | Workflow engine (internal) |
 | **temporal-postgres** | 5432 | Temporal database (internal) |
 
 ## Environment Variables
@@ -81,7 +81,7 @@ GATEWAY_API_URL=http://gateway-api:10000
 ORCHESTRATOR_URL=http://orchestrator:10001
 IDENTITY_SERVICE_URL=http://identity-service:10002
 REDIS_URL=redis://redis:6379/0
-TEMPORAL_HOST=temporal-server:7233
+TEMPORAL_HOST=temporal-server:10009
 ```
 
 ## Access URLs (External)

@@ -121,6 +121,6 @@ ruff format .
 - **10002** - Identity service
 - **10018** - Memory gateway (optional)
 - **10020** - Policy engine (optional)
-- **7233** - Temporal server
+- **10009** - Temporal server
 - **6379** - Redis server
 - **5432** - PostgreSQL database
