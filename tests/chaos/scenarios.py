@@ -395,7 +395,7 @@ class TestChaosScenarios:
     
     def test_postgres_down(self):
         """Test PostgreSQL failure scenario."""
-        scenario = PostgresDownScenario("http://localhost:8000")
+        scenario = PostgresDownScenario("http://localhost:10000")
         results = scenario.run()
         
         assert results["success"], f"Postgres chaos test failed: {results}"
@@ -405,7 +405,7 @@ class TestChaosScenarios:
     
     def test_redis_down(self):
         """Test Redis failure scenario."""
-        scenario = RedisDownScenario("http://localhost:8000")
+        scenario = RedisDownScenario("http://localhost:10000")
         results = scenario.run()
         
         assert results["success"], f"Redis chaos test failed: {results}"
@@ -413,7 +413,7 @@ class TestChaosScenarios:
     
     def test_kafka_partition_loss(self):
         """Test Kafka failure scenario."""
-        scenario = KafkaPartitionLossScenario("http://localhost:8000")
+        scenario = KafkaPartitionLossScenario("http://localhost:10000")
         results = scenario.run()
         
         assert results["success"], f"Kafka chaos test failed: {results}"
@@ -421,7 +421,7 @@ class TestChaosScenarios:
     
     def test_github_rate_limit(self):
         """Test GitHub rate limit scenario."""
-        scenario = GitHubRateLimitScenario("http://localhost:8000")
+        scenario = GitHubRateLimitScenario("http://localhost:10000")
         results = scenario.run()
         
         assert results["success"], f"GitHub rate limit test failed: {results}"
@@ -429,7 +429,7 @@ class TestChaosScenarios:
     
     def test_aws_throttling(self):
         """Test AWS throttling scenario."""
-        scenario = AWSThrottlingScenario("http://localhost:8000")
+        scenario = AWSThrottlingScenario("http://localhost:10000")
         results = scenario.run()
         
         assert results["success"], f"AWS throttling test failed: {results}"

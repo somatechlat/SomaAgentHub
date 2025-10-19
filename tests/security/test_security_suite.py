@@ -123,7 +123,7 @@ class TestVaultSecrets:
     def test_vault_connection(self):
         """Test connection to Vault."""
         response = requests.get(
-            "http://localhost:8200/v1/sys/health",
+            "http://localhost:10030/v1/sys/health",
             timeout=5
         )
         assert response.status_code == 200
@@ -144,7 +144,7 @@ class TestVaultSecrets:
         # Store secret
         secret_data = {"api_key": "test-key-123", "endpoint": "https://api.test.com"}
         response = requests.post(
-            "http://localhost:8200/v1/secret/data/test/adapter",
+            "http://localhost:10030/v1/secret/data/test/adapter",
             headers={"X-Vault-Token": token},
             json={"data": secret_data},
             timeout=5
@@ -153,7 +153,7 @@ class TestVaultSecrets:
         
         # Retrieve secret
         response = requests.get(
-            "http://localhost:8200/v1/secret/data/test/adapter",
+            "http://localhost:10030/v1/secret/data/test/adapter",
             headers={"X-Vault-Token": token},
             timeout=5
         )
@@ -202,7 +202,7 @@ class TestGovernanceEnforcement:
         """Test HIPAA encryption rules are enforced."""
         # Attempt to create project without encryption
         response = requests.post(
-            "http://localhost:8000/v1/kamachiq/create-project",
+            "http://localhost:10000/v1/kamachiq/create-project",
             json={
                 "name": "test-healthcare-app",
                 "industry": "healthcare",
@@ -224,7 +224,7 @@ class TestGovernanceEnforcement:
     def test_pci_dss_card_storage_prevention(self):
         """Test PCI-DSS prevents card data storage."""
         response = requests.post(
-            "http://localhost:8000/v1/kamachiq/create-project",
+            "http://localhost:10000/v1/kamachiq/create-project",
             json={
                 "name": "test-payment-app",
                 "industry": "finance",
@@ -247,7 +247,7 @@ class TestGovernanceEnforcement:
     def test_auto_remediation(self):
         """Test governance auto-remediation."""
         response = requests.post(
-            "http://localhost:8000/v1/kamachiq/create-project",
+            "http://localhost:10000/v1/kamachiq/create-project",
             json={
                 "name": "test-healthcare-app",
                 "industry": "healthcare",
@@ -273,7 +273,7 @@ class TestGovernanceEnforcement:
     def test_policy_hash_verification(self):
         """Test constitution policy hash verification."""
         response = requests.get(
-            "http://localhost:8000/v1/constitution/current",
+            "http://localhost:10000/v1/constitution/current",
             timeout=5
         )
         
@@ -296,7 +296,7 @@ class TestVulnerabilityScanning:
         malicious_input = "'; DROP TABLE users; --"
         
         response = requests.post(
-            "http://localhost:8000/v1/tools/search",
+            "http://localhost:10000/v1/tools/search",
             json={"query": malicious_input},
             timeout=5
         )
@@ -317,7 +317,7 @@ class TestVulnerabilityScanning:
         xss_payload = "<script>alert('XSS')</script>"
         
         response = requests.post(
-            "http://localhost:8000/v1/kamachiq/chat",
+            "http://localhost:10000/v1/kamachiq/chat",
             json={"message": xss_payload},
             timeout=5
         )
@@ -332,7 +332,7 @@ class TestVulnerabilityScanning:
         malicious_command = "test; rm -rf /"
         
         response = requests.post(
-            "http://localhost:8000/v1/tools/terraform/invoke",
+            "http://localhost:10000/v1/tools/terraform/invoke",
             json={
                 "capability": "validate",
                 "parameters": {"working_dir": malicious_command}

@@ -103,7 +103,7 @@ make docker-compose-up
 ✓ qdrant:10005 (health: ✅)
 ✓ clickhouse:10006 (health: ✅)
 ✓ minio:10007 (API) / 10008 (console) (health: ✅)
-✓ temporal-server:7233 (internal-only, health: ✅)
+✓ temporal-server:10009 (external), 7233 (internal-only, health: ✅)
 ✓ vault:10009 (health: ✅)
 ✓ prometheus:10010 (health: ✅)
 ✓ grafana:10011 (health: ✅)
@@ -129,7 +129,7 @@ somaagenthub_app-postgres     Up 2 minutes (healthy)   0.0.0.0:10004->5432/tcp
 somaagenthub_qdrant           Up 2 minutes (healthy)   0.0.0.0:10005->6333/tcp
 somaagenthub_clickhouse       Up 2 minutes (healthy)   0.0.0.0:10006->8123/tcp
 somaagenthub_minio            Up 2 minutes (healthy)   0.0.0.0:10007->9000/tcp, 0.0.0.0:10008->9001/tcp
-somaagenthub_temporal         Up 2 minutes (healthy)   7233-7235/tcp
+somaagenthub_temporal         Up 2 minutes (healthy)   0.0.0.0:10009->7233/tcp
 somaagenthub_vault            Up 2 minutes (healthy)   0.0.0.0:10009->8200/tcp
 somaagenthub_prometheus       Up 2 minutes (healthy)   0.0.0.0:10010->9090/tcp
 somaagenthub_grafana          Up 2 minutes (healthy)   0.0.0.0:10011->3000/tcp
@@ -277,7 +277,7 @@ curl -X GET http://localhost:10002/health
 | Service | Endpoint | Function |
 |---------|----------|----------|
 | **Vault** | `http://localhost:10009` | Secrets management |
-| **Temporal Server** | `localhost:7233` (gRPC) | Workflow orchestration |
+| **Temporal Server** | `localhost:10009` (gRPC) | Workflow orchestration |
 
 ---
 

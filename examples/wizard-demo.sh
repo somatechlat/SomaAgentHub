@@ -3,7 +3,7 @@
 # Marketing Campaign Wizard Demo
 # This script demonstrates the full wizard flow end-to-end
 
-BASE_URL="http://localhost:60000"
+BASE_URL="http://localhost:10000"
 
 echo "🎯 SomaAgentHub Marketing Campaign Wizard Demo"
 echo "=============================================="

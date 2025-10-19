@@ -50,7 +50,7 @@ This Technical Manual provides comprehensive guidance for deploying, operating, 
 │  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐         │
 │  │  Temporal   │  │    Redis    │  │ PostgreSQL  │         │
 │  │   Server    │  │   Cache     │  │  Database   │         │
-│  │  (7233)     │  │  (10003)    │  │  (10004)    │         │
+│  │  (10009)    │  │  (10003)    │  │  (10004)    │         │
 │  └─────────────┘  └─────────────┘  └─────────────┘         │
 │                                                             │
 │  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐         │
@@ -166,7 +166,7 @@ make k8s-smoke
 
 | Service | Port | Purpose | Data Persistence |
 |---------|------|---------|------------------|
-| **Temporal Server** | 7233 | Workflow engine | PostgreSQL |
+| **Temporal Server** | 10009 | Workflow engine | PostgreSQL |
 | **Redis** | 10003 | Caching, sessions | Memory + AOF |
 | **PostgreSQL** | 10004 | Relational data | Persistent volumes |
 | **Qdrant** | 10005 | Vector database | Persistent volumes |

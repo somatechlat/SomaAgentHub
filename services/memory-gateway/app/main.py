@@ -58,7 +58,7 @@ async def remember(payload: RememberRequest):
         text_to_embed = json.dumps(payload.value) if not isinstance(payload.value, str) else payload.value
         
         try:
-            slm_url = os.getenv("SOMALLM_PROVIDER_URL") or os.getenv("SLM_SERVICE_URL", "http://localhost:8003")
+            slm_url = os.getenv("SOMALLM_PROVIDER_URL") or os.getenv("SLM_SERVICE_URL", "http://localhost:10022")
             async with httpx.AsyncClient(timeout=10.0) as client:
                 response = await client.post(
                     f"{slm_url}/v1/embeddings",
@@ -108,7 +108,7 @@ async def rag(request: RAGRequest):
         import os
         
         try:
-            slm_url = os.getenv("SOMALLM_PROVIDER_URL") or os.getenv("SLM_SERVICE_URL", "http://localhost:8003")
+            slm_url = os.getenv("SOMALLM_PROVIDER_URL") or os.getenv("SLM_SERVICE_URL", "http://localhost:10022")
             async with httpx.AsyncClient(timeout=10.0) as client:
                 response = await client.post(
                     f"{slm_url}/v1/embeddings",

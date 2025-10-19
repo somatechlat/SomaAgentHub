@@ -5,8 +5,8 @@ import asyncio
 import httpx
 import pytest
 
-GATEWAY_URL = os.getenv("E2E_GATEWAY_URL", "http://localhost:8080")
-ORCH_URL = os.getenv("E2E_ORCHESTRATOR_URL", "http://localhost:1004")
+GATEWAY_URL = os.getenv("E2E_GATEWAY_URL", "http://localhost:10000")
+ORCH_URL = os.getenv("E2E_ORCHESTRATOR_URL", "http://localhost:10001")
 
 
 @pytest.mark.e2e

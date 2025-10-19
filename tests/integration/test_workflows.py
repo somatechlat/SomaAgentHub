@@ -266,7 +266,7 @@ async def test_start_session_via_gateway():
 
     Requires a running Gateway service (and Orchestrator) reachable at E2E_GATEWAY_URL or localhost:8080.
     """
-    gateway_url = os.getenv("E2E_GATEWAY_URL", "http://localhost:8080")
+    gateway_url = os.getenv("E2E_GATEWAY_URL", "http://localhost:10000")
     payload = {
         "prompt": "Say hello to the world",
         "capsule_id": "demo",

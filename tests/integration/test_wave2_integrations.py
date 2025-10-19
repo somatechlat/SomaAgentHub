@@ -23,7 +23,7 @@ class TestRedisClient:
         """Test Redis health check."""
         from services.common.redis_client import get_redis_client
         
-        os.environ["REDIS_URL"] = "redis://localhost:6379"
+        os.environ["REDIS_URL"] = "redis://localhost:10003"
         redis_client = get_redis_client()
         
         healthy = await redis_client.health_check()
@@ -35,7 +35,7 @@ class TestRedisClient:
         """Test Redis JSON set/get/delete operations."""
         from services.common.redis_client import get_redis_client
         
-        os.environ["REDIS_URL"] = "redis://localhost:6379"
+        os.environ["REDIS_URL"] = "redis://localhost:10003"
         redis_client = get_redis_client()
         
         # Skip test if Redis unavailable
@@ -64,7 +64,7 @@ class TestRedisClient:
         """Test Redis lock expires after TTL."""
         from services.common.redis_client import get_redis_client
         
-        os.environ["REDIS_URL"] = "redis://localhost:6379"
+        os.environ["REDIS_URL"] = "redis://localhost:10003"
         redis_client = get_redis_client()
         
         # Skip test if Redis unavailable
@@ -92,7 +92,7 @@ class TestRedisClient:
         """Test Redis distributed lock context manager."""
         from services.common.redis_client import get_redis_client
         
-        os.environ["REDIS_URL"] = "redis://localhost:6379"
+        os.environ["REDIS_URL"] = "redis://localhost:10003"
         redis_client = get_redis_client()
         
         # Skip test if Redis unavailable
@@ -123,7 +123,7 @@ class TestQdrantClient:
         """Test Qdrant health check."""
         from services.common.qdrant_client import get_qdrant_client
         
-        os.environ["QDRANT_URL"] = "http://localhost:6333"
+        os.environ["QDRANT_URL"] = "http://localhost:10005"
         qdrant_client = get_qdrant_client()
         
         healthy = await qdrant_client.health_check()
@@ -134,7 +134,7 @@ class TestQdrantClient:
         """Test Qdrant collection creation and deletion."""
         from services.common.qdrant_client import get_qdrant_client
         
-        os.environ["QDRANT_URL"] = "http://localhost:6333"
+        os.environ["QDRANT_URL"] = "http://localhost:10005"
         qdrant_client = get_qdrant_client()
         
         # Skip test if Qdrant unavailable
@@ -177,7 +177,7 @@ class TestQdrantClient:
         """Test Qdrant semantic search with filtering."""
         from services.common.qdrant_client import get_qdrant_client
         
-        os.environ["QDRANT_URL"] = "http://localhost:6333"
+        os.environ["QDRANT_URL"] = "http://localhost:10005"
         qdrant_client = get_qdrant_client()
         
         # Skip test if Qdrant unavailable
@@ -346,7 +346,7 @@ class TestServiceIntegrations:
         """Test training lock endpoints with Redis backend."""
         from services.common.redis_client import get_redis_client
         
-        os.environ["REDIS_URL"] = "redis://localhost:6379"
+        os.environ["REDIS_URL"] = "redis://localhost:10003"
         redis_client = get_redis_client()
         
         # Skip if Redis unavailable
@@ -379,7 +379,7 @@ class TestServiceIntegrations:
         """Test memory storage with Qdrant backend."""
         from services.common.qdrant_client import get_qdrant_client
         
-        os.environ["QDRANT_URL"] = "http://localhost:6333"
+        os.environ["QDRANT_URL"] = "http://localhost:10005"
         qdrant_client = get_qdrant_client()
         
         # Skip if Qdrant unavailable

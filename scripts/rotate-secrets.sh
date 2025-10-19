@@ -4,7 +4,7 @@ set -euo pipefail
 # Rotate secrets in Vault for all services
 # Triggers automatic credential rotation for database, API keys, etc.
 
-VAULT_ADDR="${VAULT_ADDR:-http://localhost:8200}"
+VAULT_ADDR="${VAULT_ADDR:-http://localhost:10030}"
 VAULT_NAMESPACE="${VAULT_NAMESPACE:-somaagent}"
 
 echo "🔄 Starting secret rotation..."

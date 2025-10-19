@@ -390,7 +390,7 @@ async def _store_workspace_metadata(
     import redis.asyncio as redis
     import os
     
-    redis_url = os.getenv("REDIS_URL", "redis://localhost:6379")
+    redis_url = os.getenv("REDIS_URL", "redis://localhost:10003")
     client = redis.from_url(redis_url)
     try:
         await client.hset(
@@ -407,7 +407,7 @@ async def _get_workspace_metadata(workspace_id: str) -> Dict[str, Any]:
     import redis.asyncio as redis
     import os
     
-    redis_url = os.getenv("REDIS_URL", "redis://localhost:6379")
+    redis_url = os.getenv("REDIS_URL", "redis://localhost:10003")
     client = redis.from_url(redis_url)
     try:
         data = await client.hgetall(f"workspace:{workspace_id}")
@@ -423,7 +423,7 @@ async def _delete_workspace_metadata(workspace_id: str) -> None:
     import redis.asyncio as redis
     import os
     
-    redis_url = os.getenv("REDIS_URL", "redis://localhost:6379")
+    redis_url = os.getenv("REDIS_URL", "redis://localhost:10003")
     client = redis.from_url(redis_url)
     try:
         await client.delete(f"workspace:{workspace_id}")

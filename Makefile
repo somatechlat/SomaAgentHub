@@ -35,7 +35,7 @@ SBOM_DIR ?= sbom
 SCAN_DIR ?= security-scans
 SEVERITY ?= --severity CRITICAL,HIGH,MEDIUM
 TRIVY_FORMAT ?= table
-VAULT_ADDR ?= http://localhost:8200
+VAULT_ADDR ?= http://localhost:10030
 VAULT_NAMESPACE ?= somaagent
 
 # Image names

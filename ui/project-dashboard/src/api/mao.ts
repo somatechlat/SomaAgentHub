@@ -91,7 +91,7 @@ export const maoApi = {
     onMessage: (data: any) => void,
     onError?: (error: any) => void
   ): WebSocket => {
-    const ws = new WebSocket(`ws://localhost:8007/v1/projects/${projectId}/stream`)
+    const ws = new WebSocket(`ws://localhost:10001/v1/projects/${projectId}/stream`)
 
     ws.onmessage = (event) => {
       const data = JSON.parse(event.data)

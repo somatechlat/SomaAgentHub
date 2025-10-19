@@ -33,7 +33,7 @@ async def demo_autonomous_project_creation():
     print("📦 Initializing KAMACHIQ components...")
     
     # MAO client (connects to Multi-Agent Orchestrator)
-    mao_client = MAOClient(base_url="http://localhost:8000")
+    mao_client = MAOClient(base_url="http://localhost:10001")
     
     # Project bootstrapper
     bootstrapper = KAMACHIQBootstrapper(
@@ -139,7 +139,7 @@ async def demo_autonomous_project_creation():
                     print(f"   • Kubernetes deployments")
                     print(f"   • Monitoring and logging")
                     print()
-                    print(f"🔗 Project Dashboard: http://localhost:3000/projects/{project_id}")
+                    print(f"🔗 Project Dashboard: http://localhost:10011/projects/{project_id}")
                     print()
                 elif exec_type == "execution_update":
                     step = exec_response.get("step")

@@ -4,7 +4,7 @@ set -euo pipefail
 # Bootstrap Vault for local development
 # Sets up KV v2, database auth, and Kubernetes auth
 
-VAULT_ADDR="${VAULT_ADDR:-http://localhost:8200}"
+VAULT_ADDR="${VAULT_ADDR:-http://localhost:10030}"
 VAULT_NAMESPACE="${VAULT_NAMESPACE:-somaagent}"
 VAULT_TOKEN="${VAULT_TOKEN:-root}"
 
@@ -103,6 +103,6 @@ vault kv list secret/api/ || true
 vault kv list secret/storage/ || true
 
 echo ""
-echo "🔐 Access Vault UI at: http://localhost:8200"
+echo "🔐 Access Vault UI at: http://localhost:10030"
 echo "   Root token: $VAULT_TOKEN"
 echo ""

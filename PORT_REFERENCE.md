@@ -18,7 +18,7 @@ This document defines the official port allocation for all SomaAgentHub services
 | **clickhouse** | 10006 | 8123 | Analytics database |
 | **minio-api** | 10007 | 9000 | Object storage API |
 | **minio-console** | 10008 | 9001 | MinIO web console |
-| **vault** | 10009 | 8200 | Secrets management |
+| **temporal-server** | 10009 | 7233 | Workflow engine |
 
 ### Observability Stack (10010-10019)
 | Service | Port | Container Port | Description |
@@ -43,10 +43,14 @@ This document defines the official port allocation for all SomaAgentHub services
 | **billing-service** | 10025 | 10025 | Usage tracking |
 | **notification-service** | 10026 | 10026 | Event notifications |
 
+### Security Services (10030+)
+| Service | Port | Container Port | Description |
+|---------|------|----------------|-------------|
+| **vault** | 10030 | 8200 | Secrets management |
+
 ### Internal Services (No External Ports)
 | Service | Container Port | Description |
 |---------|----------------|-------------|
-| **temporal-server** | 10009 | Workflow engine (internal) |
 | **temporal-postgres** | 5432 | Temporal database (internal) |
 
 ## Environment Variables
@@ -81,7 +85,7 @@ GATEWAY_API_URL=http://gateway-api:10000
 ORCHESTRATOR_URL=http://orchestrator:10001
 IDENTITY_SERVICE_URL=http://identity-service:10002
 REDIS_URL=redis://redis:6379/0
-TEMPORAL_HOST=temporal-server:10009
+TEMPORAL_HOST=temporal-server:7233
 ```
 
 ## Access URLs (External)

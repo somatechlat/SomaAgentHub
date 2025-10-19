@@ -13,7 +13,7 @@ import requests
 import json
 
 # MAO service API
-MAO_API = "http://localhost:8007/v1"
+MAO_API = "http://localhost:10001/v1"
 
 
 async def create_example_project():

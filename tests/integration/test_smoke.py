@@ -9,7 +9,7 @@ RUN = os.getenv("RUN_INTEGRATION", "0")
 @pytest.mark.skipif(RUN != "1", reason="Integration tests are disabled by default")
 def test_gateway_orchestrator_smoke():
     # This test expects the dev infra to be running and services available at the example ports
-    gw = os.getenv("GATEWAY_URL", "http://localhost:60010")
+    gw = os.getenv("GATEWAY_URL", "http://localhost:10000")
     token = os.getenv("DEV_JWT_TOKEN")
     headers = {"Content-Type": "application/json"}
     if token:

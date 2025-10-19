@@ -90,7 +90,7 @@ The docker-compose stack delivers the core runtime needed for local development 
 | **Gateway API** | 10000 | Handles ingress traffic, JWT enforcement, rate limiting, request validation, and routing to internal services. Provides OpenAI-compatible endpoints for agents and external clients. |
 | **Orchestrator** | 10001 | Coordinates multi-agent workflows using Temporal, maintains conversational state, and orchestrates long-running tasks. |
 | **Identity Service** | 10002 | Manages tenants, roles, and JWT issuance. Integrates with Redis for session caching and policy lookups. |
-| **Temporal Server** | 7233 (gRPC) | Supplies workflow orchestration and durable timers through `temporalio/auto-setup`. |
+| **Temporal Server** | 10009 (gRPC) | Supplies workflow orchestration and durable timers through `temporalio/auto-setup`. |
 | **Temporal PostgreSQL** | 5432 | Stores Temporal metadata, task queues, and workflow history. |
 | **Redis** | 6379 | Provides caching and lightweight messaging for identity and orchestration components. |
 | **Application PostgreSQL** | 5432 | Persists domain data for application services. |
@@ -111,7 +111,7 @@ The `docker-compose.yml` file defines the default local topology. `scripts/docke
 | Identity Service | Built from `services/identity-service` | `${IDENTITY_SERVICE_PORT}` | 10002 | `GET /ready` |
 | Redis | `redis:7-alpine` | `${REDIS_PORT}` | 6379 | `redis-cli ping` |
 | App PostgreSQL | `postgres:16.4-alpine` | `${APP_POSTGRES_PORT}` | 5432 | `pg_isready` |
-| Temporal (server) | `temporalio/auto-setup:1.22.4` | Internal | 7233 | `tctl cluster health` |
+| Temporal (server) | `temporalio/auto-setup:1.22.4` | Internal | 10009 | `tctl cluster health` |
 | Temporal PostgreSQL | `postgres:15-alpine` | Internal | 5432 | `pg_isready` |
 | Qdrant | `qdrant/qdrant:v1.11.0@sha256:22a2d455837380d5fa1a3455b87b4fe7af30aa4f4712f8a57027c61022113796` | `${QDRANT_PORT}` | 6333 | `GET /healthz` |
 | ClickHouse | `clickhouse/clickhouse-server:24.7-alpine@sha256:3187267104ffa306377a9d41eedcdb9c3fade52db855f92021fb1498a070c7fb` | `${CLICKHOUSE_HTTP_PORT}` | 8123 | `GET /ping` |

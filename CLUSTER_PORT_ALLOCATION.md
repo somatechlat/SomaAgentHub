@@ -1,5 +1,23 @@
 # SomaAgentHub Cluster Port Allocation
 
+"""
+SomaAgentHub Port Allocation Configuration
+
+This module defines the standardized port allocation strategy for all SomaAgentHub services.
+The 10000-10099 range ensures consistency, easy firewall management, and conflict avoidance.
+
+Features:
+- Standardized 10000+ port range for all external services
+- Clear separation between core services (10000-10009) and observability (10010-10019)
+- Container-to-container communication preserved on internal ports
+- Environment variable configuration for all port mappings
+
+Usage:
+- External access: Use standardized ports (e.g., localhost:10000)
+- Internal communication: Use service names with internal ports (e.g., temporal-server:7233)
+- Configuration: Set via environment variables in .env.template
+"""
+
 **Standardized Port Range: 10000-10099**
 
 All SomaAgentHub services use the 10000+ port range for consistency and easy management.
@@ -62,6 +80,22 @@ All SomaAgentHub services use the 10000+ port range for consistency and easy man
 
 Reserved for future external service integrations and custom extensions.
 
+## Configuration Management Patterns
+
+```python
+# Environment-based port configuration (following SomaAgentHub patterns)
+class PortConfig:
+    """Port configuration for SomaAgentHub services."""
+    gateway_api_port: int = Field(default=10000, env="GATEWAY_API_PORT")
+    orchestrator_port: int = Field(default=10001, env="ORCHESTRATOR_PORT")
+    identity_service_port: int = Field(default=10002, env="IDENTITY_SERVICE_PORT")
+    temporal_port: int = Field(default=10009, env="TEMPORAL_PORT")
+    
+    # Internal service URLs (container-to-container)
+    temporal_host: str = Field(default="temporal-server:7233", env="TEMPORAL_HOST")
+    redis_url: str = Field(default="redis://redis:6379/0", env="REDIS_URL")
+```
+
 ## Migration Notes
 
 **Previous Port Allocations:**
@@ -105,6 +139,37 @@ psql -h localhost -p 10004 -U somaagent -d somaagent -c "SELECT 1;"  # PostgreSQ
 
 # Temporal (new port)
 tctl --address localhost:10009 cluster health  # Temporal
+```
+
+## Structured Logging Patterns
+
+```python
+# Port migration logging (following SomaAgentHub patterns)
+logger.info(
+    f"Port migration completed: {service_name}",
+    extra={
+        "service_name": service_name,
+        "old_port": old_port,
+        "new_port": new_port,
+        "migration_duration_seconds": duration,
+        "health_status": "healthy"
+    }
+)
+
+# Error handling with exception chaining
+try:
+    await connect_to_service(host, port)
+except ConnectionError as e:
+    logger.error(
+        f"Service connection failed: {service_name}",
+        extra={
+            "service_name": service_name,
+            "host": host,
+            "port": port,
+            "error_type": type(e).__name__
+        }
+    )
+    raise ServiceConnectionError(f"Failed to connect to {service_name}") from e
 ```
 
 ## Benefits of Standardized Port Range

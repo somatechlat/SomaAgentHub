@@ -75,9 +75,9 @@ curl http://localhost:10002/ready
 │  ├─ Qdrant (10005→6333)                  │
 │  ├─ ClickHouse (10006→8123)              │
 │  ├─ MinIO (10007→9000, 10008→9001)       │
-│  ├─ Temporal (7233)                      │
+│  ├─ Temporal (10009)                     │
 │  │                                        │
-│  ├─ Vault (10009→8200)                   │
+│  ├─ Vault (10030→8200)                   │
 │  ├─ Prometheus (10010→9090)              │
 │  ├─ Grafana (10011→3000)                 │
 │  ├─ Loki (10012→3100)                    │
@@ -562,7 +562,7 @@ curl http://localhost:6333/health
 # Expected: 200 OK
 
 # Check Temporal
-grpcurl -plaintext localhost:7233 temporal.api.workflowservice.v1.WorkflowService/DescribeNamespace
+grpcurl -plaintext localhost:10009 temporal.api.workflowservice.v1.WorkflowService/DescribeNamespace
 # Expected: (namespace description)
 ```
 

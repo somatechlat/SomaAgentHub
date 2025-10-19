@@ -27,7 +27,7 @@ async def test_redis_client():
         from services.common.redis_client import get_redis_client
         
         # Override with localhost for testing
-        os.environ["REDIS_URL"] = "redis://localhost:6379"
+        os.environ["REDIS_URL"] = "redis://localhost:10003"
         redis_client = get_redis_client()
         
         # Health check
@@ -67,7 +67,7 @@ async def test_qdrant_client():
         from services.common.qdrant_client import get_qdrant_client
         
         # Override with localhost for testing
-        os.environ["QDRANT_URL"] = "http://localhost:6333"
+        os.environ["QDRANT_URL"] = "http://localhost:10005"
         qdrant_client = get_qdrant_client()
         
         # Health check

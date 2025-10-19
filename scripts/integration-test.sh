@@ -70,7 +70,7 @@ test_jobs_service() {
     sleep 3
     
     # Submit a job
-    JOB_RESPONSE=$(curl -s -X POST "http://localhost:8000/v1/jobs" \
+    JOB_RESPONSE=$(curl -s -X POST "http://localhost:10000/v1/jobs" \
         -H "Content-Type: application/json" \
         -d '{"task": "test_job", "payload": {"test": true}}')
     
@@ -83,7 +83,7 @@ test_jobs_service() {
         sleep 5
         
         # Check job status
-        JOB_STATUS=$(curl -s "http://localhost:8000/v1/jobs/$JOB_ID")
+        JOB_STATUS=$(curl -s "http://localhost:10000/v1/jobs/$JOB_ID")
         if echo "$JOB_STATUS" | grep -q '"status":"completed"'; then
             echo "✅ Job completed successfully"
             RESULT=0

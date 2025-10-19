@@ -105,7 +105,7 @@ const App = () => {
   const [voiceText, setVoiceText] = useState('');
 
   // WebSocket connection
-  const ws = new SomaGentWebSocket('ws://localhost:8000/ws');
+  const ws = new SomaGentWebSocket('ws://localhost:10000/ws');
 
   useEffect(() => {
     // Setup push notifications
@@ -155,7 +155,7 @@ const App = () => {
 
   const fetchProjects = async () => {
     try {
-      const response = await fetch('http://localhost:8000/projects');
+      const response = await fetch('http://localhost:10000/projects');
       const data = await response.json();
       setProjects(data.projects);
     } catch (error) {
@@ -165,7 +165,7 @@ const App = () => {
 
   const fetchAlerts = async () => {
     try {
-      const response = await fetch('http://localhost:8000/alerts');
+      const response = await fetch('http://localhost:10000/alerts');
       const data = await response.json();
       setAlerts(data.alerts);
     } catch (error) {
@@ -228,7 +228,7 @@ const App = () => {
     
     // Send to voice-interface service for parsing
     try {
-      const response = await fetch('http://localhost:8011/parse-voice-command', {
+      const response = await fetch('http://localhost:10000/parse-voice-command', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ text })
@@ -263,7 +263,7 @@ const App = () => {
 
   const handleApproval = async (alertId, approved) => {
     try {
-      await fetch(`http://localhost:8000/approvals/${alertId}`, {
+      await fetch(`http://localhost:10000/approvals/${alertId}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ approved })
