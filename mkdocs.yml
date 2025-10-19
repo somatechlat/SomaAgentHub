@@ -1,0 +1,117 @@
+site_name: SomaAgentHub Documentation
+site_description: Enterprise-grade agent orchestration platform documentation
+site_url: https://docs.somagenthub.com
+repo_url: https://github.com/somatechlat/SomaAgentHub
+repo_name: somatechlat/SomaAgentHub
+
+nav:
+  - Home: index.md
+  - User Manual:
+    - Overview: user-manual/index.md
+    - Installation: user-manual/installation.md
+    - Quick Start: user-manual/quick-start-tutorial.md
+    - Features:
+      - Overview: user-manual/features/index.md
+      - Multi-Agent Orchestration: user-manual/features/multi-agent-orchestration.md
+      - Workflow Management: user-manual/features/workflow-management.md
+      - Session Management: user-manual/features/session-management.md
+      - Policy & Governance: user-manual/features/policy-governance.md
+      - Tool Integration: user-manual/features/tool-integration.md
+      - Intelligent Memory: user-manual/features/intelligent-memory.md
+      - API Gateway: user-manual/features/api-gateway.md
+      - Monitoring & Observability: user-manual/features/monitoring-observability.md
+    - FAQ: user-manual/faq.md
+  - Technical Manual:
+    - Overview: technical-manual/index.md
+    - Architecture: technical-manual/architecture.md
+    - Deployment: technical-manual/deployment.md
+    - Monitoring: technical-manual/monitoring.md
+    - Backup & Recovery: technical-manual/backup-and-recovery.md
+    - Security:
+      - Overview: technical-manual/security/index.md
+      - RBAC Matrix: technical-manual/security/rbac-matrix.md
+      - Secrets Policy: technical-manual/security/secrets-policy.md
+    - Runbooks:
+      - Overview: technical-manual/runbooks/index.md
+      - Service Down: technical-manual/runbooks/service-is-down.md
+      - High Latency: technical-manual/runbooks/high-request-latency.md
+      - Database Issues: technical-manual/runbooks/database-unavailable.md
+      - Incident Response: technical-manual/runbooks/incident-response.md
+  - Development Manual:
+    - Overview: development-manual/index.md
+    - Local Setup: development-manual/local-setup.md
+    - Coding Standards: development-manual/coding-standards.md
+    - Testing Guidelines: development-manual/testing-guidelines.md
+    - API Reference: development-manual/api-reference.md
+    - Contribution Process: development-manual/contribution-process.md
+  - Onboarding Manual:
+    - Overview: onboarding-manual/index.md
+    - Project Context: onboarding-manual/project-context.md
+    - Environment Setup: onboarding-manual/environment-setup.md
+    - Codebase Walkthrough: onboarding-manual/codebase-walkthrough.md
+    - Domain Knowledge: onboarding-manual/domain-knowledge.md
+    - Team Collaboration: onboarding-manual/team-collaboration.md
+    - First Contribution: onboarding-manual/first-contribution.md
+  - Reference:
+    - Style Guide: style-guide.md
+    - Changelog: changelog.md
+    - Glossary: glossary.md
+
+theme:
+  name: material
+  palette:
+    - scheme: default
+      primary: blue
+      accent: blue
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    - scheme: slate
+      primary: blue
+      accent: blue
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+  features:
+    - navigation.tabs
+    - navigation.sections
+    - navigation.expand
+    - navigation.top
+    - search.highlight
+    - search.share
+    - content.code.copy
+    - content.action.edit
+
+plugins:
+  - search
+  - git-revision-date-localized:
+      type: date
+  - minify:
+      minify_html: true
+
+markdown_extensions:
+  - admonition
+  - pymdownx.details
+  - pymdownx.superfences
+  - pymdownx.tabbed:
+      alternate_style: true
+  - pymdownx.highlight:
+      anchor_linenums: true
+  - pymdownx.inlinehilite
+  - pymdownx.snippets
+  - attr_list
+  - md_in_html
+  - tables
+  - toc:
+      permalink: true
+
+extra:
+  version:
+    provider: mike
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/somatechlat/SomaAgentHub
+    - icon: fontawesome/brands/slack
+      link: https://somagenthub.slack.com
+
+copyright: Copyright &copy; 2024 SomaTech Latin America

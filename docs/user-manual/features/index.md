@@ -2,6 +2,12 @@
 
 **Complete guide to SomaAgentHub's enterprise agent orchestration capabilities**
 
+> **Purpose**: Provide comprehensive overview of all SomaAgentHub features and capabilities for end users and product managers.
+> 
+> **Audience**: End users, product managers, business stakeholders evaluating platform capabilities.
+> 
+> **Prerequisites**: Basic understanding of AI agents and workflow automation concepts.
+
 > Discover how to leverage multi-agent coordination, workflow management, policy governance, and intelligent memory for autonomous business processes.
 
 ---
