@@ -1,0 +1,12 @@
+version: '3.8'
+services:
+  temporal-postgres:
+    ports:
+      - "5434:5432"
+  temporal:
+    ports:
+      - "7233:7233"
+      - "7234:7234"
+  temporal-ui:
+    ports:
+      - "8088:8080"

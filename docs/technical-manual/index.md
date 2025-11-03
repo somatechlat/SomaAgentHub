@@ -38,7 +38,7 @@ This Technical Manual provides comprehensive guidance for deploying, operating, 
 │  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐         │
 │  │   Policy    │  │   Memory    │  │    Tool     │         │
 │  │   Engine    │  │   Gateway   │  │   Service   │         │
-│  │  (10020)    │  │  (10021)    │  │  (10022)    │         │
+│  │  (10020)    │  │ (container) │  │  (10022)    │         │
 │  └─────────────┘  └─────────────┘  └─────────────┘         │
 │                                                             │
 └─────────────────────────────────────────────────────────────┘
@@ -159,7 +159,7 @@ make k8s-smoke
 | **Orchestrator** | 10001 | Workflow coordination | Temporal, Policy, Identity |
 | **Identity Service** | 10002 | Authentication, authorization | Redis, PostgreSQL |
 | **Policy Engine** | 10020 | Governance, compliance | Redis, Constitution Service |
-| **Memory Gateway** | 10021 | Vector storage, context | Qdrant, Redis |
+| **Memory Gateway** | varies (container 8000) | Vector storage, context | Qdrant, Redis |
 | **Tool Service** | 10022 | External integrations | Various APIs |
 
 ### Infrastructure Services
@@ -270,7 +270,7 @@ kubectl top nodes
 kubectl top pods -n soma-agent-hub
 
 # Application health
-curl -f http://gateway:10000/health
+curl -f http://gateway:10000/healthz
 curl -f http://orchestrator:10001/ready
 ```
 

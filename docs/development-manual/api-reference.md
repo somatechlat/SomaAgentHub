@@ -8,20 +8,20 @@ This document provides developers with the information needed to interact with t
 
 ## 🎯 API Philosophy
 
-- **OpenAPI Specification**: Every service exposes an OpenAPI 3.0 specification (usually at `/docs`). This is the single source of truth for all endpoints.
-- **RESTful Principles**: Our APIs adhere to RESTful design principles.
-- **OpenAI Compatibility**: The Gateway API provides OpenAI-compatible endpoints for chat completions, allowing you to use existing client libraries.
-- **Authentication**: All endpoints are protected and require a JWT token.
+- **OpenAPI Specification**: Every service exposes an OpenAPI 3.0 specification (usually at `/docs`). Treat the running service as the source of truth.
+- **RESTful Principles**: APIs adhere to standard RESTful design.
+- **Session-Oriented**: The Gateway and Orchestrator expose session-focused endpoints that coordinate long‑running workflows.
+- **Authentication**: Most endpoints are protected and require a JWT token.
 
 ---
 
 ## 🚀 Accessing the API Documentation
 
-The most up-to-date and interactive API documentation is generated automatically from the code and is available on your local instance.
+Interactive API docs are generated from the code at runtime:
 
 - **Gateway API**: `http://localhost:10000/docs`
 - **Orchestrator API**: `http://localhost:10001/docs`
-- **Memory Gateway API**: `http://localhost:10004/docs`
+- **Memory Gateway API (optional)**: default container port `8000` → `http://<memory-gateway-host>:8000/docs`
 - *(and so on for each service...)*
 
 These interactive docs (provided by Swagger UI) allow you to explore and even try out the API endpoints directly from your browser.
@@ -36,7 +36,7 @@ All requests to the SomaAgentHub API must be authenticated using a **Bearer Toke
 2.  **Include the Token**: Provide the token in the `Authorization` header of your HTTP requests.
 
 ```bash
-curl -X GET http://localhost:10000/v1/models \
+curl -X GET http://localhost:10000/v1/status \
   -H "Authorization: Bearer <your-jwt-token>"
 ```
 
@@ -44,30 +44,27 @@ curl -X GET http://localhost:10000/v1/models \
 
 ## 📦 Core APIs
 
-This section provides a high-level overview of the most important APIs. For detailed endpoint specifications, refer to the interactive Swagger docs.
+This section highlights the primary, code-backed endpoints. See each service’s `/docs` for full details.
 
 ### 1. Gateway API (`:10000`)
-This is the primary public-facing API.
+Public entrypoint and session creation.
 
-- **`POST /v1/chat/completions`**: (OpenAI-compatible) Create a chat completion. Can be used for stateless requests or session-based conversations.
-- **`GET /v1/models`**: (OpenAI-compatible) List the available language models.
-- **`POST /v1/sessions`**: Create a new persistent conversation session.
-- **`GET /health`**: Health check endpoint.
+- **`POST /v1/sessions`**: Create a new session; forwards to the orchestrator.
+- **`GET /v1/status`**: Basic gateway status and request context.
+- **`GET /healthz`**: Health check endpoint.
 
 ### 2. Orchestrator API (`:10001`)
-Used for managing and executing complex workflows.
+Temporal-backed workflow coordination.
 
-- **`POST /v1/workflows/start`**: Start a new workflow.
-- **`GET /v1/workflows/{run_id}`**: Get the status of a running workflow.
-- **`POST /v1/workflows/{run_id}/cancel`**: Cancel a workflow.
-- **`GET /v1/workflows`**: List all workflows.
+- **`POST /v1/sessions/start`**: Start a Temporal session workflow.
+- **`GET /v1/sessions/{workflow_id}`**: Get the status (and result if completed).
 
-### 3. Memory Gateway API (`:10004`)
-Used for interacting with the agent memory system.
+### 3. Memory Gateway API (optional, default container port `8000`)
+Vector/KV memory access when enabled.
 
-- **`POST /v1/memories`**: Store a new piece of information in memory.
-- **`POST /v1/recall`**: Perform a semantic search to retrieve relevant memories.
-- **`GET /v1/memories/analytics`**: Get usage statistics for the memory system.
+- **`POST /v1/remember`**: Store a value by key (embeds and indexes when Qdrant/SLM available).
+- **`GET /v1/recall/{key}`**: Retrieve a value by key.
+- **`POST /v1/rag/retrieve`**: Semantic retrieval using embeddings when configured.
 
 ---
 
@@ -79,50 +76,50 @@ This example demonstrates a common workflow using the Python `requests` library.
 import requests
 import time
 
-BASE_URL = "http://localhost:10000"
 ORCHESTRATOR_URL = "http://localhost:10001"
-TOKEN = "your-demo-token" # Replace with a valid token
+TOKEN = "your-demo-token"  # Replace with a valid token
 
 HEADERS = {
     "Authorization": f"Bearer {TOKEN}",
-    "Content-Type": "application/json"
+    "Content-Type": "application/json",
 }
 
-def start_research_workflow(topic: str) -> str:
-    """Starts a research workflow and returns the run ID."""
+def start_session(prompt: str) -> str:
+    """Starts a session workflow and returns the workflow_id."""
     payload = {
-        "workflow_type": "research_project",
-        "input": {"topic": topic}
+        "tenant": "demo-tenant",
+        "user": "demo-user",
+        "prompt": prompt,
+        "metadata": {},
     }
-    response = requests.post(
-        f"{ORCHESTRATOR_URL}/v1/workflows/start",
+    resp = requests.post(
+        f"{ORCHESTRATOR_URL}/v1/sessions/start",
         headers=HEADERS,
-        json=payload
+        json=payload,
+        timeout=15,
     )
-    response.raise_for_status()
-    return response.json()["run_id"]
+    resp.raise_for_status()
+    return resp.json()["workflow_id"]
 
-def check_workflow_status(run_id: str) -> dict:
-    """Checks the status of a workflow."""
-    response = requests.get(
-        f"{ORCHESTRATOR_URL}/v1/workflows/{run_id}",
-        headers=HEADERS
+def check_session(workflow_id: str) -> dict:
+    resp = requests.get(
+        f"{ORCHESTRATOR_URL}/v1/sessions/{workflow_id}",
+        headers=HEADERS,
+        timeout=10,
     )
-    response.raise_for_status()
-    return response.json()
+    resp.raise_for_status()
+    return resp.json()
 
 if __name__ == "__main__":
-    run_id = start_research_workflow("The future of AI in healthcare")
-    print(f"Workflow started with run ID: {run_id}")
-
+    wid = start_session("Research the impact of AI in healthcare")
+    print(f"Started session with workflow_id: {wid}")
     while True:
-        status = check_workflow_status(run_id)
+        status = check_session(wid)
         print(f"Current status: {status['status']}")
-        if status['status'] in ['completed', 'failed']:
+        if status["status"] in {"completed", "failed"}:
             break
-        time.sleep(10)
-
-    print("Workflow finished.")
+        time.sleep(5)
+    print("Done.")
 ```
 
 ---

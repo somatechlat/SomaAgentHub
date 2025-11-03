@@ -451,7 +451,8 @@ kubectl logs -n soma-agent-hub deployment/gateway-api
 
 # Check configuration
 cat .env
-soma config validate
+# Validate with actual tools
+make validate-config
 ```
 
 **Tests Failing:**
@@ -482,7 +483,7 @@ python -m memory_profiler app/main.py
 **Service Communication:**
 ```bash
 # Test service connectivity
-curl -f http://localhost:10000/health
+curl -f http://localhost:10000/healthz
 curl -f http://localhost:10001/ready
 
 # Check network policies

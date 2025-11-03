@@ -1,11 +1,17 @@
 """Wizard Engine - Interactive project setup and campaign creation."""
 
-import yaml
-from pathlib import Path
-from typing import Dict, List, Optional, Any
-from pydantic import BaseModel, Field
-from datetime import datetime, timedelta
+from __future__ import annotations
+
+import os
+import re
 import uuid
+from datetime import datetime, timedelta
+from pathlib import Path
+from typing import Any, Dict, List, Optional
+
+import requests
+import yaml
+from pydantic import BaseModel, Field
 
 
 class WizardQuestion(BaseModel):
@@ -42,6 +48,7 @@ class WizardModule(BaseModel):
     dependencies: List[str]
     tasks: List[Dict[str, Any]]
     outputs: List[str]
+    condition: Optional[str] = None
     status: str = "pending"  # pending, in_progress, completed, failed
 
 
@@ -196,20 +203,23 @@ class WizardEngine:
         schema = self.wizard_schemas[session.wizard_id]
         
         # Build execution plan
-        modules = []
-        for module_def in schema.get("modules", []):
-            module = WizardModule(
+        raw_modules = [
+            WizardModule(
                 id=module_def["id"],
                 title=module_def["title"],
                 agent=module_def["agent"],
                 dependencies=module_def.get("dependencies", []),
                 tasks=module_def.get("tasks", []),
-                outputs=module_def.get("outputs", [])
-            )
-            modules.append(module.dict())
-        
-        # Interpolate answers into tasks
-        execution_plan = self._build_execution_plan(session, modules)
+                outputs=module_def.get("outputs", []),
+                condition=module_def.get("condition"),
+                status=module_def.get("status", "pending"),
+            ).model_dump()
+            for module_def in schema.get("modules", [])
+        ]
+
+        # Interpolate answers into tasks and cache the plan for approval step
+        execution_plan = self._build_execution_plan(session, raw_modules)
+        session.metadata["_execution_plan"] = execution_plan
         
         return {
             "session_id": session.session_id,
@@ -244,34 +254,60 @@ class WizardEngine:
                 return text
             result = text
             for key, value in session.answers.items():
-                result = result.replace(f"{{{key}}}", str(value))
+                replacement = self._render_answer(value)
+                result = result.replace(f"{{{key}}}", replacement)
             return result
         
-        # Process modules with interpolation
+        raw_modules = modules or []
+
+        enabled_modules = [
+            module
+            for module in raw_modules
+            if not module.get("condition") or self._evaluate_condition(module["condition"], session.answers)
+        ]
+        enabled_ids = {module["id"] for module in enabled_modules}
+
         processed_modules = []
-        for module in modules:
+        for module in enabled_modules:
             processed = module.copy()
+            processed["id"] = module["id"]
+            processed["agent"] = module["agent"]
             processed["title"] = interpolate(module["title"])
-            
-            # Interpolate task descriptions and params
+            processed["dependencies"] = [
+                dep for dep in module.get("dependencies", []) if dep in enabled_ids
+            ]
+
+            # Interpolate task descriptions, params, and conditional logic
             processed_tasks = []
             for task in module.get("tasks", []):
+                logic_branches = task.get("logic")
+                if logic_branches:
+                    for branch in logic_branches:
+                        if not self._evaluate_condition(branch.get("if", ""), session.answers):
+                            continue
+                        branch_action = branch.get("then")
+                        branch_params = branch.get("params", {})
+                        processed_tasks.append(
+                            {
+                                "action": branch_action,
+                                "description": interpolate(
+                                    branch.get("description") or f"Execute {branch_action}"
+                                ),
+                                "params": self._interpolate_value(branch_params, session.answers, interpolate),
+                            }
+                        )
+                    continue
+
                 processed_task = {
                     "action": task["action"],
                     "description": interpolate(task.get("description", "")),
-                    "params": {}
+                    "params": {},
                 }
                 
                 # Interpolate params
-                for key, value in task.get("params", {}).items():
-                    if isinstance(value, list):
-                        # Handle variable references like {channels}
-                        processed_task["params"][key] = [
-                            session.answers.get(v.strip("{}"), v) if isinstance(v, str) and v.startswith("{") else v
-                            for v in value
-                        ]
-                    else:
-                        processed_task["params"][key] = interpolate(str(value)) if isinstance(value, str) else value
+                params = task.get("params", {})
+                if params:
+                    processed_task["params"] = self._interpolate_value(params, session.answers, interpolate)
                 
                 processed_tasks.append(processed_task)
             
@@ -284,10 +320,103 @@ class WizardEngine:
             "launch_date": session.answers.get("launch_date"),
             "modules": processed_modules,
             "estimated_duration": schema.get("estimated_duration", {}).get("total"),
-            "agents_required": list(set(m["agent"] for m in modules)),
+            "agents_required": sorted({m["agent"] for m in processed_modules}),
             "tools_required": self._extract_required_tools(processed_modules),
             "success_criteria": schema.get("success_criteria", {})
         }
+
+    @staticmethod
+    def _render_answer(value: Any) -> str:
+        """Render an answer value for interpolation within strings."""
+        if isinstance(value, list):
+            return ", ".join(str(item) for item in value)
+        if isinstance(value, bool):
+            return "true" if value else "false"
+        return str(value)
+
+    def _interpolate_value(self, value: Any, answers: Dict[str, Any], interpolate) -> Any:
+        """Recursively interpolate values containing answer placeholders."""
+        if isinstance(value, dict):
+            return {key: self._interpolate_value(val, answers, interpolate) for key, val in value.items()}
+        if isinstance(value, list):
+            return [self._interpolate_value(item, answers, interpolate) for item in value]
+        if isinstance(value, str):
+            placeholder_match = re.fullmatch(r"\{([^{}]+)\}", value.strip())
+            if placeholder_match:
+                key = placeholder_match.group(1)
+                return answers.get(key, "")
+            return interpolate(value)
+        return value
+
+    def _evaluate_condition(self, expression: str, answers: Dict[str, Any]) -> bool:
+        """Evaluate simple condition expressions against collected answers."""
+        expr = (expression or "").strip()
+        if not expr:
+            return True
+
+        # Normalize boolean keywords
+        expr = expr.replace(" true", " True").replace(" false", " False")
+
+        if " contains " in expr:
+            field, value = expr.split(" contains ", 1)
+            field = field.strip()
+            target = self._strip_quotes(value.strip())
+            field_value = answers.get(field)
+            if isinstance(field_value, str):
+                candidates = [item.strip() for item in field_value.split(",")]
+            elif isinstance(field_value, list):
+                candidates = [str(item) for item in field_value]
+            else:
+                return False
+            return target in candidates
+
+        for operator in ("==", "!=", ">=", "<=", ">", "<"):
+            if operator in expr:
+                left, right = expr.split(operator, 1)
+                left_value = answers.get(left.strip())
+                right_value = self._coerce_literal(self._strip_quotes(right.strip()))
+                return self._compare(left_value, right_value, operator)
+
+        return False
+
+    @staticmethod
+    def _strip_quotes(value: str) -> str:
+        if (value.startswith('"') and value.endswith('"')) or (value.startswith("'") and value.endswith("'")):
+            return value[1:-1]
+        return value
+
+    @staticmethod
+    def _coerce_literal(value: str) -> Any:
+        lowered = value.lower()
+        if lowered == "true":
+            return True
+        if lowered == "false":
+            return False
+        try:
+            if "." in value:
+                return float(value)
+            return int(value)
+        except ValueError:
+            return value
+
+    @staticmethod
+    def _compare(left: Any, right: Any, operator: str) -> bool:
+        try:
+            if operator == "==":
+                return left == right
+            if operator == "!=":
+                return left != right
+            if operator == ">":
+                return left > right  # type: ignore[operator]
+            if operator == "<":
+                return left < right  # type: ignore[operator]
+            if operator == ">=":
+                return left >= right  # type: ignore[operator]
+            if operator == "<=":
+                return left <= right  # type: ignore[operator]
+        except TypeError:
+            return False
+        return False
     
     def _extract_required_tools(self, modules: List[Dict]) -> List[str]:
         """Extract unique list of tools required for execution."""
@@ -330,16 +459,36 @@ class WizardEngine:
             raise ValueError("Wizard must be completed before approval")
 
         # Build a minimal multi-agent orchestration request from the execution plan
-        plan = self._build_execution_plan(session, [])
+        schema = self.wizard_schemas.get(session.wizard_id)
+        modules = schema.get("modules", []) if schema else []
+        plan = session.metadata.get("_execution_plan") or self._build_execution_plan(session, modules)
+        session.metadata["_execution_plan"] = plan
         directives: List[Dict[str, Any]] = []
         for module in plan.get("modules", []):
+            module_tasks = module.get("tasks", [])
+            capability_names = {
+                task.get("action", "").split(".")[0] if "." in task.get("action", "") else task.get("action", "")
+                for task in module_tasks
+                if task.get("action")
+            }
+            prompt_lines = [f"{module.get('title', 'Execute module')} for campaign {plan.get('campaign_name', '')}"]
+            if module_tasks:
+                prompt_lines.append("Key tasks:")
+                prompt_lines.extend(
+                    f"- {task.get('description', task.get('action'))}" for task in module_tasks if task.get("description") or task.get("action")
+                )
+
             directives.append(
                 {
                     "agent_id": module.get("agent", module.get("id", "agent")),
                     "goal": module.get("title", "Execute module"),
-                    "prompt": module.get("title", "Execute tasks"),
-                    "capabilities": list({t.get("action", "").split(".")[0] for t in module.get("tasks", []) if t.get("action")}),
-                    "metadata": {"module_id": module.get("id")},
+                    "prompt": "\n".join(prompt_lines),
+                    "capabilities": sorted(capability_names),
+                    "metadata": {
+                        "module_id": module.get("id"),
+                        "dependencies": module.get("dependencies", []),
+                        "tasks": module_tasks,
+                    },
                 }
             )
 
@@ -356,15 +505,18 @@ class WizardEngine:
             ]
 
         # Call the real orchestrator
-        import os
-        import requests
-        orchestrator_base = os.getenv("SOMAGENT_GATEWAY_ORCHESTRATOR_URL", "http://orchestrator:1004")
+        orchestrator_base = os.getenv("SOMAGENT_GATEWAY_ORCHESTRATOR_URL") or os.getenv("ORCHESTRATOR_URL") or "http://localhost:10001"
         url = f"{orchestrator_base}/v1/mao/start"
         payload = {
-            "tenant": session.metadata.get("tenant", "demo"),
+            "tenant": session.metadata.get("tenant") or os.getenv("SOMAGENT_TENANT_ID", "demo"),
             "initiator": session.user_id,
             "directives": directives,
-            "metadata": {"wizard_session": session.session_id, "wizard_id": session.wizard_id},
+            "metadata": {
+                "wizard_session": session.session_id,
+                "wizard_id": session.wizard_id,
+                "campaign_name": plan.get("campaign_name"),
+                "launch_date": plan.get("launch_date"),
+            },
         }
 
         resp = requests.post(url, json=payload, timeout=15)

@@ -28,12 +28,11 @@ http://your-somagenthub-instance:10000
 
 **CLI Access:**
 ```bash
-# Install the SomaAgent CLI
-pip install somaagent-cli
-
-# Configure your endpoint
-soma config set-endpoint http://your-instance:10000
-soma auth login
+# Use the CLI from the repository
+cd cli/
+./soma login
+./soma chat "Hello"
+./soma capsule list
 ```
 
 ### 2. Your First Agent Workflow

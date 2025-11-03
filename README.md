@@ -29,7 +29,7 @@ SomaAgentHub is the coordination layer that powers the Soma platform. The hub co
 - **Kubernetes Native** – `infra/k8s` and `k8s/helm/soma-agent` provide production manifests with probes, resources, and tolerations.
 - **Helm Deployment** – One chart installs the entire hub with environment-aware overrides and metrics wiring.
 - **Automated CI/CD Hooks** – Make targets and scripts build, scan, push, and verify every service image.
-- **Health Probes & Metrics** – Every critical service exposes `/health`, `/ready`, and `/metrics` endpoints out of the box.
+- **Health Probes & Metrics** – Every critical service exposes health endpoints (`/health` and `/ready`); Gateway exposes `/healthz`; all services export `/metrics`.
 
 ### 🚄 Rapid Development
 - **3-Day Sprint Cadence** – Roadmaps and runbooks in `docs/` map repeatable sprint waves across the stack.
@@ -48,7 +48,7 @@ SomaAgentHub is the coordination layer that powers the Soma platform. The hub co
 | **Gateway API** | 10000 | Public ingress for UI, CLI, and partner integrations. Handles wizard flows and session fan-out. |
 | **Orchestrator** | 10001 | Coordinates multi-agent workflows, talks to Temporal, identity, and policy services. |
 | **Identity Service** | 10002 | Issues access tokens and validates identities for every agent-facing request. |
-| **Memory Gateway** | 10018 *(optional, not in docker-compose)* | Stores and retrieves long-term context via Qdrant for agent recall when the service is enabled. |
+| **Memory Gateway** | (optional, container 8000) | Stores and retrieves long-term context via Qdrant for agent recall when the service is enabled. |
 | **Policy Engine** | 10020 *(optional, not in docker-compose)* | Provides rule-based guardrails when deployed alongside orchestrator. |
 
 ### System Components
@@ -69,7 +69,7 @@ SomaAgentHub is the coordination layer that powers the Soma platform. The hub co
 │  └──────────────────────────────────┘    │
 │                │                          │
 │  ┌──────────────────────────────────┐    │
-│  │      Memory Gateway (10018)      │    │
+│  │      Memory Gateway (optional)   │    │
 │  │   Vector + KV Recall for Agents  │    │
 │  └──────────────────────────────────┘    │
 │                                         │

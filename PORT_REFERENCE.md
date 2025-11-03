@@ -36,7 +36,7 @@ This document defines the official port allocation for all SomaAgentHub services
 | Service | Port | Container Port | Description |
 |---------|------|----------------|-------------|
 | **policy-engine** | 10020 | 10020 | Policy enforcement |
-| **memory-gateway** | 10021 | 10021 | Memory & RAG service |
+| **memory-gateway** | varies | 8000 | Memory & RAG service (optional; container listens on 8000) |
 | **slm-service** | 10022 | 10022 | Small Language Models |
 | **analytics-service** | 10023 | 10023 | Analytics processing |
 | **constitution-service** | 10024 | 10024 | Governance framework |
@@ -101,7 +101,7 @@ curl http://localhost:10002/health  # Identity Service
 # Observability
 open http://localhost:10010         # Prometheus
 open http://localhost:10011         # Grafana
-open http://localhost:10009         # Vault
+open http://localhost:10030         # Vault
 
 # Storage
 open http://localhost:10008         # MinIO Console

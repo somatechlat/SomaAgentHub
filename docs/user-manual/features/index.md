@@ -1,14 +1,8 @@
 # Core Features Overview
 
-**Complete guide to SomaAgentHub's enterprise agent orchestration capabilities**
+**SomaAgentHub's agent orchestration capabilities**
 
-> **Purpose**: Provide comprehensive overview of all SomaAgentHub features and capabilities for end users and product managers.
-> 
-> **Audience**: End users, product managers, business stakeholders evaluating platform capabilities.
-> 
-> **Prerequisites**: Basic understanding of AI agents and workflow automation concepts.
-
-> Discover how to leverage multi-agent coordination, workflow management, policy governance, and intelligent memory for autonomous business processes.
+> Overview of SomaAgentHub features for multi-agent coordination, workflow management, and policy governance.
 
 ---
 
@@ -94,15 +88,13 @@ Extend agent capabilities with powerful integrations:
 
 ## 🧠 Intelligent Memory
 
-**Persistent knowledge and context for enhanced agent performance**
+**Memory gateway for agent context storage**
 
-Leverage advanced memory systems for smarter agents:
+Optional memory capabilities when memory gateway is enabled:
 
-- **Vector Storage** - Semantic search and similarity matching
-- **Knowledge Graphs** - Structured relationship mapping
-- **Context Recall** - Retrieve relevant information from past interactions
-- **Learning Adaptation** - Improve performance based on historical data
-- **Memory Sharing** - Share knowledge across agent instances
+- **Vector Storage** - Qdrant integration for semantic search
+- **Context Storage** - Redis-based session state
+- **Memory Gateway** - Optional service (container port 8000)
 
 **[Learn More →](intelligent-memory.md)**
 

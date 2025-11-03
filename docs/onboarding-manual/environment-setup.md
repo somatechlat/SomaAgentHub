@@ -240,9 +240,9 @@ docker volume inspect somaagenthub-app-postgres-data
 ### Application Services (Primary APIs)
 
 ```bash
-# Gateway API (OpenAI-compatible endpoints)
-curl -X GET http://localhost:10000/health
-# Expected: {"status": "healthy", "version": "..."}
+# Gateway API
+curl -X GET http://localhost:10000/healthz
+# Example: {"status": "ok", "checks": {"kafka": false, "auth": true, "redis": true}}
 
 # Orchestrator (Multi-agent workflows)
 curl -X GET http://localhost:10001/ready
@@ -317,7 +317,7 @@ docker-compose logs --tail=50 | grep -i error
 # Expected: (no ERROR lines)
 
 # 3. Test Gateway API endpoint
-curl -s http://localhost:10000/health | jq .
+curl -s http://localhost:10000/healthz | jq .
 # Expected: JSON response with status
 
 # 4. Test PostgreSQL connection

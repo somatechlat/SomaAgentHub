@@ -46,44 +46,39 @@ http://your-server-ip:10000
 
 ---
 
-## 💻 CLI Installation
+## 💻 CLI Access
 
-### Install the SomaAgent CLI
+### Using the SomaAgent CLI
 
-**Using pip:**
+The CLI is included in this repository and talks to the Gateway API.
+
 ```bash
-pip install somaagent-cli
+# Clone the repository (if you haven't already)
+git clone https://github.com/your-org/somaAgentHub
+cd somaAgentHub
+
+# Install dependencies for the Python SDK used by the CLI
+pip install -r sdk/python/requirements.txt
+
+# Authenticate and try a chat
+./cli/soma login
+./cli/soma chat "Hello, how can you help?"
+./cli/soma capsule list
 ```
 
-**Using conda:**
+### Available Commands
+
+**Authentication:**
 ```bash
-conda install -c conda-forge somaagent-cli
+./cli/soma login                    # Authenticate with API key
 ```
 
-**From source:**
+**Interaction:**
 ```bash
-git clone https://github.com/somatechlat/somaagent-cli
-cd somaagent-cli
-pip install -e .
-```
-
-### Configure CLI Access
-
-**Set your endpoint:**
-```bash
-soma config set-endpoint https://your-somagenthub-domain.com
-```
-
-**Authenticate:**
-```bash
-soma auth login
-# Follow the prompts to enter credentials
-```
-
-**Verify connection:**
-```bash
-soma status
-# Should show: Connected to SomaAgentHub v1.x.x
+./cli/soma chat "message"           # Send chat message
+./cli/soma capsule list             # List available capsules
+./cli/soma agent create "name"      # Create new agent
+./cli/soma workflow start type      # Start workflow
 ```
 
 ---
@@ -92,13 +87,12 @@ soma status
 
 ### Environment Variables
 
-Set these in your shell profile (`.bashrc`, `.zshrc`):
+The CLI uses the SDK environment variables below (matching the SDK code):
 
 ```bash
-# SomaAgentHub Configuration
-export SOMA_ENDPOINT="https://your-somagenthub-domain.com"
-export SOMA_API_KEY="your-api-key"  # If using API key auth
-export SOMA_PROJECT="default"       # Default project workspace
+# SomaAgentHub CLI/SDK Configuration
+export SOMAAGENT_API_URL="http://localhost:10000"  # Gateway API
+export SOMAAGENT_API_KEY="your-api-key"           # If using API key auth
 ```
 
 ### Configuration File
@@ -121,23 +115,12 @@ preferences:
 
 ---
 
-## 🔐 Authentication Methods
+## 🔐 Authentication
 
-### OAuth/SSO (Recommended)
-```bash
-soma auth login --method oauth
-# Opens browser for SSO authentication
-```
+Use the repository CLI to authenticate:
 
-### API Key
 ```bash
-soma auth login --method api-key --key YOUR_API_KEY
-```
-
-### Basic Authentication
-```bash
-soma auth login --method basic --username your-username
-# Prompts for password
+./cli/soma login   # prompts for API key, saves to ~/.somaagent/credentials
 ```
 
 ---
@@ -169,26 +152,20 @@ soma auth login --method basic --username your-username
 
 ### CLI Test
 ```bash
-# Test basic connectivity
-soma ping
+# Send a chat message via the gateway
+./cli/soma chat "Hello from CLI"
 
-# List available wizards
-soma wizards list
-
-# Check your permissions
-soma auth whoami
-
-# View system status
-soma status --verbose
+# List available capsules (if task capsule service is enabled)
+./cli/soma capsule list
 ```
 
 ### API Test
 ```bash
-# Test API access directly
-curl -H "Authorization: Bearer YOUR_TOKEN" \
-     https://your-somagenthub-domain.com/health
+# Test Gateway API health directly (Gateway exposes /healthz)
+curl -s http://localhost:10000/healthz | jq
 
-# Expected response: {"status": "healthy"}
+# Expected response contains status: ok|degraded and checks
+# { "status": "ok", "checks": { "kafka": false, "auth": true, "redis": true } }
 ```
 
 ---
@@ -199,24 +176,24 @@ curl -H "Authorization: Bearer YOUR_TOKEN" \
 
 **Connection Refused:**
 ```bash
-# Check if service is running
-soma status
 # Verify endpoint URL
-soma config get-endpoint
+echo $SOMAAGENT_API_URL
+# Check gateway health endpoint
+curl -v http://localhost:10000/healthz
 ```
 
 **Authentication Failed:**
 ```bash
 # Clear cached credentials
-soma auth logout
+rm -f ~/.somaagent/credentials
 # Re-authenticate
-soma auth login
+./cli/soma login
 ```
 
 **Permission Denied:**
 ```bash
-# Check your user permissions
-soma auth whoami
+# Ensure your token includes required capabilities (ask your admin)
+# Identity service: GET /v1/users/<id>/capabilities
 # Contact administrator for role assignment
 ```
 
@@ -227,13 +204,13 @@ soma auth whoami
 - Configure proxy settings if required:
 ```bash
 export HTTPS_PROXY=http://your-proxy:8080
-soma config set-proxy http://your-proxy:8080
+export NO_PROXY=localhost,127.0.0.1
 ```
 
 **SSL Certificate Issues:**
 ```bash
 # For self-signed certificates (development only)
-soma config set-verify-ssl false
+export REQUESTS_CA_BUNDLE=/path/to/ca.pem
 ```
 
 ---
@@ -241,14 +218,10 @@ soma config set-verify-ssl false
 ## 📞 Getting Help
 
 **Check System Status:**
-```bash
-soma status --health-check
-```
+Ask your administrator for the operational dashboard URL or check health endpoints directly (e.g., `curl http://localhost:10000/healthz`).
 
 **View Logs:**
-```bash
-soma logs --level debug
-```
+Use your platform’s logging solution (e.g., Grafana/Loki) or `kubectl logs` for Kubernetes deployments.
 
 **Contact Support:**
 - **Internal IT**: Contact your system administrator

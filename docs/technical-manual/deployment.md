@@ -355,7 +355,7 @@ kubectl logs -f deployment/gateway-api -n soma-agent-hub
 
 # Port forward for local testing
 kubectl port-forward svc/gateway-api 10000:10000 -n soma-agent-hub
-curl http://localhost:10000/health
+curl http://localhost:10000/healthz
 ```
 
 ---
@@ -520,7 +520,7 @@ spec:
   - name: gateway-api
     livenessProbe:
       httpGet:
-        path: /health
+        path: /healthz
         port: 10000
       initialDelaySeconds: 30
       periodSeconds: 10
@@ -538,8 +538,8 @@ spec:
 
 ```bash
 # Check Gateway API
-curl -v http://localhost:10000/health
-# Expected: 200 OK, {"status": "healthy"}
+curl -v http://localhost:10000/healthz
+# Expected: 200 OK, {"status": "ok"|"degraded"}
 
 # Check Orchestrator
 curl http://localhost:10001/ready

@@ -67,7 +67,7 @@ class MultiAgentStartRequest(BaseModel):
 
 class MultiAgentStartResponse(BaseModel):
     workflow_id: str
-    run_id: str
+    run_id: str | None = None
     orchestration_id: str
     task_queue: str
 
@@ -192,8 +192,8 @@ async def get_session_status(workflow_id: str, client: temporal_client.Client = 
             result = {"error": str(exc)}
 
     return SessionStatusResponse(
-        workflow_id=workflow_id,
-        run_id=desc.execution.run_id,
+        workflow_id=desc.id or workflow_id,
+        run_id=desc.run_id,
         status=status_name,
         history_length=desc.history_length,
         result=result,
@@ -224,9 +224,13 @@ async def start_multi_agent(
         task_queue=settings.temporal_task_queue,
     )
 
+    run_id = getattr(handle, "run_id", None)
+    if not run_id:
+        run_id = getattr(handle, "first_execution_run_id", None)
+
     return MultiAgentStartResponse(
         workflow_id=handle.id,
-        run_id=handle.run_id,
+        run_id=run_id,
         orchestration_id=orchestration_id,
         task_queue=settings.temporal_task_queue,
     )

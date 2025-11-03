@@ -87,7 +87,7 @@ The docker-compose stack delivers the core runtime needed for local development 
 
 | Service | Default Container Port | Purpose & Key Features |
 |---|---|---|
-| **Gateway API** | 10000 | Handles ingress traffic, JWT enforcement, rate limiting, request validation, and routing to internal services. Provides OpenAI-compatible endpoints for agents and external clients. |
+| **Gateway API** | 10000 | Handles ingress traffic, JWT enforcement, request validation, and routing to internal services. Exposes session creation (`POST /v1/sessions`) and health (`/healthz`, `/ready`). |
 | **Orchestrator** | 10001 | Coordinates multi-agent workflows using Temporal, maintains conversational state, and orchestrates long-running tasks. |
 | **Identity Service** | 10002 | Manages tenants, roles, and JWT issuance. Integrates with Redis for session caching and policy lookups. |
 | **Temporal Server** | 10009 (gRPC) | Supplies workflow orchestration and durable timers through `temporalio/auto-setup`. |
@@ -137,16 +137,16 @@ Documented digests ensure reproducible builds and satisfy the "official OSS only
 
 ## 🔄 Data Flow & Communication
 
-### Request Lifecycle Example: Chat Completion
+### Request Lifecycle Example: Start a Session
 
-1. **Client Request**: A user sends a request to `POST /v1/chat/completions` on the **Gateway API**.
-2. **Authentication**: The Gateway API validates the JWT token with the **Identity Service**.
-3. **Routing**: The request is forwarded to the **Orchestrator Service**.
-4. **Policy Check (when deployed)**: The Orchestrator calls the **Policy Engine** to evaluate governance rules before executing downstream actions.
-5. **Memory Retrieval (when deployed)**: The Orchestrator queries the **Memory Gateway** to fetch relevant context and conversation history for the user. The gateway uses Qdrant as the backing store.
-6. **LLM Interaction**: The Orchestrator, now with full context, sends the enriched prompt to the **SLM Service** for processing by a language model.
-7. **Response & Memory Update**: The LLM's response is received. The Orchestrator sends the new conversation turn to the **Memory Gateway** to be stored.
-8. **Final Response**: The final response is streamed back through the Gateway API to the client.
+1. **Client Request**: A user sends `POST /v1/sessions` to the **Gateway API** (port 10000).
+2. **Authentication**: The Gateway validates the token with the **Identity Service** (port 10002).
+3. **Routing**: The Gateway forwards to the **Orchestrator** `POST /v1/sessions/start` (port 10001).
+4. **Policy Check (when deployed)**: The Orchestrator calls the **Policy Engine** to evaluate governance rules before executing stateful actions.
+5. **Memory Retrieval (when deployed)**: The Orchestrator queries the **Memory Gateway** for context (optional; default container port 8000).
+6. **LLM Interaction**: The Orchestrator uses the **SLM Service** to generate model outputs.
+7. **Response & Memory Update**: Results are persisted and/or sent to the **Memory Gateway** as needed.
+8. **Final Response**: The Gateway returns the created session metadata; clients poll Orchestrator `GET /v1/sessions/{workflow_id}` for status.
 
 ### Asynchronous Workflows
 
@@ -176,11 +176,11 @@ For detailed troubleshooting of individual services, refer to the following comm
 
 | Service | Port | Health Endpoint | Common Issue | Solution |
 |---------|------|-----------------|--------------|----------|
-| **Gateway API** | 10000 | `GET /ready` | 502 Bad Gateway | Check if Orchestrator (10001) and Identity (10002) are healthy |
-| **Orchestrator** | 10001 | `GET /ready` | Temporal connection failed | Ensure Temporal server is running with `docker ps \| grep temporal` |
-| **Identity Service** | 10002 | `GET /ready` | Redis unavailable | Check Redis health: `redis-cli ping` should return PONG |
-| **Redis** | 10003 | `redis-cli ping` | Connection refused | Restart with: `docker restart somaagenthub_redis` |
-| **Memory Gateway** | 10018→8000 | `GET /healthz` | Qdrant unavailable | Check Qdrant: `curl http://localhost:10005/healthz` |
+| **Gateway API** | 10000 | `GET /healthz` | 502 Bad Gateway | Check Orchestrator (10001) and Identity (10002) health |
+| **Orchestrator** | 10001 | `GET /ready` | Temporal connection failed | Ensure Temporal server is up (`docker ps | grep temporal`) |
+| **Identity Service** | 10002 | `GET /ready` | Redis unavailable | Check Redis health: `redis-cli ping` returns PONG |
+| **Redis** | 10003 | `redis-cli ping` | Connection refused | Restart: `docker restart somaagenthub_redis` |
+| **Memory Gateway** | varies (container 8000) | `GET /health` | Qdrant unavailable | Check Qdrant: `curl http://localhost:10005/healthz` |
 | **Qdrant** | 10005 | `GET /healthz` | Storage full | Check volume: `docker exec somaagenthub_qdrant du -sh /qdrant/storage` |
 | **ClickHouse** | 10006 | `GET /ping` | Port conflict | Free port 10006: `lsof -i :10006` and kill process |
 | **MinIO** | 10007/10008 | `GET /minio/health/live` | Login failed | Use default credentials: `somaagent` / `local-developer` |
@@ -199,7 +199,7 @@ For detailed troubleshooting of individual services, refer to the following comm
 2. Verify key health endpoints:
 
     ```bash
-    curl http://127.0.0.1:${GATEWAY_API_PORT}/ready
+    curl http://127.0.0.1:${GATEWAY_API_PORT}/healthz
     curl http://127.0.0.1:${QDRANT_PORT}/healthz
     curl http://127.0.0.1:${CLICKHOUSE_HTTP_PORT}/ping
     ```

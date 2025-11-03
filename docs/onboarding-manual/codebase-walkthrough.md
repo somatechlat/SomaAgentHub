@@ -67,10 +67,10 @@ Let's trace a simple API call to see how the pieces fit together.
 
 **Goal**: Start a new workflow.
 
-1.  **HTTP Request**: The user sends `POST /v1/workflows/start` to the `gateway-api`.
+1.  **HTTP Request**: The client sends `POST /v1/sessions` to the `gateway-api`.
 2.  **Gateway API (`services/gateway-api/`)**:
     - It first authenticates the request by validating the JWT token with the `identity-service`.
-    - It then forwards the validated request to the `orchestrator`.
+    - It then forwards the validated request to the `orchestrator` as `POST /v1/sessions/start`.
 3.  **Orchestrator (`services/orchestrator/`)**:
     - It receives the request and creates a new Temporal workflow.
     - The workflow might first call the `policy-engine` to ensure the request is allowed.

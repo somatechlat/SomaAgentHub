@@ -138,9 +138,6 @@ step:
 
 **Deploy Workflow:**
 ```bash
-# Using CLI
-soma workflow deploy document-review.yaml
-
 # Using Web Interface
 # 1. Click "Deploy" in the workflow designer
 # 2. Select target environment
@@ -149,13 +146,15 @@ soma workflow deploy document-review.yaml
 
 **Start Workflow Instance:**
 ```bash
-# Using CLI
-soma workflow start document-review --input document.pdf
-
-# Using API
-curl -X POST /v1/workflows/document-review/start \
+# Using API (Orchestrator session start)
+curl -X POST http://localhost:10001/v1/sessions/start \
   -H "Content-Type: application/json" \
-  -d '{"document_url": "https://example.com/document.pdf"}'
+  -d '{
+        "tenant": "demo-tenant",
+        "user": "demo-user",
+        "prompt": "Run document review for https://example.com/document.pdf",
+        "metadata": {"source": "user-manual"}
+      }'
 ```
 
 ---

@@ -138,17 +138,17 @@ alertmanager:
 
 ## 🩺 Health Endpoints
 
-Every core service exposes a `/health` endpoint that provides a simple health status. This is used by Kubernetes liveness and readiness probes.
+Core services expose health endpoints implemented in code. The Gateway uses `/healthz`; other services commonly expose `/health` and `/ready`.
 
 ```bash
 # Check the health of the Gateway API
-kubectl exec -n soma-agent-hub <gateway-api-pod-name> -- curl -s http://localhost:10000/health
+kubectl exec -n soma-agent-hub <gateway-api-pod-name> -- curl -s http://localhost:10000/healthz
 
-# Expected Response
-{"status": "healthy"}
+# Example response
+{"status": "ok", "checks": {"kafka": false, "auth": true, "redis": true}}
 ```
 
-A service may report as unhealthy if it cannot connect to a critical dependency like a database.
+A service may report as unhealthy/degraded if it cannot connect to a critical dependency like a database.
 
 ---
 
