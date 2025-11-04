@@ -1,6 +1,38 @@
 name: CI
 
 on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install dependencies
+        run: |
+          python -m venv .venv
+          source .venv/bin/activate
+          pip install -r requirements-dev.txt
+      - name: Run tests
+        run: |
+          source .venv/bin/activate
+          pytest -n auto --cov=services
+      - name: Lint Helm chart
+        uses: azure/setup-helm@v3
+      - name: Helm lint
+        run: helm lint k8s/helm/soma-agent
+      - name: Build Docker images
+        run: |
+          docker compose buildname: CI
+
+on:
   pull_request:
   push:
     branches: [ main, develop, chore/**, feat/**, fix/** ]

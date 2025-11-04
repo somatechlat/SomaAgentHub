@@ -1,4 +1,16 @@
-{{- $namespace := .Values.global.namespace | default .Release.Namespace -}}
+{{- $services := list "gateway-api" "orchestrator" "identity-service" "policy-engine" "redis" "qdrant" "otel-collector" }}
+{{- range $svc := $services }}
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: {{ $svc }}-pdb
+  namespace: {{ $.Release.Namespace }}
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: {{ $svc }}
+{{- end }}{{- $namespace := .Values.global.namespace | default .Release.Namespace -}}
 {{- range $name, $svc := .Values.services }}
 {{- if and $svc.enabled $svc.pdb $svc.pdb.enabled }}
 ---

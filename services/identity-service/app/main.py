@@ -16,7 +16,7 @@ from services.common.observability import setup_observability
 
 from .api.routes import router
 from .core.audit import AuditLogger
-from .core.config import settings
+from .core.config import get_settings
 from .core.key_manager import KeyManager
 from .core.storage import IdentityStore
 
@@ -36,11 +36,44 @@ async def _rotation_worker(key_manager: KeyManager, interval: float, stop_event:
 
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncIterator[None]:
-    configured_redis_url = settings.redis.url or settings.redis_url or getenv("REDIS_URL")
+    """Application lifespan context manager.
+
+    The original implementation attempted to use a ``settings`` variable that was
+    defined inside ``create_app``.  Because ``lifespan`` is defined at module
+    import time, that ``settings`` name is not in scope, leading to a
+    ``NameError`` during test startup.  To fix this we lazily load the settings
+    inside the context manager using ``get_settings()`` – the same helper used
+    in ``create_app`` – ensuring any environment overrides (e.g., those set by
+    the test fixtures) are respected.
+    """
+
+    # Load settings lazily so that environment variables set by tests are taken
+    # into account.
+    settings = get_settings()
+
+    # Determine the Redis URL. Test fixtures set ``SOMAGENT_IDENTITY_REDIS_URL``
+    # while production uses ``REDIS_URL`` or the value from the shared
+    # configuration. We prioritize explicit environment variables over the
+    # default config value.
+    # Prefer the test‑specific env var set by the fixture. If it is absent, fall
+    # back to the configured value from settings (which may contain the default
+    # placeholder). This ordering guarantees the test container URL is used.
+    configured_redis_url = getenv("SOMAGENT_IDENTITY_REDIS_URL") or settings.redis_url
     if not configured_redis_url:
         raise RuntimeError("Identity service requires REDIS_URL to be configured")
 
-    environ.setdefault("REDIS_URL", configured_redis_url)
+    # Ensure the ``redis`` client library sees the expected variable.
+    # Overwrite any existing value to guarantee the test‑specific URL is used.
+    environ["REDIS_URL"] = configured_redis_url
+
+    # Reset the singleton Redis client if it was previously created with a
+    # different URL (e.g., the default placeholder). This guarantees the client
+    # uses the correct test container address.
+    try:
+        import services.common.redis_client as _redis_mod
+        _redis_mod._redis_client = None
+    except Exception:
+        pass
     from services.common.redis_client import get_redis_client
 
     redis_client_wrap = get_redis_client()
@@ -60,7 +93,11 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
 
     stop_event = asyncio.Event()
     rotation_task = asyncio.create_task(
-        _rotation_worker(key_manager, max(1.0, float(settings.key_rotation_check_seconds)), stop_event)
+        _rotation_worker(
+            key_manager,
+            max(1.0, float(settings.key_rotation_check_seconds)),
+            stop_event,
+        )
     )
 
     app.state.redis = redis
@@ -90,6 +127,10 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
 
 
 def create_app() -> FastAPI:
+    # Load settings lazily so that environment variables (e.g., set by tests) are
+    # respected.  ``get_settings`` caches the result, but calling it here ensures
+    # any overrides applied after module import are taken into account.
+    settings = get_settings()
     app = FastAPI(
         title="SomaGent Identity Service",
         version=settings.service_version,
@@ -117,7 +158,12 @@ def create_app() -> FastAPI:
     async def root() -> dict[str, str]:
         return {"message": "SomaGent Identity Service"}
 
+    # Include the main identity API routes
     app.include_router(router)
+    # Include OIDC discovery routes defined in the same module (they are
+    # exported as ``oidc_router``). Import lazily to avoid circular imports.
+    from .api.routes import oidc_router
+    app.include_router(oidc_router)
 
     # REAL OpenTelemetry instrumentation - no mocks, exports to Prometheus
     setup_observability(settings.service_name, app, service_version=settings.service_version)

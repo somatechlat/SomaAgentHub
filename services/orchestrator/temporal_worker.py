@@ -74,7 +74,36 @@ async def run_worker(
     logger.info("   - 6 activities registered")
     
     # Run worker execution loop
-    await worker.run()
+    # ---------------------------------------------------------------------
+    # Background task: report Temporal queue length to Prometheus
+    # ---------------------------------------------------------------------
+    from .metrics.queue import set_queue_length
+
+    async def _report_queue_length() -> None:
+        """Periodically query Temporal for pending workflows and update gauge."""
+        while True:
+            try:
+                # Count open workflows on the configured task queue.
+                pending = 0
+                async for _ in client.list_workflows(
+                    query=f"TaskQueue = '{task_queue}' AND CloseTime = missing",
+                    page_size=100,
+                ):
+                    pending += 1
+                set_queue_length(task_queue, pending)
+            except Exception as exc:
+                logger.error(f"Failed to report queue length: {exc}")
+            await asyncio.sleep(15.0)
+
+    queue_reporter = asyncio.create_task(_report_queue_length())
+
+    try:
+        await worker.run()
+    finally:
+        # Cancel background metric task on shutdown
+        queue_reporter.cancel()
+        with suppress(asyncio.CancelledError):
+            await queue_reporter
 
 
 async def start_workflow_example(

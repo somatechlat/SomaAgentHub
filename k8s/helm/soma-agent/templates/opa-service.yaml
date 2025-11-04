@@ -1,0 +1,17 @@
+{{- if .Values.opa.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: opa
+  namespace: {{ .Values.global.namespace | default .Release.Namespace }}
+  labels:
+    app.kubernetes.io/name: opa
+    app.kubernetes.io/part-of: {{ $.Chart.Name }}
+spec:
+  selector:
+    app.kubernetes.io/name: opa
+  ports:
+    - name: http
+      port: {{ .Values.opa.port }}
+      targetPort: http
+{{- end }}

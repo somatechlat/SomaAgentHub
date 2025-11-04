@@ -3,14 +3,23 @@
 from __future__ import annotations
 
 from typing import Any, Dict
+import os
 
 from temporalio import activity
 
 # Import core protocol components
-from ..core.a2a_protocol import A2AProtocol, AgentRegistry
+from ..core.a2a_protocol import A2AProtocol, AgentRegistry, ConfigMapAgentRegistryBackend
 
 # Global singleton registry for the service runtime
-_registry = AgentRegistry()
+# Choose backend based on environment configuration – default to in‑memory JSON file
+backend_type = os.getenv("AGENT_REGISTRY_BACKEND", "json").lower()
+if backend_type == "configmap":
+    # Use the ConfigMap backend; it will lazily load the kubernetes client.
+    _registry = AgentRegistry(backend=ConfigMapAgentRegistryBackend())
+else:
+    # Fallback – the existing JSON‑file backend is used when ``backend`` is ``None``.
+    _registry = AgentRegistry()
+
 _protocol = A2AProtocol(_registry)
 
 

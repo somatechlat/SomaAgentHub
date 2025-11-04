@@ -1,0 +1,32 @@
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: soma-agent-restrict
+  namespace: {{ .Release.Namespace }}
+spec:
+  podSelector: {}
+  # Default deny all inbound traffic
+  policyTypes:
+  - Ingress
+  - Egress
+  # Allow traffic between pods that belong to this release (same label)
+  ingress:
+  - from:
+    - podSelector:
+        matchLabels:
+          app.kubernetes.io/part-of: {{ $.Chart.Name }}
+  egress:
+  - to:
+    - podSelector:
+        matchLabels:
+          app.kubernetes.io/part-of: {{ $.Chart.Name }}
+  # Allow DNS resolution (required for service discovery)
+  egress:
+  - to:
+    - namespaceSelector: {}
+      podSelector:
+        matchLabels:
+          k8s-app: kube-dns
+    ports:
+    - protocol: UDP
+      port: 53

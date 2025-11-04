@@ -26,7 +26,11 @@ for SERVICE_PATH in $SERVICES; do
         echo "✅ Image for ${SERVICE_NAME} already exists. Skipping build."
     else
         echo "🔨 Building image for ${SERVICE_NAME}..."
-        docker build -t "$IMAGE_NAME" "$SERVICE_PATH"
+        # Build using the repository root as the build context. The Dockerfile
+        # resides in the service directory, so we specify it with -f. This allows
+        # the Dockerfile to COPY files that live outside the service folder (e.g.,
+        # common/, clickhouse_driver/, and other sibling directories).
+        docker build -f "$SERVICE_PATH/Dockerfile" -t "$IMAGE_NAME" .
         echo "   ✓ Built ${IMAGE_NAME}"
         
         # Load the newly built image into the Kind cluster

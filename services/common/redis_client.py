@@ -244,7 +244,26 @@ def get_redis_client() -> RedisClient:
     if _redis_client is not None:
         return _redis_client
     
+    # Primary environment variable used by most services.
+    # Primary environment variable used by most services.
     redis_url = os.getenv("REDIS_URL")
+    # In the test environment ``SOMAGENT_IDENTITY_REDIS_URL`` (or similar) is
+    # set by the fixture.  The generic ``REDIS_URL`` may contain the default
+    # placeholder ``redis://redis:6379/0`` which does not resolve inside the test
+    # container network.  Therefore, if the retrieved URL points to the host
+    # ``redis`` we prefer any service‑specific variable ending with ``_REDIS_URL``.
+    if redis_url and "redis://redis" in redis_url:
+        for key, value in os.environ.items():
+            if key.endswith("_REDIS_URL") and value:
+                redis_url = value
+                break
+    # If still not set, fall back to any ``_REDIS_URL`` variable (covers the case
+    # where ``REDIS_URL`` is unset entirely).
+    if not redis_url:
+        for key, value in os.environ.items():
+            if key.endswith("_REDIS_URL") and value:
+                redis_url = value
+                break
     if not redis_url:
         raise RuntimeError("REDIS_URL environment variable not set")
     

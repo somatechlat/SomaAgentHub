@@ -28,7 +28,7 @@
 
 ### Installation
 ```bash
-helm upgrade --install soma-agent ./k8s/helm/soma-agent \
+helm upgrade --install soma-agent-hub ./k8s/helm/soma-agent \
   --namespace soma-agent-hub --create-namespace \
   --set global.imageRegistry=ghcr.io/somatechlat \
   --set global.imageTag=$(git rev-parse --short HEAD)

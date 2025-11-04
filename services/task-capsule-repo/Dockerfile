@@ -2,11 +2,12 @@ FROM python:3.13-slim
 
 WORKDIR /app
 
-COPY requirements.txt .
+COPY services/task-capsule-repo/requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-COPY app/ ./app/
-COPY . .
+COPY services/task-capsule-repo/app/ ./app/
+# Copy any additional source files from the service directory (excluding the Dockerfile itself)
+COPY services/task-capsule-repo/ ./
 
 EXPOSE 8000
 

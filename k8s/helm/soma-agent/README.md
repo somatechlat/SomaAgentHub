@@ -20,7 +20,7 @@ This Helm chart packages the core SomaAgentHub services for Kubernetes deploymen
 ## Installing the Chart
 
 ```bash
-helm upgrade --install soma-agent ./k8s/helm/soma-agent \
+helm upgrade --install soma-agent-hub ./k8s/helm/soma-agent \
   --namespace soma-agent-hub --create-namespace \
   --set global.imageRegistry=<registry> \
   --set global.imageTag=<tag>
@@ -28,7 +28,7 @@ helm upgrade --install soma-agent ./k8s/helm/soma-agent \
 
 Set service-specific overrides:
 ```bash
-helm upgrade soma-agent ./k8s/helm/soma-agent \
+helm upgrade soma-agent-hub ./k8s/helm/soma-agent \
   --namespace soma-agent-hub \
   --reuse-values \
   --set gateway.replicas=2 \

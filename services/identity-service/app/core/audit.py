@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import datetime, timezone
 import asyncio
 from typing import Any
 
@@ -53,7 +53,7 @@ class AuditLogger:
         metadata.setdefault("event", event_type)
 
         event = AuditEvent(
-            timestamp=datetime.now(datetime.UTC),
+            timestamp=datetime.now(timezone.utc),
             event_type=audit_type,
             severity=severity,
             actor_id=actor_id,

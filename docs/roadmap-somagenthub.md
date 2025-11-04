@@ -26,7 +26,7 @@ SomaAgentHub is designed as a **central orchestration hub** (the “control‑to
 | **Metrics‑Driven Autoscaling** | ✅ Partial | HPA on Gateway, Orchestrator workers, and each agent based on request rate, queue length, and latency. |
 | **Failure Isolation / Chaos** | ✅ Implemented | Health probes, retry policies, compensation activities, chaos‑engine scripts (`scripts/tests/temporal_failover.sh`). |
 | **Documentation Sync** | ✅ Updated | All docs now reference the correct Memory Service ports (Qdrant 10005, Redis 10003) and metric names. |
-| **CI/CD Pipeline** | ❌ Missing | Lint, unit/integration tests, Docker image build, SBOM generation, Trivy scan, Helm chart release. |
+| **CI/CD Pipeline** | ✅ Implemented | Lint, unit/integration tests, Docker image build, SBOM generation, Trivy scan, Helm chart release. |
 | **Helm Chart** | ✅ Implemented | Deploys all core services, independent Qdrant and Redis pods, Identity, Policy, and agents. Values for `agentRegistry`, `policyRules`, and `memoryBackend` are configurable. |
 
 ---

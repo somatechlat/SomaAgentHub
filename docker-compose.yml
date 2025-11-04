@@ -82,6 +82,30 @@ services:
     networks:
       - somaagenthub-network
 
+  # --- Optional Services ---
+  policy-engine:
+    build:
+      context: .
+      dockerfile: services/policy-engine/Dockerfile
+    container_name: somaagenthub_policy-engine
+    restart: unless-stopped
+    ports:
+      - "${POLICY_ENGINE_PORT:-10020}:10020"
+    environment:
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4317
+      # Optional Kafka for cache invalidation – set via env if needed
+      - KAFKA_BOOTSTRAP_SERVERS=${KAFKA_BOOTSTRAP_SERVERS:-}
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://127.0.0.1:10020/health', timeout=3)\""]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+    depends_on:
+      redis:
+        condition: service_healthy
+    networks:
+      - somaagenthub-network
+
   # --- Infrastructure Services ---
   app-postgres:
     image: postgres:16.4-alpine
@@ -237,7 +261,8 @@ services:
       - ./infra/monitoring/prometheus.yml:/etc/prometheus/prometheus.yml
       - prometheus-data:/prometheus
     healthcheck:
-      test: ["CMD-SHELL", "curl -f http://127.0.0.1:9090/-/healthy || exit 1"]
+      # Use wget which is available in the Prometheus image instead of curl
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:9090/-/healthy | grep -q Healthy || exit 1"]
       interval: 10s
       timeout: 5s
       retries: 6

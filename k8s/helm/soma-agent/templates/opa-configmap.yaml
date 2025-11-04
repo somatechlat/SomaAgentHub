@@ -1,0 +1,49 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: opa-policy
+  namespace: {{ .Values.global.namespace | default .Release.Namespace }}
+  labels:
+    app.kubernetes.io/name: opa
+    app.kubernetes.io/part-of: {{ $.Chart.Name }}
+data:
+  # Simple example policy: only allow users with user_id "admin"
+  # Expanded policy for production use.
+  #
+  # * `allow` – default deny, but grants access if any of the following is true:
+  #   1. The request is made by the built‑in admin user (user_id == "admin").
+  #   2. The request includes a `capabilities` list and at least one of them matches a
+  #      capability required by the target action (provided via `input.required_capability`).
+  #   3. The request is scoped to the correct tenant – the tenant ID in the JWT must match
+  #      the tenant ID supplied in the request payload.
+  #
+  # The policy is deliberately simple but demonstrates how to combine user identity,
+  # capability checks, and tenant isolation.
+  policy.rego: |
+    package somagent.authorization
+
+    # Default deny
+    default allow = false
+
+    # Allow if the user is the built‑in admin
+    allow {
+      input.user_id == "admin"
+    }
+
+    # Allow if the request carries a required capability and the user possesses it.
+    # `input.capabilities` is the list of capabilities the user has (populated by the
+    # identity service). `input.required_capability` is supplied by the protected
+    # endpoint (e.g., "delete_user", "create_job").
+    allow {
+      required := input.required_capability
+      user_caps := input.capabilities
+      required != ""
+      user_caps[_] == required
+    }
+
+    # Allow only when the tenant in the JWT matches the tenant in the request payload.
+    # This prevents cross‑tenant data access.
+    allow {
+      input.tenant_id != ""
+      input.tenant_id == input.jwt_tenant_id
+    }

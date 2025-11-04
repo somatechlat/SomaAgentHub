@@ -4,13 +4,11 @@ FROM apache/airflow:2.9.0-python3.11
 # Switch to root to create directories and set permissions
 USER root
 RUN mkdir -p /opt/airflow/airflow_logging /opt/airflow/dags /opt/airflow/plugins && \
-    chown -R airflow:airflow /opt/airflow
+	chown -R airflow /opt/airflow
 
-# Switch to the airflow user for installations and operations
+# Install Python dependencies as the airflow user (recommended by Airflow image)
 USER airflow
-
-# Install Python dependencies as the correct user
-RUN pip install --no-cache-dir --user \
+RUN pip install --no-cache-dir \
 	python-logging-loki \
 	requests \
 	pyjwt \
@@ -18,6 +16,8 @@ RUN pip install --no-cache-dir --user \
 	apache-airflow-providers-http \
 	apache-airflow-providers-redis \
 	apache-airflow-providers-postgres
+
+# Ensure we remain as the airflow user for the rest of the image (already set)
 
 # Copy application code
 COPY --chown=airflow:airflow airflow_logging /opt/airflow/airflow_logging

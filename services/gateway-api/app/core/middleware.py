@@ -56,7 +56,9 @@ class ContextMiddleware(BaseHTTPMiddleware):
         using_token = False
         if auth_header and auth_header.startswith("Bearer "):
             token = auth_header.split(" ", 1)[1]
-            claims = decode_token(token)
+            # ``decode_token`` is now async and forwards verification to the
+            # Identity Service.  Await the coroutine to obtain the claims.
+            claims = await decode_token(token)
             using_token = True
         elif self._allow_anonymous:
             tenant_id = self._defaults.get("default_tenant_id") or "demo"

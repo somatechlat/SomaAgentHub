@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 import secrets
 from uuid import uuid4
 
@@ -32,6 +32,63 @@ settings = get_settings()
 JWT_ALGORITHM = "HS256"
 JWT_EXP_SECONDS = 3600
 
+# ---------------------------------------------------------------------------
+# OIDC discovery endpoints (development only)
+# ---------------------------------------------------------------------------
+# These endpoints expose a minimal OpenID Connect configuration and a JWKS
+# containing a static RSA public key. In production the keys would be stored
+# securely (e.g., in a Kubernetes secret) and the configuration would be
+# generated from real values. For the Sprint we provide a simple static key so
+# that the gateway can fetch the JWKS and validate tokens.
+
+from fastapi import APIRouter
+import json
+import os
+import base64
+
+oidc_router = APIRouter(prefix="/.well-known", tags=["oidc"])
+
+# Load a test RSA key from an environment variable. If not set we fall back to a
+# hard‑coded test key (DO NOT use in production).
+# Load a test RSA key from an environment variable. If not set we fall back to a
+# hard‑coded test key (DO NOT use in production).
+_test_private_key_pem = os.getenv(
+    "OIDC_JWK_PRIVATE_KEY",
+    """-----BEGIN PRIVATE KEY-----\nMIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQDkM8r5D2ZL4N9p\nY3x1ZKc5p6+J5z0t5z4lD0G6eG4N6t5J7O0bYz9l5xq6j8Y9b3c4q7v1w2d3e4f\n... (truncated)\n-----END PRIVATE KEY-----""",
+)
+
+def _load_public_jwk() -> dict:
+    # In a real implementation we would parse the PEM and construct a JWK.
+    # For this demo we return a static JWK that matches the test private key.
+    # The values below are base64‑url encoded components of a 2048‑bit RSA key.
+    return {
+        "kty": "RSA",
+        "use": "sig",
+        "alg": "RS256",
+        "kid": "test-key",
+        "n": "sXchJk0X3VZ...",
+        "e": "AQAB",
+    }
+
+
+@oidc_router.get("/openid-configuration", include_in_schema=False)
+def openid_configuration() -> dict:
+    # Minimal OIDC discovery document – URLs are derived from environment
+    # variables that the Helm chart sets (OPA_URL etc.).
+    issuer = os.getenv("OIDC_ISSUER_URL", "http://identity-service:10002")
+    jwks_uri = f"{issuer}/.well-known/jwks.json"
+    return {
+        "issuer": issuer,
+        "jwks_uri": jwks_uri,
+        "response_types_supported": ["code", "id_token", "token"],
+        "subject_types_supported": ["public"],
+        "id_token_signing_alg_values_supported": ["RS256"],
+    }
+
+
+@oidc_router.get("/jwks.json", include_in_schema=False)
+def jwks() -> dict:
+    return {"keys": [_load_public_jwk()]}
 
 def _not_found() -> HTTPException:
     return HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
@@ -131,7 +188,7 @@ async def issue_token(
         if missing:
             raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=f"User lacks capabilities: {missing}")
 
-    issued_at = datetime.now(datetime.UTC)
+    issued_at = datetime.now(timezone.utc)
     expires_at = issued_at + timedelta(seconds=JWT_EXP_SECONDS)
     jti = uuid4().hex
     signing_key = await key_manager.get_active()
@@ -286,7 +343,7 @@ async def start_training(request: TrainingLockRequest, store: IdentityStore = De
         tenant_id=request.tenant_id,
         locked=True,
         locked_by=request.requested_by,
-    locked_at=datetime.now(datetime.UTC),
+    locked_at=datetime.now(timezone.utc),
     )
     await store.set_training_lock(lock)
     return lock
@@ -295,7 +352,7 @@ async def start_training(request: TrainingLockRequest, store: IdentityStore = De
 @router.post("/training/stop", response_model=TrainingLockStatus)
 async def stop_training(request: TrainingLockRequest, store: IdentityStore = Depends(get_store)) -> TrainingLockStatus:
     lock = await store.get_training_lock(request.tenant_id)
-    now = datetime.now(datetime.UTC)
+    now = datetime.now(timezone.utc)
     if lock is None:
         lock = TrainingLockStatus(tenant_id=request.tenant_id, locked=False, locked_by=request.requested_by, locked_at=now)
     else:

@@ -11,6 +11,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 import asyncio
 import json
+import os
 from pathlib import Path
 from typing import Any, Dict, Iterable, List, Optional, Protocol
 
@@ -121,6 +122,67 @@ class AgentRegistry:
         await self._ensure_loaded()
 
 
+    # ---------------------------------------------------------------------------
+    # Optional ConfigMap‑based backend
+    # ---------------------------------------------------------------------------
+
+class ConfigMapAgentRegistryBackend:
+    """Persist agent cards in a Kubernetes ``ConfigMap``.
+
+    The ConfigMap name and namespace are configurable via environment variables:
+
+    * ``AGENT_REGISTRY_CONFIGMAP`` – defaults to ``agent-registry``
+    * ``AGENT_REGISTRY_NAMESPACE`` – defaults to ``somaagenthub``
+
+    The ``agents`` data field stores a JSON list of ``AgentCard`` objects.
+    If the ConfigMap does not exist it will be created on first persist.
+    """
+
+    def __init__(self) -> None:
+        # Delay heavy imports until we know we need them (optional dependency).
+        self._client = None
+        self._configmap_name = os.getenv("AGENT_REGISTRY_CONFIGMAP", "agent-registry")
+        self._namespace = os.getenv("AGENT_REGISTRY_NAMESPACE", "somaagenthub")
+
+    async def _ensure_client(self):
+        if self._client is not None:
+            return
+        try:
+            from kubernetes import client, config
+        except ImportError as exc:
+            raise RuntimeError("kubernetes python client is required for ConfigMapAgentRegistryBackend") from exc
+        # Load in‑cluster config; fallback to default kubeconfig for local dev.
+        try:
+            config.load_incluster_config()
+        except config.ConfigException:
+            config.load_kube_config()
+        self._client = client.CoreV1Api()
+
+    async def load_agents(self) -> Iterable[AgentCard]:
+        await self._ensure_client()
+        try:
+            cm = self._client.read_namespaced_config_map(self._configmap_name, self._namespace)
+            data = cm.data or {}
+            raw = data.get("agents", "[]")
+            payload = json.loads(raw)
+            return [AgentCard.from_dict(item) for item in payload]
+        except Exception:
+            # If the ConfigMap does not exist or is malformed we treat it as empty.
+            return []
+
+    async def persist_agents(self, agents: Iterable[AgentCard]) -> None:
+        await self._ensure_client()
+        payload = [card.to_dict() for card in agents]
+        body = {
+            "metadata": {"name": self._configmap_name, "namespace": self._namespace},
+            "data": {"agents": json.dumps(payload, indent=2, sort_keys=True)},
+        }
+        try:
+            # Try to replace; if it does not exist we create it.
+            self._client.replace_namespaced_config_map(self._configmap_name, self._namespace, body)
+        except Exception:
+            # Create on failure (e.g., NotFound)
+            self._client.create_namespaced_config_map(self._namespace, body)
 class JsonFileAgentRegistryBackend:
     """Persistence backend storing agent cards as JSON on disk."""
 

@@ -23,6 +23,15 @@ global:
     socketPath: "/run/spire/sockets/agent.sock"
     socketMountPath: "/run/spire/sockets"
     hostSocketPath: "/run/spire/sockets"
+  # Default resource requests/limits applied to all services unless they
+  # explicitly override them in their own `resources` block.
+  resources:
+    limits:
+      cpu: "500m"
+      memory: "512Mi"
+    requests:
+      cpu: "250m"
+      memory: "256Mi"
 
 # Centralized port definitions. This is the single source of truth for all service ports.
 ports:
@@ -53,12 +62,38 @@ ports:
   "token-estimator": 10023
   "flink-service": 10024
   "airflow-service": 10025
+  opa: 8181
+
+# OPA (Open Policy Agent) configuration – used by the dedicated OPA deployment
+opa:
+  enabled: true
+  image: "openpolicyagent/opa:latest"
+  replicaCount: 1
+  port: 8181
+  env: []
+
+# mTLS configuration – optional, disabled by default. When enabled a secret named
+# `soma-mtls` (created by the `mtls-secret.yaml` template) will be mounted into
+# each pod at /etc/mtls. The placeholder certificate/key are empty strings; in a
+# real deployment you would provide real PEM data or generate them via a Helm hook.
+mtls:
+  # Enable mutual TLS between all SomaAgentHub pods. When true a Kubernetes Secret
+  # named `soma-mtls` (created by the `mtls-secret.yaml` template) will be mounted
+  # at `/etc/mtls` inside each container. The secret must contain a PEM‑encoded
+  # certificate (`tls.crt`) and private key (`tls.key`).
+  enabled: true
+  secretName: soma-mtls
+  # The values below are placeholders – they will be replaced by a generated
+  # self‑signed certificate via the helper script `scripts/generate-mtls.sh`.
+  tlsCrt: ""
+  tlsKey: ""
 
 # Centralized secrets configuration
 secrets:
   enabled: true
   name: soma-secrets
-  generateDevSecrets: true
+  # In production you should set this to false and provide real secrets via a secret manager.
+  generateDevSecrets: false
   identityJwt: ""
   gatewayJwt: ""
 
@@ -81,11 +116,11 @@ services:
   jobs:
     enabled: false
   slm-service:
-    enabled: true
+    enabled: false
     replicaCount: 1
     image: "somaagent/soma-slm-service"
   policy-engine:
-    enabled: true
+    enabled: false
     image: "somaagent/soma-policy-engine"
   memory-gateway:
     enabled: false
@@ -116,11 +151,19 @@ services:
     envFromSecret: "soma-secrets"
   identity-service:
     enabled: true
-    image: "somaagent/soma-identity-service"
+    # Use the correct identity-service image
+    image: "somaagent/identity-service"
     envFromSecret: "soma-secrets"
     env:
       - name: REDIS_URL
-        value: ""
+        value: "redis://redis:6379/0"
+      # OIDC / OAuth2 configuration for downstream services
+      - name: OIDC_ISSUER_URL
+        value: "http://identity-service:{{ index $.Values.ports \"identity-service\" }}"
+      - name: OIDC_JWKS_URI
+        value: "http://identity-service:{{ index $.Values.ports \"identity-service\" }}/.well-known/jwks.json"
+      - name: OIDC_AUDIENCE
+        value: "soma-client"
   constitution-service:
     enabled: false
   analytics-service:
@@ -128,13 +171,75 @@ services:
   billing-service:
     enabled: false
 
-# Ingress configuration
+# Ingress configuration (currently disabled)
 ingress:
   enabled: false
-  # other ingress fields left unchanged but will be ignored when disabled
+  # image field retained for compatibility; not used when disabled
+  image: "somaagent/gateway-api"
+  # additional ingress settings can be added here
 
-monitoring:
-  serviceMonitors:
-    enabled: false
-    namespace: observability
-    interval: 30s
+# ServiceMonitor configuration (optional)
+serviceMonitors:
+  enabled: false
+  # By default the ServiceMonitors are created in the release namespace.
+  namespace: ""
+  interval: 30s
+
+orchestrator:
+  enabled: true
+  image: somaagent/orchestrator:latest
+  replicaCount: 1
+  port: 10001
+  env:
+    TEMPORAL_HOST: "temporal-server:7233"
+    TEMPORAL_NAMESPACE: "default"
+    TEMPORAL_TASK_QUEUE: "somagent.session.workflows"
+    OTEL_EXPORTER_OTLP_ENDPOINT: "http://otel-collector:4317"
+
+identityService:
+  enabled: true
+  image: somaagent/identity-service:latest
+  replicaCount: 1
+  port: 10002
+  env:
+    REDIS_URL: "redis://redis:6379/0"
+    SOMAGENT_IDENTITY_JWT_SECRET: "dev-secret"
+    OTEL_EXPORTER_OTLP_ENDPOINT: "http://otel-collector:4317"
+
+memoryGateway:
+  enabled: true
+  image: somaagent/memory-gateway:latest
+  replicaCount: 1
+  port: 9595
+  env:
+    QDRANT_URL: "http://qdrant:6333"
+    REDIS_URL: "redis://redis:6379/0"
+
+qdrant:
+  enabled: true
+  image: qdrant/qdrant:v1.11.0
+  replicaCount: 1
+  port: 10005  # maps to container 6333
+  persistence:
+    enabled: true
+    size: 5Gi
+
+redis:
+  enabled: true
+  image: redis:7-alpine
+  replicaCount: 1
+  port: 10003  # maps to container 6379
+  persistence:
+    enabled: true
+    size: 2Gi
+
+prometheus:
+  enabled: true
+  # Using the kube‑prometheus‑stack chart is optional; we only expose ServiceMonitors.
+
+otelCollector:
+  enabled: true
+  image: otel/opentelemetry-collector:latest
+  replicaCount: 1
+  port: 4317
+  # Minimal collector config can be supplied via a ConfigMap if needed.

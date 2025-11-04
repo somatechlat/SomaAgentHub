@@ -129,4 +129,6 @@ class IdentityStore:
 
 
 def utc_from_timestamp(timestamp: int | float) -> datetime:
-    return datetime.fromtimestamp(timestamp, tz=datetime.UTC)
+    # Use timezone-aware UTC conversion compatible with Python versions where
+    # ``datetime.UTC`` may not exist.
+    return datetime.fromtimestamp(timestamp, tz=datetime.timezone.utc)

@@ -96,6 +96,19 @@ spec:
             - name: spiffe-cert-dir
               mountPath: {{ $.Values.global.spiffe.certDir | default "/var/run/secrets/spiffe" | quote }}
           {{- end }}
+          {{- if $.Values.mtls.enabled }}
+          {{- if $svc.name }}{{/* no-op to keep indentation */}}{{- end }}
+          volumeMounts:
+            - name: {{ $.Values.mtls.secretName }}
+              mountPath: "/etc/mtls"
+              readOnly: true
+          {{- end }}
+          {{- if eq $name "opa" }}
+          volumeMounts:
+            - name: opa-policy
+              mountPath: /etc/opa
+              readOnly: true
+          {{- end }}
           livenessProbe:
             httpGet:
               path: /health
@@ -119,12 +132,11 @@ spec:
             requests:
 {{ toYaml $svc.resources.requests | indent 14 }}
 {{- else }}
-            requests:
-              cpu: "100m"
-              memory: "128Mi"
+            # Use the global defaults defined in values.yaml
             limits:
-              cpu: "1000m"
-              memory: "512Mi"
+{{ toYaml $.Values.global.resources.limits | indent 14 }}
+            requests:
+{{ toYaml $.Values.global.resources.requests | indent 14 }}
 {{- end }}
       {{- if $.Values.global.spiffe.enabled }}
       volumes:
@@ -134,6 +146,18 @@ spec:
             type: DirectoryOrCreate
         - name: spiffe-cert-dir
           emptyDir: {}
+      {{- end }}
+      {{- if $.Values.mtls.enabled }}
+      volumes:
+        - name: {{ $.Values.mtls.secretName }}
+          secret:
+            secretName: {{ $.Values.mtls.secretName }}
+      {{- end }}
+      {{- if eq $name "opa" }}
+      volumes:
+        - name: opa-policy
+          configMap:
+            name: opa-policy
       {{- end }}
 {{- end }}
 {{- end }}

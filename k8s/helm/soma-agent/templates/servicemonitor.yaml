@@ -20,7 +20,7 @@ spec:
     matchNames:
       - {{ $.Values.global.namespace | default $.Release.Namespace }}
   endpoints:
-    - port: {{ .Values.ports.gatewayApi }}http
+    - port: http
       interval: {{ $interval }}
       path: /metrics
       scheme: http

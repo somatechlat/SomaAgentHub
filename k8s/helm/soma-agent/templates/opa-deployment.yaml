@@ -1,0 +1,39 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: opa
+  namespace: {{ .Values.global.namespace | default .Release.Namespace }}
+  labels:
+    app: opa
+    app.kubernetes.io/name: opa
+    app.kubernetes.io/part-of: {{ $.Chart.Name }}
+spec:
+  replicas: {{ .Values.opa.replicaCount | default 1 }}
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: opa
+  template:
+    metadata:
+      labels:
+        app: opa
+        app.kubernetes.io/name: opa
+    spec:
+      containers:
+        - name: opa
+          image: {{ .Values.opa.image }}
+          imagePullPolicy: {{ $.Values.global.imagePullPolicy }}
+          args:
+            - "run"
+            - "--server"
+            - "/etc/opa/policy.rego"
+          ports:
+            - containerPort: {{ .Values.opa.port }}
+              name: http
+          volumeMounts:
+            - name: opa-policy
+              mountPath: /etc/opa
+              readOnly: true
+      volumes:
+        - name: opa-policy
+          configMap:
+            name: opa-policy
