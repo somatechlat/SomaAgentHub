@@ -189,30 +189,8 @@ async def refine_plan(payload: RefinePlanPayload) -> ProjectPlan:
                 raise HTTPException(status_code=400, detail=str(exc)) from exc
 
 
-@router.get("/{plan_id}", response_model=ProjectPlan)
-async def get_plan(plan_id: str) -> ProjectPlan:
-    """Fetch a persisted plan by its identifier."""
-    # Record metric for get request
-    planner_get_requests.inc()
-    plan = await _repo.get_plan(plan_id)
-    if plan is None:
-        raise HTTPException(status_code=404, detail="Plan not found")
-    return ProjectPlan.parse_obj(plan.payload)
-
-
-@router.delete("/{plan_id}", status_code=status.HTTP_204_NO_CONTENT)
-async def delete_plan(plan_id: str) -> Response:
-    """Delete a plan from the database.
-
-    Returns a ``Response`` with status 204 and an empty body to satisfy
-    FastAPI's requirement that 204 responses must not include a body.
-    """
-    # Record metric for delete request
-    planner_delete_requests.inc()
-    await _repo.delete_plan(plan_id)
-    return Response(status_code=status.HTTP_204_NO_CONTENT)
-
-
+# The ``/list`` endpoint must be defined *before* the dynamic ``/{plan_id}``
+# route to avoid the latter capturing the literal ``list`` path segment.
 @router.get("/list", response_model=List[ProjectPlan])
 async def list_plans() -> List[ProjectPlan]:
     """Return a list of all persisted plans.
@@ -238,45 +216,69 @@ async def list_plans() -> List[ProjectPlan]:
         return [ProjectPlan.parse_obj(rec.payload) for rec in records]
 
 
-    @router.post("/batch/refine", response_model=List[ProjectPlan])
-    async def batch_refine(payload: BatchRefinePayload) -> List[ProjectPlan]:
-        """Refine multiple plans in parallel.
+@router.get("/{plan_id}", response_model=ProjectPlan)
+async def get_plan(plan_id: str) -> ProjectPlan:
+    """Fetch a persisted plan by its identifier."""
+    # Record metric for get request
+    planner_get_requests.inc()
+    plan = await _repo.get_plan(plan_id)
+    if plan is None:
+        raise HTTPException(status_code=404, detail="Plan not found")
+    return ProjectPlan.parse_obj(plan.payload)
 
-        Each ``RefinePlanPayload`` is processed concurrently using ``asyncio.gather``.
-        The endpoint returns a list of refined ``ProjectPlan`` objects in the same
-        order as the input requests.
-        """
-        # Increment metric for batch refine (count each item processed)
-        # Authorize batch refine – using admin tenant for simplicity.
-        opa = get_opa_client()
-        authorized = await opa.check_authorization(
-            tenant_id="admin",
-            user_id="system",
-            action="batch_refine",
-            resource="planner",
-            context={},
-        )
-        if not authorized:
-            raise HTTPException(status_code=403, detail="Unauthorized to batch refine plans")
 
-        planner_batch_refine_requests.labels(method="batch").inc(len(payload.requests))
-        with planner_latency_seconds.labels(endpoint="batch_refine").time():
-            async def _process(req: RefinePlanPayload) -> ProjectPlan:
-                # Fetch existing plan
-                existing = await _repo.get_plan(req.plan_id)
-                if existing is None:
-                    raise HTTPException(status_code=404, detail=f"Plan {req.plan_id} not found")
-                try:
-                    current_plan = ProjectPlan.parse_obj(existing.payload)
-                except Exception as exc:
-                    raise HTTPException(status_code=500, detail="Corrupted plan data") from exc
-                refined = await _service.refine_plan(
-                    current_plan,
-                    req.updates,
-                    context=req.context,
-                )
-                return refined
+@router.delete("/{plan_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_plan(plan_id: str) -> Response:
+    """Delete a plan from the database.
 
-            coros = [_process(req) for req in payload.requests]
-            results = await asyncio.gather(*coros, return_exceptions=False)
-            return results
+    Returns a ``Response`` with status 204 and an empty body to satisfy
+    FastAPI's requirement that 204 responses must not include a body.
+    """
+    # Record metric for delete request
+    planner_delete_requests.inc()
+    await _repo.delete_plan(plan_id)
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+
+@router.post("/batch/refine", response_model=List[ProjectPlan])
+async def batch_refine(payload: BatchRefinePayload) -> List[ProjectPlan]:
+    """Refine multiple plans in parallel.
+
+    Each ``RefinePlanPayload`` is processed concurrently using ``asyncio.gather``.
+    The endpoint returns a list of refined ``ProjectPlan`` objects in the same
+    order as the input requests.
+    """
+    # Increment metric for batch refine (count each item processed)
+    # Authorize batch refine – using admin tenant for simplicity.
+    opa = get_opa_client()
+    authorized = await opa.check_authorization(
+        tenant_id="admin",
+        user_id="system",
+        action="batch_refine",
+        resource="planner",
+        context={},
+    )
+    if not authorized:
+        raise HTTPException(status_code=403, detail="Unauthorized to batch refine plans")
+
+    planner_batch_refine_requests.labels(method="batch").inc(len(payload.requests))
+    with planner_latency_seconds.labels(endpoint="batch_refine").time():
+        async def _process(req: RefinePlanPayload) -> ProjectPlan:
+            # Fetch existing plan
+            existing = await _repo.get_plan(req.plan_id)
+            if existing is None:
+                raise HTTPException(status_code=404, detail=f"Plan {req.plan_id} not found")
+            try:
+                current_plan = ProjectPlan.parse_obj(existing.payload)
+            except Exception as exc:
+                raise HTTPException(status_code=500, detail="Corrupted plan data") from exc
+            refined = await _service.refine_plan(
+                current_plan,
+                req.updates,
+                context=req.context,
+            )
+            return refined
+
+        coros = [_process(req) for req in payload.requests]
+        results = await asyncio.gather(*coros, return_exceptions=False)
+        return results

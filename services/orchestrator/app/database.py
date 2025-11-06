@@ -15,8 +15,14 @@ from sqlmodel import SQLModel, create_engine
 # ``sqlmodel`` does not expose ``async_sessionmaker`` directly. Use the
 # implementation from SQLAlchemy's async extension. ``create_async_engine``
 # creates an ``AsyncEngine`` compatible with ``async_sessionmaker``.
+# SQLModel provides its own ``AsyncSession`` implementation that includes the
+# ``exec`` helper used throughout the repository layer. Importing the generic
+# ``AsyncSession`` from SQLAlchemy (as was previously done) lacks this method,
+# causing an ``AttributeError`` at runtime. We therefore import the async
+# session class from ``sqlmodel.ext.asyncio.session`` while keeping the
+# ``async_sessionmaker`` and ``create_async_engine`` utilities from SQLAlchemy.
+from sqlmodel.ext.asyncio.session import AsyncSession
 from sqlalchemy.ext.asyncio import (
-    AsyncSession,
     async_sessionmaker,
     create_async_engine,
 )

@@ -104,17 +104,19 @@ test_jobs_service() {
 test_memory_gateway() {
     echo "Testing Memory Gateway functionality..."
     
-    kubectl port-forward -n "$NAMESPACE" svc/memory-gateway 9696:9696 &
+    # Use the configured MEMORY_GATEWAY_PORT (default 10021)
+    MEMORY_PORT=${MEMORY_GATEWAY_PORT:-10021}
+    kubectl port-forward -n "$NAMESPACE" svc/memory-gateway ${MEMORY_PORT}:${MEMORY_PORT} &
     PORT_FORWARD_PID=$!
     sleep 3
     
     # Test remember endpoint
-    REMEMBER_RESPONSE=$(curl -s -X POST "http://localhost:9696/v1/remember" \
+    REMEMBER_RESPONSE=$(curl -s -X POST "http://localhost:${MEMORY_PORT}/v1/remember" \
         -H "Content-Type: application/json" \
         -d '{"key": "test_key", "value": "test_value"}')
     
     # Test recall endpoint
-    RECALL_RESPONSE=$(curl -s "http://localhost:9696/v1/recall/test_key")
+    RECALL_RESPONSE=$(curl -s "http://localhost:${MEMORY_PORT}/v1/recall/test_key")
     
     if echo "$RECALL_RESPONSE" | grep -q "test_value"; then
         echo "✅ Memory Gateway remember/recall working"
@@ -138,7 +140,7 @@ echo "🏥 Testing service health endpoints..."
 FAILED_TESTS=()
 
 # Test each service
-SERVICES=("jobs:8000" "memory-gateway:9696" "orchestrator:8002" "task-capsule-repo:8005")
+SERVICES=("jobs:8000" "memory-gateway:${MEMORY_GATEWAY_PORT:-10021}" "orchestrator:8002" "task-capsule-repo:8005")
 
 for service_port in "${SERVICES[@]}"; do
     IFS=':' read -r service port <<< "$service_port"

@@ -37,9 +37,19 @@ class PlanRepository:
             return plan
 
     async def get_plan(self, plan_id: str) -> Plan | None:
+        """Retrieve a plan by its *business* ``plan_id``.
+
+        The ``Plan`` model uses an auto‑generated UUID primary key ``id`` while
+        the external API works with the ``plan_id`` column. The original
+        implementation mistakenly used ``session.get`` which looks up the primary
+        key, causing ``GET /v1/planner/<plan_id>`` to fail when ``plan_id`` is a
+        string (e.g., ``"list"``) and resulting in a ``StatementError``. We now
+        query the ``plan_id`` column explicitly.
+        """
         async with get_async_session() as session:
-            result = await session.get(Plan, plan_id)
-            return result
+            statement = select(Plan).where(Plan.plan_id == plan_id)
+            result = await session.exec(statement)
+            return result.first()
 
     async def list_modules(self, plan_id: str) -> List[PlanModuleRecord]:
         raise NotImplementedError

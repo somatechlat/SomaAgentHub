@@ -109,6 +109,17 @@ async def healthz() -> dict[str, Any]:
         },
     }
 
+# Provide a legacy /health endpoint for compatibility with services that expect it.
+@app.get("/health", tags=["system"])
+async def health() -> dict[str, Any]:
+    """Alias for :func:`healthz` to maintain backward compatibility.
+
+    Some services (e.g., orchestrator) historically exposed ``/health`` while the
+    newer convention uses ``/healthz``. Exposing both endpoints avoids 404s in
+    environments where the older path is still referenced.
+    """
+    return await healthz()
+
 
 @app.get("/ready", tags=["system"])
 async def ready() -> dict[str, Any]:

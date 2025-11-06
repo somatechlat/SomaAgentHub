@@ -11,6 +11,111 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
+        python-version: ['3.13']
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: 'pip'
+
+      - name: Install core development dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements-dev.txt
+
+      - name: Lint Python code (ruff)
+        run: |
+          pip install ruff
+          ruff check .
+
+      - name: Type check (mypy)
+        run: |
+          pip install mypy
+          mypy services || true
+
+      - name: Install service-specific dependencies
+        run: |
+          for svc in services/policy-engine services/memory-gateway services/gateway-api services/orchestrator services/identity-service; do
+            if [ -f "$svc/requirements.txt" ]; then
+              pip install -r "$svc/requirements.txt"
+            fi
+                  # Placeholder for future edits
+                  # - name: Install core development dependencies
+
+      - name: Lint Helm chart
+        uses: azure/setup-helm@v4
+        with:
+          version: v3.12.0
+        continue-on-error: false
+      - name: Run Helm lint
+        run: helm lint ./k8s/helm/soma-agent
+
+      - name: Run tests
+        env:
+          MEMORY_GATEWAY_PORT: 10021
+          POLICY_ENGINE_PORT: 10020
+        run: |
+          pytest -q services/*/testsname: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ['3.13']
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: 'pip'
+
+      - name: Install core dev dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements-dev.txt
+
+      # Install service-specific requirements (policy-engine, memory-gateway, etc.)
+      - name: Install service dependencies
+        run: |
+          for svc in services/policy-engine services/memory-gateway services/gateway-api services/orchestrator services/identity-service; do
+            if [ -f $svc/requirements.txt ]; then
+              pip install -r $svc/requirements.txt
+            fi
+          done
+
+      - name: Run tests
+        env:
+          # Ensure services can be imported without Docker; use in‑process FastAPI test clients
+          MEMORY_GATEWAY_PORT: 10021
+          POLICY_ENGINE_PORT: 10020
+        run: |
+          pytest -q services/*/testsname: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
         python-version: ["3.11"]
     steps:
       - name: Checkout repository

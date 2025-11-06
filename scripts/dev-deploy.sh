@@ -53,5 +53,7 @@ echo ""
 echo "✅ Deployment complete!"
 echo "🔗 Access services via port-forward:"
 echo "  kubectl port-forward -n soma-agent-hub svc/jobs 8000:8000"
-echo "  kubectl port-forward -n soma-agent-hub svc/memory-gateway 9696:9696"
+# Forward the Memory Gateway using the configured port (default 10021)
+MEMORY_PORT=${MEMORY_GATEWAY_PORT:-10021}
+echo "  kubectl port-forward -n soma-agent-hub svc/memory-gateway ${MEMORY_PORT}:${MEMORY_PORT}"
 echo "  kubectl port-forward -n soma-agent-hub svc/orchestrator 8002:8002"

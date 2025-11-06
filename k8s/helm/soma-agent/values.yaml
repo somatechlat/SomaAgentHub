@@ -39,7 +39,7 @@ ports:
   orchestrator: 10001
   identity-service: 10002
   policy-engine: 10003
-  memory-gateway: 10004
+  memory-gateway: 10021
   slm-service: 10005
   tool-service: 10006
   analytics-service: 10007
@@ -120,10 +120,10 @@ services:
     replicaCount: 1
     image: "somaagent/soma-slm-service"
   policy-engine:
-    enabled: false
+    enabled: true
     image: "somaagent/soma-policy-engine"
   memory-gateway:
-    enabled: false
+    enabled: true
   orchestrator:
     enabled: true
     image: "somaagent/soma-orchestrator"
@@ -180,7 +180,7 @@ ingress:
 
 # ServiceMonitor configuration (optional)
 serviceMonitors:
-  enabled: false
+  enabled: true
   # By default the ServiceMonitors are created in the release namespace.
   namespace: ""
   interval: 30s

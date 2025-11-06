@@ -27,7 +27,12 @@ async def dashboard_health(ctx: RequestContext = Depends(request_context_depende
     settings = get_sah_settings()
     extra = settings.model_extra or {}
     slm_health_url = extra.get("SLM_HEALTH_URL") or os.getenv("SLM_HEALTH_URL", "http://slm-service:10022/health")
-    somabrain_metrics_url = extra.get("SOMABRAIN_METRICS_URL") or os.getenv("SOMABRAIN_METRICS_URL", "http://memory-gateway:9696/metrics")
+    # Use the configured MEMORY_GATEWAY_PORT (default 10021) to build the metrics URL
+    default_port = os.getenv("MEMORY_GATEWAY_PORT", "10021")
+    somabrain_metrics_url = extra.get("SOMABRAIN_METRICS_URL") or os.getenv(
+        "SOMABRAIN_METRICS_URL",
+        f"http://memory-gateway:{default_port}/metrics",
+    )
     kafka_endpoint = settings.kafka.bootstrap_servers[0] if settings.kafka.bootstrap_servers else "kafka:9092"
     postgres_host = extra.get("SOMASTACK_POSTGRES_HOST") or "postgres:5432"
     if settings.redis.host and settings.redis.port:

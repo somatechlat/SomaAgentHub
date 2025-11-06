@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import json
 from collections.abc import Iterable
-from datetime import datetime
+from datetime import datetime, timezone
 
 from redis.asyncio import Redis
 
@@ -129,6 +129,12 @@ class IdentityStore:
 
 
 def utc_from_timestamp(timestamp: int | float) -> datetime:
-    # Use timezone-aware UTC conversion compatible with Python versions where
-    # ``datetime.UTC`` may not exist.
-    return datetime.fromtimestamp(timestamp, tz=datetime.timezone.utc)
+    """Convert a POSIX timestamp to a timezone‑aware ``datetime`` in UTC.
+
+    The original implementation attempted to access ``datetime.timezone``
+    after importing only the ``datetime`` class, which raised an
+    ``AttributeError``.  By importing ``timezone`` directly we can safely
+    construct a UTC‑aware ``datetime`` that works across all supported Python
+    versions.
+    """
+    return datetime.fromtimestamp(timestamp, tz=timezone.utc)

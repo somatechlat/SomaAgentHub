@@ -1,5 +1,7 @@
 # SomaAgentHub
 
+[![CI](https://github.com/somatechlat/somaAgentHub/actions/workflows/ci.yml/badge.svg)](https://github.com/somatechlat/somaAgentHub/actions/workflows/ci.yml)
+
 **Production‑ready orchestration platform for autonomous agents**
 
 
@@ -8,6 +10,38 @@ SomaAgentHub is the coordination layer that powers the Soma platform. It provide
 
 
 ## Quick Start (Local Development)
+
+> **Note**: The **Memory Gateway** and **Policy Engine** services are now **enabled by default** in the Helm chart and Docker‑Compose configuration. They listen internally on port `8000` (Memory Gateway) and `10020` (Policy Engine) and are exposed externally via the canonical ports `10021` and `10020` respectively.
+
+### Running All Tests Locally
+
+The repository now includes a convenient Make target to run the full test suite across all services:
+
+```bash
+make test-all
+
+### Deploying with Helm
+
+The platform can be installed into a Kubernetes cluster using the provided Helm chart.
+
+```bash
+# Ensure you have a cluster (e.g., Kind) and Helm installed
+make start-cluster   # creates a Kind cluster and sets up namespaces
+
+# Install/upgrade the SomaAgentHub release
+make helm-upgrade    # uses the current Git commit SHA as the image tag
+```
+
+The chart respects the `global` and `services` sections in `k8s/helm/soma-agent/values.yaml`.  By default the **Memory Gateway** and **Policy Engine** are enabled (see the `services` block).  To disable them, set `enabled: false` for the corresponding service and re‑run `make helm-upgrade`.
+
+You can also lint the chart locally before deployment:
+
+```bash
+make helm-lint
+```
+```
+
+This target installs any service‑specific dependencies and executes `pytest` for each service's test directory.
 ```bash
 ```bash
 # Deploy the full stack using the canonical Helm chart (includes Qdrant, Redis, Memory‑Gateway, etc.)
@@ -84,8 +118,8 @@ SomaAgentHub is the coordination layer that powers the Soma platform. The hub co
 | **Gateway API** | 10000 | Public ingress for UI, CLI, and partner integrations. Handles wizard flows and session fan-out. |
 | **Orchestrator** | 10001 | Coordinates multi-agent workflows, talks to Temporal, identity, and policy services. |
 | **Identity Service** | 10002 | Issues access tokens and validates identities for every agent-facing request. |
-| **Memory Gateway** | (optional, container 8000) | Stores and retrieves long-term context via Qdrant for agent recall when the service is enabled. |
-| **Policy Engine** | 10020 *(optional, not in docker-compose)* | Provides rule-based guardrails when deployed alongside orchestrator. |
+| **Memory Gateway** | (container 8000) | Stores and retrieves long-term context via Qdrant for agent recall. Enabled by default. |
+| **Policy Engine** | 10020 | Provides rule-based guardrails when deployed alongside orchestrator. Enabled by default. |
 
 ### System Components
 
@@ -105,7 +139,7 @@ SomaAgentHub is the coordination layer that powers the Soma platform. The hub co
 │  └──────────────────────────────────┘    │
 │                │                          │
 │  ┌──────────────────────────────────┐    │
-│  │      Memory Gateway (optional)   │    │
+│  │      Memory Gateway            │    │
 │  │   Vector + KV Recall for Agents  │    │
 │  └──────────────────────────────────┘    │
 │                                         │

@@ -21,7 +21,11 @@ spec:
     - protocol: TCP
       name: http
       port: {{ index $.Values.ports $name }}
+      {{- if eq $name "memory-gateway" }}
+      targetPort: 8000
+      {{- else }}
       targetPort: {{ index $.Values.ports $name }}
+      {{- end }}
 {{- if and (eq $name "gateway-api") ($svc.nodePort) }}
       nodePort: {{ $svc.nodePort }}
 {{- end }}

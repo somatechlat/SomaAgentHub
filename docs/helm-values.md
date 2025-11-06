@@ -1,3 +1,137 @@
+---
+title: Helm Values Reference
+---
+
+# Helm Values Reference for `soma-agent`
+
+This document provides a concise reference for the **values.yaml** file used by the
+`soma-agent` Helm chart. It is intended for developers and operators who need to
+customise the deployment of the SomaAgentHub platform.
+
+## Global Settings
+
+```yaml
+global:
+  imagePullPolicy: IfNotPresent
+  namespace: soma-agent-hub
+  imageTag: "dev"
+  securityContext:
+    runAsNonRoot: true
+    allowPrivilegeEscalation: false
+    readOnlyRootFilesystem: true
+    capabilities:
+      drop: ["ALL"]
+  environment: production
+  observability:
+    enableOtlp: true
+    otlpEndpoint: "http://otel-collector.observability:4317"
+  spiffe:
+    enabled: true
+    trustDomain: "somaagent.io"
+    certDir: "/var/run/secrets/spiffe"
+    socketPath: "/run/spire/sockets/agent.sock"
+    socketMountPath: "/run/spire/sockets"
+    hostSocketPath: "/run/spire/sockets"
+  resources:
+    limits:
+      cpu: "500m"
+      memory: "512Mi"
+    requests:
+      cpu: "250m"
+      memory: "256Mi"
+```
+
+These settings are applied to **all** services unless overridden in the specific
+service block.
+
+## Port Definitions
+
+All ports are defined in a single `ports` map, which serves as the source of truth
+for both the Helm chart and the Docker‑Compose configuration.
+
+```yaml
+ports:
+  gateway-api: 10000
+  orchestrator: 10001
+  identity-service: 10002
+  policy-engine: 10020
+  memory-gateway: 10021
+  # … other services omitted for brevity …
+```
+
+Only the **service name** is used in the Helm templates; the chart automatically
+links the Service `port` to the corresponding `targetPort` (the container port).
+
+## Service Definitions
+
+Each micro‑service can be enabled/disabled, have its own image, replica count, and
+environment variables.  The most common overrides are shown below.
+
+```yaml
+services:
+  gateway-api:
+    enabled: true
+    replicaCount: 1
+    image: "somaagent/soma-gateway-api"
+    envFromSecret: "soma-secrets"
+    env:
+      - name: ENABLE_OTLP
+        value: "true"
+      # … additional env vars …
+
+  orchestrator:
+    enabled: true
+    image: "somaagent/soma-orchestrator"
+    env:
+      - name: TEMPORAL_ENABLED
+        value: "false"
+
+  identity-service:
+    enabled: true
+    image: "somaagent/identity-service"
+    env:
+      - name: REDIS_URL
+        value: "redis://redis:6379/0"
+
+  policy-engine:
+    enabled: true   # <-- optional service now enabled by default
+    image: "somaagent/soma-policy-engine"
+
+  memory-gateway:
+    enabled: true   # <-- optional service now enabled by default
+    # No extra env needed; the service uses the default port mapping
+```
+
+### Disabling an Optional Service
+
+If you wish to run the platform without a particular optional component, simply
+set `enabled: false` for that service and re‑run the Helm upgrade:
+
+```bash
+helm upgrade --install soma-agent-hub ./k8s/helm/soma-agent \
+  --set services.memory-gateway.enabled=false \
+  --set services.policy-engine.enabled=false
+```
+
+## Observability Configuration
+
+The chart includes optional OpenTelemetry, Prometheus, Grafana, Loki and Tempo
+components.  Their toggles live under `global.observability` and the dedicated
+`opa` section for the policy engine.
+
+## Helm Linting & Upgrade
+
+Use the provided Make targets for convenience:
+
+```bash
+make helm-lint      # Validate the chart locally
+make helm-upgrade   # Install or upgrade the release
+```
+
+---
+
+For a full description of every field, see the **`values.yaml`** file in the
+chart directory.
 # Helm Values Reference for SomaAgentHub
 
 This file documents every configurable key in `k8s/helm/soma-agent/values.yaml`. The default file is shipped with the chart; the table below describes the purpose, type, and typical values.

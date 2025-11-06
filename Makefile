@@ -184,6 +184,63 @@ docker-cluster-down:
 	@echo "--> Stopping the Docker-based application cluster..."
 	docker compose down
 
+# ---------------------------------------------------------------------------
+# Helm convenience targets (continue roadmap Sprint 2 – full CI/CD and observability)
+# ---------------------------------------------------------------------------
+
+## Render the Helm chart locally (useful for debugging)
+helm-template:
+	@echo "Rendering Helm chart..."
+	helm template soma-agent-hub ./k8s/helm/soma-agent --namespace $(NAMESPACE)
+
+## Run Helm tests (requires test hooks in the chart)
+helm-test:
+	@echo "Running Helm tests..."
+	helm test soma-agent-hub --namespace $(NAMESPACE) || true
+
+## Uninstall the Helm release
+helm-uninstall:
+	@echo "Uninstalling SomaAgentHub Helm release..."
+	helm uninstall soma-agent-hub --namespace $(NAMESPACE) || true
+
+# ---------------------------------------------------------------------------
+# Helm targets
+# ---------------------------------------------------------------------------
+
+## Lint the Helm chart for syntax errors and best‑practice warnings.
+helm-lint:
+	@echo "Running helm lint on soma-agent chart..."
+	@helm lint ./k8s/helm/soma-agent
+
+## Upgrade (or install) the SomaAgentHub Helm release.
+## Use the NAMESPACE variable to target a specific namespace (default: soma-agent-hub).
+helm-upgrade:
+	@echo "Installing/upgrading SomaAgentHub Helm release..."
+	@helm upgrade --install soma-agent-hub ./k8s/helm/soma-agent \
+		--namespace $(NAMESPACE) --create-namespace \
+		--set global.imageTag=$(shell git rev-parse --short HEAD) \
+		--set global.namespace=$(NAMESPACE)
+
+# ---------------------------------------------------------------------------
+# Test targets
+# ---------------------------------------------------------------------------
+
+## Run the full test suite across all services.
+## Installs any service‑specific requirements and executes pytest for each test directory.
+test-all:
+	@echo "Installing core development dependencies..."
+	@python -m pip install --quiet -r requirements-dev.txt
+	@echo "Running tests for all services..."
+	@for svc in services/*; do \
+		if [ -d $$svc/tests ]; then \
+			echo "Installing dependencies for $$svc..."; \
+			if [ -f $$svc/requirements.txt ]; then \
+				python -m pip install --quiet -r $$svc/requirements.txt; \
+			fi; \
+			pytest -q $$svc/tests; \
+		fi; \
+	 done
+
 .PHONY: dev-env
 dev-env:
 	./scripts/manage-cluster.sh

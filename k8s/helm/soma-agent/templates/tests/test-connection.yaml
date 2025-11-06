@@ -1,0 +1,30 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: "{{ include "soma-agent.fullname" . }}-test-connection"
+  labels:
+    {{- include "soma-agent.labels" . | nindent 4 }}
+    helm.sh/chart: {{ .Chart.Name }}
+    app.kubernetes.io/name: {{ .Chart.Name }}-test-connection
+    app.kubernetes.io/component: test
+    helm.sh/hook: test-success
+    helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded
+spec:
+  restartPolicy: Never
+  containers:
+    - name: curl
+      image: curlimages/curl:8.6.0
+      command: ["sh", "-c", "
+        set -e
+        echo \"Testing Gateway API health endpoint...\"
+        curl -sSf http://{{ include "soma-agent.fullname" . }}-gateway-api:{{ .Values.ports.gateway-api }}/health || exit 1
+        echo \"Testing Orchestrator health endpoint...\"
+        curl -sSf http://{{ include "soma-agent.fullname" . }}-orchestrator:{{ .Values.ports.orchestrator }}/ready || exit 1
+        echo \"Testing Identity Service health endpoint...\"
+        curl -sSf http://{{ include "soma-agent.fullname" . }}-identity-service:{{ .Values.ports.identity-service }}/health || exit 1
+        echo \"Testing Memory Gateway health endpoint...\"
+        curl -sSf http://{{ include "soma-agent.fullname" . }}-memory-gateway:{{ .Values.ports.memory-gateway }}/health || exit 1
+        echo \"Testing Policy Engine health endpoint...\"
+        curl -sSf http://{{ include "soma-agent.fullname" . }}-policy-engine:{{ .Values.ports.policy-engine }}/health || exit 1
+        echo \"All health checks passed.\"
+      "]

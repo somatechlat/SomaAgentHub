@@ -33,7 +33,7 @@ spec:
           securityContext:
 {{ toYaml ($svc.securityContext | default $.Values.global.securityContext) | indent 12 }}
           ports:
-            - containerPort: {{ index $.Values.ports $name }}
+            - containerPort: {{ if eq $name "memory-gateway" }}8000{{ else }}{{ index $.Values.ports $name }}{{ end }}
           {{- if $svc.envFromSecret }}
           envFrom:
             - secretRef:

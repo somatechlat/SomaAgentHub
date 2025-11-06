@@ -107,6 +107,29 @@ services:
     networks:
       - somaagenthub-network
 
+  # Memory Gateway (optional but now enabled by default)
+  memory-gateway:
+    build:
+      context: .
+      dockerfile: services/memory-gateway/Dockerfile
+    container_name: somaagenthub_memory-gateway
+    restart: unless-stopped
+    # The internal FastAPI server runs on port 8000; expose via the canonical range
+    ports:
+      - "${MEMORY_GATEWAY_PORT:-10021}:8000"
+    environment:
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4317
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=3)\""]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+    depends_on:
+      redis:
+        condition: service_healthy
+    networks:
+      - somaagenthub-network
+
   # --- Infrastructure Services ---
   app-postgres:
     image: postgres:16.4-alpine
