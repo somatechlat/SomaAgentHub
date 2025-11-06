@@ -6,7 +6,8 @@ metadata:
 data:
   REDIS_URL: "redis://redis:6379/0"
   TEMPORAL_HOST: "temporal-server:7233"
-  SOMAGENT_IDENTITY_JWT_SECRET: "dev-secret"
+  OIDC_ISSUER_URL: "http://identity-service:10002"
+  OIDC_JWKS_URI: "http://identity-service:10002/.well-known/jwks.json"
 ---
 apiVersion: apps/v1
 kind: Deployment

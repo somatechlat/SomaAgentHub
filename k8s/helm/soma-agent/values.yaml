@@ -203,7 +203,8 @@ identityService:
   port: 10002
   env:
     REDIS_URL: "redis://redis:6379/0"
-    SOMAGENT_IDENTITY_JWT_SECRET: "dev-secret"
+    OIDC_ISSUER_URL: "http://identity-service:10002"
+    OIDC_JWKS_URI: "http://identity-service:10002/.well-known/jwks.json"
     OTEL_EXPORTER_OTLP_ENDPOINT: "http://otel-collector:4317"
 
 memoryGateway:

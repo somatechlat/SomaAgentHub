@@ -77,13 +77,6 @@ class IdentitySettings(SharedSettings):
             "REDIS_URL",
         ),
     )
-    jwt_secret: str | None = Field(
-        default=None,
-        validation_alias=AliasChoices(
-            "SOMASTACK_IDENTITY_JWT_SECRET",
-            "SOMAGENT_IDENTITY_JWT_SECRET",
-        ),
-    )
     key_rotation_seconds: int = Field(
         default=3600,
         validation_alias=AliasChoices(
@@ -154,19 +147,7 @@ class IdentitySettings(SharedSettings):
         ),
     )
 
-    def resolve_jwt_secret(self) -> str:
-        secret = load_secret(
-            "SOMASTACK_IDENTITY_JWT_SECRET",
-            file_env="SOMASTACK_IDENTITY_JWT_SECRET_FILE",
-            default=self.jwt_secret,
-        ) or load_secret(
-            "SOMAGENT_IDENTITY_JWT_SECRET",
-            file_env="SOMAGENT_IDENTITY_JWT_SECRET_FILE",
-            default=self.jwt_secret,
-        )
-        if not secret:
-            raise ValueError("Identity JWT secret not configured")
-        return secret
+    # JWT symmetric secrets deprecated; Identity uses RS256 with live JWKS.
 
 @lru_cache
 def get_settings() -> IdentitySettings:

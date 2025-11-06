@@ -7,44 +7,23 @@ import os
 import time
 from dataclasses import dataclass
 from typing import Any, Dict, Optional
-
-import jwt
 import requests
 from airflow.exceptions import AirflowException
 from airflow.models import BaseOperator
 from airflow.utils.context import Context
 
 
-def _generate_service_jwt() -> str:
-    """Generate a short-lived JWT for service-to-service calls.
+def _load_bearer_token() -> str:
+    """Load a bearer token for service-to-service calls.
 
-    In development we sign tokens with the shared SOMAGENT_GATEWAY_JWT_SECRET so
-    the Gateway accepts requests coming from Airflow without a dedicated IdP.
-    Production deployments should override this environment-based signer by
-    mounting a service account token and setting SOMAGENT_AIRFLOW_JWT static
-    token instead.
+    Requires a real token set via `SOMAGENT_AIRFLOW_JWT` (or `SOMAGENT_BEARER_TOKEN`).
+    Generate one via the Identity Service `/v1/tokens/issue` endpoint.
     """
-
-    static_token = os.getenv("SOMAGENT_AIRFLOW_JWT")
-    if static_token:
-        return static_token
-
-    secret = os.getenv("SOMAGENT_GATEWAY_JWT_SECRET")
-    if not secret:
-        raise AirflowException("Gateway JWT secret not configured for Airflow")
-
-    now = int(time.time())
-    payload = {
-        "iss": "airflow",
-        "sub": os.getenv("SOMAGENT_AIRFLOW_SUBJECT", "airflow-service"),
-        "tenant_id": os.getenv("SOMAGENT_AIRFLOW_TENANT", "demo"),
-        "capabilities": ["scheduler", "system"],
-        "iat": now,
-        "exp": now + int(os.getenv("SOMAGENT_AIRFLOW_JWT_TTL", "600")),
-    }
-    token = jwt.encode(payload, secret, algorithm="HS256")
-    if isinstance(token, bytes):
-        token = token.decode("utf-8")
+    token = os.getenv("SOMAGENT_AIRFLOW_JWT") or os.getenv("SOMAGENT_BEARER_TOKEN")
+    if not token:
+        raise AirflowException(
+            "Missing bearer token. Set SOMAGENT_AIRFLOW_JWT (or SOMAGENT_BEARER_TOKEN)."
+        )
     return token
 
 
@@ -85,7 +64,7 @@ class SomaGatewayTemporalOperator(BaseOperator):
         self.timeout_seconds = timeout_seconds
 
     def execute(self, context: Context) -> Dict[str, Any]:  # noqa: D401
-        token = _generate_service_jwt()
+        token = _load_bearer_token()
         url = f"{self.gateway_url}/v1/sessions"
         payload: Dict[str, Any] = {
             "prompt": self.prompt,

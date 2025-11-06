@@ -17,7 +17,7 @@ services:
     environment:
       - SOMAGENT_GATEWAY_REDIS_URL=redis://redis:6379/0
       - SOMAGENT_GATEWAY_ORCHESTRATOR_URL=http://orchestrator:10001
-      - SOMAGENT_GATEWAY_JWT_SECRET=${SOMAGENT_IDENTITY_JWT_SECRET:-dev-secret}
+      - IDENTITY_SERVICE_URL=http://identity-service:10002
       - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4317
     depends_on:
       orchestrator:
@@ -69,7 +69,8 @@ services:
       - "${IDENTITY_SERVICE_PORT:-10002}:10002"
     environment:
       - REDIS_URL=redis://redis:6379/0
-      - SOMAGENT_IDENTITY_JWT_SECRET=${SOMAGENT_IDENTITY_JWT_SECRET:-dev-secret}
+      - OIDC_ISSUER_URL=http://identity-service:10002
+      - OIDC_JWKS_URI=http://identity-service:10002/.well-known/jwks.json
       - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4317
     depends_on:
       redis:

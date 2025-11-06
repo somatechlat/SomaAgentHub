@@ -50,6 +50,7 @@ class GatewaySettings(SharedSettings):
     default_tenant_id: str = Field(default="demo")
     default_client_type: str = Field(default="web")
     default_deployment_mode: str = Field(default="developer-light")
+    # Deprecated: JWT secret is no longer required; tokens are verified via Identity Service
     jwt_secret: str | None = Field(default=None, alias="SOMAGENT_IDENTITY_JWT_SECRET")
     residency_allowed: str = Field(default="")
     moderation_blocklist: str = Field(default="jailbreak, exploit, malware, self-harm")
@@ -59,15 +60,9 @@ class GatewaySettings(SharedSettings):
     moderation_warning_strikes: int = Field(default=1)
     kill_switch_enabled: bool = Field(default=False)
 
+    # Deprecated method; retained for backward compatibility but unused.
     def resolve_jwt_secret(self) -> str:
-        secret = load_secret(
-            "SOMAGENT_IDENTITY_JWT_SECRET",
-            file_env="SOMAGENT_IDENTITY_JWT_SECRET_FILE",
-            default=self.jwt_secret,
-        )
-        if not secret:
-            raise ValueError("Gateway JWT secret not configured")
-        return secret
+        return ""
 
     def moderation_terms(self) -> list[str]:
         return [term.strip().lower() for term in self.moderation_blocklist.split(",") if term.strip()]

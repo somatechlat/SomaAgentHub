@@ -1,4 +1,4 @@
-"""Key management utilities for signing JWTs."""
+"""Key management utilities for signing JWTs (RS256 with live JWKS)."""
 
 from __future__ import annotations
 
@@ -15,20 +15,28 @@ try:  # pragma: no cover - redis may be absent during tests
 except Exception:  # pragma: no cover
     Redis = None  # type: ignore[assignment]
 
+from cryptography.hazmat.primitives import serialization
+from cryptography.hazmat.primitives.asymmetric import rsa
+from cryptography.hazmat.primitives.asymmetric.rsa import RSAPublicKey
+from cryptography.hazmat.backends import default_backend
+import base64
+
 
 @dataclass(slots=True)
 class SigningKey:
-    """In-memory representation of a signing key."""
+    """In-memory representation of an RSA signing keypair."""
 
     kid: str
-    secret: str
+    private_pem: bytes
+    public_pem: bytes
     created_at: datetime
     expires_at: datetime
 
     def as_json(self) -> str:
         payload = {
             "kid": self.kid,
-            "secret": self.secret,
+            "private_pem": self.private_pem.decode("utf-8"),
+            "public_pem": self.public_pem.decode("utf-8"),
             "created_at": self.created_at.isoformat(),
             "expires_at": self.expires_at.isoformat(),
         }
@@ -39,7 +47,8 @@ class SigningKey:
         data = json.loads(raw)
         return cls(
             kid=data["kid"],
-            secret=data["secret"],
+            private_pem=data["private_pem"].encode("utf-8"),
+            public_pem=data["public_pem"].encode("utf-8"),
             created_at=datetime.fromisoformat(data["created_at"]),
             expires_at=datetime.fromisoformat(data["expires_at"]),
         )
@@ -50,7 +59,7 @@ class SigningKey:
 
 
 class KeyManager:
-    """Manages signing key material with optional Redis persistence."""
+    """Manages RSA signing keys with optional Redis persistence and JWKS export."""
 
     def __init__(
         self,
@@ -58,12 +67,10 @@ class KeyManager:
         *,
         rotation_interval: timedelta,
         namespace: str = "identity:keys",
-        fallback_secret: Optional[str] = None,
     ) -> None:
         self._redis = redis
         self._rotation_interval = rotation_interval
         self._namespace = namespace
-        self._fallback_secret = fallback_secret or secrets.token_urlsafe(64)
         self._active: Optional[SigningKey] = None
         self._lock = asyncio.Lock()
         self._cache: dict[str, SigningKey] = {}
@@ -138,9 +145,20 @@ class KeyManager:
     async def _rotate(self, *, create_only: bool = False) -> SigningKey:
         now = datetime.now(timezone.utc)
         kid = uuid4().hex
-        secret = self._fallback_secret if (create_only and self._redis is None) else secrets.token_urlsafe(64)
+        # Generate a new RSA keypair
+        private_key = rsa.generate_private_key(public_exponent=65537, key_size=2048, backend=default_backend())
+        public_key = private_key.public_key()
+        private_pem = private_key.private_bytes(
+            encoding=serialization.Encoding.PEM,
+            format=serialization.PrivateFormat.PKCS8,
+            encryption_algorithm=serialization.NoEncryption(),
+        )
+        public_pem = public_key.public_bytes(
+            encoding=serialization.Encoding.PEM,
+            format=serialization.PublicFormat.SubjectPublicKeyInfo,
+        )
         expires_at = now + (self._rotation_interval * 2)
-        key = SigningKey(kid=kid, secret=secret, created_at=now, expires_at=expires_at)
+        key = SigningKey(kid=kid, private_pem=private_pem, public_pem=public_pem, created_at=now, expires_at=expires_at)
         self._active = key
         self._cache[kid] = key
 
@@ -148,3 +166,39 @@ class KeyManager:
             await self._redis.set(self._key_entry(kid), key.as_json())
             await self._redis.set(self._active_key, kid)
         return key
+
+    def _pubkey_to_jwk(self, kid: str, pub: RSAPublicKey) -> dict:
+        numbers = pub.public_numbers()
+        n = numbers.n
+        e = numbers.e
+        def b64url_uint(val: int) -> str:
+            b = val.to_bytes((val.bit_length() + 7) // 8, byteorder="big")
+            return base64.urlsafe_b64encode(b).rstrip(b"=").decode("ascii")
+        return {
+            "kty": "RSA",
+            "use": "sig",
+            "alg": "RS256",
+            "kid": kid,
+            "n": b64url_uint(n),
+            "e": b64url_uint(e),
+        }
+
+    async def export_jwks(self) -> dict:
+        """Export a JWKS document containing all known public keys."""
+        keys: list[dict] = []
+        # Include the active key first
+        if self._active:
+            pub = serialization.load_pem_public_key(self._active.public_pem, backend=default_backend())
+            if isinstance(pub, RSAPublicKey):
+                keys.append(self._pubkey_to_jwk(self._active.kid, pub))
+        # Include cached keys
+        for kid, key in self._cache.items():
+            if self._active and kid == self._active.kid:
+                continue
+            try:
+                pub = serialization.load_pem_public_key(key.public_pem, backend=default_backend())
+                if isinstance(pub, RSAPublicKey):
+                    keys.append(self._pubkey_to_jwk(kid, pub))
+            except Exception:
+                continue
+        return {"keys": keys}

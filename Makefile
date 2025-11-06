@@ -109,7 +109,7 @@ dev-start-services:
 	@GATEWAY_PORT=$${GATEWAY_PORT:-10000}; \
 	ORCHESTRATOR_PORT=$${ORCHESTRATOR_PORT:-10001}; \
 	echo "Starting Gateway API on port $${GATEWAY_PORT}..."; \
-	(PORT=$${GATEWAY_PORT} SOMAGENT_GATEWAY_JWT_SECRET=dev-secret SOMAGENT_GATEWAY_REDIS_URL=redis://localhost:6379/0 SOMAGENT_GATEWAY_ORCHESTRATOR_URL=http://localhost:$${ORCHESTRATOR_PORT} PYTHONPATH=$(pwd)/services/gateway-api ./.venv/bin/python -m uvicorn --app-dir services/gateway-api app.main:app --host 0.0.0.0 --port $${GATEWAY_PORT} > .logs/gateway-api.log 2>&1 &)
+	(PORT=$${GATEWAY_PORT} IDENTITY_SERVICE_URL=http://localhost:$${IDENTITY_SERVICE_PORT:-10002} SOMAGENT_GATEWAY_REDIS_URL=redis://localhost:6379/0 SOMAGENT_GATEWAY_ORCHESTRATOR_URL=http://localhost:$${ORCHESTRATOR_PORT} PYTHONPATH=$(pwd)/services/gateway-api ./.venv/bin/python -m uvicorn --app-dir services/gateway-api app.main:app --host 0.0.0.0 --port $${GATEWAY_PORT} > .logs/gateway-api.log 2>&1 &)
 	
 	@echo "Core services started. Use 'tail -f .logs/service-name.log' to see output."
 

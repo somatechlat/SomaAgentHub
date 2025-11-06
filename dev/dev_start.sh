@@ -20,7 +20,7 @@ echo "  export PYTHONPATH=$ROOT/services/orchestrator"
 echo "  $ROOT/.venv/bin/python -m uvicorn services.orchestrator.app.main:app --host 0.0.0.0 --port 60002"
 echo
 echo "Start Gateway (example):"
-echo "  export SOMAGENT_GATEWAY_JWT_SECRET=dev-secret"
+echo "  export IDENTITY_SERVICE_URL=http://localhost:10002"
 echo "  export SOMAGENT_GATEWAY_REDIS_URL=redis://localhost:6380/0"
 echo "  export SOMAGENT_GATEWAY_ORCHESTRATOR_URL=http://localhost:60002"
 echo "  export PYTHONPATH=$ROOT/services/gateway-api"

@@ -84,7 +84,6 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         redis,
         rotation_interval=timedelta(seconds=settings.key_rotation_seconds),
         namespace=settings.key_namespace,
-        fallback_secret=settings.resolve_jwt_secret(),
     )
     await key_manager.start()
 

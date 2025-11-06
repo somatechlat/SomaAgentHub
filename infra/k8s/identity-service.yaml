@@ -24,7 +24,7 @@ spec:
         monitoring: enabled
       annotations:
         prometheus.io/scrape: "true"
-        prometheus.io/port: "1007"
+        prometheus.io/port: "10002"
         prometheus.io/path: "/metrics"
     spec:
       containers:
@@ -34,34 +34,23 @@ spec:
         
         ports:
         - name: http
-          containerPort: 1007
+          containerPort: 10002
           protocol: TCP
         - name: metrics
-          containerPort: 1007
+          containerPort: 10002
           protocol: TCP
         
         env:
-        # Real database
-        - name: DATABASE_URL
-          valueFrom:
-            secretKeyRef:
-              name: somaagent-secrets
-              key: identity-db-url
-        
-        # Real JWT secrets
-        - name: JWT_SECRET_KEY
-          valueFrom:
-            secretKeyRef:
-              name: somaagent-secrets
-              key: jwt-secret
-        - name: JWT_ALGORITHM
-          value: "HS256"
-        - name: JWT_EXPIRATION_MINUTES
-          value: "60"
+        - name: REDIS_URL
+          value: "redis://redis:6379/0"
+        - name: OIDC_ISSUER_URL
+          value: "http://identity-service:10002"
+        - name: OIDC_JWKS_URI
+          value: "http://identity-service:10002/.well-known/jwks.json"
         
         # Real observability
         - name: OTEL_EXPORTER_OTLP_ENDPOINT
-          value: "http://prometheus-prometheus.observability:10010"
+          value: "http://otel-collector.observability:4317"
         - name: OTEL_SERVICE_NAME
           value: "identity-service"
         - name: ENVIRONMENT
@@ -115,7 +104,7 @@ spec:
   type: ClusterIP
   ports:
   - name: http
-    port: 1007
+    port: 10002
     targetPort: http
     protocol: TCP
   selector:

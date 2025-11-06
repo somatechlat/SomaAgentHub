@@ -1,5 +1,10 @@
 #!/usr/bin/env python3
-"""Utility to generate a short-lived JWT for Airflow service calls."""
+"""Obtain a short-lived bearer token from the Identity Service.
+
+This script requests a real token from the Identity Service `/v1/tokens/issue`
+endpoint instead of generating an HS256 token locally. It prints the token to
+stdout for use in `SOMAGENT_AIRFLOW_JWT`.
+"""
 
 from __future__ import annotations
 
@@ -8,7 +13,7 @@ import os
 import time
 from typing import Any, Dict
 
-import jwt
+import requests
 
 
 def build_payload(args: argparse.Namespace) -> Dict[str, Any]:
@@ -25,10 +30,10 @@ def build_payload(args: argparse.Namespace) -> Dict[str, Any]:
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("secret", help="Shared gateway JWT secret (or set SOMAGENT_GATEWAY_JWT_SECRET)")
+    parser.add_argument("identity_url", nargs="?", default=os.getenv("IDENTITY_SERVICE_URL", "http://localhost:10002"), help="Identity Service base URL")
     parser.add_argument("--tenant", default=os.getenv("SOMAGENT_AIRFLOW_TENANT", "demo"))
-    parser.add_argument("--subject", default=os.getenv("SOMAGENT_AIRFLOW_SUBJECT", "airflow-service"))
-    parser.add_argument("--issuer", default="airflow")
+    parser.add_argument("--user", dest="user", default=os.getenv("SOMAGENT_AIRFLOW_SUBJECT", "airflow-service"), help="User ID for the token")
+    parser.add_argument("--mfa", dest="mfa", default=os.getenv("SOMAGENT_AIRFLOW_MFA_CODE", ""), help="MFA code if required")
     parser.add_argument(
         "--capabilities",
         nargs="*",
@@ -41,11 +46,23 @@ def parse_args() -> argparse.Namespace:
 
 def main() -> None:
     args = parse_args()
-    secret = args.secret or os.getenv("SOMAGENT_GATEWAY_JWT_SECRET")
-    if not secret:
-        raise SystemExit("Gateway secret must be provided")
-
-    token = jwt.encode(build_payload(args), secret, algorithm="HS256")
+    url = f"{args.identity_url.rstrip('/')}/v1/tokens/issue"
+    payload = {
+        "tenant_id": args.tenant,
+        "user_id": args.user,
+        "mfa_code": args.mfa,
+        "capabilities": args.capabilities,
+    }
+    try:
+        resp = requests.post(url, json=payload, timeout=10)
+    except requests.RequestException as exc:
+        raise SystemExit(f"Failed to reach Identity Service at {url}: {exc}")
+    if resp.status_code != 200:
+        raise SystemExit(f"Identity Service error {resp.status_code}: {resp.text}")
+    data = resp.json()
+    token = data.get("token")
+    if not token:
+        raise SystemExit("Identity Service response missing 'token'")
     print(token)
 
 
