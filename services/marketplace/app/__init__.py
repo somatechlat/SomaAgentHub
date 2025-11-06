@@ -1,4 +1,4 @@
-"""Policy engine package.
+"""Marketplace service package.
 
 Ensures the repository root is on ``sys.path`` and reorders the top‑level
 ``app`` namespace so that this service's ``app`` directory is searched first.
@@ -13,7 +13,10 @@ _repo_root = pathlib.Path(__file__).resolve().parents[3]
 if str(_repo_root) not in sys.path:
     sys.path.insert(0, str(_repo_root))
 
-import services._path_setup  # noqa: F401
+try:
+    import services._path_setup  # noqa: F401
+except ImportError:
+    pass
 
 # Reorder the top‑level ``app`` namespace to prioritize this service.
 try:
@@ -26,4 +29,4 @@ try:
         path_list.insert(0, my_dir)
         top_app.__path__ = path_list
 except Exception as e:
-    print('DEBUG: failed to reorder app.__path__ in policy-engine:', e)
+    print('DEBUG: failed to reorder app.__path__ in marketplace:', e)

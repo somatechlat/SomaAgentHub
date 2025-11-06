@@ -1,22 +1,29 @@
 """Jobs service package.
 
-Import the central path‑setup shim so that the repository root is on ``sys.path``
-and top‑level packages (e.g., ``common``) can be imported.
+Ensure the repository root is at the front of ``sys.path`` and reorder
+the top-level ``app`` namespace to prioritize this service's app directory.
 """
 
-"""Jobs service package.
+import pathlib
+import sys
+import importlib
 
-Ensure the repository root is at the front of ``sys.path`` before importing
-the central path‑setup shim.  This guarantees that the top‑level ``services``
-namespace package (which contains ``_path_setup.py``) is resolved instead of
-the service‑specific ``services`` subpackage that lives inside the service
-directory and is added to ``sys.path`` by the test harness.
-"""
-
-import pathlib, sys
 _repo_root = pathlib.Path(__file__).resolve().parents[3]
 if str(_repo_root) not in sys.path:
-	# Insert at the beginning to give priority over the service‑specific path.
-	sys.path.insert(0, str(_repo_root))
+    # Insert at the beginning to give priority over the service‑specific path.
+    sys.path.insert(0, str(_repo_root))
 
 import services._path_setup  # noqa: F401
+
+# Reorder the top‑level ``app`` namespace to prioritize this service.
+try:
+    top_app = importlib.import_module('app')
+    my_dir = str(pathlib.Path(__file__).parent)
+    if hasattr(top_app, '__path__'):
+        path_list = list(top_app.__path__)
+        if my_dir in path_list:
+            path_list.remove(my_dir)
+        path_list.insert(0, my_dir)
+        top_app.__path__ = path_list
+except Exception as e:
+    print('DEBUG: failed to reorder app.__path__ in jobs:', e)
