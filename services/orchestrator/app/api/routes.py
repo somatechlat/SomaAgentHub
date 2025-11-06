@@ -24,6 +24,9 @@ router = APIRouter(prefix="/v1", tags=["orchestrator"])
 router.include_router(conversation_router)
 router.include_router(projects_router)
 router.include_router(training_router)
+# Planner endpoints – generate, refine, retrieve, delete plans
+from .planner import router as planner_router
+router.include_router(planner_router)
 
 
 class SessionStartRequest(BaseModel):

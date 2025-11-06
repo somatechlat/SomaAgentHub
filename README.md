@@ -2,16 +2,16 @@
 
 **Production‑ready orchestration platform for autonomous agents**
 
----
 
 ## Overview
-SomaAgentHub is the coordination layer that powers the Soma platform. It provides a gateway, orchestrator (Temporal), identity service, memory gateway, policy engine, observability, and Helm chart for Kubernetes.
+SomaAgentHub is the coordination layer that powers the Soma platform. It provides a gateway, orchestrator (Temporal), identity service, memory gateway, policy engine, observability, and Helm chart for Kubernetes. **All placeholder code, stubs, and demo‑only implementations are being removed** in a series of focused sprints. The current development plan is captured in the **canonical sprint roadmap**.
 
----
 
 ## Quick Start (Local Development)
 ```bash
-make start-cluster
+```bash
+# Deploy the full stack using the canonical Helm chart (includes Qdrant, Redis, Memory‑Gateway, etc.)
+make dev-up   # creates a Kind cluster and installs the helm chart
 ```
 This creates a Kind cluster, builds all images, generates an optional mTLS secret, and installs the Helm chart.
 
@@ -19,6 +19,7 @@ This creates a Kind cluster, builds all images, generates an optional mTLS secre
 
 ## Documentation
 - **DEPLOYMENT.md** – Full step‑by‑step deployment guide.
+- **Sprint Roadmap** – Detailed sprint‑by‑sprint plan for removing stubs and delivering real functionality. See `docs/sprint-roadmap.md`.
 - **CONTRIBUTING.md** – Development workflow, testing, and PR process.
 - **docs/helm-values.md** – Complete Helm values reference.
 - **docs/ci-cd.md** – CI pipeline overview.

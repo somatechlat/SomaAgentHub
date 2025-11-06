@@ -4,7 +4,8 @@ from __future__ import annotations
 
 from typing import List
 
-from .models import PlanEvent, PlanModuleRecord, PlanRecord, ProvisioningTaskRecord, ToolBindingRecord
+from .models import Plan
+from ..database import get_async_session
 
 
 class PlanRepository:
@@ -15,11 +16,29 @@ class PlanRepository:
     while backend details evolve.
     """
 
-    async def create_plan(self, record: PlanRecord) -> None:
-        raise NotImplementedError
+    async def create_plan(self, record: dict) -> Plan:
+        """Persist a new plan.
 
-    async def get_plan(self, plan_id: str) -> PlanRecord:
-        raise NotImplementedError
+        ``record`` is a plain ``dict`` that matches the ``ProjectPlan`` schema.
+        We store the full JSON payload in the ``payload`` column and also copy
+        a few top‑level fields for indexing.
+        """
+        async with get_async_session() as session:
+            plan = Plan(
+                plan_id=record.get("plan_id"),
+                tenant=record.get("tenant"),
+                status=record.get("status", "draft"),
+                payload=record,
+            )
+            session.add(plan)
+            await session.commit()
+            await session.refresh(plan)
+            return plan
+
+    async def get_plan(self, plan_id: str) -> Plan | None:
+        async with get_async_session() as session:
+            result = await session.get(Plan, plan_id)
+            return result
 
     async def list_modules(self, plan_id: str) -> List[PlanModuleRecord]:
         raise NotImplementedError
@@ -46,4 +65,8 @@ class PlanRepository:
         raise NotImplementedError
 
     async def delete_plan(self, plan_id: str) -> None:
-        raise NotImplementedError
+        async with get_async_session() as session:
+            plan = await session.get(Plan, plan_id)
+            if plan:
+                await session.delete(plan)
+                await session.commit()

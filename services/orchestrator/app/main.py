@@ -9,6 +9,7 @@ from fastapi.responses import Response
 from prometheus_client import CONTENT_TYPE_LATEST, generate_latest
 from services.common.observability import setup_observability
 from services.common.spiffe_auth import init_spiffe
+from .database import init_db
 from temporalio import client as temporal_client
 
 from .api.routes import router as orchestrator_router
@@ -31,6 +32,8 @@ def create_app() -> FastAPI:
 
     @app.on_event("startup")
     async def _startup_temporal_client() -> None:
+        # Initialise database tables before any request handling.
+        await init_db()
         if settings.temporal_enabled:
             app.state.temporal_client = await temporal_client.Client.connect(
                 settings.temporal_target_host,

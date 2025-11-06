@@ -1,3 +1,36 @@
+"""SQLModel definitions for persisting planner artefacts.
+
+We use **SQLModel** (an async‑friendly wrapper around SQLAlchemy) because the
+project already depends on PostgreSQL for other services.  The ``Plan`` model
+mirrors the ``ProjectPlan`` Pydantic schema defined in ``planner/schemas.py`` but
+stores the JSON payload as a ``JSON`` column for flexibility.
+"""
+
+from __future__ import annotations
+
+import uuid
+from datetime import datetime
+from typing import Any, Dict
+
+from sqlmodel import Field, SQLModel
+
+
+class Plan(SQLModel, table=True):
+    """Database representation of a ``ProjectPlan``.
+
+    The ``payload`` column stores the full JSON representation of the plan –
+    this allows the service to evolve the schema without requiring a migration
+    for every new field.  ``created_at`` and ``updated_at`` are managed by the
+    application code.
+    """
+
+    id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
+    tenant: str = Field(index=True)
+    plan_id: str = Field(index=True)  # matches ``ProjectPlan.plan_id``
+    status: str = Field(default="draft", index=True)
+    payload: Dict[str, Any] = Field(sa_column_kwargs={"type_": "JSON"})
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    updated_at: datetime = Field(default_factory=datetime.utcnow)
 """ORM/DTO models for storing project plan artifacts."""
 
 from __future__ import annotations
