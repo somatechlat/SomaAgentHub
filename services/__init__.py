@@ -26,27 +26,9 @@ import sys
 __path__ = pkgutil.extend_path(__path__, __name__)
 
 # ---------------------------------------------------------------------
-# Ensure the repository root is on ``sys.path``
+# Repository‑wide import‑path handling
 # ---------------------------------------------------------------------
-# Tests prepend the individual service directory (e.g. ``services/jobs``) to
-# ``sys.path`` which hides the repository root.  Many services import the
-# shared ``common`` package (e.g. ``common.config.runtime``).  Adding the repo
-# root here makes those imports succeed without needing a separate shim in
-# each service.
-# The repository root is needed for top‑level namespace packages such as
-# ``common``.  Previously we inserted it at the *front* of ``sys.path`` which
-# caused the repository root to shadow the service‑specific directories that
-# pytest prepends (e.g. ``services/analytics-service``).  As a result imports
-# like ``app.core.constitution`` resolved to a non‑existent top‑level ``app``
-# package, leading to ``ModuleNotFoundError`` for many services.
-#
-# By **appending** the repository root we keep the service directory as the
-# first entry (the order pytest expects) while still making shared namespace
-# packages discoverable.
-repo_root = pathlib.Path(__file__).resolve().parents[1]
-if str(repo_root) not in sys.path:
-	# Append the repository root so that the service directory (which the test
-	# harness prepends) stays first in ``sys.path``.  This preserves the expected
-	# import order for service‑local modules (e.g. ``app``) while still making
-	# top‑level packages like ``common`` discoverable.
-	sys.path.append(str(repo_root))
+# The import‑path shim is now centralized in ``services/_path_setup.py``.
+# Individual services import that helper from their ``app/__init__`` modules.
+# Keeping this file free of ``sys.path`` manipulation avoids duplicate logic
+# and ensures a single source of truth for path handling.

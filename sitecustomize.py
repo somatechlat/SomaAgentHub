@@ -23,41 +23,120 @@ It performs two duties:
 import importlib
 import os
 import sys
+from pathlib import Path
+import sys
+# Debug: indicate that sitecustomize has been loaded (appears in pytest output)
+print('>>> sitecustomize loaded')
 
 # ---------------------------------------------------------------------------
-# 1. Add repository root to ``sys.path``
+# 1. Ensure the repository root is on ``sys.path``.
 # ---------------------------------------------------------------------------
 _repo_root = os.path.abspath(os.path.dirname(__file__))
 if _repo_root not in sys.path:
-    # Append the repository root to ``sys.path`` rather than inserting at the
-    # front.  Test harnesses prepend the individual service directory (e.g.
-    # ``services/constitution-service``) to ``sys.path`` before imports.  By
-    # appending we keep that service‑specific path ahead of the repository
-    # root, allowing imports like ``import app.core.constitution`` to resolve to
-    # the service‑local ``app`` package.  The repository root is still added so
-    # that top‑level namespace packages such as ``common`` are discoverable.
-    sys.path.append(_repo_root)
+    # Prepend the repository root so that top‑level namespace packages such as
+    # ``services`` and ``common`` are available.  Individual service ``app``
+    # directories will be placed before this entry when detected (see step 3).
+    sys.path.insert(0, _repo_root)
+
+# ---------------------------------------------------------------------------
+# 2. Add each service's ``app`` directory to ``sys.path`` (append).
+# ---------------------------------------------------------------------------
+# Adding these directories ensures that the ``app`` namespace package can locate
+# every service's ``app`` subpackage via ``pkgutil.extend_path``.  They are
+# appended because the test harness may later *prepend* the specific service
+# directory, which should take precedence.
+try:
+    from pathlib import Path
+
+    services_root = Path(__file__).resolve().parents[1] / "services"
+    for svc_dir in services_root.iterdir():
+        app_dir = svc_dir / "app"
+        if app_dir.is_dir():
+            sp = str(app_dir)
+            if sp not in sys.path:
+                sys.path.append(sp)
+except Exception:
+    pass
+
+# ---------------------------------------------------------------------------
+# 2. Pre‑import the top‑level ``services`` namespace package.
+# ---------------------------------------------------------------------------
+# By importing ``services`` now (after the repository root has been placed at the
+# front of ``sys.path``) we ensure the module object is created from the repo‑wide
+# package directory.  Subsequent additions of a service directory to ``sys.path``
+# (performed by the test harness) will not replace this already‑loaded module,
+# preventing the shadowing issue where ``services`` from a service directory
+# would be imported instead of the shared namespace.
+try:
+    import services  # noqa: F401
+except Exception:
+    # If the import fails for any reason we simply continue; the later imports
+    # will raise a clear error.
+    pass
+
+# ---------------------------------------------------------------------------
+# 3. If the current working directory is inside a service directory, prepend
+#    that service's ``app`` path so that ``import app`` resolves to the correct
+#    implementation for tests that rely on a plain ``app`` import (e.g.
+#    ``services/constitution-service`` tests).
+# ---------------------------------------------------------------------------
+try:
+    cwd = Path.cwd().resolve()
+    services_root = Path(__file__).resolve().parents[1] / "services"
+    for svc_dir in services_root.iterdir():
+        if cwd.is_relative_to(svc_dir):
+            svc_app = svc_dir / "app"
+            if svc_app.is_dir():
+                sp = str(svc_app)
+                if sp not in sys.path:
+                    # Prepend to give this service priority.
+                    sys.path.insert(0, sp)
+            break
+except Exception:
+    # ``Path.is_relative_to`` is available in Python 3.9+. If unavailable, ignore.
+    pass
+
+# ---------------------------------------------------------------------------
+# 3. No longer pre‑populate the top‑level ``app`` namespace.
+# ---------------------------------------------------------------------------
+# The test harness prepends the specific service directory to ``sys.path``
+# before importing ``app`` modules (e.g., ``app.core.constitution``).  By keeping
+# the ``app`` namespace package empty aside from ``pkgutil.extend_path`` we allow
+# Python's normal import machinery to resolve ``app`` to the service directory
+# that appears first on ``sys.path``.  This avoids cross‑service submodule
+# collisions such as ``app.core`` from different services.
+
+# The test harness already prepends the individual service directory to
+# ``sys.path`` before importing the service's ``app`` package.  With the
+# repository root now at the front of ``sys.path`` (see above), the top‑level
+# ``app`` namespace package defined at the repository root is discoverable, and
+# the service‑specific ``app`` subpackage will be resolved correctly via the
+# service directory already present at index 0.  No additional path manipulation
+# is required here.
 
 def _patch_redis_container() -> None:
-    """Add ``get_connection_url`` to ``RedisContainer`` if missing.
+    """Ensure ``RedisContainer`` provides ``get_connection_url``.
 
-    The method returns a ``redis://host:port`` URL constructed from the container
-    host IP and the exposed Redis port (default ``6379/tcp``).  This mirrors the
-    behaviour of newer ``testcontainers`` releases.
+    Some environments ship an older ``testcontainers`` version where the
+    ``RedisContainer`` class lacks the ``get_connection_url`` helper required
+    by the identity‑service tests.  We import the class explicitly and assign a
+    compatible implementation unconditionally – this works even if the method
+    already exists (it will simply be overwritten with an equivalent version).
     """
     try:
         module = importlib.import_module("testcontainers.redis")
         RedisContainer = getattr(module, "RedisContainer", None)
         if RedisContainer is None:
             return
-        if not hasattr(RedisContainer, "get_connection_url"):
-            def get_connection_url(self):  # type: ignore[override]
-                host = self.get_container_host_ip()
-                port = self.get_exposed_port("6379/tcp")
-                return f"redis://{host}:{port}"
-
-            RedisContainer.get_connection_url = get_connection_url  # type: ignore[attr-defined]
-    except Exception:
-        pass
+        def get_connection_url(self):  # type: ignore[override]
+            host = self.get_container_host_ip()
+            port = self.get_exposed_port("6379/tcp")
+            return f"redis://{host}:{port}"
+        setattr(RedisContainer, "get_connection_url", get_connection_url)
+        # Debug: confirm method presence after patch
+        print('DEBUG: after patch, hasattr(RedisContainer, "get_connection_url") =',
+              hasattr(RedisContainer, "get_connection_url"))
+    except Exception as e:
+        print('DEBUG: _patch_redis_container exception:', e)
 
 _patch_redis_container()
