@@ -12,16 +12,40 @@ different services to be merged.  The ``pkgutil.extend_path`` call combines the
 ``app`` packages found under each service with this top‑level package.
 """
 
-import pkgutil
+import importlib
 import pathlib
 import sys
+import pkgutil
 
 # Make ``app`` a namespace package that can span multiple service directories.
 __path__ = pkgutil.extend_path(__path__, __name__)
 
-# Ensure the repository root is on ``sys.path`` so that the top‑level ``app``
-# namespace can be discovered when services are imported. ``sitecustomize``
-# already appends the repo root, but we add a defensive check.
+def _detect_service_app_path() -> str | None:
+    """Return the filesystem path of the ``app`` directory for the active
+    service (the one that appears first on ``sys.path``).
+
+    The test harness adds the service directory (e.g. ``.../services/identity-service``)
+    as ``sys.path[0]`` before any imports.  If that entry points to a service
+    folder we locate its ``app`` subdirectory.
+    """
+    print('>>> app/__init__ detect: sys.path[0]=', sys.path[0] if sys.path else None)
+    if not sys.path:
+        return None
+    first = pathlib.Path(sys.path[0])
+    if first.is_dir() and first.parent.name == "services":
+        app_dir = first / "app"
+        if app_dir.is_dir():
+            print('>>> app/__init__ detect: found service app path', app_dir)
+            return str(app_dir)
+    print('>>> app/__init__ detect: no service app path detected')
+    return None
+
+svc_app_path = _detect_service_app_path()
+if svc_app_path and svc_app_path not in __path__:
+    __path__.insert(0, svc_app_path)
+
+# Defensive: ensure the repository root is on ``sys.path`` (sitecustomize already
+# does this, but we keep the check for completeness).
 repo_root = pathlib.Path(__file__).resolve().parents[1]
 if str(repo_root) not in sys.path:
     sys.path.append(str(repo_root))
@@ -41,15 +65,3 @@ ensure the repository root is on ``sys.path`` (the ``sitecustomize`` shim
 already appends it, but we add a defensive check).
 """
 
-import pkgutil
-import pathlib
-import sys
-
-# Make ``app`` a namespace package that can span multiple service directories.
-__path__ = pkgutil.extend_path(__path__, __name__)
-
-# Ensure the repository root is present on ``sys.path`` so that the top‑level
-# ``app`` package can be discovered when services are imported.
-repo_root = pathlib.Path(__file__).resolve().parents[1]
-if str(repo_root) not in sys.path:
-    sys.path.append(str(repo_root))

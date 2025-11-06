@@ -33,10 +33,14 @@ print('>>> sitecustomize loaded')
 # ---------------------------------------------------------------------------
 _repo_root = os.path.abspath(os.path.dirname(__file__))
 if _repo_root not in sys.path:
-    # Prepend the repository root so that top‑level namespace packages such as
-    # ``services`` and ``common`` are available.  Individual service ``app``
-    # directories will be placed before this entry when detected (see step 3).
-    sys.path.insert(0, _repo_root)
+    # Append the repository root instead of prepending. The test harness prepends
+    # the concrete service directory to ``sys.path`` before imports. If we
+    # inserted the repo root at index 0 it would become the first entry,
+    # causing our service‑detection logic (which looks at ``sys.path[0]``) to
+    # mis‑identify the active service. By appending we keep the service
+    # directory at the front while still making the repo root available for
+    # top‑level namespace packages such as ``services`` and ``common``.
+    sys.path.append(_repo_root)
 
 # ---------------------------------------------------------------------------
 # 2. Add each service's ``app`` directory to ``sys.path`` (append).
@@ -80,20 +84,40 @@ except Exception:
 #    implementation for tests that rely on a plain ``app`` import (e.g.
 #    ``services/constitution-service`` tests).
 # ---------------------------------------------------------------------------
+# ---------------------------------------------------------------------------
+# 3. Prioritize the service whose directory is first on ``sys.path``.
+# ---------------------------------------------------------------------------
+# The test harness prepends the *service* directory (e.g. ``.../services/identity-service``)
+# to ``sys.path`` before importing ``app`` modules.  We locate that directory and
+# ensure its ``app`` subpackage appears first in the ``app`` namespace ``__path__``.
 try:
-    cwd = Path.cwd().resolve()
+    first_path = sys.path[0]
     services_root = Path(__file__).resolve().parents[1] / "services"
+    first_path_obj = Path(first_path)
+    # Check if the first entry is a service directory.
     for svc_dir in services_root.iterdir():
-        if cwd.is_relative_to(svc_dir):
+        if first_path_obj.samefile(svc_dir):
             svc_app = svc_dir / "app"
             if svc_app.is_dir():
                 sp = str(svc_app)
+                # Ensure the service app directory is on sys.path (it may already be).
                 if sp not in sys.path:
-                    # Prepend to give this service priority.
                     sys.path.insert(0, sp)
+                # Reorder the top‑level ``app`` namespace.
+                # NOTE: Previously we attempted to import the top‑level ``app`` package
+                # here and manually reorder its ``__path__``.  That import occurs during
+                # interpreter start‑up, *before* the pytest harness prepends the concrete
+                # service directory to ``sys.path``.  As a result the ``app`` package was
+                # initialised with the wrong (repo‑root) path ordering, causing imports
+                # like ``app.core.constitution`` to resolve to the wrong service and
+                # raise ``ModuleNotFoundError``.  We now rely on the lazy detection logic
+                # in ``app/__init__.py`` which runs **after** the test harness has
+                # modified ``sys.path``.  Therefore the eager import and path manipulation
+                # have been removed.
             break
 except Exception:
-    # ``Path.is_relative_to`` is available in Python 3.9+. If unavailable, ignore.
+    # If anything goes wrong we silently continue – the import system will fall
+    # back to the default ordering.
     pass
 
 # ---------------------------------------------------------------------------
@@ -140,3 +164,6 @@ def _patch_redis_container() -> None:
         print('DEBUG: _patch_redis_container exception:', e)
 
 _patch_redis_container()
+
+# Debug: print sys.path after sitecustomize modifications
+print('>>> sitecustomize final sys.path:', sys.path[:5])

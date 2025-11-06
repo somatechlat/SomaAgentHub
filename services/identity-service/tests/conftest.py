@@ -12,6 +12,16 @@ import pytest
 from fastapi.testclient import TestClient
 from testcontainers.clickhouse import ClickHouseContainer
 from testcontainers.redis import RedisContainer
+# Ensure the required ``get_connection_url`` method exists. Some versions of
+# ``testcontainers`` do not provide it, so we add a compatible implementation
+# if needed.
+if not hasattr(RedisContainer, "get_connection_url"):
+    def _get_connection_url(self):  # pragma: no cover
+        host = self.get_container_host_ip()
+        port = self.get_exposed_port("6379/tcp")
+        return f"redis://{host}:{port}"
+
+    setattr(RedisContainer, "get_connection_url", _get_connection_url)
 print('DEBUG: at import time, hasattr(RedisContainer, "get_connection_url") =',
     hasattr(RedisContainer, "get_connection_url"))
 
