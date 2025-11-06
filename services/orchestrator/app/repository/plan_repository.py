@@ -5,6 +5,7 @@ from __future__ import annotations
 from typing import List
 
 from .models import Plan
+from sqlmodel import select
 from ..database import get_async_session
 
 
@@ -70,3 +71,15 @@ class PlanRepository:
             if plan:
                 await session.delete(plan)
                 await session.commit()
+
+    async def list_plans(self) -> list[Plan]:
+        """Return all stored plans.
+
+        This lightweight helper is used by the public ``/v1/planner/list``
+        endpoint to provide a simple overview of existing plans. It returns the
+        full ``Plan`` ORM objects, which callers can then project to the needed
+        fields (e.g., ``plan_id``, ``tenant``, ``status``).
+        """
+        async with get_async_session() as session:
+            result = await session.exec(select(Plan))
+            return result.all()

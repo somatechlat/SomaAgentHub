@@ -176,3 +176,74 @@ async def test_get_and_delete_plan(monkeypatch):
         # DELETE
         del_resp = await client.delete(f"/v1/planner/{stored.plan_id}")
         assert del_resp.status_code == 204
+
+
+@pytest.mark.asyncio
+async def test_list_plans(monkeypatch):
+    """GET /v1/planner/list returns all stored plans."""
+    stored = [dummy_plan(f"plan-{i}") for i in range(3)]
+
+    class DummyRecord:
+        def __init__(self, payload):
+            self.payload = payload
+
+    async def fake_list_plans():
+        return [DummyRecord(payload=p.dict()) for p in stored]
+
+    monkeypatch.setattr(_repo, "list_plans", fake_list_plans)
+
+    async with httpx.AsyncClient(app=app, base_url="http://test") as client:
+        response = await client.get("/v1/planner/list")
+        assert response.status_code == 200
+        data = response.json()
+        assert isinstance(data, list)
+        assert len(data) == 3
+        returned_ids = {item["plan_id"] for item in data}
+        expected_ids = {p.plan_id for p in stored}
+        assert returned_ids == expected_ids
+
+
+@pytest.mark.asyncio
+async def test_batch_refine_parallel(monkeypatch):
+    """POST /v1/planner/batch/refine processes multiple refinements concurrently."""
+    # Prepare stored plans and the expected refined results.
+    stored_plans = [dummy_plan(f"stored-{i}") for i in range(2)]
+    refined_plans = [dummy_plan(f"refined-{i}") for i in range(2)]
+
+    class DummyRecord:
+        def __init__(self, payload):
+            self.payload = payload
+
+    async def fake_get_plan(plan_id: str):
+        # Return the matching stored plan based on the id.
+        for p in stored_plans:
+            if p.plan_id == plan_id:
+                return DummyRecord(payload=p.dict())
+        return None
+
+    async def fake_refine(plan, updates, *, context=None):
+        # Map the incoming plan to the corresponding refined version.
+        index = int(plan.plan_id.split("-")[-1])
+        return refined_plans[index]
+
+    monkeypatch.setattr(_repo, "get_plan", fake_get_plan)
+    monkeypatch.setattr(_service, "refine_plan", fake_refine)
+
+    async with httpx.AsyncClient(app=app, base_url="http://test") as client:
+        payload = {
+            "requests": [
+                {
+                    "plan_id": f"stored-{i}",
+                    "updates": {"objective": f"new objective {i}"},
+                    "context": None,
+                }
+                for i in range(2)
+            ]
+        }
+        response = await client.post("/v1/planner/batch/refine", json=payload)
+        assert response.status_code == 200
+        results = response.json()
+        assert isinstance(results, list)
+        assert len(results) == 2
+        for i, plan in enumerate(results):
+            assert plan["plan_id"] == refined_plans[i].plan_id

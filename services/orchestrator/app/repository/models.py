@@ -13,6 +13,7 @@ from datetime import datetime
 from typing import Any, Dict
 
 from sqlmodel import Field, SQLModel
+from sqlalchemy import Column, JSON
 
 
 class Plan(SQLModel, table=True):
@@ -28,12 +29,16 @@ class Plan(SQLModel, table=True):
     tenant: str = Field(index=True)
     plan_id: str = Field(index=True)  # matches ``ProjectPlan.plan_id``
     status: str = Field(default="draft", index=True)
-    payload: Dict[str, Any] = Field(sa_column_kwargs={"type_": "JSON"})
+    # Store the full plan JSON. Use SQLAlchemy's JSON column type for proper
+    # serialization. ``sa_column`` accepts a full ``Column`` instance.
+    payload: Dict[str, Any] = Field(sa_column=Column(JSON))
     created_at: datetime = Field(default_factory=datetime.utcnow)
     updated_at: datetime = Field(default_factory=datetime.utcnow)
 """ORM/DTO models for storing project plan artifacts."""
 
-from __future__ import annotations
+# NOTE: ``from __future__ import annotations`` must appear only once at the top
+# of the file. The duplicate import caused a ``SyntaxError`` during module
+# import. It has been removed.
 
 from dataclasses import dataclass, field
 from datetime import datetime

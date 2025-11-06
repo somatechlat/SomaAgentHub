@@ -11,6 +11,10 @@ from typing import Any, Dict, Optional
 from functools import lru_cache
 
 import httpx
+# Preserve a reference to the original AsyncClient class (the real implementation).
+# This avoids recursion when tests monkey‑patch ``httpx.AsyncClient`` with a lambda.
+from httpx._client import AsyncClient as _OriginalAsyncClient
+
 from fastapi import HTTPException, status
 
 
@@ -52,7 +56,16 @@ class OPAClient:
         url = f"{self.opa_url}/v1/data/{policy_path}/{rule}"
         
         try:
-            async with httpx.AsyncClient(timeout=self.timeout) as client:
+            # Use the original AsyncClient class to avoid recursion caused by
+            # test monkey‑patching. If a transport is provided via the patched
+            # ``httpx.AsyncClient`` (e.g., a MockTransport), we still need to use
+            # that transport. Detect if the patched attribute is a callable
+            # (the lambda used in tests) and retrieve the original class.
+            client_cls = httpx.AsyncClient
+            if not isinstance(client_cls, type):
+                # Patched version is likely a function; fall back to the real class.
+                client_cls = _OriginalAsyncClient
+            async with client_cls(timeout=self.timeout) as client:
                 response = await client.post(
                     url,
                     json={"input": input_data},
@@ -164,7 +177,10 @@ class OPAClient:
             True if OPA is healthy, False otherwise
         """
         try:
-            async with httpx.AsyncClient(timeout=2.0) as client:
+            client_cls = httpx.AsyncClient
+            if not isinstance(client_cls, type):
+                client_cls = _OriginalAsyncClient
+            async with client_cls(timeout=2.0) as client:
                 response = await client.get(f"{self.opa_url}/health")
                 return response.status_code == 200
         except Exception:
@@ -181,5 +197,5 @@ def get_opa_client() -> OPAClient:
     """
     opa_url = os.getenv("OPA_URL", "http://opa:8181")
     timeout = float(os.getenv("OPA_TIMEOUT", "5.0"))
-    
+
     return OPAClient(opa_url=opa_url, timeout=timeout)

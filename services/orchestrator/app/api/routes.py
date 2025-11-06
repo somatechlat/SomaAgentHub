@@ -194,11 +194,14 @@ async def get_session_status(workflow_id: str, client: temporal_client.Client = 
         except Exception as exc:  # pragma: no cover - Temporal result retrieval edge cases
             result = {"error": str(exc)}
 
+    # ``desc`` may be a simple namespace without an ``id`` attribute (as in the
+    # test suite). Use ``getattr`` to safely fall back to the supplied
+    # ``workflow_id`` when the attribute is missing.
     return SessionStatusResponse(
-        workflow_id=desc.id or workflow_id,
-        run_id=desc.run_id,
+        workflow_id=getattr(desc, "id", workflow_id),
+        run_id=getattr(desc, "run_id", ""),
         status=status_name,
-        history_length=desc.history_length,
+        history_length=getattr(desc, "history_length", 0),
         result=result,
     )
 
