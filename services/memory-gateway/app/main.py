@@ -16,22 +16,32 @@ _use_qdrant: bool = False
 
 @app.on_event("startup")
 async def startup_event():
-    """Initialize Qdrant collections on startup."""
+    """Initialize Qdrant collections on startup.
+
+    The service now requires two collections:
+    * ``memory`` – used for the generic key‑value memory store.
+    * ``capsule_runs`` – stores metadata about capsule execution results.
+
+    Both collections are created if they do not already exist. Errors are logged
+    but do not prevent the service from starting, matching the original
+    behaviour where a pre‑existing collection is considered a success.
+    """
     if _use_qdrant:
-        try:
-            # Try to create the collection (will fail if it already exists)
-            await _qdrant_client.create_collection(
-                collection_name="memory",
-                vector_size=768,  # Standard embedding size for most models
-            )
-            print("[STARTUP] Created Qdrant collection: memory (768-dim)")
-        except Exception as exc:
-            # Collection might already exist, which is fine
-            print(f"[STARTUP] Qdrant collection setup: {exc}")
+        async def _ensure(name: str, size: int = 768) -> None:
+            try:
+                await _qdrant_client.create_collection(collection_name=name, vector_size=size)
+                print(f"[STARTUP] Created Qdrant collection: {name} ({size}-dim)")
+            except Exception as exc:
+                # Collection may already exist; log and continue.
+                print(f"[STARTUP] Qdrant collection '{name}' setup: {exc}")
+
+        await _ensure("memory", size=768)
+        await _ensure("capsule_runs", size=768)
 
 # Qdrant client for vector-backed semantic memory
 try:
     from services.common.qdrant_client import get_qdrant_client
+    from services.common.audit_logger import audit_log, AuditEventType, AuditSeverity
     _qdrant_client = get_qdrant_client()
     _use_qdrant = True
 except Exception as exc:
@@ -76,7 +86,11 @@ class CapsuleResultOut(BaseModel):
 
 def _get_object_store():
     # Lazy import to avoid hard dependency when not used
-    from services.object-store.app.client import ObjectStoreClient, ObjectStoreSettings
+    # Import the object store client using the underscore‑based package name.
+    # The original repository contains a folder named "object-store" (with a hyphen),
+    # which cannot be imported as a Python module. An alias package
+    # ``services.object_store`` is provided to expose the same functionality.
+    from services.object_store.app.client import ObjectStoreClient, ObjectStoreSettings
     settings = ObjectStoreSettings.from_env()
     return ObjectStoreClient(settings)
 
@@ -154,9 +168,16 @@ async def save_capsule_result(
     data = await file.read()
     object_key = f"{tenant}/{capsule}/{version}/{file.filename}"
     client = _get_object_store()
-    url = client.upload(object_key, io.BytesIO(data), length=len(data), content_type=file.content_type or "application/octet-stream")
+    url = client.upload(
+        object_key,
+        io.BytesIO(data),
+        length=len(data),
+        content_type=file.content_type or "application/octet-stream",
+    )
 
-    # Persist a compact metadata entry so it is searchable later
+    # Persist a compact metadata entry so it is searchable later.  The record is
+    # stored in the ``capsule_runs`` vector collection (zero‑vector placeholder)
+    # and also in the in‑memory fallback.
     record = {
         "key": object_key,
         "url": url,
@@ -164,7 +185,7 @@ async def save_capsule_result(
         "version": version,
         "tenant": tenant,
         "user": user,
-        "metadata": metadata or "",
+        "metadata": metadata or {},
     }
     if _use_qdrant:
         try:
@@ -172,12 +193,43 @@ async def save_capsule_result(
                 collection_name="capsule_runs",
                 points=[{"id": object_key, "vector": [0.0] * 768, "payload": record}],
             )
-        except Exception:
+        except Exception as exc:
+            # Log the failure but keep the in‑memory record for debugging.
             MEMORY_STORE[object_key] = record
+            activity_logger = getattr(_qdrant_client, "logger", None)
+            if activity_logger:
+                activity_logger.error("Failed to upsert capsule result to Qdrant", extra={"error": str(exc)})
     else:
         MEMORY_STORE[object_key] = record
 
-    return CapsuleResultOut(url=url, key=object_key, capsule=capsule, version=version, tenant=tenant, user=user, metadata=record["metadata"]) 
+    # ---------------------------------------------------------------------
+    # Audit logging – record that a capsule result was written.
+    # ---------------------------------------------------------------------
+    try:
+        audit_log(
+            event_type=AuditEventType.CAPSULE_EXECUTE,
+            actor_id=user,
+            resource_type="capsule",
+            resource_id=f"{capsule}:{version}",
+            action="write_result",
+            outcome="success",
+            service_name="memory-gateway",
+            severity=AuditSeverity.INFO,
+            metadata=record,
+        )
+    except Exception:
+        # Auditing failures must not break the API.
+        pass
+
+    return CapsuleResultOut(
+        url=url,
+        key=object_key,
+        capsule=capsule,
+        version=version,
+        tenant=tenant,
+        user=user,
+        metadata=record["metadata"],
+    )
 
 # ---------------------------------------------------------------------------
 # Compatibility aliases – older roadmap expects /memories endpoints without the

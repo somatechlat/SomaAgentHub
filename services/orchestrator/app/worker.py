@@ -17,6 +17,8 @@ from .workflows.session import (
     issue_identity_token,
     run_slm_completion,
 )
+# New capsule workflow and activity
+from .workflows.capsule import CapsuleRunWorkflow, execute_capsule
 
 
 logger = logging.getLogger("orchestrator.worker")
@@ -39,13 +41,14 @@ async def _run_worker() -> None:
     worker = temporal_worker.Worker(
         client,
         task_queue=settings.temporal_task_queue,
-        workflows=[SessionWorkflow, MultiAgentWorkflow],
+        workflows=[SessionWorkflow, MultiAgentWorkflow, CapsuleRunWorkflow],
         activities=[
             evaluate_policy,
             issue_identity_token,
             emit_audit_event,
             run_slm_completion,
             dispatch_notification,
+            execute_capsule,
         ],
     )
 

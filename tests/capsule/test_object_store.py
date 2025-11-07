@@ -3,7 +3,10 @@ import os
 import types
 import pytest
 
-from services.object-store.app.client import ObjectStoreClient, ObjectStoreSettings
+# Import using the underscore‑based package name (the hyphenated package name
+# is not a valid Python identifier). The repository provides an alias package
+# ``services.object_store`` that re‑exports the client implementation.
+from services.object_store.app.client import ObjectStoreClient, ObjectStoreSettings
 
 
 class DummyMinio:
@@ -34,7 +37,8 @@ def patch_minio(monkeypatch):
     monkeypatch.setenv("MINIO_SECRET_KEY", "test")
     monkeypatch.setenv("MINIO_SECURE", "false")
 
-    import services.object-store.app.client as mod
+    # Import the module using the underscore alias for the same reason.
+    import services.object_store.app.client as mod
     monkeypatch.setattr(mod, "Minio", DummyMinio)
     yield
 

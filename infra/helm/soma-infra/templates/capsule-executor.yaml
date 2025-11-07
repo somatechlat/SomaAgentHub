@@ -1,0 +1,71 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: capsule-executor
+  labels:
+    app: capsule-executor
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: capsule-executor
+  template:
+    metadata:
+      labels:
+        app: capsule-executor
+    spec:
+      containers:
+        - name: executor
+          image: {{ .Values.capsuleExecutor.image | default "soma/capsule-executor:latest" }}
+          imagePullPolicy: {{ .Values.capsuleExecutor.pullPolicy | default "IfNotPresent" }}
+          env:
+            - name: TEMPORAL_TARGET_HOST
+              value: {{ .Values.temporal.targetHost | quote }}
+            - name: TEMPORAL_NAMESPACE
+              value: {{ .Values.temporal.namespace | quote }}
+            - name: TEMPORAL_TASK_QUEUE
+              value: {{ .Values.temporal.taskQueue | quote }}
+          ports:
+            - containerPort: 8000
+          resources:
+            limits:
+              cpu: {{ .Values.capsuleExecutor.resources.limits.cpu | default "500m" }}
+              memory: {{ .Values.capsuleExecutor.resources.limits.memory | default "256Mi" }}
+            requests:
+              cpu: {{ .Values.capsuleExecutor.resources.requests.cpu | default "250m" }}
+              memory: {{ .Values.capsuleExecutor.resources.requests.memory | default "128Mi" }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: capsule-executor
+  labels:
+    app: capsule-executor
+spec:
+  selector:
+    app: capsule-executor
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 8000
+      name: http
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: capsule-executor-hpa
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: capsule-executor
+  minReplicas: {{ .Values.capsuleExecutor.hpa.minReplicas | default 1 }}
+  maxReplicas: {{ .Values.capsuleExecutor.hpa.maxReplicas | default 5 }}
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: {{ .Values.capsuleExecutor.hpa.cpuUtilization | default 80 }}
+*** End Patch

@@ -1,0 +1,150 @@
+openapi: 3.0.3
+info:
+  title: SomaAgentHub Gateway API
+  version: "1.0"
+  description: |
+    Auto‑generated OpenAPI spec for the Gateway API.  It includes the
+    capsule execution endpoints required by the roadmap.
+servers:
+  - url: /v1
+    description: Base path for the public API
+paths:
+  /capsules/{capsule_id}/{version}/run:
+    post:
+      summary: Start a capsule run
+      operationId: startCapsuleRun
+      tags:
+        - capsules
+      parameters:
+        - name: capsule_id
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: version
+          in: path
+          required: true
+          schema:
+            type: string
+            default: latest
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CapsuleRunRequest'
+      responses:
+        '202':
+          description: Accepted – workflow started
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CapsuleRunResponse'
+        '400':
+          description: Bad request
+        '502':
+          description: Orchestrator unreachable or error
+  /capsule/results:
+    post:
+      summary: Upload capsule execution result artefact
+      operationId: uploadCapsuleResult
+      tags:
+        - capsules
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/CapsuleResultUpload'
+      responses:
+        '200':
+          description: Result stored successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CapsuleResultOut'
+components:
+  schemas:
+    CapsuleRunRequest:
+      type: object
+      properties:
+        tenant:
+          type: string
+        user:
+          type: string
+        params:
+          type: object
+          additionalProperties: true
+        metadata:
+          type: object
+          additionalProperties: true
+      required:
+        - tenant
+        - user
+    CapsuleRunResponse:
+      type: object
+      properties:
+        workflow_id:
+          type: string
+        run_id:
+          type: string
+          nullable: true
+        task_queue:
+          type: string
+        capsule_id:
+          type: string
+        version:
+          type: string
+      required:
+        - workflow_id
+        - task_queue
+        - capsule_id
+        - version
+    CapsuleResultUpload:
+      type: object
+      properties:
+        capsule:
+          type: string
+        version:
+          type: string
+        tenant:
+          type: string
+        user:
+          type: string
+        file:
+          type: string
+          format: binary
+        metadata:
+          type: string
+          nullable: true
+      required:
+        - capsule
+        - version
+        - tenant
+        - user
+        - file
+    CapsuleResultOut:
+      type: object
+      properties:
+        url:
+          type: string
+        key:
+          type: string
+        capsule:
+          type: string
+        version:
+          type: string
+        tenant:
+          type: string
+        user:
+          type: string
+        metadata:
+          type: object
+          additionalProperties: true
+      required:
+        - url
+        - key
+        - capsule
+        - version
+        - tenant
+        - user

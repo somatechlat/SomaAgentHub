@@ -308,3 +308,12 @@ async def start_capsule_run(
         capsule_id=payload.capsule_id,
         version=payload.version,
     )
+
+
+@router.get("/capsule/{workflow_id}", response_model=SessionStatusResponse)
+async def get_capsule_status(
+    workflow_id: str,
+    client: temporal_client.Client = Depends(get_temporal_client),
+) -> SessionStatusResponse:
+    """Fetch status for a capsule-run workflow by workflow_id."""
+    return await get_session_status(workflow_id, client)
