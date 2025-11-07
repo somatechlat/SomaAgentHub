@@ -15,6 +15,7 @@ from ..dependencies import moderation_guard_dependency, request_context_dependen
 from ..models.context import RequestContext
 from ..models.sessions import ModerationDetail, SessionCreateRequest, SessionCreateResponse
 from .dashboard import router as dashboard_router
+from .capsules import router as capsules_router
 
 router = APIRouter(prefix="/v1", tags=["gateway"])
 
@@ -152,3 +153,4 @@ async def create_session(
     )
 
 router.include_router(dashboard_router)
+router.include_router(capsules_router)

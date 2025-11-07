@@ -112,7 +112,7 @@ spec:
           livenessProbe:
             httpGet:
               path: /health
-              port: {{ index $.Values.ports $name }}
+              port: {{ if eq $name "memory-gateway" }}8000{{ else }}{{ index $.Values.ports $name }}{{ end }}
             initialDelaySeconds: 10
             periodSeconds: 30
             timeoutSeconds: 5
@@ -120,7 +120,7 @@ spec:
           readinessProbe:
             httpGet:
               path: /health
-              port: {{ index $.Values.ports $name }}
+              port: {{ if eq $name "memory-gateway" }}8000{{ else }}{{ index $.Values.ports $name }}{{ end }}
             initialDelaySeconds: 5
             periodSeconds: 10
             timeoutSeconds: 3

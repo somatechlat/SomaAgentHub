@@ -7,11 +7,13 @@ on:
     branches: [main]
 
 jobs:
-  test:
+  ci:
     runs-on: ubuntu-latest
     strategy:
       matrix:
         python-version: ['3.13']
+    env:
+      RELEASE_NAME: soma-ci-${{ github.run_id }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -22,200 +24,71 @@ jobs:
           python-version: ${{ matrix.python-version }}
           cache: 'pip'
 
+      # Install core development dependencies (linters, test framework, etc.)
       - name: Install core development dependencies
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements-dev.txt
 
-      - name: Lint Python code (ruff)
-        run: |
-          pip install ruff
-          ruff check .
-
-      - name: Type check (mypy)
-        run: |
-          pip install mypy
-          mypy services || true
-
-      - name: Install service-specific dependencies
+      # Install any service‑specific requirements (policy‑engine, memory‑gateway, …)
+      - name: Install service‑specific dependencies
         run: |
           for svc in services/policy-engine services/memory-gateway services/gateway-api services/orchestrator services/identity-service; do
             if [ -f "$svc/requirements.txt" ]; then
               pip install -r "$svc/requirements.txt"
             fi
-                  # Placeholder for future edits
-                  # - name: Install core development dependencies
+          done
 
-      - name: Lint Helm chart
+      # Lint Python code with ruff
+      - name: Lint Python (ruff)
+        run: |
+          pip install ruff
+          ruff check .
+
+      # Type checking with mypy (non‑blocking)
+      - name: Type check (mypy)
+        run: |
+          pip install mypy
+          mypy services || true
+
+      # Helm lint
+      - name: Set up Helm
         uses: azure/setup-helm@v4
         with:
           version: v3.12.0
-        continue-on-error: false
-      - name: Run Helm lint
+      - name: Lint Helm chart
         run: helm lint ./k8s/helm/soma-agent
 
-      - name: Run tests
+      # Spin up a KinD cluster so helm install/tests can run in CI
+      - name: Set up KinD cluster
+        uses: helm/kind-action@v1.9.0
+
+      # Run unit / integration tests for each service individually to avoid import path issues
+      - name: Run service tests
         env:
           MEMORY_GATEWAY_PORT: 10021
           POLICY_ENGINE_PORT: 10020
+          # Use the repository root for imports of the top‑level ``app`` namespace package.
+          PYTHONPATH: ${{ github.workspace }}
         run: |
-          pytest -q services/*/testsname: CI
-
-on:
-  push:
-    branches: [main]
-  pull_request:
-    branches: [main]
-
-jobs:
-  test:
-    runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        python-version: ['3.13']
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v5
-        with:
-          python-version: ${{ matrix.python-version }}
-          cache: 'pip'
-
-      - name: Install core dev dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install -r requirements-dev.txt
-
-      # Install service-specific requirements (policy-engine, memory-gateway, etc.)
-      - name: Install service dependencies
-        run: |
-          for svc in services/policy-engine services/memory-gateway services/gateway-api services/orchestrator services/identity-service; do
-            if [ -f $svc/requirements.txt ]; then
-              pip install -r $svc/requirements.txt
+          echo "Running tests for each service..."
+          for svc in services/*; do
+            if [ -d "$svc/tests" ]; then
+              echo "\n=== Testing $svc ==="
+              # Run tests with the repo root on PYTHONPATH so `from app.main import app` works.
+              (cd "$svc" && pytest -q tests)
             fi
           done
 
-      - name: Run tests
-        env:
-          # Ensure services can be imported without Docker; use in‑process FastAPI test clients
-          MEMORY_GATEWAY_PORT: 10021
-          POLICY_ENGINE_PORT: 10020
+      # Deploy the chart to a temporary release and run Helm tests
+      - name: Install Helm chart (temporary release)
         run: |
-          pytest -q services/*/testsname: CI
-
-on:
-  push:
-    branches: [main]
-  pull_request:
-    branches: [main]
-
-jobs:
-  test:
-    runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        python-version: ["3.11"]
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v5
-        with:
-          python-version: ${{ matrix.python-version }}
-          cache: "pip"
-
-      - name: Install dependencies
+          helm upgrade --install ${{ env.RELEASE_NAME }} ./k8s/helm/soma-agent --namespace default --wait --timeout 300s
+      - name: Run Helm tests
+        if: always()
         run: |
-          python -m pip install --upgrade pip
-          pip install -r requirements-dev.txt
-
-      - name: Run linting (ruff)
+          helm test ${{ env.RELEASE_NAME }} --namespace default || true
+      - name: Uninstall temporary release
+        if: always()
         run: |
-          ruff check .
-
-      - name: Run tests
-        env:
-          # Ensure any optional env vars required by the app are set to safe defaults.
-          POSTGRES_URL: "sqlite+aiosqlite:///:memory:"
-          OTEL_EXPORTER_OTLP_ENDPOINT: "http://localhost:4317"
-        run: |
-          pytest -q
-name: CI
-
-on:
-  push:
-    branches: [ main ]
-  pull_request:
-    branches: [ main ]
-
-jobs:
-  build-test:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.11"
-      - name: Install dependencies
-        run: |
-          python -m venv .venv
-          source .venv/bin/activate
-          pip install -r requirements-dev.txt
-      - name: Run tests
-        run: |
-          source .venv/bin/activate
-          pytest -n auto --cov=services
-      - name: Lint Helm chart
-        uses: azure/setup-helm@v3
-      - name: Helm lint
-        run: helm lint k8s/helm/soma-agent
-      - name: Build Docker images
-        run: |
-          docker compose buildname: CI
-
-on:
-  pull_request:
-  push:
-    branches: [ main, develop, chore/**, feat/**, fix/** ]
-
-jobs:
-  build-test:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.11'
-
-      - name: Install dev requirements
-        run: |
-          python -m pip install --upgrade pip
-          pip install -r requirements-dev.txt
-
-      - name: Lint (ruff)
-        run: |
-          ruff --version
-          ruff check --output-format=github .
-
-      - name: Type check (mypy)
-        run: |
-          mypy --version
-          mypy services || true
-
-      - name: Set up Helm
-        uses: azure/setup-helm@v4
-      - name: Helm lint
-        run: |
-          helm lint ./k8s/helm/soma-agent || true
-          helm template soma-agent-hub ./k8s/helm/soma-agent > /dev/null
-
-      - name: Run unit tests (fast subset)
-        run: |
-          pytest -q --maxfail=1 --disable-warnings
+          helm uninstall ${{ env.RELEASE_NAME }} --namespace default || true

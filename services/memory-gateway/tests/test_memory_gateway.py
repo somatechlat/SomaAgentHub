@@ -41,11 +41,25 @@ def test_remember_and_recall():
     assert data["key"] == "test_key"
     assert data["value"] == {"msg": "hello"}
 
+def test_healthz_endpoint():
+    """Validate the /healthz endpoint returns JSON with dependency booleans."""
+    resp = client.get("/healthz")
+    assert resp.status_code == 200
+    data = resp.json()
+    assert isinstance(data, dict)
+    # Values may be False in local unit tests (no Redis/Qdrant). Keys must exist and be booleans.
+    assert "kv_store" in data and isinstance(data["kv_store"], bool)
+    assert "vector_store" in data and isinstance(data["vector_store"], bool)
+
 
 def test_metrics_endpoint():
     # Trigger a request to increment the counter
     client.get("/health")
     response = client.get("/metrics")
     assert response.status_code == 200
-    # Ensure the metric name appears in the output
-    assert "somabrain_requests_total" in response.text
+    # Ensure key metric names appear in the output (at least the request counter)
+    body = response.text
+    assert "somabrain_requests_total" in body
+    # The following gauges should also be exposed even if 0
+    assert "qdrant_up" in body
+    assert "redis_up" in body

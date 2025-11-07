@@ -234,6 +234,13 @@ redis:
     enabled: true
     size: 2Gi
 
+# Optional Redis exporter for Prometheus metrics
+redisExporter:
+  enabled: true
+  image: oliver006/redis_exporter:latest
+  port: 9121
+  redisAddr: "redis://redis:6379"
+
 prometheus:
   enabled: true
   # Using the kube‑prometheus‑stack chart is optional; we only expose ServiceMonitors.

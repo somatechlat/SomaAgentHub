@@ -1,0 +1,48 @@
+{{- if .Values.redis.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: redis
+  labels:
+    app: redis
+spec:
+  ports:
+    - name: redis
+      port: {{ .Values.ports.redis }}
+      targetPort: 6379
+  selector:
+    app: redis
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: redis
+  labels:
+    app: redis
+spec:
+  replicas: {{ .Values.redis.replicaCount | default 1 }}
+  selector:
+    matchLabels:
+      app: redis
+  template:
+    metadata:
+      labels:
+        app: redis
+    spec:
+      containers:
+        - name: redis
+          image: {{ .Values.redis.image }}
+          imagePullPolicy: {{ $.Values.global.imagePullPolicy }}
+          ports:
+            - containerPort: 6379
+          args: ["--appendonly", "yes"]
+          volumeMounts:
+            - name: data
+              mountPath: /data
+          resources:
+            {{- toYaml $.Values.global.resources | nindent 12 }}
+      volumes:
+        - name: data
+          emptyDir: {}
+{{- end }}
+

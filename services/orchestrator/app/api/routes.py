@@ -14,6 +14,7 @@ from temporalio.client import RPCError, RPCStatusCode
 from ..core.config import settings
 from ..workflows.mao import AgentDirective, MAOStartInput
 from ..workflows.session import SessionStartInput
+from ..workflows.capsule import CapsuleRunInput
 
 # Import conversation and training endpoints
 from .conversation import router as conversation_router
@@ -73,6 +74,23 @@ class MultiAgentStartResponse(BaseModel):
     run_id: str | None = None
     orchestration_id: str
     task_queue: str
+
+
+class CapsuleRunRequest(BaseModel):
+    tenant: str
+    user: str
+    capsule_id: str = Field(..., description="Capsule identifier, e.g. org/name")
+    version: str = Field(default="latest", description="Capsule version/tag")
+    params: Dict[str, Any] = Field(default_factory=dict, description="Input parameters for the capsule run")
+    metadata: Dict[str, Any] = Field(default_factory=dict, description="Arbitrary metadata for audit/tracing")
+
+
+class CapsuleRunResponse(BaseModel):
+    workflow_id: str
+    run_id: str | None = None
+    task_queue: str
+    capsule_id: str
+    version: str
 
 
 async def get_temporal_client(request: Request) -> temporal_client.Client:
@@ -248,3 +266,45 @@ async def get_multi_agent_status(
     client: temporal_client.Client = Depends(get_temporal_client),
 ) -> SessionStatusResponse:
     return await get_session_status(workflow_id, client)
+
+
+@router.post("/capsule/run", response_model=CapsuleRunResponse, status_code=status.HTTP_202_ACCEPTED)
+async def start_capsule_run(
+    payload: CapsuleRunRequest,
+    client: temporal_client.Client = Depends(get_temporal_client),
+) -> CapsuleRunResponse:
+    """Start a lightweight capsule run workflow and return identifiers.
+
+    This is a minimal starter that kicks off a Temporal workflow which can
+    be extended in subsequent sprints to provision environments, stream logs,
+    and emit audit records.
+    """
+    from uuid import uuid4
+
+    run_hint = payload.metadata.get("run_id") or f"run-{uuid4()}"
+    workflow_id = f"capsule-{payload.tenant}-{payload.capsule_id}-{run_hint}"
+
+    handle = await client.start_workflow(
+        "capsule-run-workflow",
+        CapsuleRunInput(
+            run_id=run_hint,
+            capsule_id=payload.capsule_id,
+            version=payload.version,
+            tenant=payload.tenant,
+            user=payload.user,
+            params=payload.params,
+            metadata=payload.metadata,
+        ),
+        id=workflow_id,
+        task_queue=settings.temporal_task_queue,
+    )
+
+    rid = getattr(handle, "run_id", None) or getattr(handle, "first_execution_run_id", None)
+
+    return CapsuleRunResponse(
+        workflow_id=handle.id,
+        run_id=rid,
+        task_queue=settings.temporal_task_queue,
+        capsule_id=payload.capsule_id,
+        version=payload.version,
+    )

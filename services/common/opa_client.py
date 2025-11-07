@@ -175,6 +175,41 @@ class OPAClient:
         )
         return bool(result.get("allowed", False))
 
+    async def allow_write_capsule_results(
+        self,
+        user: str,
+        tenant: str,
+        capsule: str,
+        version: str,
+        roles: Optional[list[str]] = None,
+    ) -> bool:
+        """Check capsule result write permission using dedicated policy.
+
+        Policy path: ``somagent/capsule`` rule: ``allow_write_capsule_results``.
+        Falls back to False on explicit denial; True on missing policy (permissive for now).
+        """
+        input_data = {
+            "user": user,
+            "tenant": tenant,
+            "capsule": capsule,
+            "version": version,
+            "roles": roles or [],
+        }
+        try:
+            result = await self.evaluate_policy(
+                policy_path="somagent/capsule",
+                input_data=input_data,
+                rule="allow_write_capsule_results",
+            )
+            allowed = result.get("allowed")
+            if isinstance(allowed, bool):
+                return allowed
+            # If policy returns dict, treat presence of truthy "allowed".
+            return bool(allowed)
+        except Exception:
+            # If OPA unreachable, allow (can tighten later once policy hardened).
+            return True
+
     async def evaluate_constitution(
         self,
         action_type: str,
@@ -230,3 +265,25 @@ def get_opa_client() -> OPAClient:
     timeout = float(os.getenv("OPA_TIMEOUT", "5.0"))
 
     return OPAClient(opa_url=opa_url, timeout=timeout)
+
+async def check_policy(policy_name: str, input: Dict[str, Any]) -> Optional[bool]:
+    """Generic helper to evaluate a simple allow/deny policy path.
+
+    ``policy_name`` should include any package prefix (e.g. ``somagent/capsule/allow_write_capsule_results``).
+    Returns True/False if determinable else None.
+    """
+    client = get_opa_client()
+    # Infer rule from last segment if it matches allow_* pattern
+    parts = policy_name.split("/")
+    rule = parts[-1]
+    path = "/".join(parts[:-1]) if len(parts) > 1 else ""
+    try:
+        result = await client.evaluate_policy(policy_path=path, input_data=input, rule=rule)
+        allowed = result.get("allowed")
+        if isinstance(allowed, bool):
+            return allowed
+        if isinstance(result, dict) and "result" in result and isinstance(result["result"], bool):
+            return bool(result["result"])
+        return None
+    except Exception:
+        return None

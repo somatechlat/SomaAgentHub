@@ -1,0 +1,22 @@
+{{- if and .Values.serviceMonitors.enabled .Values.qdrant.enabled }}
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: qdrant
+  labels:
+    app.kubernetes.io/name: qdrant
+    app.kubernetes.io/part-of: {{ $.Chart.Name }}
+spec:
+  selector:
+    matchLabels:
+      app: qdrant
+  namespaceSelector:
+    matchNames:
+      - {{ $.Values.global.namespace | default $.Release.Namespace }}
+  endpoints:
+    - port: http
+      interval: {{ .Values.serviceMonitors.interval | default "30s" }}
+      path: /metrics
+{{- end }}
+
