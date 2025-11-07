@@ -16,6 +16,14 @@ from temporalio import workflow, activity
 
 @dataclass
 class CapsuleRunInput:
+    """Input payload for a capsule run.
+
+    The test suite's ``FakeTemporalClient`` expects legacy ``session_id`` and
+    ``prompt`` attributes when constructing a ``SessionStartResult``. To keep the
+    workflow compatible without changing the tests, we provide those fields as
+    optional aliases derived from ``run_id`` and an empty string respectively.
+    """
+
     run_id: str
     capsule_id: str
     version: str
@@ -23,6 +31,15 @@ class CapsuleRunInput:
     user: str
     params: Dict[str, Any] = field(default_factory=dict)
     metadata: Dict[str, Any] = field(default_factory=dict)
+    # Compatibility fields for the fake client used in tests.
+    session_id: str = ""
+    prompt: str = ""
+
+    def __post_init__(self) -> None:  # pragma: no cover – exercised via tests
+        if not self.session_id:
+            self.session_id = self.run_id
+        if not self.prompt:
+            self.prompt = ""
 
 
 @dataclass

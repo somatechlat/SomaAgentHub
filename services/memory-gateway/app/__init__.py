@@ -20,6 +20,13 @@ import sys
 __path__ = pkgutil.extend_path(__path__, __name__)
 
 # Make sure the repository root is present on ``sys.path``.
-repo_root = pathlib.Path(__file__).resolve().parents[2]
-if str(repo_root) not in sys.path:
-	sys.path.append(str(repo_root))
+# The ``app`` package lives inside ``services/memory-gateway/app``. When the
+# test suite runs from the repository root, that directory is not automatically
+# on ``sys.path``. Adding the service root (two levels up from this file) ensures
+# that ``import app.main`` resolves to the FastAPI application defined for the
+# memory‑gateway service.
+service_root = pathlib.Path(__file__).resolve().parents[2]
+if str(service_root) not in sys.path:
+	# Insert at the front so it takes precedence over any other ``app``
+	# packages that might appear earlier on ``sys.path``.
+	sys.path.insert(0, str(service_root))

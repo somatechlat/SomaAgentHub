@@ -72,6 +72,31 @@ if "services" in cwd.parts:
 # Now extend the ``app`` namespace to include any ``app`` packages found on the
 # updated ``sys.path``.
 __path__ = pkgutil.extend_path(__path__, __name__)
+
+# ---------------------------------------------------------------------
+# Ensure the *memory‑gateway* ``app`` package is the first entry on the
+# namespace path.  The test suite imports ``app.main`` which should resolve to
+# the FastAPI instance defined in ``services/memory-gateway/app/main.py``.
+# Adding other services after it preserves compatibility for any code that
+# relies on the broader ``app`` namespace while guaranteeing deterministic
+# resolution for the tests.
+repo_root = pathlib.Path(__file__).resolve().parents[1]
+services_dir = repo_root / "services"
+if services_dir.is_dir():
+    # Add memory‑gateway first (if it exists)
+    mem_path = services_dir / "memory-gateway" / "app"
+    if mem_path.is_dir():
+        __path__ = [str(mem_path)] + list(__path__)
+    # Add the remaining services in alphabetical order, skipping the one we
+    # already added.
+    # Append the remaining services (alphabetical) after the memory‑gateway entry
+    # so that ``app.main`` resolves to the memory‑gateway implementation.
+    for service in sorted(services_dir.iterdir(), key=lambda p: p.name):
+        if service.name == "memory-gateway":
+            continue
+        app_path = service / "app"
+        if app_path.is_dir():
+            __path__ = list(__path__) + [str(app_path)]
 """Top‑level ``app`` namespace package.
 
 Each service (e.g. ``analytics-service``, ``constitution-service``) contains

@@ -13,8 +13,11 @@ class Settings(BaseSettings):
 
     service_name: str = "constitution-service"
     # Service URLs are resolved via environment variables for K8s DNS.
-    # Build base URL using MEMORY_GATEWAY_PORT (default 10021)
-    default_port = os.getenv("MEMORY_GATEWAY_PORT", "10021")
+    # Build base URL using MEMORY_GATEWAY_PORT (default 10021).
+    # ``default_port`` is a constant, not a Pydantic field, so we annotate it as
+    # ``ClassVar`` to avoid the ``non‑annotated attribute`` validation error.
+    from typing import ClassVar
+    default_port: ClassVar[str] = os.getenv("MEMORY_GATEWAY_PORT", "10021")
     somabrain_base_url: str = os.getenv(
         "SOMABRAIN_BASE_URL",
         f"http://memory-gateway:{default_port}",

@@ -85,6 +85,15 @@ class Settings(BaseSettings):
     # OpenTelemetry exporter (optional)
     otlp_endpoint: Optional[AnyUrl] = Field(default=None, alias="OTEL_EXPORTER_OTLP_ENDPOINT")
 
+    # Capsule repository – where manifest YAML files are stored. The orchestrator
+    # fetches a manifest when a capsule run does not provide an explicit
+    # ``image``/``command`` payload.  The default points to the Helm‑deployed
+    # ``capsule-repo`` service.
+    capsule_repo_url: AnyUrl = Field(
+        default=os.getenv("CAPSULE_REPO_URL", "http://capsule-repo:8002/v1/capsules"),
+        alias="CAPSULE_REPO_URL",
+    )
+
     model_config = {
         "env_file": ".env",
         "env_file_encoding": "utf-8",

@@ -1,0 +1,55 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: capsule-repo
+  labels:
+    app: capsule-repo
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: capsule-repo
+  template:
+    metadata:
+      labels:
+        app: capsule-repo
+    spec:
+      containers:
+        - name: repo
+          # Simple FastAPI image – the same base image used by other services.
+          image: {{ .Values.capsuleRepo.image | default "python:3.11-slim" }}
+          imagePullPolicy: {{ .Values.capsuleRepo.pullPolicy | default "IfNotPresent" }}
+          command: ["uvicorn"]
+          args:
+            - "services.capsule-repo.app.main:app"
+            - "--host"
+            - "0.0.0.0"
+            - "--port"
+            - "{{ .Values.capsuleRepo.port | default "8002" }}"
+          env:
+            - name: PORT
+              value: {{ .Values.capsuleRepo.port | default "8002" | quote }}
+          ports:
+            - containerPort: {{ .Values.capsuleRepo.port | default "8002" }}
+          resources:
+            limits:
+              cpu: {{ .Values.capsuleRepo.resources.limits.cpu | default "250m" }}
+              memory: {{ .Values.capsuleRepo.resources.limits.memory | default "128Mi" }}
+            requests:
+              cpu: {{ .Values.capsuleRepo.resources.requests.cpu | default "100m" }}
+              memory: {{ .Values.capsuleRepo.resources.requests.memory | default "64Mi" }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: capsule-repo
+  labels:
+    app: capsule-repo
+spec:
+  selector:
+    app: capsule-repo
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: {{ .Values.capsuleRepo.port | default "8002" }}
+      name: http

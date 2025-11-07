@@ -50,3 +50,35 @@ vault:
 
 etcd:
   enabled: false
+
+# ---------------------------------------------------------------
+# Capsule services configuration
+# ---------------------------------------------------------------
+capsuleExecutor:
+  image: "soma/capsule-executor:latest"
+  pullPolicy: "IfNotPresent"
+  port: 8000
+  resources:
+    limits:
+      cpu: "500m"
+      memory: "256Mi"
+    requests:
+      cpu: "250m"
+      memory: "128Mi"
+    # HPA settings are defined in the template.
+  hpa:
+    minReplicas: 1
+    maxReplicas: 5
+    cpuUtilization: 80
+
+capsuleRepo:
+  image: "python:3.11-slim"
+  pullPolicy: "IfNotPresent"
+  port: 8002
+  resources:
+    limits:
+      cpu: "250m"
+      memory: "128Mi"
+    requests:
+      cpu: "100m"
+      memory: "64Mi"

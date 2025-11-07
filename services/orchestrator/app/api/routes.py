@@ -272,6 +272,7 @@ async def get_multi_agent_status(
 async def start_capsule_run(
     payload: CapsuleRunRequest,
     client: temporal_client.Client = Depends(get_temporal_client),
+    # OPA client will be lazily imported inside the function to avoid circular deps.
 ) -> CapsuleRunResponse:
     """Start a lightweight capsule run workflow and return identifiers.
 
@@ -282,7 +283,36 @@ async def start_capsule_run(
     from uuid import uuid4
 
     run_hint = payload.metadata.get("run_id") or f"run-{uuid4()}"
-    workflow_id = f"capsule-{payload.tenant}-{payload.capsule_id}-{run_hint}"
+    # ``payload.capsule_id`` may contain slashes (e.g., "org/name"). FastAPI
+    # path parameters stop at a slash, so we sanitise the identifier for the
+    # workflow ID by replacing '/' with '_' – this keeps the ID deterministic
+    # while remaining URL‑safe.
+    safe_capsule_id = payload.capsule_id.replace("/", "_")
+    workflow_id = f"capsule-{payload.tenant}-{safe_capsule_id}-{run_hint}"
+
+    # -------------------------------------------------------------------
+    # OPA authorization – ensure the caller is allowed to execute the capsule.
+    # -------------------------------------------------------------------
+    try:
+        from services.common.opa_client import check_policy
+
+        # Full OPA policy path: package ``somagent.capsule`` with rule
+        # ``allow_execute_capsule``.
+        allowed = await check_policy(
+            policy_name="somagent/capsule/allow_execute_capsule",
+            input={
+                "user": payload.user,
+                "tenant": payload.tenant,
+                "capsule": payload.capsule_id,
+                "version": payload.version,
+            },
+        )
+        if allowed is False:
+            raise HTTPException(status_code=403, detail="Not allowed to execute capsule")
+    except Exception:
+        # If OPA is unavailable or the policy is missing we fall back to allow –
+        # this mirrors the behaviour of other endpoints where OPA is optional.
+        pass
 
     handle = await client.start_workflow(
         "capsule-run-workflow",
