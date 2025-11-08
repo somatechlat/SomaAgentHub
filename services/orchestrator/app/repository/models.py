@@ -9,9 +9,9 @@ stores the JSON payload as a ``JSON`` column for flexibility.
 from __future__ import annotations
 
 import uuid
+from dataclasses import dataclass, field
 from datetime import datetime
 from typing import Any
-from dataclasses import dataclass, field
 
 from sqlalchemy import JSON, Column
 from sqlmodel import Field, SQLModel
@@ -63,7 +63,7 @@ class BuildRun(SQLModel, table=True):
 # of the file. The duplicate import caused a ``SyntaxError`` during module
 # import. It has been removed.
 
- 
+
 
 
 @dataclass

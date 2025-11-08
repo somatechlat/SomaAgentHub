@@ -1,7 +1,7 @@
 """Configuration for tool integration service."""
 
-from functools import lru_cache
 import os  # Added for analytics_url getenv (ruff F821)
+from functools import lru_cache
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
 

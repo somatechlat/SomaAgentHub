@@ -3,10 +3,12 @@ Asynchronous client for SomaAgent API.
 """
 
 import os
+from typing import Any, AsyncIterator, Dict, List, Optional
+
 import aiohttp
-from typing import List, Dict, Optional, Any, AsyncIterator
-from .models import Message, Conversation, Capsule, Agent, WorkflowRun
+
 from .exceptions import APIError, AuthenticationError, RateLimitError
+from .models import Agent, Capsule, Conversation, Message, WorkflowRun
 
 
 class AsyncSomaAgentClient:

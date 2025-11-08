@@ -14,7 +14,7 @@ Env expectations:
 
 import logging
 import os
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 import stripe
 from fastapi import FastAPI, Header, HTTPException, Request
@@ -107,7 +107,7 @@ def create_payment_intent(payload: PaymentIntentRequest):
             client_secret=intent.client_secret,
             amount_cents=payload.amount_cents,
             currency=payload.currency,
-            created_at=datetime.now(timezone.utc),
+            created_at=datetime.now(UTC),
         )
     except Exception as e:
         logger.error(f"Failed to create payment intent: {e}")
@@ -163,7 +163,7 @@ class UsageSummaryQuery(BaseModel):
 @app.post("/v1/billing/usage", tags=["billing"])
 def usage_summary(query: UsageSummaryQuery):
     tracker = get_usage_tracker()
-    end = datetime.now(timezone.utc)
+    end = datetime.now(UTC)
     start = end - timedelta(hours=query.period_hours)
     summary = tracker.get_usage_summary(query.user_id, start, end)
     return summary

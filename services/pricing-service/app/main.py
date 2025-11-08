@@ -16,7 +16,6 @@ from .config import get_settings
 from .models import LivePricingResponse, LivePricingSummary, PricingOffer
 from .refresh import start_refresh_loop, stop_refresh_loop
 
-
 logger = logging.getLogger(__name__)
 
 

@@ -41,7 +41,7 @@ JWT_EXP_SECONDS = 3600
 # generated from real values. For the Sprint we provide a simple static key so
 # that the gateway can fetch the JWKS and validate tokens.
 
-import os
+import os  # noqa: E402  # Late import to keep explanatory comment block above intact
 
 oidc_router = APIRouter(prefix="/.well-known", tags=["oidc"])
 

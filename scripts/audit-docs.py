@@ -104,7 +104,7 @@ class DocumentationAuditor:
             try:
                 response = requests.head(url, timeout=5, allow_redirects=True)
                 return response.status_code >= 400
-            except:
+            except Exception:
                 return True
         else:
             # Internal link - check file exists

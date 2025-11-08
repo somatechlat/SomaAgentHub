@@ -327,4 +327,4 @@ if __name__ == "__main__":
         base_url="https://api.stripe.com/v1",
     )
 
-    print("✅ Adapter generated successfully!")
+    logger.info("Adapter generated successfully")

@@ -8,11 +8,12 @@ select = ["E","F","I","W","UP","PIE","T20","Q"]
 ignore = ["E501"]
 
 [tool.ruff.lint.per-file-ignores]
-"examples/**/*.py" = ["T201"]
-"scripts/**/*.py" = ["T201"]
+"examples/**/*.py" = ["T201", "W293"]
+"scripts/**/*.py" = ["T201", "W293"]
 "services/**/tests/**/*.py" = ["T201"]
 "services/kamachiq-service/**/*.py" = ["T201"]
 "services/slm-service/tests/**/*.py" = ["T201"]
+"services/self-provisioning/app.py" = ["W293"]
 
 [tool.mypy]
 python_version = "3.11"

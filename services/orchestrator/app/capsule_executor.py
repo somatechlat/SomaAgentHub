@@ -37,15 +37,14 @@ from pathlib import Path
 from typing import Any
 
 import httpx  # Added for manifest fetch (ruff F821)
-from services.orchestrator.app.core.config import (
-    settings,
-)  # Provides capsule_repo_url
-
 import yaml
 from services.object_store.app.client import ObjectStoreClient, ObjectStoreSettings
 from temporalio import activity
 
 from services.common.observability import get_meter, get_tracer
+from services.orchestrator.app.core.config import (
+    settings,
+)  # Provides capsule_repo_url
 from services.orchestrator.workflows.capsule import CapsuleRunInput
 
 # ---------------------------------------------------------------------------

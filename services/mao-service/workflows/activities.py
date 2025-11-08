@@ -3,9 +3,9 @@
 """
 
 import asyncio
+import os  # Added for TASK_CAPSULE_REPO_URL getenv (ruff F821)
 import time
 import uuid
-import os  # Added for TASK_CAPSULE_REPO_URL getenv (ruff F821)
 from dataclasses import dataclass
 from typing import Any
 

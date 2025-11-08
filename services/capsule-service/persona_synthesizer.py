@@ -459,4 +459,4 @@ if __name__ == "__main__":
     # Save package
     synthesizer.save_package(persona, "personas/senior_python_developer.json")
 
-    print(f"✅ Persona synthesized with {len(persona.traits)} traits")
+    logger.info("Persona synthesized with %d traits", len(persona.traits))

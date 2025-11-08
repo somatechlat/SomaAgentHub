@@ -1,6 +1,9 @@
+import json
 import os
 import sys
 
+import httpx
+import requests
 from fastapi.testclient import TestClient
 
 BASE = os.path.dirname(os.path.dirname(__file__))
@@ -12,10 +15,6 @@ for name in list(sys.modules.keys()):
     if name == "app" or name.startswith("app."):
         del sys.modules[name]
 
-import json
-
-import httpx
-import requests
 from app.wizard_engine import wizard_engine  # type: ignore  # noqa: E402
 
 from app.main import app  # type: ignore  # noqa: E402

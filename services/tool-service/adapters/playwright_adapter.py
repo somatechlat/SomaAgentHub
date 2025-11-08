@@ -409,4 +409,4 @@ if __name__ == "__main__":
         browser.wait_for_selector(".success-message")
 
         success_msg = browser.get_text(".success-message")
-        print(f"✅ {success_msg}")
+        logger.info("Workflow completed: %s", success_msg)

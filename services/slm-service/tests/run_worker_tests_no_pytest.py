@@ -5,10 +5,10 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
-import asyncio
-import json
+import asyncio  # noqa: E402
+import json  # noqa: E402
 
-from slm.worker import consume_and_process, process_request_message
+from slm.worker import consume_and_process, process_request_message  # noqa: E402
 
 
 def test_process_request_message():

@@ -17,11 +17,11 @@ if str(ROOT) not in sys.path:
 
 os.environ.setdefault("ENABLE_SPIFFE", "false")
 
-from temporalio.client import RPCError, RPCStatusCode
+from temporalio.client import RPCError, RPCStatusCode  # noqa: E402
 
-from services.orchestrator.app.main import create_app
-from services.orchestrator.app.workflows.mao import AgentExecutionResult, MAOResult
-from services.orchestrator.app.workflows.session import SessionStartResult
+from services.orchestrator.app.main import create_app  # noqa: E402
+from services.orchestrator.app.workflows.mao import AgentExecutionResult, MAOResult  # noqa: E402
+from services.orchestrator.app.workflows.session import SessionStartResult  # noqa: E402
 
 
 class FakeWorkflowHandle:

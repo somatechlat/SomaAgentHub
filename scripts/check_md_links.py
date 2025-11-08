@@ -26,9 +26,7 @@ results = []
 
 for md_path in ROOT.rglob("*.md"):
     # skip .git and .venv directories implicitly
-    if any(
-        part.startswith(".git") or part.startswith(".venv") for part in md_path.parts
-    ):
+    if any(part.startswith((".git", ".venv")) for part in md_path.parts):
         continue
     text = md_path.read_text(encoding="utf-8", errors="ignore")
     links = link_pattern.findall(text)
@@ -37,11 +35,7 @@ for md_path in ROOT.rglob("*.md"):
     for link in all_links:
         link = link.strip()
         # skip external URLs and mailto and anchors-only
-        if (
-            link.startswith("http://")
-            or link.startswith("https://")
-            or link.startswith("mailto:")
-        ):
+        if link.startswith(("http://", "https://", "mailto:")):
             continue
         if link.startswith("#"):
             continue

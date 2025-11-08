@@ -5,9 +5,9 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
-import asyncio
+import asyncio  # noqa: E402
 
-from slm.adapters.selector import select_and_call
+from slm.adapters.selector import select_and_call  # noqa: E402
 
 
 async def run():

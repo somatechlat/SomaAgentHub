@@ -1,18 +1,16 @@
 import os
-
-from fastapi.testclient import TestClient
-
-# Add service path
-BASE = os.path.dirname(os.path.dirname(__file__))
 from importlib.machinery import SourceFileLoader
 
+import httpx
+from fastapi.testclient import TestClient
+from httpx import Response
+
+# Add service path then dynamically load gateway main to avoid package shadowing
+BASE = os.path.dirname(os.path.dirname(__file__))
 gateway_main = SourceFileLoader(
     "gateway_app_main", os.path.join(BASE, "app", "main.py")
 ).load_module()
 app = gateway_main.app  # noqa: E402
-
-import httpx
-from httpx import Response
 
 client = TestClient(app)
 

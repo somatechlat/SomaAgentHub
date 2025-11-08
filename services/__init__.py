@@ -13,9 +13,7 @@ resolve ``services.<service>`` regardless of which directory appears first on
 ``sys.path``.
 """
 
-import pathlib
 import pkgutil
-import sys
 
 # ---------------------------------------------------------------------
 # Namespace package handling
