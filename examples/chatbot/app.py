@@ -7,7 +7,7 @@ and beautiful terminal UI.
 
 import os
 import asyncio
-from datetime import datetime
+from datetime import datetime, timezone
 from rich.console import Console
 from rich.panel import Panel
 from rich.markdown import Markdown
@@ -44,7 +44,7 @@ class ChatbotApp:
             conversation = await client.create_conversation(
                 metadata={
                     "app": "chatbot-sample",
-                    "started_at": datetime.utcnow().isoformat()
+                    "started_at": datetime.now(timezone.utc).isoformat()
                 }
             )
             self.conversation_id = conversation.id

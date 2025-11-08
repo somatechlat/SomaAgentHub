@@ -5,7 +5,7 @@ from __future__ import annotations
 import asyncio
 import logging
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import datetime, UTC
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
@@ -90,14 +90,14 @@ class PersonaExporter:
     async def export_persona(self, request: PersonaExportRequest) -> PersonaExportResult:
         """Primary entrypoint to export a persona manifest and supporting artifacts."""
 
-        started_at = datetime.utcnow()
+        started_at = datetime.now(UTC)
         manifest = self._build_manifest(request)
         manifest = await self._maybe_sign_manifest(manifest)
         manifest_path = self._persist_manifest(manifest, request.destination_path)
 
         await self._dispatch_async_tasks(request, manifest_path)
 
-        completed_at = datetime.utcnow()
+        completed_at = datetime.now(UTC)
         result = PersonaExportResult(
             tenant=request.tenant,
             manifest=manifest,

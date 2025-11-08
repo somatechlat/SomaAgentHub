@@ -6,7 +6,7 @@ Collects high-quality training data from production conversations.
 
 import logging
 from typing import List, Dict, Any, Optional
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, UTC
 from dataclasses import dataclass
 from enum import Enum
 
@@ -66,7 +66,7 @@ class DatasetBuilder:
         Returns:
             List of training examples
         """
-        cutoff_date = datetime.utcnow() - timedelta(days=days_back)
+        cutoff_date = datetime.now(UTC) - timedelta(days=days_back)
         
         # Query ClickHouse for high-quality conversations
         query = f"""
@@ -307,7 +307,7 @@ class DatasetBuilder:
                 quality=DataQuality.GOOD,
                 rating=4.0,
                 task_category=task_category,
-                created_at=datetime.utcnow(),
+                created_at=datetime.now(UTC),
                 metadata={"synthetic": True}
             )
             examples.append(example)

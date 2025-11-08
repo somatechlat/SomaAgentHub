@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import statistics
 import uuid
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Any, Dict, List
 
 from fastapi import APIRouter, HTTPException, status
@@ -185,7 +185,7 @@ def agent_one_sight_dashboard(
     regressions_due = [PersonaRegressionResponse(**reg.__dict__) for reg in regressions]
 
     return AgentOneSightDashboardResponse(
-        generated_at=datetime.utcnow(),
+        generated_at=datetime.now(timezone.utc),
         tenant_id=tenant_id,
         capsule_dashboard=capsule_data,
         anomalies=anomaly_records,
@@ -210,7 +210,7 @@ def record_capsule_run(payload: CapsuleRunRequest) -> dict[str, str]:
         tokens=payload.tokens,
         revisions=payload.revisions,
         duration_seconds=payload.duration_seconds,
-        recorded_at=datetime.utcnow(),
+        recorded_at=datetime.now(timezone.utc),
     )
     store.record_run(run)
     if not payload.success:
@@ -229,7 +229,7 @@ def capsule_dashboard(
     if tenant_id:
         runs = [run for run in runs if run.tenant_id == tenant_id]
     if window_hours:
-        cutoff = datetime.utcnow() - timedelta(hours=window_hours)
+        cutoff = datetime.now(timezone.utc) - timedelta(hours=window_hours)
         runs = [run for run in runs if run.recorded_at >= cutoff]
     grouped: Dict[tuple[str, str], List[CapsuleRun]] = {}
     for run in runs:
@@ -361,7 +361,7 @@ def create_governance_report(payload: GovernanceReportRequest) -> GovernanceRepo
     report = GovernanceReport(
         report_id=str(uuid.uuid4()),
         tenant_id=payload.tenant_id,
-        generated_at=datetime.utcnow(),
+        generated_at=datetime.now(timezone.utc),
         summary=payload.summary,
         changes=payload.changes,
     )
@@ -389,7 +389,7 @@ def record_kamachiq_run(payload: KamachiqRunRequest) -> KamachiqRunResponse:
         tenant_id=payload.tenant_id,
         name=payload.name,
         deliverable_count=payload.deliverable_count,
-        created_at=datetime.utcnow(),
+        created_at=datetime.now(timezone.utc),
         metadata={k: str(v) for k, v in payload.metadata.items()},
     )
     store.record_kamachiq_run(run)
@@ -446,7 +446,7 @@ def record_billing_event(payload: BillingEventRequest) -> dict[str, str]:
         tokens=payload.tokens,
         cost=float(payload.cost),
         currency=currency,
-        recorded_at=datetime.utcnow(),
+        recorded_at=datetime.now(timezone.utc),
         metadata={k: str(v) for k, v in payload.metadata.items()},
     )
     store.record_billing_event(event)
@@ -543,7 +543,7 @@ def export_capsule_runs(
     if tenant_id:
         runs = [run for run in runs if run.tenant_id == tenant_id]
     if window_hours:
-        cutoff = datetime.utcnow() - timedelta(hours=window_hours)
+        cutoff = datetime.now(timezone.utc) - timedelta(hours=window_hours)
         runs = [run for run in runs if run.recorded_at >= cutoff]
 
     payload = [

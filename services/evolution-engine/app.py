@@ -8,7 +8,7 @@ Uses telemetry data and LLM analysis to evolve capsules over time.
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel, Field
 from typing import List, Dict, Any, Optional
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 import logging
 import json
 from collections import defaultdict
@@ -36,7 +36,7 @@ class ExecutionTelemetry(BaseModel):
     duration_seconds: float
     error_message: Optional[str] = None
     context: Dict[str, Any] = Field(default_factory=dict)
-    timestamp: datetime = Field(default_factory=datetime.utcnow)
+    timestamp: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
 
 class CapsuleMetrics(BaseModel):
@@ -58,7 +58,7 @@ class ImprovementSuggestion(BaseModel):
     implementation_hints: List[str]
     confidence: float  # 0.0-1.0
     impact: str  # 'low', 'medium', 'high'
-    generated_at: datetime = Field(default_factory=datetime.utcnow)
+    generated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
 
 class EvolutionRequest(BaseModel):
@@ -91,7 +91,7 @@ app = FastAPI(
 def analyze_telemetry(capsule_id: str, time_window_days: int = 30) -> CapsuleMetrics:
     """Analyze telemetry data for a capsule."""
     # Get telemetry from time window
-    cutoff = datetime.utcnow() - timedelta(days=time_window_days)
+    cutoff = datetime.now(timezone.utc) - timedelta(days=time_window_days)
     recent_telemetry = [
         t for t in telemetry_store.get(capsule_id, [])
         if t.timestamp >= cutoff

@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import json
-from datetime import datetime
+from datetime import datetime, timezone
 from hashlib import sha256
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
@@ -275,7 +275,7 @@ async def review_submission(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Submission not found")
 
     decision_status = "approved" if request.decision == "approve" else "rejected"
-    now = datetime.utcnow()
+    now = datetime.now(timezone.utc)
     update_values = {
         "status": decision_status,
         "reviewer": request.reviewer,
@@ -343,7 +343,7 @@ async def install_capsule(
         .limit(1)
     )
     existing = (await session.execute(existing_stmt)).mappings().first()
-    now = datetime.utcnow()
+    now = datetime.now(timezone.utc)
 
     if existing and existing["status"] == "installed":
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Capsule already installed")
@@ -429,7 +429,7 @@ async def rollback_installation(
             status="rolled_back",
             notes=merged_notes,
             installed_by=payload.performed_by,
-            installed_at=datetime.utcnow(),
+            installed_at=datetime.now(timezone.utc),
         )
     )
     await session.commit()

@@ -10,6 +10,7 @@ import logging
 from typing import Dict, Optional
 from datetime import datetime, timedelta
 from dataclasses import dataclass, asdict
+from datetime import timezone
 from decimal import Decimal
 from clickhouse_driver import Client
 import stripe
@@ -35,7 +36,7 @@ class UsageRecord:
     
     def __post_init__(self):
         if self.timestamp is None:
-            self.timestamp = datetime.utcnow()
+            self.timestamp = datetime.now(timezone.utc)
 
 
 class UsageTracker:

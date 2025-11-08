@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import json
 from dataclasses import asdict, dataclass, field
-from datetime import datetime, timezone, timedelta
+from datetime import datetime, timezone, timedelta, UTC
 from typing import Any, Dict, Optional
 from uuid import uuid4
 
@@ -161,7 +161,7 @@ def run_slm_completion(request: SlmRequest) -> Dict[str, Any]:
             "model": model,
             "prompt_summary": prompt[:200],
             "completion": f"Model {model} acknowledged prompt length {len(prompt)} characters.",
-            "generated_at": datetime.utcnow().isoformat() + "Z",
+            "generated_at": datetime.now(UTC).isoformat() + "Z",
         }
 
     result = ray.get(

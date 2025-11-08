@@ -8,7 +8,7 @@ from __future__ import annotations
 import asyncio
 import os
 from collections.abc import Mapping, Sequence
-from datetime import datetime
+from datetime import datetime, UTC
 from typing import Any
 
 import httpx
@@ -335,7 +335,7 @@ async def spawn_agent(agent_type: str, requirements: dict[str, Any]) -> dict[str
     activity.logger.info(f"Spawning {agent_type} agent")
 
     # Generate unique agent ID (REAL)
-    agent_id = f"agent_{agent_type}_{datetime.utcnow().timestamp()}"
+    agent_id = f"agent_{agent_type}_{datetime.now(UTC).timestamp()}"
 
     # In production, this would:
     # 1. Allocate compute resources
@@ -348,7 +348,7 @@ async def spawn_agent(agent_type: str, requirements: dict[str, Any]) -> dict[str
         "agent_type": agent_type,
         "status": "ready",
         "capabilities": requirements,
-        "spawned_at": datetime.utcnow().isoformat(),
+        "spawned_at": datetime.now(UTC).isoformat(),
     }
 
 
@@ -374,7 +374,7 @@ async def execute_task(
     agent_id = agent_instance["agent_id"]
     activity.logger.info(f"Agent {agent_id} executing task {task['id']}")
 
-    start_time = datetime.utcnow()
+    start_time = datetime.now(UTC)
 
     # Step 1: Policy check (call to policy engine)
     async with httpx.AsyncClient(timeout=httpx.Timeout(10.0, connect=5.0), limits=httpx.Limits(max_connections=200, max_keepalive_connections=50)) as client:
@@ -427,7 +427,7 @@ async def execute_task(
             llm_response.raise_for_status()
             llm_result = llm_response.json()
 
-            duration_ms = int((datetime.utcnow() - start_time).total_seconds() * 1000)
+            duration_ms = int((datetime.now(UTC) - start_time).total_seconds() * 1000)
 
             activity.logger.info(f"Task completed in {duration_ms}ms")
 
@@ -445,7 +445,7 @@ async def execute_task(
             return {
                 "status": "failed",
                 "error": str(e),
-                "duration_ms": int((datetime.utcnow() - start_time).total_seconds() * 1000),
+                "duration_ms": int((datetime.now(UTC) - start_time).total_seconds() * 1000),
             }
 
 
@@ -487,7 +487,7 @@ async def review_output(
         "blocked_tasks": blocked_tasks,
         "total_tasks": len(task_results),
         "auto_approved": auto_approved,
-        "review_time": datetime.utcnow().isoformat(),
+        "review_time": datetime.now(UTC).isoformat(),
     }
 
 
@@ -517,5 +517,5 @@ async def aggregate_results(
         "total_tokens_used": total_tokens,
         "quality_score": review_result["score"],
         "completion_status": review_result["status"],
-        "aggregated_at": datetime.utcnow().isoformat(),
+        "aggregated_at": datetime.now(UTC).isoformat(),
     }

@@ -11,7 +11,7 @@ Natural language interface for autonomous project creation:
 from typing import Dict, List, Any, Optional, AsyncIterator
 import asyncio
 import logging
-from datetime import datetime
+from datetime import datetime, timezone
 from dataclasses import dataclass
 import json
 
@@ -75,7 +75,7 @@ class KAMACHIQConsole:
         self.conversations[session_id].append(ConversationTurn(
             role="user",
             content=message,
-            timestamp=datetime.utcnow().isoformat(),
+            timestamp=datetime.now(timezone.utc).isoformat(),
             metadata={}
         ))
         
@@ -152,7 +152,7 @@ class KAMACHIQConsole:
         self.conversations[session_id].append(ConversationTurn(
             role="assistant",
             content="Project specification created",
-            timestamp=datetime.utcnow().isoformat(),
+            timestamp=datetime.now(timezone.utc).isoformat(),
             metadata={"spec": spec.__dict__}
         ))
     
@@ -281,7 +281,7 @@ class KAMACHIQConsole:
             "status": "running",
             "progress": 0,
             "spec": spec_data,
-            "started_at": datetime.utcnow().isoformat()
+            "started_at": datetime.now(timezone.utc).isoformat()
         }
         
         yield {

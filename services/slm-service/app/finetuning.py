@@ -7,7 +7,7 @@ Supports fine-tuning OpenAI, Anthropic, and open-source models.
 import logging
 import json
 from typing import List, Dict, Any, Optional
-from datetime import datetime
+from datetime import datetime, UTC
 from dataclasses import dataclass
 from enum import Enum
 
@@ -178,7 +178,7 @@ class FineTuningPipeline:
                 validation_file=None,
                 hyperparameters=hyperparameters,
                 status=FineTuningStatus.CREATED,
-                created_at=datetime.utcnow()
+                created_at=datetime.now(UTC)
             )
         
         elif self.provider == FineTuningProvider.TOGETHER:
@@ -198,7 +198,7 @@ class FineTuningPipeline:
                 validation_file=validation_file,
                 hyperparameters=hyperparameters,
                 status=FineTuningStatus.CREATED,
-                created_at=datetime.utcnow()
+                created_at=datetime.now(UTC)
             )
         
         raise NotImplementedError(f"Provider {self.provider} not implemented")

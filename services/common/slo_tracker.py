@@ -7,7 +7,7 @@ Tracks availability, latency, and error rate SLOs.
 import logging
 from typing import Dict, List, Optional
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import datetime, timezone
 from enum import Enum
 
 logger = logging.getLogger(__name__)
@@ -267,7 +267,7 @@ class SLOTracker:
             "status": status.value,
             "error_budget_consumed": error_budget_consumed * 100,  # Percentage
             "window": slo.window,
-            "timestamp": datetime.utcnow().isoformat()
+            "timestamp": datetime.now(timezone.utc).isoformat()
         }
     
     def check_all_slos(self) -> List[Dict]:

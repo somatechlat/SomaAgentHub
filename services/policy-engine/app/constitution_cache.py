@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Dict, Tuple
 
 from .redis_client import get_constitution_hash as _redis_get_hash
@@ -16,7 +16,8 @@ async def get_cached_hash(tenant: str) -> str:
     Otherwise fetch the hash from Redis via ``redis_client.get_constitution_hash`` and
     store it in the in‑memory cache.
     """
-    now = datetime.utcnow()
+    # Use timezone-aware UTC for consistency across services
+    now = datetime.now(timezone.utc)
     entry = _cache.get(tenant)
     if entry:
         value, expiry = entry

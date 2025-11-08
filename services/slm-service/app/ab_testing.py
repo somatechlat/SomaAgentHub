@@ -7,7 +7,7 @@ Compare different models, prompts, and configurations in production.
 import logging
 import random
 from typing import Dict, List, Any, Optional
-from datetime import datetime
+from datetime import datetime, UTC
 from dataclasses import dataclass
 from enum import Enum
 
@@ -100,12 +100,12 @@ class ABTestingFramework:
             raise ValueError(f"Traffic allocation must sum to 100%, got {total_allocation}%")
         
         experiment = ABExperiment(
-            id=f"exp_{datetime.utcnow().timestamp()}",
+            id=f"exp_{datetime.now(UTC).timestamp()}",
             name=name,
             description=description,
             variants=variants,
             status=ExperimentStatus.DRAFT,
-            created_at=datetime.utcnow(),
+            created_at=datetime.now(UTC),
             target_sample_size=target_sample_size
         )
         
@@ -125,7 +125,7 @@ class ABTestingFramework:
             raise ValueError(f"Experiment not found: {experiment_id}")
         
         experiment.status = ExperimentStatus.RUNNING
-        experiment.started_at = datetime.utcnow()
+        experiment.started_at = datetime.now(UTC)
         
         logger.info(f"Started experiment: {experiment.name}")
     
@@ -232,7 +232,7 @@ class ABTestingFramework:
             cost,
             rating or 0,
             1 if success else 0,
-            datetime.utcnow().isoformat()
+            datetime.now(UTC).isoformat()
         )
         
         self.client.execute(query, [values])
@@ -251,7 +251,7 @@ class ABTestingFramework:
         
         if all_complete:
             experiment.status = ExperimentStatus.COMPLETED
-            experiment.completed_at = datetime.utcnow()
+            experiment.completed_at = datetime.now(UTC)
             logger.info(f"Experiment completed: {experiment.name}")
     
     def analyze_results(self, experiment_id: str) -> Dict[str, Any]:

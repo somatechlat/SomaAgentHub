@@ -8,7 +8,7 @@ Implements the three-state circuit breaker pattern.
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import datetime, UTC
 from enum import Enum
 from typing import Any, Callable, Dict, List, Optional
 
@@ -161,7 +161,7 @@ class CircuitBreaker:
         self.metrics.total_successes += 1
         self.metrics.consecutive_successes += 1
         self.metrics.consecutive_failures = 0
-        self.metrics.last_success_time = datetime.utcnow()
+        self.metrics.last_success_time = datetime.now(UTC)
         
         activity.logger.debug(
             f"[CircuitBreaker:{self.name}] Success "
@@ -184,7 +184,7 @@ class CircuitBreaker:
         self.metrics.total_failures += 1
         self.metrics.consecutive_failures += 1
         self.metrics.consecutive_successes = 0
-        self.metrics.last_failure_time = datetime.utcnow()
+        self.metrics.last_failure_time = datetime.now(UTC)
         
         activity.logger.warning(
             f"[CircuitBreaker:{self.name}] Failure: {error} "
@@ -199,7 +199,7 @@ class CircuitBreaker:
                 f"(failure in HALF_OPEN state)",
             )
             self._transition_to(CircuitState.OPEN)
-            self.opened_at = datetime.utcnow()
+            self.opened_at = datetime.now(UTC)
             
         elif self.state == CircuitState.CLOSED:
             # Too many failures → open circuit
@@ -209,14 +209,14 @@ class CircuitBreaker:
                     f"({self.metrics.consecutive_failures} consecutive failures)",
                 )
                 self._transition_to(CircuitState.OPEN)
-                self.opened_at = datetime.utcnow()
+                self.opened_at = datetime.now(UTC)
     
     def _should_attempt_reset(self) -> bool:
         """Check if enough time passed to try half-open."""
         if self.opened_at is None:
             return False
         
-        elapsed = (datetime.utcnow() - self.opened_at).total_seconds()
+        elapsed = (datetime.now(UTC) - self.opened_at).total_seconds()
         return elapsed >= self.config.timeout_seconds
     
     def _transition_to(self, new_state: CircuitState) -> None:
@@ -227,7 +227,7 @@ class CircuitBreaker:
         self.metrics.state_transitions.append({
             "from": old_state.value,
             "to": new_state.value,
-            "timestamp": datetime.utcnow().isoformat(),
+            "timestamp": datetime.now(UTC).isoformat(),
             "total_calls": self.metrics.total_calls,
             "consecutive_failures": self.metrics.consecutive_failures,
         })

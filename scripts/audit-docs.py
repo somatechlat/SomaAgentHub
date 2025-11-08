@@ -8,7 +8,7 @@ import os
 import sys
 import json
 import requests
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Dict, List, Any
 import markdown
@@ -21,7 +21,7 @@ class DocumentationAuditor:
     def __init__(self, docs_path: str = "docs"):
         self.docs_path = Path(docs_path)
         self.report = {
-            "audit_date": datetime.utcnow().isoformat(),
+            "audit_date": datetime.now(timezone.utc).isoformat(),
             "total_files": 0,
             "stale_files": [],
             "broken_links": [],

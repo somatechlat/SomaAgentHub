@@ -56,7 +56,7 @@ class PlannerService:
 
         # 5️⃣ Persist the plan (store the full payload for auditability)
         repo = PlanRepository()
-        await repo.create_plan(plan.dict())
+        await repo.create_plan(plan.model_dump())
         return plan
 
     async def refine_plan(
@@ -74,7 +74,7 @@ class PlannerService:
         """
 
         # Merge updates into the existing plan dict
-        merged = plan.dict()
+        merged = plan.model_dump()
         merged.update(updates)
         prompt = json.dumps(merged)
         raw_response = await self.client.complete(prompt)
@@ -86,5 +86,5 @@ class PlannerService:
         # Update persisted record
         repo = PlanRepository()
         await repo.delete_plan(plan.plan_id)  # simple replace strategy
-        await repo.create_plan(new_plan.dict())
+        await repo.create_plan(new_plan.model_dump())
         return new_plan

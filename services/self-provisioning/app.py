@@ -9,7 +9,7 @@ Uses Terraform for IaC, Kubernetes for orchestration, and automated configuratio
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel, Field
 from typing import Dict, Any, List, Optional
-from datetime import datetime
+from datetime import datetime, timezone
 import logging
 import subprocess
 import json
@@ -388,7 +388,7 @@ async def provision_instance(request: ProvisionRequest):
         "name": request.instance_name,
         "organization_id": request.organization_id,
         "status": "provisioning",
-        "created_at": datetime.utcnow(),
+        "created_at": datetime.now(timezone.utc),
         "tier": request.tier,
         "region": request.region
     }

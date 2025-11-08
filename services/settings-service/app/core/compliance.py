@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import re
 from datetime import datetime
+from datetime import timezone
 from typing import List
 
 from ..api.schemas import ComplianceIssue, ComplianceReport, CapsuleSubmissionRequest
@@ -51,5 +52,5 @@ def run_compliance_lint(request: CapsuleSubmissionRequest) -> ComplianceReport:
 def attestation_is_fresh(issued_at: datetime, tolerance_hours: int = 48) -> bool:
     """Check attestation freshness window."""
 
-    delta = datetime.utcnow() - issued_at
+    delta = datetime.now(timezone.utc) - issued_at
     return delta.total_seconds() <= tolerance_hours * 3600

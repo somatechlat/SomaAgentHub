@@ -9,7 +9,7 @@ import os
 import hvac
 import logging
 from typing import Dict, Any, Optional
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from dataclasses import dataclass
 
 logger = logging.getLogger(__name__)
@@ -203,7 +203,7 @@ class VaultClient:
                     'password': response['data']['password']
                 },
                 version=1,
-                created_time=datetime.utcnow(),
+                created_time=datetime.now(timezone.utc),
                 lease_duration=response['lease_duration'],
                 lease_id=response['lease_id']
             )

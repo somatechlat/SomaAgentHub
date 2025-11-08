@@ -11,6 +11,7 @@ from fastapi import FastAPI, HTTPException
 from fastapi.responses import Response
 from prometheus_client import CONTENT_TYPE_LATEST, generate_latest
 from pydantic import BaseModel
+from contextlib import asynccontextmanager
 
 from services.common.observability import setup_observability
 from services.common.spiffe_auth import init_spiffe
@@ -25,10 +26,20 @@ logger = logging.getLogger(__name__)
 
 settings = get_sah_settings()
 
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Startup: nothing required currently
+    yield
+    # Shutdown: ensure Redis client closes cleanly
+    await close_redis_client()
+
+
 app = FastAPI(
     title="SomaAgentHub",
     version=settings.service_version,
     description="Public entrypoint for UI, CLI, and integrations.",
+    lifespan=lifespan,
 )
 
 app.add_middleware(ContextMiddleware)
@@ -54,9 +65,7 @@ else:
     logger.info("SPIFFE identity not initialized; falling back to non-mTLS workload identity")
 
 
-@app.on_event("shutdown")
-async def on_shutdown() -> None:
-    await close_redis_client()
+ 
 
 
 async def _check_kafka() -> bool:

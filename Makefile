@@ -250,11 +250,11 @@ test-all:
 .PHONY: test-pricing test-gateway
 test-pricing:
 	@echo "Running pricing-service tests (isolated)";
-	$(PYTEST) -q services/pricing-service/tests
+	OTEL_SDK_DISABLED=true $(PYTEST) -q services/pricing-service/tests
 
 test-gateway:
 	@echo "Running gateway wizard gating test (isolated)";
-	$(PYTEST) -q services/gateway-api/tests/test_wizard_budget_gating.py::test_wizard_budget_block
+	OTEL_SDK_DISABLED=true $(PYTEST) -q services/gateway-api/tests/test_wizard_budget_gating.py::test_wizard_budget_block
 
 .PHONY: dev-env
 dev-env:

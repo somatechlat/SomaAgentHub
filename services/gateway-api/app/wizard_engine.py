@@ -5,7 +5,7 @@ from __future__ import annotations
 import os
 import re
 import uuid
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, UTC
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
@@ -35,7 +35,7 @@ class WizardSession(BaseModel):
     user_id: str
     current_step: int = 1
     answers: Dict[str, Any] = Field(default_factory=dict)
-    started_at: datetime = Field(default_factory=datetime.utcnow)
+    started_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
     completed: bool = False
     metadata: Dict[str, Any] = Field(default_factory=dict)
 
@@ -230,7 +230,7 @@ class WizardEngine:
                 "wizard_title": schema.get("title"),
                 "answers": session.answers,
                 "started_at": session.started_at.isoformat(),
-                "completed_at": datetime.utcnow().isoformat()
+                "completed_at": datetime.now(UTC).isoformat()
             },
             "execution_plan": execution_plan,
             "next_steps": {
@@ -560,7 +560,7 @@ class WizardEngine:
             "workflow_id": data.get("workflow_id"),
             "orchestration_id": data.get("orchestration_id"),
             "task_queue": data.get("task_queue"),
-            "estimated_completion": (datetime.utcnow() + timedelta(hours=4)).isoformat(),
+            "estimated_completion": (datetime.now(UTC) + timedelta(hours=4)).isoformat(),
         }
 
 

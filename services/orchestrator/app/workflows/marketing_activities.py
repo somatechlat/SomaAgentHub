@@ -14,7 +14,7 @@ from __future__ import annotations
 
 import asyncio
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import datetime, UTC
 from typing import Any, Dict, List, Optional
 
 import httpx
@@ -404,7 +404,7 @@ async def research_phase_activity(input: Dict[str, Any]) -> Dict[str, Any]:
             findings.append({
                 "source": f"task_{i}",
                 "data": result,
-                "timestamp": datetime.utcnow().isoformat(),
+                "timestamp": datetime.now(UTC).isoformat(),
             })
     
     activity.logger.info(
@@ -520,7 +520,7 @@ Format as JSON with keys: headline, tagline, email_subject, email_body, social_p
         metadata={
             "campaign_name": content_input.campaign_name,
             "channels": content_input.channels,
-            "generated_at": datetime.utcnow().isoformat(),
+            "generated_at": datetime.now(UTC).isoformat(),
         },
         namespace="campaigns",
     )
@@ -818,10 +818,10 @@ async def distribute_campaign_activity(input: Dict[str, Any]) -> Dict[str, Any]:
                 "create_or_update_file",
                 {
                     "repo": "company-blog",
-                    "path": f"_posts/{datetime.utcnow().strftime('%Y-%m-%d')}-{dist_input.campaign_name.lower().replace(' ', '-')}.md",
+                    "path": f"_posts/{datetime.now(UTC).strftime('%Y-%m-%d')}-{dist_input.campaign_name.lower().replace(' ', '-')}.md",
                     "content": f"""---
 title: "{dist_input.campaign_name}"
-date: {datetime.utcnow().isoformat()}
+date: {datetime.now(UTC).isoformat()}
 ---
 
 {dist_input.content.get('content_pieces', {}).get('blog_outline', '')}

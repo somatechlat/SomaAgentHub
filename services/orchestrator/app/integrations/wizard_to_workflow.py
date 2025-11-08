@@ -4,7 +4,7 @@ Integration module: Gateway API → Temporal Orchestrator.
 Connects wizard approval to MarketingCampaignWorkflow execution.
 """
 
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, UTC
 from typing import Any, Dict
 
 from temporalio import client as temporal_client
@@ -80,7 +80,7 @@ async def start_marketing_campaign_workflow(
     )
     
     # Generate workflow ID
-    campaign_id = f"campaign-{campaign_name.lower().replace(' ', '-')}-{int(datetime.utcnow().timestamp())}"
+    campaign_id = f"campaign-{campaign_name.lower().replace(' ', '-')}-{int(datetime.now(UTC).timestamp())}"
     workflow_id = campaign_id
     
     # Start workflow
@@ -98,7 +98,7 @@ async def start_marketing_campaign_workflow(
         "run_id": handle.run_id,
         "campaign_id": campaign_id,
         "task_queue": task_queue,
-        "started_at": datetime.utcnow().isoformat(),
+        "started_at": datetime.now(UTC).isoformat(),
     }
 
 
@@ -149,7 +149,7 @@ async def send_campaign_approval(
     
     return {
         "status": "approved",
-        "signal_sent_at": datetime.utcnow().isoformat(),
+        "signal_sent_at": datetime.now(UTC).isoformat(),
     }
 
 
@@ -179,7 +179,7 @@ async def update_campaign_content(
     return {
         "status": "updated",
         "content_id": content_id,
-        "updated_at": datetime.utcnow().isoformat(),
+        "updated_at": datetime.now(UTC).isoformat(),
     }
 
 

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import json
-from datetime import datetime
+from datetime import datetime, UTC
 from typing import Any, Dict
 
 from fastapi import APIRouter, Depends, HTTPException, Request, status
@@ -74,7 +74,7 @@ async def sign_persona_manifest(
         signature=bundle.signature,
         public_key=bundle.public_key,
         digest=digest,
-        signed_at=datetime.utcnow(),
+        signed_at=datetime.now(UTC),
     )
 
 

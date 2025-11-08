@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any, Dict, List
 
 from fastapi import APIRouter, HTTPException, status
@@ -78,7 +78,7 @@ def create_model_profile(tenant_id: str, profile: ModelProfile) -> ModelProfile:
     if profile.name in MODEL_PROFILES:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Model profile already exists")
     MODEL_PROFILES[profile.name] = profile
-    AUDIT_LOGS.append({"action": "create_profile", "tenant": tenant_id, "profile": profile.name, "timestamp": datetime.utcnow()})
+    AUDIT_LOGS.append({"action": "create_profile", "tenant": tenant_id, "profile": profile.name, "timestamp": datetime.now(timezone.utc)})
     return profile
 
 
@@ -118,5 +118,5 @@ def delete_model_profile(tenant_id: str, profile_name: str) -> None:
     if profile_name not in MODEL_PROFILES:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Model profile not found")
     del MODEL_PROFILES[profile_name]
-    AUDIT_LOGS.append({"action": "delete_profile", "tenant": tenant_id, "profile": profile_name, "timestamp": datetime.utcnow()})
+    AUDIT_LOGS.append({"action": "delete_profile", "tenant": tenant_id, "profile": profile_name, "timestamp": datetime.now(timezone.utc)})
     # No content returned (204)

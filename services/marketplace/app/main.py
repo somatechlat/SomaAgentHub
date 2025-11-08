@@ -6,7 +6,7 @@ Provides CRUD endpoints for capsule marketplace with ratings and download tracki
 from __future__ import annotations
 
 from typing import List, Optional
-from datetime import datetime
+from datetime import datetime, timezone
 
 from fastapi import FastAPI, HTTPException, Depends, Query
 from pydantic import BaseModel, Field
@@ -336,7 +336,7 @@ async def update_capsule(
     if request.readme is not None:
         capsule.readme = request.readme
     
-    capsule.updated_at = datetime.utcnow()
+    capsule.updated_at = datetime.now(timezone.utc)
     db.commit()
     db.refresh(capsule)
     

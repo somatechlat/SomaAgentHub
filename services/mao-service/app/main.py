@@ -8,7 +8,7 @@ from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 from typing import List, Dict, Any, Optional
-from datetime import datetime
+from datetime import datetime, timezone
 import asyncio
 import uuid
 import os
@@ -139,7 +139,7 @@ async def health_check():
         return {
             "status": "healthy",
             "temporal": "connected",
-            "timestamp": datetime.utcnow().isoformat(),
+            "timestamp": datetime.now(timezone.utc).isoformat(),
         }
     except Exception as e:
         raise HTTPException(
@@ -205,7 +205,7 @@ async def create_project(request: ProjectRequest):
             workflow_id=workflow_id,
             run_id=handle.first_execution_run_id,
             status="running",
-            created_at=datetime.utcnow(),
+            created_at=datetime.now(timezone.utc),
         )
         
     except Exception as e:
@@ -267,7 +267,7 @@ async def cancel_project(project_id: str):
         return {
             "project_id": project_id,
             "status": "cancellation_requested",
-            "timestamp": datetime.utcnow().isoformat(),
+            "timestamp": datetime.now(timezone.utc).isoformat(),
         }
         
     except Exception as e:
@@ -299,7 +299,7 @@ async def get_project_result(project_id: str):
         return {
             "project_id": project_id,
             "result": result,
-            "timestamp": datetime.utcnow().isoformat(),
+            "timestamp": datetime.now(timezone.utc).isoformat(),
         }
         
     except asyncio.TimeoutError:
@@ -387,7 +387,7 @@ async def project_stream(websocket: WebSocket, project_id: str):
                     "type": "status_update",
                     "project_id": project_id,
                     "data": status,
-                    "timestamp": datetime.utcnow().isoformat(),
+                    "timestamp": datetime.now(timezone.utc).isoformat(),
                 })
                 
                 # Check if workflow is complete
@@ -401,7 +401,7 @@ async def project_stream(websocket: WebSocket, project_id: str):
                 await websocket.send_json({
                     "type": "error",
                     "error": str(e),
-                    "timestamp": datetime.utcnow().isoformat(),
+                    "timestamp": datetime.now(timezone.utc).isoformat(),
                 })
                 break
         

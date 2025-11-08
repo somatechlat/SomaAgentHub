@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from collections import defaultdict, deque
 from dataclasses import dataclass, field
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from statistics import fmean
 from typing import Any, Deque, Dict, List, Optional
 
@@ -131,7 +131,7 @@ class AnalyticsStore:
         error: str | None = None,
     ) -> PersonaRegression:
         regression = self.register_regression(persona_id, tenant_id)
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc)
         regression.status = status
         if status == "queued":
             regression.queued_at = now
@@ -166,7 +166,7 @@ class AnalyticsStore:
         self.notifications.append({
             "tenant_id": tenant_id,
             "message": message,
-            "timestamp": datetime.utcnow().isoformat(),
+            "timestamp": datetime.now(timezone.utc).isoformat(),
         })
 
     def record_kamachiq_run(self, run: KamachiqRun) -> None:
@@ -240,7 +240,7 @@ class AnalyticsStore:
 
     def pending_regressions(self, now: Optional[datetime] = None) -> List[PersonaRegression]:
         settings = get_settings()
-        now = now or datetime.utcnow()
+        now = now or datetime.now(timezone.utc)
         due: List[PersonaRegression] = []
         for regression in self.regressions.values():
             if regression.status in {"queued", "running"}:

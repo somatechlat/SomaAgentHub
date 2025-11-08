@@ -11,7 +11,7 @@ This output file can then be used as the input for the Multi-Agent Orchestrator.
 import json
 import logging
 import os
-from datetime import datetime
+from datetime import datetime, timezone
 
 logging.basicConfig(level=logging.INFO, format="%(message)s")
 
@@ -48,7 +48,7 @@ def generate_project_plan(requirements):
     
     plan = {
         "projectName": "Ecuadorian Accounting Software for SMBs",
-        "requestDate": datetime.utcnow().isoformat(),
+        "requestDate": datetime.now(timezone.utc).isoformat(),
         "approved": False,
         "modules": [
             # Infrastructure is always needed for cloud projects

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 from fastapi.responses import Response
@@ -30,27 +31,24 @@ def create_app() -> FastAPI:
     else:
         logger.info("SPIFFE identity not initialized; continuing without workload SVID")
 
-    @app.on_event("startup")
-    async def _startup_temporal_client() -> None:
-        # Initialise database tables before any request handling.
+    @asynccontextmanager
+    async def lifespan(_: FastAPI):
+        # Startup phase
         await init_db()
         if settings.temporal_enabled:
             app.state.temporal_client = await temporal_client.Client.connect(
                 settings.temporal_target_host,
                 namespace=settings.temporal_namespace,
             )
-
-    @app.on_event("shutdown")
-    async def _shutdown_temporal_client() -> None:
+        yield
+        # Shutdown phase
         client = getattr(app.state, "temporal_client", None)
         if client is not None:
             close_fn = getattr(client, "close", None)
             if close_fn is not None:
-                # Some Temporal client versions provide an async close method
                 try:
                     await close_fn()
                 except TypeError:
-                    # close_fn may be a sync callable; call it directly
                     close_fn()
 
     @app.get("/health", tags=["system"])
@@ -73,6 +71,7 @@ def create_app() -> FastAPI:
         return {"message": "SomaGent Orchestrator Service"}
 
     app.include_router(orchestrator_router)
+    app.router.lifespan_context = lifespan
 
     return app
 

@@ -4,7 +4,7 @@ Prompt template engine with Jinja2 templates and versioning.
 
 import logging
 from typing import Dict, List, Any, Optional
-from datetime import datetime
+from datetime import datetime, UTC
 from dataclasses import dataclass
 from jinja2 import Environment, Template, TemplateError
 
@@ -26,7 +26,7 @@ class PromptTemplate:
     
     def __post_init__(self):
         if self.created_at is None:
-            self.created_at = datetime.utcnow()
+            self.created_at = datetime.now(UTC)
 
 
 # System prompts

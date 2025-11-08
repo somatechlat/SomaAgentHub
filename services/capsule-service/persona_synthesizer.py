@@ -13,7 +13,7 @@ import json
 from typing import Dict, List, Any, Optional
 from dataclasses import dataclass, asdict
 import logging
-from datetime import datetime
+from datetime import datetime, UTC
 import re
 
 logger = logging.getLogger(__name__)
@@ -70,7 +70,7 @@ class PersonaSynthesizer:
         self.conversations.append({
             "role": role,
             "messages": messages,
-            "timestamp": datetime.utcnow().isoformat(),
+            "timestamp": datetime.now(UTC).isoformat(),
         })
     
     def analyze_communication_style(self) -> List[PersonaTrait]:
@@ -374,7 +374,7 @@ class PersonaSynthesizer:
         package = PersonaPackage(
             name=name,
             version=version,
-            created_at=datetime.utcnow().isoformat(),
+            created_at=datetime.now(UTC).isoformat(),
             traits=all_traits,
             vocabulary=vocabulary,
             response_patterns=response_patterns,

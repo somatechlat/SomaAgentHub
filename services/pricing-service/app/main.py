@@ -6,6 +6,7 @@ import uuid
 import httpx
 from prometheus_fastapi_instrumentator import Instrumentator
 from prometheus_client import Counter
+from contextlib import asynccontextmanager
 
 from .config import get_settings
 from .models import LivePricingResponse, LivePricingSummary, PricingOffer
@@ -14,7 +15,28 @@ from .bootstrap import ensure_tables
 from .clickhouse import get_client
 from .refresh import start_refresh_loop, stop_refresh_loop
 
-app = FastAPI(title="Pricing Service", version="0.1.0")
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    try:
+        ensure_tables()
+    except Exception as e:
+        # Allow app to start even if ClickHouse isn't ready yet
+        print(f"[pricing-service] table ensure failed: {e}")
+    try:
+        Instrumentator().instrument(app).expose(app)
+    except Exception as e:
+        print(f"[pricing-service] metrics init failed: {e}")
+    try:
+        start_refresh_loop()
+    except Exception as e:
+        print(f"[pricing-service] refresh loop failed to start: {e}")
+    yield
+    try:
+        stop_refresh_loop()
+    except Exception:
+        pass
+
+app = FastAPI(title="Pricing Service", version="0.1.0", lifespan=lifespan)
 
 REQS = Counter("pricing_requests_total", "Requests to pricing endpoints", ["endpoint"])
 BUDGET_DECISIONS = Counter(
@@ -117,29 +139,7 @@ def get_live_pricing(
     return LivePricingResponse(offers=page_items, summary=summary, paging=paging, meta=meta)
 
 
-@app.on_event("startup")
-def _startup():
-    try:
-        ensure_tables()
-    except Exception as e:
-        # We don't crash on startup to allow container health checks; endpoints may 503 later
-        print(f"[pricing-service] table ensure failed: {e}")
-    try:
-        Instrumentator().instrument(app).expose(app)
-    except Exception as e:
-        print(f"[pricing-service] metrics init failed: {e}")
-    try:
-        start_refresh_loop()
-    except Exception as e:
-        print(f"[pricing-service] refresh loop failed to start: {e}")
-
-
-@app.on_event("shutdown")
-def _shutdown():
-    try:
-        stop_refresh_loop()
-    except Exception:
-        pass
+ 
 
 
 @app.post("/v1/pricing/snapshot")
@@ -270,7 +270,7 @@ def get_snapshot(snapshot_id: str):
         "median_price_hour": rows[4],
         "p95_price_hour": rows[5],
         "hash": rows[6],
-        "offers": [o.dict() for o in offers],
+        "offers": [o.model_dump() for o in offers],
     }
 
 
@@ -300,7 +300,7 @@ def evaluate_budget(
         "within_budget": within,
         "estimated_cost": estimated_cost,
         "currency": best.currency,
-        "chosen_offer": best.dict(),
+        "chosen_offer": best.model_dump(),
         "blocking_reason": None if within else "Estimated cost exceeds budget cap",
     }
 
@@ -367,7 +367,7 @@ def evaluate_budget_with_policy(
         "within_budget": within,
         "estimated_cost": estimated_cost,
         "currency": best.currency,
-        "chosen_offer": best.dict(),
+        "chosen_offer": best.model_dump(),
         "policy_decision": decision,
         "blocking_reason": None if within else "Estimated cost exceeds budget cap",
     }
