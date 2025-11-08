@@ -46,6 +46,10 @@ IMG_ID := $(REGISTRY)/identity-service:$(TAG)
 # Default target
 .DEFAULT_GOAL := help
 
+VENV ?= .venv
+PY ?= $(VENV)/bin/python
+PYTEST ?= $(PY) -m pytest
+
 help:
 	@echo "Available targets:"
 	@echo "  make images            Build gateway/orch/identity images"
@@ -64,6 +68,8 @@ help:
 	@echo "  make pf-prom           Port-forward Prometheus 9090"
 	@echo "  make test-int          Run gateway integration test"
 	@echo "  make test-e2e          Run gateway→orchestrator e2e test"
+	@echo "  make test-pricing       Run pricing service unit tests"
+	@echo "  make test-gateway       Run gateway wizard gating test"
 	@echo "  make k8s-smoke         Run Kubernetes smoke tests"
 	@echo "  make logs-orch         Tail orchestrator logs"
 	@echo "  make airflow-up        Build & launch local Airflow stack"
@@ -240,6 +246,15 @@ test-all:
 			pytest -q $$svc/tests; \
 		fi; \
 	 done
+
+.PHONY: test-pricing test-gateway
+test-pricing:
+	@echo "Running pricing-service tests (isolated)";
+	$(PYTEST) -q services/pricing-service/tests
+
+test-gateway:
+	@echo "Running gateway wizard gating test (isolated)";
+	$(PYTEST) -q services/gateway-api/tests/test_wizard_budget_gating.py::test_wizard_budget_block
 
 .PHONY: dev-env
 dev-env:

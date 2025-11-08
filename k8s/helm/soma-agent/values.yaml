@@ -210,6 +210,8 @@ services:
         value: "http://opa:8181"
       - name: PRICING_CACHE_TTL_SECONDS
         value: "300"
+      - name: GPUBROKER_URL
+        value: "" # Set to http://gpubroker:8080 when available
 
 # Ingress configuration (currently disabled)
 ingress:

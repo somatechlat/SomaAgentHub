@@ -519,6 +519,34 @@ class WizardEngine:
             },
         }
 
+        # Optional cost gating: attempt precheck if cost params present in answers
+        budget_cap = session.answers.get("budget_cap") or session.metadata.get("budget_cap")
+        hours_planned = session.answers.get("hours") or session.answers.get("hours_planned")
+        gpu_model = session.answers.get("gpu_model")
+        if budget_cap and hours_planned:
+            pricing_service = os.getenv("PRICING_SERVICE_URL", "http://pricing-service:10026")
+            precheck_url = f"{pricing_service}/v1/pricing/evaluate-budget/with-policy"
+            try:
+                pre_params = {
+                    "budget_cap": budget_cap,
+                    "hours_planned": hours_planned,
+                    "quantity": 1,
+                }
+                if gpu_model:
+                    pre_params["gpu_model"] = gpu_model
+                pc_resp = requests.post(precheck_url, params=pre_params, timeout=10)
+                if pc_resp.status_code == 200:
+                    pc_data = pc_resp.json()
+                    if not pc_data.get("within_budget", True):
+                        return {
+                            "status": "blocked",
+                            "reason": "budget_exceeded",
+                            "details": pc_data,
+                        }
+                # Continue on non-200 or missing fields (soft-fail)
+            except Exception:
+                pass
+
         resp = requests.post(url, json=payload, timeout=15)
         if resp.status_code >= 400:
             raise RuntimeError(f"Orchestrator error: {resp.text}")

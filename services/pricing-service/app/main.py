@@ -12,11 +12,11 @@ from .models import LivePricingResponse, LivePricingSummary, PricingOffer
 from .aggregator import fetch_live_offers
 from .bootstrap import ensure_tables
 from .clickhouse import get_client
+from .refresh import start_refresh_loop, stop_refresh_loop
 
 app = FastAPI(title="Pricing Service", version="0.1.0")
 
 REQS = Counter("pricing_requests_total", "Requests to pricing endpoints", ["endpoint"])
-CACHE_HITS = Counter("pricing_cache_hits_total", "Cache hits in live offers fetch")
 BUDGET_DECISIONS = Counter(
     "pricing_budget_decisions_total",
     "Budget evaluation decisions",
@@ -128,6 +128,18 @@ def _startup():
         Instrumentator().instrument(app).expose(app)
     except Exception as e:
         print(f"[pricing-service] metrics init failed: {e}")
+    try:
+        start_refresh_loop()
+    except Exception as e:
+        print(f"[pricing-service] refresh loop failed to start: {e}")
+
+
+@app.on_event("shutdown")
+def _shutdown():
+    try:
+        stop_refresh_loop()
+    except Exception:
+        pass
 
 
 @app.post("/v1/pricing/snapshot")

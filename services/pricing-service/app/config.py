@@ -1,5 +1,6 @@
-from pydantic import BaseSettings, Field
 from functools import lru_cache
+from pydantic import Field
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 class Settings(BaseSettings):
     app_name: str = "pricing-service"
@@ -12,9 +13,7 @@ class Settings(BaseSettings):
     cache_ttl_seconds: int = Field(300, alias="PRICING_CACHE_TTL_SECONDS")
     gpubroker_url: str | None = Field(None, alias="GPUBROKER_URL")
 
-    class Config:
-        env_file = ".env"
-        env_file_encoding = "utf-8"
+    model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
 
 @lru_cache(maxsize=1)
 def get_settings() -> Settings:

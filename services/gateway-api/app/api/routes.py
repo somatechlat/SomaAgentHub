@@ -227,7 +227,7 @@ async def build_cost_precheck(
 
 class BuildRunStartRequest(BaseModel):
     project_id: str
-    pricing_snapshot_id: str
+    pricing_snapshot_id: str | None = None
     budget_cap: float
     estimated_cost: float
     template_set: str = "default"
@@ -247,11 +247,28 @@ async def start_build_run(
     settings: GatewaySettings = Depends(get_sah_settings),
 ) -> BuildRunStartResponse:
     orchestrator_url = settings.orchestrator_url.rstrip("/") + "/v1/build-runs"
+    # Auto-create snapshot if client didn't supply one
+    snapshot_id = payload.pricing_snapshot_id
+    if not snapshot_id:
+        pricing_url = settings.orchestrator_url.rstrip("/") + "/v1/pricing/snapshot"
+        # We call pricing service through gateway network; orchestrator URL won't expose pricing.
+        # Adjust to pricing service if directly reachable.
+        pricing_direct = getattr(settings, "pricing_service_url", "http://pricing-service:10026")
+        snapshot_ep = pricing_direct.rstrip("/") + "/v1/pricing/snapshot"
+        async with AsyncClient(timeout=10.0) as client:
+            try:
+                resp_snap = await client.post(snapshot_ep)
+                if resp_snap.status_code == 200:
+                    snapshot_id = resp_snap.json().get("snapshot_id")
+                else:
+                    raise HTTPException(status_code=502, detail=f"Snapshot creation failed: {resp_snap.text}")
+            except HTTPError as exc:
+                raise HTTPException(status_code=502, detail=f"Snapshot request error: {exc}") from exc
     tenant = payload.tenant or ctx.tenant_id
     body = {
         "tenant": tenant,
         "project_id": payload.project_id,
-        "pricing_snapshot_id": payload.pricing_snapshot_id,
+        "pricing_snapshot_id": snapshot_id,
         "budget_cap": payload.budget_cap,
         "estimated_cost": payload.estimated_cost,
         "template_set": payload.template_set,

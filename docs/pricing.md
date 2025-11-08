@@ -19,6 +19,10 @@ This document describes the Pricing Service endpoints and data model.
   - Inputs: `gpu_model`, `region`, `hours_planned`, `quantity`, `budget_cap`
   - Response: `within_budget`, `estimated_cost`, `currency`, `chosen_offer`, `blocking_reason`
 
+- POST `/v1/pricing/evaluate-budget/with-policy`
+  - Inputs: same as above + `payment_approved`, `required_feature`, `current_agents`
+  - Response: adds `policy_decision` with fields like `allow_build`, `reason`
+
 ## Data Model
 
 - PricingOffer: normalized provider offer with fields for gpu, pricing, location, and quality metrics.
@@ -28,3 +32,5 @@ This document describes the Pricing Service endpoints and data model.
 
 - Live aggregation currently uses an internal seed; replace with real adapters later.
 - On startup, the service ensures ClickHouse tables exist.
+- A background refresh loop periodically ingests the latest offers into `pricing_offers_live`.
+  Configure interval via `PRICING_CACHE_TTL_SECONDS`. Optional `GPUBROKER_URL` enables external adapter.

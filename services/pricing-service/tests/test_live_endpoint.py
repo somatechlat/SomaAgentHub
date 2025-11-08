@@ -2,11 +2,15 @@ import os
 import sys
 from fastapi.testclient import TestClient
 
-# Adjust path to import pricing-service app
 BASE = os.path.dirname(os.path.dirname(__file__))
-sys.path.append(BASE)
+if BASE not in sys.path:
+    sys.path.insert(0, BASE)
 
-from app.main import app  # noqa: E402
+for name in list(sys.modules.keys()):
+    if name == 'app' or name.startswith('app.'):
+        del sys.modules[name]
+
+from app.main import app  # type: ignore  # noqa: E402
 
 client = TestClient(app)
 

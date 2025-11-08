@@ -72,6 +72,7 @@ Environment variables (see `app/core/config.py`):
 | `SOMAGENT_GATEWAY_REDIS_URL` | Redis connection string for session state | `redis://redis:6379/0` |
 | `SOMAGENT_GATEWAY_ORCHESTRATOR_URL` | Base URL for orchestrator service | `http://orchestrator:10001` |
 | `AUTH_URL` / `IDENTITY_SERVICE_URL` | Identity service base URL | `http://identity-service:10002` |
+| `PRICING_SERVICE_URL` | Base URL for pricing service (budget precheck) | `http://pricing-service:10026` |
 | `KAFKA_BOOTSTRAP_SERVERS` | Optional connection for stream integrations | unset |
 
 ---
@@ -104,9 +105,20 @@ Authentication flows rely on Identity Service tokens passed in headers; see plat
 
 ## 🛡️ Security & Policy
 
-- Policy enforcement is handled downstream by the orchestrator; direct policy hooks in the gateway are future work.
+- Policy enforcement is handled downstream by the orchestrator; the gateway performs an optional budget precheck against the pricing service during wizard approval.
 - Identity tokens validated before orchestrator calls.
 - Rate limiting handled upstream (API Gateway / Ingress); future work tracked in roadmap.
+
+---
+
+## 💰 Budget Gating (Wizard Approval)
+
+- Behavior: When approving a wizard session, the gateway attempts a budget precheck using the pricing service if the wizard answers include `budget_cap` and `hours` (or `hours_planned`). Optional `gpu_model` is also forwarded.
+- Endpoint Called: `POST {PRICING_SERVICE_URL}/v1/pricing/evaluate-budget/with-policy` with query params.
+- Outcome: If the pricing response indicates `within_budget=false`, the approval returns:
+    - `status: blocked`, `reason: budget_exceeded`, and the raw pricing decision in `details`.
+- Soft-fail: If pricing is unavailable or returns non-200, approval proceeds without gating.
+- Configure via `PRICING_SERVICE_URL`.
 
 ---
 
