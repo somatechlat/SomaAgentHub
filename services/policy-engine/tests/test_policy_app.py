@@ -25,7 +25,7 @@ def test_evaluate_allowed(client: TestClient) -> None:
         "user": "user1",
         "prompt": "hello world",
         "role": "assistant",
-        "metadata": {}
+        "metadata": {},
     }
     response = client.post("/v1/evaluate", json=payload)
     assert response.status_code == 200
@@ -34,6 +34,7 @@ def test_evaluate_allowed(client: TestClient) -> None:
     assert data["severity"] == "low"
     assert "constitution_hash" in data["reasons"]
     assert data["reasons"]["policy"] == []
+
 
 def test_evaluate_forbidden(client: TestClient) -> None:
     payload = {
@@ -53,6 +54,7 @@ def test_evaluate_forbidden(client: TestClient) -> None:
     first_violation = data["reasons"]["policy"][0]
     assert first_violation["pattern"] == "forbidden"
 
+
 def test_evaluate_sync_wrapper() -> None:
     req = EvalRequest(
         session_id="s3",
@@ -60,13 +62,14 @@ def test_evaluate_sync_wrapper() -> None:
         user="user3",
         prompt="sync test",
         role="assistant",
-        metadata={}
+        metadata={},
     )
     result = evaluate_sync(req)
     # evaluate_sync runs the async endpoint via asyncio.run, returning the Pydantic model
     assert result.allowed is True
     assert isinstance(result.reasons, dict)
     assert result.reasons["policy"] == []
+
 
 def test_evaluate_forbidden_term(client: TestClient) -> None:
     payload = {
@@ -84,6 +87,7 @@ def test_evaluate_forbidden_term(client: TestClient) -> None:
     patterns = [v["pattern"] for v in data["reasons"]["policy"]]
     assert "forbidden" in patterns
 
+
 def test_list_policies(client: TestClient) -> None:
     response = client.get("/v1/policies/tenantA")
     assert response.status_code == 200
@@ -92,6 +96,7 @@ def test_list_policies(client: TestClient) -> None:
     patterns = [policy["pattern"] for policy in policies]
     assert "forbidden" in patterns
     assert "blocked" in patterns
+
 
 # Simple cache test – call get_cached_hash twice and ensure same result (placeholder)
 async def _run_cache_test():
@@ -102,6 +107,7 @@ async def _run_cache_test():
     hash3 = await get_cached_hash("tenantA")
     # After invalidation, value may be same placeholder but ensure function runs without error
     assert isinstance(hash3, str)
+
 
 def test_constitution_cache_behavior():
     asyncio.run(_run_cache_test())
@@ -137,6 +143,12 @@ def test_metrics_labels(client: TestClient) -> None:
     metrics_resp = client.get("/metrics")
     content = metrics_resp.text
     assert "policy_evaluations_total" in content
-    assert 'policy_evaluations_total{decision="allow",severity="low",tenant="tenantA"}' in content
-    assert 'policy_evaluation_latency_seconds_bucket{le="0.015",tenant="tenantA"}' in content
+    assert (
+        'policy_evaluations_total{decision="allow",severity="low",tenant="tenantA"}'
+        in content
+    )
+    assert (
+        'policy_evaluation_latency_seconds_bucket{le="0.015",tenant="tenantA"}'
+        in content
+    )
     assert 'policy_evaluation_score_bucket{le="1.0",tenant="tenantA"}' in content

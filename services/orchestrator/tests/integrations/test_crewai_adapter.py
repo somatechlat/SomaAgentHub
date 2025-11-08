@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from types import SimpleNamespace
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 import pytest
 
@@ -24,7 +24,16 @@ class DummyLogger:
 
 
 class DummyAgent:
-    def __init__(self, *, role: str, goal: str, backstory: str = "", tools: Optional[List[str]] = None, verbose: bool = False, allow_delegation: bool = True):
+    def __init__(
+        self,
+        *,
+        role: str,
+        goal: str,
+        backstory: str = "",
+        tools: list[str] | None = None,
+        verbose: bool = False,
+        allow_delegation: bool = True,
+    ):
         self.role = role
         self.goal = goal
         self.backstory = backstory
@@ -34,7 +43,13 @@ class DummyAgent:
 
 
 class DummyTask:
-    def __init__(self, *, description: str, agent: DummyAgent, expected_output: Optional[str] = None):
+    def __init__(
+        self,
+        *,
+        description: str,
+        agent: DummyAgent,
+        expected_output: str | None = None,
+    ):
         self.description = description
         self.agent = agent
         self.expected_output = expected_output
@@ -46,16 +61,23 @@ class DummyProcess:
 
 
 class DummyCrew:
-    last_instance: "DummyCrew" | None = None
+    last_instance: DummyCrew | None = None
 
-    def __init__(self, *, agents: List[DummyAgent], tasks: List[DummyTask], process: str, verbose: bool = False):
+    def __init__(
+        self,
+        *,
+        agents: list[DummyAgent],
+        tasks: list[DummyTask],
+        process: str,
+        verbose: bool = False,
+    ):
         self.agents = agents
         self.tasks = tasks
         self.process = process
         self.verbose = verbose
         DummyCrew.last_instance = self
 
-    def kickoff(self) -> Dict[str, Any]:
+    def kickoff(self) -> dict[str, Any]:
         return {
             "agents": [agent.role for agent in self.agents],
             "tasks": [task.description for task in self.tasks],
@@ -70,7 +92,9 @@ def patch_crewai(monkeypatch: pytest.MonkeyPatch) -> None:
         "_get_crewai_components",
         lambda: (DummyAgent, DummyTask, DummyCrew, DummyProcess),
     )
-    monkeypatch.setattr(crewai_adapter, "activity", SimpleNamespace(logger=DummyLogger()))
+    monkeypatch.setattr(
+        crewai_adapter, "activity", SimpleNamespace(logger=DummyLogger())
+    )
 
 
 @pytest.mark.asyncio
@@ -84,7 +108,11 @@ async def test_crewai_delegation_basic() -> None:
             ],
             "tasks": [
                 {"description": "Implement feature", "agent": "Engineer"},
-                {"description": "Test feature", "agent": "QA", "expected_output": "Test report"},
+                {
+                    "description": "Test feature",
+                    "agent": "QA",
+                    "expected_output": "Test report",
+                },
             ],
             "tenant": "tenant-001",
             "process_type": "hierarchical",
@@ -98,7 +126,10 @@ async def test_crewai_delegation_basic() -> None:
     assert result["tasks_completed"] == 2
     assert result["process_type"] == "hierarchical"
     assert DummyCrew.last_instance is not None
-    assert [task.agent.role for task in DummyCrew.last_instance.tasks] == ["Engineer", "QA"]
+    assert [task.agent.role for task in DummyCrew.last_instance.tasks] == [
+        "Engineer",
+        "QA",
+    ]
 
 
 @pytest.mark.asyncio

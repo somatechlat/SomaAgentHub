@@ -1,9 +1,10 @@
 from __future__ import annotations
 
 from types import SimpleNamespace
-from typing import Any, List
+from typing import Any
 
 import pytest
+from temporalio import workflow as temporal_workflow
 
 from services.orchestrator.app.integrations import (
     run_autogen_group_chat,
@@ -15,24 +16,31 @@ from services.orchestrator.app.workflows.session import (
     emit_audit_event,
     evaluate_policy,
 )
-from services.orchestrator.app.workflows.unified_multi_agent import UnifiedMultiAgentWorkflow
-from temporalio import workflow as temporal_workflow
+from services.orchestrator.app.workflows.unified_multi_agent import (
+    UnifiedMultiAgentWorkflow,
+)
 
 
 class DummyLogger:
-    def info(self, *args: Any, **kwargs: Any) -> None:  # pragma: no cover - noiseless stub
+    def info(
+        self, *args: Any, **kwargs: Any
+    ) -> None:  # pragma: no cover - noiseless stub
         pass
 
 
 @pytest.fixture(autouse=True)
 def patch_workflow_info(monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setattr(temporal_workflow, "info", lambda: SimpleNamespace(workflow_id="wf-test"))
+    monkeypatch.setattr(
+        temporal_workflow, "info", lambda: SimpleNamespace(workflow_id="wf-test")
+    )
     monkeypatch.setattr(temporal_workflow, "logger", DummyLogger())
 
 
 @pytest.mark.asyncio
-async def test_unified_workflow_routes_group_chat(monkeypatch: pytest.MonkeyPatch) -> None:
-    calls: List[str] = []
+async def test_unified_workflow_routes_group_chat(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    calls: list[str] = []
 
     async def fake_execute_activity(activity, *args: Any, **kwargs: Any):
         calls.append(activity.__name__)
@@ -59,7 +67,11 @@ async def test_unified_workflow_routes_group_chat(monkeypatch: pytest.MonkeyPatc
             "session_id": "sess-1",
             "tenant": "tenant-123",
             "user": "jane",
-            "agents": [{"name": "a", "model": "gpt-4o"}, {"name": "b", "model": "gpt-4o"}, {"name": "c", "model": "gpt-4o"}],
+            "agents": [
+                {"name": "a", "model": "gpt-4o"},
+                {"name": "b", "model": "gpt-4o"},
+                {"name": "c", "model": "gpt-4o"},
+            ],
             "task": "brainstorm",
         }
     )
@@ -71,8 +83,10 @@ async def test_unified_workflow_routes_group_chat(monkeypatch: pytest.MonkeyPatc
 
 
 @pytest.mark.asyncio
-async def test_unified_workflow_routes_delegation(monkeypatch: pytest.MonkeyPatch) -> None:
-    calls: List[str] = []
+async def test_unified_workflow_routes_delegation(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    calls: list[str] = []
 
     async def fake_execute_activity(activity, *args: Any, **kwargs: Any):
         calls.append(activity.__name__)
@@ -107,8 +121,10 @@ async def test_unified_workflow_routes_delegation(monkeypatch: pytest.MonkeyPatc
 
 
 @pytest.mark.asyncio
-async def test_unified_workflow_routes_langgraph(monkeypatch: pytest.MonkeyPatch) -> None:
-    calls: List[str] = []
+async def test_unified_workflow_routes_langgraph(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    calls: list[str] = []
 
     async def fake_execute_activity(activity, *args: Any, **kwargs: Any):
         calls.append(activity.__name__)
@@ -130,7 +146,10 @@ async def test_unified_workflow_routes_langgraph(monkeypatch: pytest.MonkeyPatch
             "session_id": "sess-3",
             "tenant": "tenant-lang",
             "user": "cam",
-            "graph": {"nodes": [{"name": "begin", "handler": "math.floor"}], "start": "begin"},
+            "graph": {
+                "nodes": [{"name": "begin", "handler": "math.floor"}],
+                "start": "begin",
+            },
         }
     )
 
@@ -141,8 +160,10 @@ async def test_unified_workflow_routes_langgraph(monkeypatch: pytest.MonkeyPatch
 
 
 @pytest.mark.asyncio
-async def test_unified_workflow_policy_rejected(monkeypatch: pytest.MonkeyPatch) -> None:
-    calls: List[str] = []
+async def test_unified_workflow_policy_rejected(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    calls: list[str] = []
 
     async def fake_execute_activity(activity, *args: Any, **kwargs: Any):
         calls.append(activity.__name__)
@@ -153,7 +174,9 @@ async def test_unified_workflow_policy_rejected(monkeypatch: pytest.MonkeyPatch)
     monkeypatch.setattr(temporal_workflow, "execute_activity", fake_execute_activity)
 
     workflow_instance = UnifiedMultiAgentWorkflow()
-    result = await workflow_instance.run({"session_id": "sess-4", "tenant": "tenant-a", "user": "rory"})
+    result = await workflow_instance.run(
+        {"session_id": "sess-4", "tenant": "tenant-a", "user": "rory"}
+    )
 
     assert result["status"] == "rejected"
     assert result["reason"] == "policy_denied"

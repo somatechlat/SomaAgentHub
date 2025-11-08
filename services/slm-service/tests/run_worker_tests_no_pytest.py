@@ -5,9 +5,10 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
-from slm.worker import process_request_message, consume_and_process
-import json
 import asyncio
+import json
+
+from slm.worker import consume_and_process, process_request_message
 
 
 def test_process_request_message():
@@ -33,7 +34,9 @@ def test_consume_and_process():
     async def publish(topic, payload):
         published.append((topic, payload))
 
-    asyncio.get_event_loop().run_until_complete(consume_and_process(get_message, publish))
+    asyncio.get_event_loop().run_until_complete(
+        consume_and_process(get_message, publish)
+    )
     assert len(published) == 1
     topic, payload = published[0]
     assert topic == "slm.responses"

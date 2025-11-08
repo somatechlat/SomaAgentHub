@@ -2,9 +2,6 @@ from __future__ import annotations
 
 import os
 import sys
-# Ensure sitecustomize (which patches RedisContainer) runs before importing
-# testcontainers modules.
-import sitecustomize  # noqa: F401
 from collections.abc import Generator
 from pathlib import Path
 
@@ -12,8 +9,15 @@ import pytest
 from fastapi.testclient import TestClient
 from testcontainers.clickhouse import ClickHouseContainer
 from testcontainers.redis import RedisContainer
-print('DEBUG: at import time, hasattr(RedisContainer, "get_connection_url") =',
-    hasattr(RedisContainer, "get_connection_url"))
+
+# Ensure sitecustomize (which patches RedisContainer) runs before importing
+# testcontainers modules.
+import sitecustomize  # noqa: F401
+
+print(
+    'DEBUG: at import time, hasattr(RedisContainer, "get_connection_url") =',
+    hasattr(RedisContainer, "get_connection_url"),
+)
 
 SERVICE_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(SERVICE_ROOT))
@@ -40,22 +44,29 @@ def clickhouse_container() -> Generator[ClickHouseContainer, None, None]:
 
 
 @pytest.fixture(scope="session")
-def redis_container(clickhouse_container: ClickHouseContainer) -> Generator[RedisContainer, None, None]:
+def redis_container(
+    clickhouse_container: ClickHouseContainer,
+) -> Generator[RedisContainer, None, None]:
     container = RedisContainer(image="redis:7-alpine")
     container.start()
     # Debug: list attributes to verify patch applied
-    print('DEBUG: RedisContainer attrs after start:', [m for m in dir(container) if not m.startswith("_")])
+    print(
+        "DEBUG: RedisContainer attrs after start:",
+        [m for m in dir(container) if not m.startswith("_")],
+    )
     if not hasattr(container, "get_connection_url"):
-        print('DEBUG: get_connection_url missing')
+        print("DEBUG: get_connection_url missing")
     else:
-        print('DEBUG: get_connection_url present')
+        print("DEBUG: get_connection_url present")
     os.environ["SOMAGENT_IDENTITY_REDIS_URL"] = container.get_connection_url()
     yield container
     container.stop()
 
 
 @pytest.fixture
-def client(redis_container: RedisContainer, clickhouse_container: ClickHouseContainer) -> Generator[TestClient, None, None]:
+def client(
+    redis_container: RedisContainer, clickhouse_container: ClickHouseContainer
+) -> Generator[TestClient, None, None]:
     app = create_app()
     with TestClient(app) as test_client:
         yield test_client

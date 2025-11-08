@@ -1,19 +1,24 @@
-from fastapi import FastAPI, Query, HTTPException
-from typing import Optional, List
-from datetime import datetime, timezone
+import logging
 import statistics
 import uuid
-import httpx
-from prometheus_fastapi_instrumentator import Instrumentator
-from prometheus_client import Counter
 from contextlib import asynccontextmanager
+from datetime import UTC, datetime
 
-from .config import get_settings
-from .models import LivePricingResponse, LivePricingSummary, PricingOffer
+import httpx
+from fastapi import FastAPI, HTTPException, Query
+from prometheus_client import Counter
+from prometheus_fastapi_instrumentator import Instrumentator
+
 from .aggregator import fetch_live_offers
 from .bootstrap import ensure_tables
 from .clickhouse import get_client
+from .config import get_settings
+from .models import LivePricingResponse, LivePricingSummary, PricingOffer
 from .refresh import start_refresh_loop, stop_refresh_loop
+
+
+logger = logging.getLogger(__name__)
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -21,20 +26,21 @@ async def lifespan(app: FastAPI):
         ensure_tables()
     except Exception as e:
         # Allow app to start even if ClickHouse isn't ready yet
-        print(f"[pricing-service] table ensure failed: {e}")
+        logger.warning("[pricing-service] table ensure failed: %s", e)
     try:
         Instrumentator().instrument(app).expose(app)
     except Exception as e:
-        print(f"[pricing-service] metrics init failed: {e}")
+        logger.warning("[pricing-service] metrics init failed: %s", e)
     try:
         start_refresh_loop()
     except Exception as e:
-        print(f"[pricing-service] refresh loop failed to start: {e}")
+        logger.warning("[pricing-service] refresh loop failed to start: %s", e)
     yield
     try:
         stop_refresh_loop()
     except Exception:
         pass
+
 
 app = FastAPI(title="Pricing Service", version="0.1.0", lifespan=lifespan)
 
@@ -50,6 +56,7 @@ BUDGET_DECISIONS = Counter(
 def healthz():
     return {"status": "ok"}
 
+
 @app.get("/health")
 def health():
     return {"status": "ok"}
@@ -57,21 +64,21 @@ def health():
 
 @app.get("/v1/pricing/live", response_model=LivePricingResponse)
 def get_live_pricing(
-    gpu_model: Optional[str] = Query(None),
-    gpu_class: Optional[str] = Query(None),  # placeholder for future grouping
-    min_vram_gb: Optional[float] = Query(None, ge=0),
-    region: Optional[str] = Query(None),
-    cloud: Optional[str] = Query(None),
-    spot: Optional[bool] = Query(None),
-    max_price_hour: Optional[float] = Query(None, ge=0),
-    framework: Optional[str] = Query(None),
+    gpu_model: str | None = Query(None),
+    gpu_class: str | None = Query(None),  # placeholder for future grouping
+    min_vram_gb: float | None = Query(None, ge=0),
+    region: str | None = Query(None),
+    cloud: str | None = Query(None),
+    spot: bool | None = Query(None),
+    max_price_hour: float | None = Query(None, ge=0),
+    framework: str | None = Query(None),
     page: int = Query(1, ge=1),
     page_size: int = Query(25, ge=1, le=200),
     sort_by: str = Query("price_hour"),
     order: str = Query("asc"),
 ):
     _ = get_settings()  # future: cache usage and OPA hooks
-    offers: List[PricingOffer] = fetch_live_offers()
+    offers: list[PricingOffer] = fetch_live_offers()
 
     # Filtering
     def keep(o: PricingOffer) -> bool:
@@ -131,21 +138,20 @@ def get_live_pricing(
 
     meta = {
         "request_id": None,
-        "generated_at": datetime.now(timezone.utc).isoformat(),
+        "generated_at": datetime.now(UTC).isoformat(),
     }
 
     paging = {"page": page, "page_size": page_size, "total": total}
 
-    return LivePricingResponse(offers=page_items, summary=summary, paging=paging, meta=meta)
-
-
- 
+    return LivePricingResponse(
+        offers=page_items, summary=summary, paging=paging, meta=meta
+    )
 
 
 @app.post("/v1/pricing/snapshot")
 def create_snapshot():
     REQS.labels(endpoint="snapshot_create").inc()
-    offers: List[PricingOffer] = fetch_live_offers()
+    offers: list[PricingOffer] = fetch_live_offers()
     if not offers:
         raise HTTPException(status_code=503, detail="No offers available to snapshot")
 
@@ -153,7 +159,11 @@ def create_snapshot():
     median = statistics.median(prices)
     p95 = sorted(prices)[max(0, int(round(0.95 * (len(prices) - 1))))]
 
-    payload_str = "|".join(sorted(f"{o.provider}:{o.gpu_model}:{o.region}:{o.price_per_hour}" for o in offers))
+    payload_str = "|".join(
+        sorted(
+            f"{o.provider}:{o.gpu_model}:{o.region}:{o.price_per_hour}" for o in offers
+        )
+    )
     hash_fixed = uuid.uuid5(uuid.NAMESPACE_DNS, payload_str).hex
 
     sid = uuid.uuid4()
@@ -232,7 +242,7 @@ def get_snapshot(snapshot_id: str):
         "SELECT id, provider, gpu_model, vram_gb, cpu_cores, ram_gb, storage_gb, region, zone, availability, spot, currency, price_per_hour, price_per_minute, tags, frameworks, billing_increment_min, min_rent_hours, provision_latency_s, deprovision_latency_s, last_seen_at, source, confidence FROM pricing_snapshot_offers WHERE snapshot_id = %(sid)s",
         {"sid": sid},
     )
-    offers: List[PricingOffer] = []
+    offers: list[PricingOffer] = []
     for r in offers_rows:
         offers.append(
             PricingOffer(
@@ -276,13 +286,13 @@ def get_snapshot(snapshot_id: str):
 
 @app.post("/v1/pricing/evaluate-budget")
 def evaluate_budget(
-    gpu_model: Optional[str] = None,
-    region: Optional[str] = None,
+    gpu_model: str | None = None,
+    region: str | None = None,
     hours_planned: float = Query(..., gt=0),
     quantity: int = Query(1, ge=1),
     budget_cap: float = Query(..., gt=0),
 ):
-    offers: List[PricingOffer] = fetch_live_offers()
+    offers: list[PricingOffer] = fetch_live_offers()
     if gpu_model:
         offers = [o for o in offers if gpu_model.lower() in o.gpu_model.lower()]
     if region:
@@ -305,7 +315,7 @@ def evaluate_budget(
     }
 
 
-def _opa_decide(payload: dict) -> Optional[dict]:
+def _opa_decide(payload: dict) -> dict | None:
     settings = get_settings()
     url = settings.opa_url.rstrip("/") + "/v1/data/somagent/policies/decision"
     try:
@@ -315,22 +325,22 @@ def _opa_decide(payload: dict) -> Optional[dict]:
             data = r.json()
             return data.get("result")
     except Exception as e:
-        print(f"[pricing-service] OPA call failed: {e}")
+        logger.warning("[pricing-service] OPA call failed: %s", e)
     return None
 
 
 @app.post("/v1/pricing/evaluate-budget/with-policy")
 def evaluate_budget_with_policy(
-    gpu_model: Optional[str] = None,
-    region: Optional[str] = None,
+    gpu_model: str | None = None,
+    region: str | None = None,
     hours_planned: float = Query(..., gt=0),
     quantity: int = Query(1, ge=1),
     budget_cap: float = Query(..., gt=0),
     payment_approved: bool = Query(False),
-    required_feature: Optional[str] = Query(None),
+    required_feature: str | None = Query(None),
     current_agents: int = Query(0, ge=0),
 ):
-    offers: List[PricingOffer] = fetch_live_offers()
+    offers: list[PricingOffer] = fetch_live_offers()
     if gpu_model:
         offers = [o for o in offers if gpu_model.lower() in o.gpu_model.lower()]
     if region:

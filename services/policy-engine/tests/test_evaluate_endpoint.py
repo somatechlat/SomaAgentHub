@@ -6,6 +6,7 @@ identically and respects the ``ALLOWED_ACTIONS`` environment variable.
 """
 
 import os
+
 from fastapi.testclient import TestClient
 
 # Import the FastAPI app from the service implementation
@@ -28,7 +29,9 @@ def test_evaluate_endpoint_allowed_when_configured():
     os.environ["ALLOWED_ACTIONS"] = "read:memory,write:memory"
     # Reload the module to pick up the new env var (the service reads it at import)
     import importlib
+
     import app.main as policy_mod  # type: ignore
+
     importlib.reload(policy_mod)
     test_client = TestClient(policy_mod.app)
 

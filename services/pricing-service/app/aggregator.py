@@ -1,20 +1,21 @@
 """Offer aggregation with adapter failure accounting and TTL cache."""
 
-from typing import List, Tuple
 import time
+
 from prometheus_client import Counter
+
 from .config import get_settings
 from .models import PricingOffer
 from .providers.aws_adapter import AWS_ADAPTER
-from .providers.runpod_adapter import RUNPOD_ADAPTER
 from .providers.gpubroker_adapter import get_gpubroker_adapter
+from .providers.runpod_adapter import RUNPOD_ADAPTER
 
-_CACHE: Tuple[float, List[PricingOffer]] | None = None
+_CACHE: tuple[float, list[PricingOffer]] | None = None
 CACHE_HITS = Counter("pricing_cache_hits_total", "Cache hits in live offers fetch")
 ADAPTER_FAILS = Counter("pricing_adapter_fail_total", "Adapter failures", ["adapter"])
 
 
-def fetch_live_offers() -> List[PricingOffer]:
+def fetch_live_offers() -> list[PricingOffer]:
     """Fetch live offers from all enabled adapters with caching.
 
     On adapter failure, increments a failure counter but continues processing other adapters.
@@ -31,7 +32,7 @@ def fetch_live_offers() -> List[PricingOffer]:
     if gpubroker:
         adapters.append(gpubroker)
 
-    offers: List[PricingOffer] = []
+    offers: list[PricingOffer] = []
     for adapter in adapters:
         try:
             for offer in adapter.fetch():

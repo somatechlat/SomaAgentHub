@@ -6,7 +6,6 @@ Provides user authentication, capability checks, and role management.
 from __future__ import annotations
 
 import os
-from typing import Dict, List, Optional
 
 import httpx
 
@@ -18,10 +17,10 @@ class IdentityClient:
         self,
         base_url: str,
         timeout: float = 10.0,
-        api_key: Optional[str] = None,
+        api_key: str | None = None,
     ):
         """Initialize identity client.
-        
+
         Args:
             base_url: Identity service base URL
             timeout: Request timeout in seconds
@@ -35,28 +34,28 @@ class IdentityClient:
         self,
         user_id: str,
         capability: str,
-        tenant_id: Optional[str] = None,
+        tenant_id: str | None = None,
     ) -> bool:
         """Check if user has a specific capability.
-        
+
         Args:
             user_id: User identifier (email or UUID)
             capability: Capability to check (e.g., "training.admin", "agent.create")
             tenant_id: Tenant context (optional)
-            
+
         Returns:
             True if user has the capability, False otherwise
         """
         url = f"{self.base_url}/v1/users/{user_id}/capabilities/{capability}"
-        
+
         params = {}
         if tenant_id:
             params["tenant_id"] = tenant_id
-        
+
         headers = {}
         if self.api_key:
             headers["Authorization"] = f"Bearer {self.api_key}"
-        
+
         try:
             async with httpx.AsyncClient(timeout=self.timeout) as client:
                 response = await client.get(
@@ -64,7 +63,7 @@ class IdentityClient:
                     params=params,
                     headers=headers,
                 )
-                
+
                 # 200 = has capability, 404 = does not have capability
                 if response.status_code == 200:
                     return True
@@ -73,7 +72,7 @@ class IdentityClient:
                 else:
                     response.raise_for_status()
                     return False
-                    
+
         except httpx.TimeoutException as exc:
             raise RuntimeError(
                 f"Identity service timeout checking capability: {capability}"
@@ -88,27 +87,27 @@ class IdentityClient:
     async def get_user_capabilities(
         self,
         user_id: str,
-        tenant_id: Optional[str] = None,
-    ) -> List[str]:
+        tenant_id: str | None = None,
+    ) -> list[str]:
         """Get all capabilities for a user.
-        
+
         Args:
             user_id: User identifier
             tenant_id: Tenant context (optional)
-            
+
         Returns:
             List of capability strings
         """
         url = f"{self.base_url}/v1/users/{user_id}/capabilities"
-        
+
         params = {}
         if tenant_id:
             params["tenant_id"] = tenant_id
-        
+
         headers = {}
         if self.api_key:
             headers["Authorization"] = f"Bearer {self.api_key}"
-        
+
         try:
             async with httpx.AsyncClient(timeout=self.timeout) as client:
                 response = await client.get(
@@ -119,9 +118,11 @@ class IdentityClient:
                 response.raise_for_status()
                 data = response.json()
                 return data.get("capabilities", [])
-                
+
         except httpx.TimeoutException as exc:
-            raise RuntimeError("Identity service timeout fetching capabilities") from exc
+            raise RuntimeError(
+                "Identity service timeout fetching capabilities"
+            ) from exc
         except httpx.HTTPStatusError as exc:
             raise RuntimeError(
                 f"Identity service error: {exc.response.status_code}"
@@ -130,27 +131,27 @@ class IdentityClient:
     async def get_user_roles(
         self,
         user_id: str,
-        tenant_id: Optional[str] = None,
-    ) -> List[str]:
+        tenant_id: str | None = None,
+    ) -> list[str]:
         """Get all roles for a user.
-        
+
         Args:
             user_id: User identifier
             tenant_id: Tenant context (optional)
-            
+
         Returns:
             List of role names
         """
         url = f"{self.base_url}/v1/users/{user_id}/roles"
-        
+
         params = {}
         if tenant_id:
             params["tenant_id"] = tenant_id
-        
+
         headers = {}
         if self.api_key:
             headers["Authorization"] = f"Bearer {self.api_key}"
-        
+
         try:
             async with httpx.AsyncClient(timeout=self.timeout) as client:
                 response = await client.get(
@@ -161,7 +162,7 @@ class IdentityClient:
                 response.raise_for_status()
                 data = response.json()
                 return data.get("roles", [])
-                
+
         except httpx.TimeoutException as exc:
             raise RuntimeError("Identity service timeout fetching roles") from exc
         except httpx.HTTPStatusError as exc:
@@ -172,27 +173,27 @@ class IdentityClient:
     async def verify_user(
         self,
         user_id: str,
-    ) -> Dict[str, any]:
+    ) -> dict[str, any]:
         """Verify user exists and get basic profile.
-        
+
         Args:
             user_id: User identifier
-            
+
         Returns:
             User profile dictionary
         """
         url = f"{self.base_url}/v1/users/{user_id}"
-        
+
         headers = {}
         if self.api_key:
             headers["Authorization"] = f"Bearer {self.api_key}"
-        
+
         try:
             async with httpx.AsyncClient(timeout=self.timeout) as client:
                 response = await client.get(url, headers=headers)
                 response.raise_for_status()
                 return response.json()
-                
+
         except httpx.TimeoutException as exc:
             raise RuntimeError("Identity service timeout verifying user") from exc
         except httpx.HTTPStatusError as exc:
@@ -214,7 +215,7 @@ class IdentityClient:
 
 def get_identity_client() -> IdentityClient:
     """Get identity client from environment variables.
-    
+
     Required environment variables:
         IDENTITY_SERVICE_URL: Identity service base URL
         IDENTITY_API_KEY: API key (optional)
@@ -223,10 +224,10 @@ def get_identity_client() -> IdentityClient:
     url = os.getenv("IDENTITY_SERVICE_URL")
     if not url:
         raise RuntimeError("IDENTITY_SERVICE_URL environment variable not set")
-    
+
     api_key = os.getenv("IDENTITY_API_KEY")
     timeout = float(os.getenv("IDENTITY_TIMEOUT", "10.0"))
-    
+
     return IdentityClient(
         base_url=url,
         timeout=timeout,

@@ -5,7 +5,6 @@ from __future__ import annotations
 import time
 from collections import deque
 from dataclasses import dataclass
-from typing import Deque, Dict
 
 
 @dataclass
@@ -26,9 +25,9 @@ class RateLimiter:
     def __init__(self, default_limit: int, window_seconds: int = 60) -> None:
         self.default_limit = max(1, default_limit)
         self.window_seconds = window_seconds
-        self._buckets: Dict[str, Deque[float]] = {}
+        self._buckets: dict[str, deque[float]] = {}
 
-    def _prune(self, bucket: Deque[float], now: float) -> None:
+    def _prune(self, bucket: deque[float], now: float) -> None:
         cutoff = now - self.window_seconds
         while bucket and bucket[0] <= cutoff:
             bucket.popleft()

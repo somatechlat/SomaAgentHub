@@ -3,17 +3,21 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Dict, List, Optional, Literal
+from typing import Literal
 
 from pydantic import BaseModel, Field
 
 
 class NotificationPayload(BaseModel):
-    tenant_id: str = Field(..., description="Tenant identifier receiving the notification")
+    tenant_id: str = Field(
+        ..., description="Tenant identifier receiving the notification"
+    )
     channel: str = Field(..., description="Logical channel or topic")
     message: str = Field(..., description="Notification body displayed to operators")
     severity: Literal["info", "warning", "error", "critical"] = "info"
-    metadata: Optional[Dict[str, str]] = Field(default=None, description="Additional structured metadata")
+    metadata: dict[str, str] | None = Field(
+        default=None, description="Additional structured metadata"
+    )
 
 
 class NotificationRecord(BaseModel):
@@ -21,7 +25,7 @@ class NotificationRecord(BaseModel):
     channel: str
     message: str
     severity: str
-    metadata: Dict[str, str] = Field(default_factory=dict)
+    metadata: dict[str, str] = Field(default_factory=dict)
     timestamp: datetime
 
 
@@ -32,5 +36,5 @@ class EnqueueNotificationResponse(BaseModel):
 
 class NotificationBacklogResponse(BaseModel):
     generated_at: datetime
-    tenant_id: Optional[str]
-    results: List[NotificationRecord]
+    tenant_id: str | None
+    results: list[NotificationRecord]

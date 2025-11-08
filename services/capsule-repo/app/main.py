@@ -19,16 +19,13 @@ so that it can be started independently or as part of the Soma‑Infra chart.
 
 from __future__ import annotations
 
-import io
-from typing import Dict, List
-
 from fastapi import APIRouter, FastAPI, HTTPException, Request, status
 from fastapi.responses import PlainTextResponse
 
 # ---------------------------------------------------------------------------
 # In‑memory store – ``{capsule_id}:{version} -> manifest_yaml``
 # ---------------------------------------------------------------------------
-_store: Dict[str, str] = {}
+_store: dict[str, str] = {}
 
 router = APIRouter(prefix="/v1", tags=["capsule-repo"])
 
@@ -56,7 +53,9 @@ async def upload_capsule(capsule_id: str, version: str, request: Request) -> str
         # be parsed later by the executor, so we only check basic text.
         body_str = body.decode("utf-8")
     except UnicodeDecodeError as exc:
-        raise HTTPException(status_code=400, detail="Manifest must be UTF‑8 text") from exc
+        raise HTTPException(
+            status_code=400, detail="Manifest must be UTF‑8 text"
+        ) from exc
     _store[_key(capsule_id, version)] = body_str
     return f"Capsule {capsule_id}:{version} stored"
 
@@ -70,8 +69,8 @@ async def get_capsule(capsule_id: str, version: str) -> str:
         raise HTTPException(status_code=404, detail="Capsule not found") from exc
 
 
-@router.get("/capsules", response_model=List[str])
-async def list_capsules() -> List[str]:
+@router.get("/capsules", response_model=list[str])
+async def list_capsules() -> list[str]:
     """Return a list of ``"{capsule_id}:{version}"`` identifiers present in the store."""
     return list(_store.keys())
 

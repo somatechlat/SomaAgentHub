@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import List
 
 from redis.asyncio import Redis, RedisError
 
@@ -22,8 +21,8 @@ class ModerationVerdict:
 
     allowed: bool
     strike_count: int
-    flagged_terms: List[str] = field(default_factory=list)
-    reasons: List[str] = field(default_factory=list)
+    flagged_terms: list[str] = field(default_factory=list)
+    reasons: list[str] = field(default_factory=list)
     bypassed: bool = False
     strike_delta: int = 0
 
@@ -31,7 +30,9 @@ class ModerationVerdict:
 class ModerationGuard:
     """Performs lightweight content moderation with strike tracking."""
 
-    def __init__(self, redis_client: Redis, settings: GatewaySettings | None = None) -> None:
+    def __init__(
+        self, redis_client: Redis, settings: GatewaySettings | None = None
+    ) -> None:
         self.redis = redis_client
         self.settings = settings or get_settings()
         self.block_terms = self.settings.moderation_terms()
@@ -59,12 +60,16 @@ class ModerationGuard:
         try:
             strikes = await self.redis.incr(key)
             if self.settings.moderation_strike_ttl_seconds > 0:
-                await self.redis.expire(key, self.settings.moderation_strike_ttl_seconds)
+                await self.redis.expire(
+                    key, self.settings.moderation_strike_ttl_seconds
+                )
         except RedisError as exc:  # noqa: BLE001
             raise ModerationError("failed to increment strike counter") from exc
         return int(strikes)
 
-    async def evaluate(self, ctx: RequestContext, content: str | None) -> ModerationVerdict:
+    async def evaluate(
+        self, ctx: RequestContext, content: str | None
+    ) -> ModerationVerdict:
         """Evaluate content and update strike counters as needed."""
 
         if "moderation:bypass" in ctx.capabilities:
@@ -82,7 +87,7 @@ class ModerationGuard:
             return ModerationVerdict(allowed=True, strike_count=strikes)
 
         flagged = [term for term in self.block_terms if term and term in text]
-        reasons: List[str] = []
+        reasons: list[str] = []
         strikes = await self._get_current_strikes(ctx.tenant_id, ctx.user_id)
         allowed = True
         strike_delta = 0
@@ -97,9 +102,7 @@ class ModerationGuard:
                     f"strike threshold reached ({strikes}/{self.block_after})"
                 )
             elif strikes >= self.settings.moderation_warning_strikes:
-                reasons.append(
-                    f"warning strike {strikes} of {self.block_after}"
-                )
+                reasons.append(f"warning strike {strikes} of {self.block_after}")
         else:
             # decay strikes naturally without mutating counters
             pass
@@ -122,5 +125,7 @@ def get_moderation_guard() -> ModerationGuard:
     global _moderation_guard
     if _moderation_guard is None:
         client = get_redis_client()
-        _moderation_guard = ModerationGuard(client)  # RedisClient is compatible for our usage
+        _moderation_guard = ModerationGuard(
+            client
+        )  # RedisClient is compatible for our usage
     return _moderation_guard

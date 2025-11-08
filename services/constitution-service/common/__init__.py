@@ -5,8 +5,8 @@ root.  This module adds the root ``common`` directory to ``sys.path`` and merges
 the namespace so that ``import common`` works inside the service.
 """
 
-import pkgutil
 import pathlib
+import pkgutil
 import sys
 
 repo_root = pathlib.Path(__file__).resolve().parents[2]

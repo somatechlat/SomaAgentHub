@@ -9,6 +9,9 @@ from temporalio import client as temporal_client
 from temporalio import worker as temporal_worker
 
 from .core.config import settings
+
+# New capsule workflow and activity
+from .workflows.capsule import CapsuleRunWorkflow, execute_capsule
 from .workflows.mao import MultiAgentWorkflow, dispatch_notification
 from .workflows.session import (
     SessionWorkflow,
@@ -17,9 +20,6 @@ from .workflows.session import (
     issue_identity_token,
     run_slm_completion,
 )
-# New capsule workflow and activity
-from .workflows.capsule import CapsuleRunWorkflow, execute_capsule
-
 
 logger = logging.getLogger("orchestrator.worker")
 

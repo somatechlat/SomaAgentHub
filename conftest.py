@@ -1,6 +1,10 @@
 import asyncio
+
 import httpx
-from httpx import AsyncClient as OriginalAsyncClient, ASGITransport
+import pytest
+from httpx import ASGITransport
+from httpx import AsyncClient as OriginalAsyncClient
+
 
 # Patch httpx.AsyncClient to accept `app` and `base_url` for ASGI testing.
 class PatchedAsyncClient(OriginalAsyncClient):
@@ -16,8 +20,10 @@ class PatchedAsyncClient(OriginalAsyncClient):
             kwargs.setdefault("base_url", base_url)
         super().__init__(*args, **kwargs)
 
+
 # Apply the patch globally.
 httpx.AsyncClient = PatchedAsyncClient
+
 
 # Provide a simple helper to run async callables synchronously, matching the
 # custom usage in the test suite: ``pytest.run(asyncio=True)(func)(...)``.
@@ -34,11 +40,15 @@ def _run(**kwargs):  # noqa: D401
     def wrapper(func):
         def inner(*args, **inner_kwargs):
             if asyncio_flag:
-                return asyncio.get_event_loop().run_until_complete(func(*args, **inner_kwargs))
+                return asyncio.get_event_loop().run_until_complete(
+                    func(*args, **inner_kwargs)
+                )
             return func(*args, **inner_kwargs)
+
         return inner
+
     return wrapper
 
+
 # Attach the helper to the pytest module so that ``pytest.run`` works.
-import pytest
 pytest.run = _run

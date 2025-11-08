@@ -1,26 +1,29 @@
-from typing import List, Protocol
-from datetime import datetime, timezone
+from datetime import UTC, datetime
+from typing import Protocol
+
 from ..models import PricingOffer
+
 
 class ProviderAdapter(Protocol):
     def name(self) -> str: ...
-    def fetch(self) -> List[PricingOffer]: ...
+    def fetch(self) -> list[PricingOffer]: ...
 
 
 def _now():
-    from datetime import datetime, timezone
-    return datetime.now(timezone.utc)
+
+    return datetime.now(UTC)
+
 
 class StaticAdapter:
-    def __init__(self, name: str, rows: List[dict]):
+    def __init__(self, name: str, rows: list[dict]):
         self._name = name
         self._rows = rows
 
     def name(self) -> str:
         return self._name
 
-    def fetch(self) -> List[PricingOffer]:
-        offers: List[PricingOffer] = []
+    def fetch(self) -> list[PricingOffer]:
+        offers: list[PricingOffer] = []
         for r in self._rows:
             r = dict(r)
             r.setdefault("provider", self._name)

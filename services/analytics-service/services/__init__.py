@@ -8,4 +8,5 @@ to resolve to the actual service implementation located in the repository root.
 """
 
 import pkgutil
+
 __path__ = pkgutil.extend_path(__path__, __name__)

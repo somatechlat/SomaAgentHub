@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Any, Dict, Literal
+from typing import Any, Literal
 
 from pydantic import BaseModel, Field
 
@@ -21,17 +21,21 @@ class CapsuleSummary(BaseModel):
 
 
 class CapsuleSubmissionRequest(BaseModel):
-    capsule_id: str = Field(..., description="Unique capsule slug (e.g., plane_project_starter)")
+    capsule_id: str = Field(
+        ..., description="Unique capsule slug (e.g., plane_project_starter)"
+    )
     version: str = Field(..., description="Semantic version of the capsule package")
     owner: str = Field(..., description="Submitting tenant or partner identifier")
     summary: str | None = Field(None, description="Short human readable description")
-    definition: Dict[str, Any] = Field(..., description="Capsule manifest payload")
-    attestation_hash: str = Field(..., description="SHA-256 hash of the manifest payload")
+    definition: dict[str, Any] = Field(..., description="Capsule manifest payload")
+    attestation_hash: str = Field(
+        ..., description="SHA-256 hash of the manifest payload"
+    )
     attestation_signature: str | None = Field(
         None,
         description="Signature from the submitter proving integrity (optional during dev).",
     )
-    compliance_report: Dict[str, Any] | None = Field(
+    compliance_report: dict[str, Any] | None = Field(
         None,
         description="Optional automated lint/compliance findings.",
     )
@@ -81,17 +85,19 @@ class CapsuleCatalogEntry(BaseModel):
 
 
 class CapsuleDetail(BaseModel):
-    capsule: Dict[str, Any]
+    capsule: dict[str, Any]
     status: Literal["filesystem", "pending", "approved", "rejected"]
     submission_id: int | None = None
-    compliance_report: Dict[str, Any] | None = None
+    compliance_report: dict[str, Any] | None = None
 
 
 class CapsuleInstallRequest(BaseModel):
     capsule_id: str
     version: str | None = None
     tenant_id: str
-    environment: str = Field("prod", description="Installation environment (prod, staging, etc.)")
+    environment: str = Field(
+        "prod", description="Installation environment (prod, staging, etc.)"
+    )
     installed_by: str
     notes: str | None = None
 

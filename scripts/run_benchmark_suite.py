@@ -10,14 +10,13 @@ from __future__ import annotations
 
 import argparse
 import asyncio
-from collections import Counter
-from dataclasses import dataclass
-from datetime import datetime, timezone
 import json
 import math
 import sys
 import time
-from typing import Dict, List
+from collections import Counter
+from dataclasses import dataclass
+from datetime import UTC, datetime
 
 import httpx
 
@@ -28,7 +27,7 @@ DEFAULT_ANALYTICS_URL = "http://localhost:8008"
 class BenchmarkResult:
     started_at: datetime
     completed_at: datetime
-    latencies_ms: List[float]
+    latencies_ms: list[float]
     status_counts: Counter
     errors: int
 
@@ -40,7 +39,7 @@ class BenchmarkResult:
     def duration_seconds(self) -> float:
         return max((self.completed_at - self.started_at).total_seconds(), 1e-6)
 
-    def metrics(self) -> Dict[str, float]:
+    def metrics(self) -> dict[str, float]:
         if not self.latencies_ms:
             p95 = 0.0
             p50 = 0.0
@@ -64,7 +63,7 @@ class BenchmarkResult:
             "success_rate": round(success_rate, 5),
         }
 
-    def metadata(self) -> Dict[str, str]:
+    def metadata(self) -> dict[str, str]:
         distribution = {str(code): count for code, count in self.status_counts.items()}
         return {"status_distribution": json.dumps(distribution)}
 
@@ -75,7 +74,7 @@ async def _fire_request(
     endpoint: str,
     semaphore: asyncio.Semaphore,
     status_counts: Counter,
-    latencies_ms: List[float],
+    latencies_ms: list[float],
 ) -> bool:
     async with semaphore:
         start = time.perf_counter()
@@ -96,18 +95,25 @@ async def execute_benchmark(args: argparse.Namespace) -> BenchmarkResult:
         endpoint = "/" + endpoint
 
     status_counts: Counter = Counter()
-    latencies_ms: List[float] = []
+    latencies_ms: list[float] = []
     semaphore = asyncio.Semaphore(args.concurrency)
-    started_at = datetime.now(timezone.utc)
+    started_at = datetime.now(UTC)
 
     async with httpx.AsyncClient(base_url=args.target, timeout=args.timeout) as client:
         tasks = [
-            _fire_request(client, args.method.upper(), endpoint, semaphore, status_counts, latencies_ms)
+            _fire_request(
+                client,
+                args.method.upper(),
+                endpoint,
+                semaphore,
+                status_counts,
+                latencies_ms,
+            )
             for _ in range(args.requests)
         ]
         responses = await asyncio.gather(*tasks, return_exceptions=False)
 
-    completed_at = datetime.now(timezone.utc)
+    completed_at = datetime.now(UTC)
     errors = sum(1 for ok in responses if not ok)
     return BenchmarkResult(
         started_at=started_at,
@@ -118,8 +124,8 @@ async def execute_benchmark(args: argparse.Namespace) -> BenchmarkResult:
     )
 
 
-def parse_metadata(pairs: List[str]) -> Dict[str, str]:
-    metadata: Dict[str, str] = {}
+def parse_metadata(pairs: list[str]) -> dict[str, str]:
+    metadata: dict[str, str] = {}
     for pair in pairs:
         if "=" not in pair:
             raise ValueError(f"Invalid metadata entry '{pair}', expected key=value")
@@ -165,7 +171,9 @@ async def main_async(args: argparse.Namespace) -> int:
         payload["tenant_id"] = args.tenant_id
 
     async with httpx.AsyncClient(timeout=10.0) as client:
-        response = await client.post(f"{args.analytics_url.rstrip('/')}/v1/benchmarks/run", json=payload)
+        response = await client.post(
+            f"{args.analytics_url.rstrip('/')}/v1/benchmarks/run", json=payload
+        )
         response.raise_for_status()
         print("Analytics response:", response.json())
     return 0
@@ -173,32 +181,58 @@ async def main_async(args: argparse.Namespace) -> int:
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="Run SomaGent benchmark harness")
-    parser.add_argument("--suite", required=True, help="Logical benchmark suite name (e.g. sessions)")
-    parser.add_argument("--scenario", required=True, help="Scenario identifier (e.g. fast_path)")
-    parser.add_argument("--service", required=True, help="Service under test (e.g. orchestrator)")
-    parser.add_argument("--target", required=True, help="Base URL for the service under test")
-    parser.add_argument("--endpoint", default="/health", help="Endpoint path relative to the target base URL")
+    parser.add_argument(
+        "--suite", required=True, help="Logical benchmark suite name (e.g. sessions)"
+    )
+    parser.add_argument(
+        "--scenario", required=True, help="Scenario identifier (e.g. fast_path)"
+    )
+    parser.add_argument(
+        "--service", required=True, help="Service under test (e.g. orchestrator)"
+    )
+    parser.add_argument(
+        "--target", required=True, help="Base URL for the service under test"
+    )
+    parser.add_argument(
+        "--endpoint",
+        default="/health",
+        help="Endpoint path relative to the target base URL",
+    )
     parser.add_argument("--method", default="GET", help="HTTP method to execute")
-    parser.add_argument("--requests", type=int, default=50, help="Number of HTTP requests to send")
-    parser.add_argument("--concurrency", type=int, default=5, help="Concurrent requests to issue")
-    parser.add_argument("--timeout", type=float, default=10.0, help="HTTP timeout seconds per request")
+    parser.add_argument(
+        "--requests", type=int, default=50, help="Number of HTTP requests to send"
+    )
+    parser.add_argument(
+        "--concurrency", type=int, default=5, help="Concurrent requests to issue"
+    )
+    parser.add_argument(
+        "--timeout", type=float, default=10.0, help="HTTP timeout seconds per request"
+    )
     parser.add_argument(
         "--analytics-url",
         default=DEFAULT_ANALYTICS_URL,
         help="Analytics service base URL (defaults to http://localhost:8008)",
     )
-    parser.add_argument("--tenant-id", default=None, help="Optional tenant identifier to annotate the run")
+    parser.add_argument(
+        "--tenant-id",
+        default=None,
+        help="Optional tenant identifier to annotate the run",
+    )
     parser.add_argument(
         "--metadata",
         action="append",
         default=[],
         help="Additional key=value metadata pairs to associate with the benchmark run",
     )
-    parser.add_argument("--dry-run", action="store_true", help="Compute metrics but skip publishing to analytics")
+    parser.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="Compute metrics but skip publishing to analytics",
+    )
     return parser
 
 
-def main(argv: List[str] | None = None) -> int:
+def main(argv: list[str] | None = None) -> int:
     parser = build_parser()
     args = parser.parse_args(argv)
     try:

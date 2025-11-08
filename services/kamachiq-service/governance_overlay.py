@@ -9,17 +9,17 @@ Industry-specific ethical and compliance modulators:
 - Custom governance rules
 """
 
-from typing import Dict, List, Any, Optional
+import logging
 from dataclasses import dataclass
 from enum import Enum
-import logging
-import json
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
 
 class IndustryType(Enum):
     """Supported industry types."""
+
     HEALTHCARE = "healthcare"
     FINANCE = "finance"
     EDUCATION = "education"
@@ -31,6 +31,7 @@ class IndustryType(Enum):
 @dataclass
 class GovernanceRule:
     """A single governance rule."""
+
     id: str
     category: str  # data_handling, security, access_control, audit
     description: str
@@ -42,18 +43,18 @@ class GovernanceRule:
 class GovernanceOverlay:
     """
     Industry-specific governance and compliance modulator.
-    
+
     Applies ethical and regulatory constraints to project execution.
     """
-    
+
     def __init__(self, industry: IndustryType):
         self.industry = industry
         self.rules = self._load_industry_rules(industry)
-    
-    def _load_industry_rules(self, industry: IndustryType) -> List[GovernanceRule]:
+
+    def _load_industry_rules(self, industry: IndustryType) -> list[GovernanceRule]:
         """Load governance rules for industry."""
         logger.info(f"Loading governance rules for: {industry.value}")
-        
+
         if industry == IndustryType.HEALTHCARE:
             return self._get_healthcare_rules()
         elif industry == IndustryType.FINANCE:
@@ -64,8 +65,8 @@ class GovernanceOverlay:
             return self._get_government_rules()
         else:
             return self._get_general_rules()
-    
-    def _get_healthcare_rules(self) -> List[GovernanceRule]:
+
+    def _get_healthcare_rules(self) -> list[GovernanceRule]:
         """HIPAA compliance rules."""
         return [
             GovernanceRule(
@@ -74,7 +75,7 @@ class GovernanceOverlay:
                 description="All PHI must be encrypted at rest using AES-256",
                 enforcement_level="required",
                 validation_function="validate_encryption_at_rest",
-                remediation="Enable encryption on all data stores containing PHI"
+                remediation="Enable encryption on all data stores containing PHI",
             ),
             GovernanceRule(
                 id="hipaa-encryption-in-transit",
@@ -82,7 +83,7 @@ class GovernanceOverlay:
                 description="All PHI must be encrypted in transit using TLS 1.2+",
                 enforcement_level="required",
                 validation_function="validate_encryption_in_transit",
-                remediation="Configure TLS 1.2+ for all API endpoints"
+                remediation="Configure TLS 1.2+ for all API endpoints",
             ),
             GovernanceRule(
                 id="hipaa-access-logs",
@@ -90,7 +91,7 @@ class GovernanceOverlay:
                 description="All access to PHI must be logged and retained for 6 years",
                 enforcement_level="required",
                 validation_function="validate_audit_logging",
-                remediation="Enable CloudWatch/CloudTrail logging with 6-year retention"
+                remediation="Enable CloudWatch/CloudTrail logging with 6-year retention",
             ),
             GovernanceRule(
                 id="hipaa-mfa",
@@ -98,7 +99,7 @@ class GovernanceOverlay:
                 description="Multi-factor authentication required for all users",
                 enforcement_level="required",
                 validation_function="validate_mfa_enabled",
-                remediation="Enable MFA in identity provider"
+                remediation="Enable MFA in identity provider",
             ),
             GovernanceRule(
                 id="hipaa-data-retention",
@@ -106,11 +107,11 @@ class GovernanceOverlay:
                 description="PHI must be retained per state law (typically 6-10 years)",
                 enforcement_level="required",
                 validation_function="validate_data_retention",
-                remediation="Configure lifecycle policies for data retention"
+                remediation="Configure lifecycle policies for data retention",
             ),
         ]
-    
-    def _get_finance_rules(self) -> List[GovernanceRule]:
+
+    def _get_finance_rules(self) -> list[GovernanceRule]:
         """SOC2 and PCI-DSS compliance rules."""
         return [
             GovernanceRule(
@@ -119,7 +120,7 @@ class GovernanceOverlay:
                 description="Cardholder data must not be stored (use tokenization)",
                 enforcement_level="required",
                 validation_function="validate_no_card_storage",
-                remediation="Integrate payment gateway with tokenization (Stripe, etc.)"
+                remediation="Integrate payment gateway with tokenization (Stripe, etc.)",
             ),
             GovernanceRule(
                 id="soc2-access-control",
@@ -127,7 +128,7 @@ class GovernanceOverlay:
                 description="Role-based access control (RBAC) required",
                 enforcement_level="required",
                 validation_function="validate_rbac",
-                remediation="Implement RBAC in IAM system"
+                remediation="Implement RBAC in IAM system",
             ),
             GovernanceRule(
                 id="soc2-change-tracking",
@@ -135,7 +136,7 @@ class GovernanceOverlay:
                 description="All infrastructure changes must be tracked and auditable",
                 enforcement_level="required",
                 validation_function="validate_change_tracking",
-                remediation="Enable CloudTrail/audit logs for all resources"
+                remediation="Enable CloudTrail/audit logs for all resources",
             ),
             GovernanceRule(
                 id="soc2-encryption",
@@ -143,7 +144,7 @@ class GovernanceOverlay:
                 description="Sensitive data must be encrypted at rest and in transit",
                 enforcement_level="required",
                 validation_function="validate_encryption",
-                remediation="Enable encryption on all data stores and use HTTPS/TLS"
+                remediation="Enable encryption on all data stores and use HTTPS/TLS",
             ),
             GovernanceRule(
                 id="soc2-incident-response",
@@ -151,11 +152,11 @@ class GovernanceOverlay:
                 description="Incident response plan must be documented and tested",
                 enforcement_level="required",
                 validation_function="validate_incident_response",
-                remediation="Document incident response procedures"
+                remediation="Document incident response procedures",
             ),
         ]
-    
-    def _get_education_rules(self) -> List[GovernanceRule]:
+
+    def _get_education_rules(self) -> list[GovernanceRule]:
         """FERPA and COPPA compliance rules."""
         return [
             GovernanceRule(
@@ -164,7 +165,7 @@ class GovernanceOverlay:
                 description="Student education records must be protected",
                 enforcement_level="required",
                 validation_function="validate_student_data_privacy",
-                remediation="Implement access controls on student data"
+                remediation="Implement access controls on student data",
             ),
             GovernanceRule(
                 id="coppa-parental-consent",
@@ -172,7 +173,7 @@ class GovernanceOverlay:
                 description="Parental consent required for users under 13",
                 enforcement_level="required",
                 validation_function="validate_parental_consent",
-                remediation="Implement age gate and parental consent workflow"
+                remediation="Implement age gate and parental consent workflow",
             ),
             GovernanceRule(
                 id="ferpa-access-logs",
@@ -180,11 +181,11 @@ class GovernanceOverlay:
                 description="Access to education records must be logged",
                 enforcement_level="required",
                 validation_function="validate_education_record_logs",
-                remediation="Enable audit logging for student data access"
+                remediation="Enable audit logging for student data access",
             ),
         ]
-    
-    def _get_government_rules(self) -> List[GovernanceRule]:
+
+    def _get_government_rules(self) -> list[GovernanceRule]:
         """FedRAMP compliance rules."""
         return [
             GovernanceRule(
@@ -193,7 +194,7 @@ class GovernanceOverlay:
                 description="Must meet FedRAMP baseline controls",
                 enforcement_level="required",
                 validation_function="validate_fedramp_baseline",
-                remediation="Implement NIST 800-53 controls"
+                remediation="Implement NIST 800-53 controls",
             ),
             GovernanceRule(
                 id="fedramp-us-jurisdiction",
@@ -201,11 +202,11 @@ class GovernanceOverlay:
                 description="Data must remain in US jurisdiction",
                 enforcement_level="required",
                 validation_function="validate_data_jurisdiction",
-                remediation="Configure cloud resources to US-only regions"
+                remediation="Configure cloud resources to US-only regions",
             ),
         ]
-    
-    def _get_general_rules(self) -> List[GovernanceRule]:
+
+    def _get_general_rules(self) -> list[GovernanceRule]:
         """General best practices."""
         return [
             GovernanceRule(
@@ -214,7 +215,7 @@ class GovernanceOverlay:
                 description="Sensitive data should be encrypted",
                 enforcement_level="recommended",
                 validation_function="validate_encryption",
-                remediation="Enable encryption for databases and file storage"
+                remediation="Enable encryption for databases and file storage",
             ),
             GovernanceRule(
                 id="general-https",
@@ -222,25 +223,22 @@ class GovernanceOverlay:
                 description="Use HTTPS for all API endpoints",
                 enforcement_level="required",
                 validation_function="validate_https",
-                remediation="Configure SSL/TLS certificates"
+                remediation="Configure SSL/TLS certificates",
             ),
         ]
-    
-    def validate_project_plan(
-        self,
-        execution_plan: Dict[str, Any]
-    ) -> Dict[str, Any]:
+
+    def validate_project_plan(self, execution_plan: dict[str, Any]) -> dict[str, Any]:
         """
         Validate project execution plan against governance rules.
-        
+
         Args:
             execution_plan: MAO execution plan
-            
+
         Returns:
             Validation results with violations and recommendations
         """
         logger.info(f"Validating plan against {self.industry.value} governance")
-        
+
         results = {
             "industry": self.industry.value,
             "compliant": True,
@@ -248,13 +246,13 @@ class GovernanceOverlay:
             "warnings": [],
             "recommendations": [],
         }
-        
+
         steps = execution_plan.get("steps", [])
-        
+
         for rule in self.rules:
             # Run validation
             violations = self._validate_rule(rule, steps)
-            
+
             if violations:
                 if rule.enforcement_level == "required":
                     results["compliant"] = False
@@ -263,17 +261,15 @@ class GovernanceOverlay:
                     results["warnings"].extend(violations)
                 else:
                     results["recommendations"].extend(violations)
-        
+
         return results
-    
+
     def _validate_rule(
-        self,
-        rule: GovernanceRule,
-        steps: List[Dict[str, Any]]
-    ) -> List[Dict[str, Any]]:
+        self, rule: GovernanceRule, steps: list[dict[str, Any]]
+    ) -> list[dict[str, Any]]:
         """Validate a single rule."""
         violations = []
-        
+
         # Dispatch to specific validation function
         if rule.validation_function == "validate_encryption_at_rest":
             violations = self._validate_encryption_at_rest(steps, rule)
@@ -284,113 +280,109 @@ class GovernanceOverlay:
         elif rule.validation_function == "validate_https":
             violations = self._validate_https(steps, rule)
         # ... add more validation functions
-        
+
         return violations
-    
+
     def _validate_encryption_at_rest(
-        self,
-        steps: List[Dict[str, Any]],
-        rule: GovernanceRule
-    ) -> List[Dict[str, Any]]:
+        self, steps: list[dict[str, Any]], rule: GovernanceRule
+    ) -> list[dict[str, Any]]:
         """Validate encryption at rest."""
         violations = []
-        
+
         # Check for database steps without encryption
         for step in steps:
             if "database" in step.get("parameters", {}).get("resources", []):
                 params = step.get("parameters", {})
                 if not params.get("encryption_enabled"):
-                    violations.append({
-                        "rule_id": rule.id,
-                        "step_id": step.get("id"),
-                        "description": rule.description,
-                        "remediation": rule.remediation,
-                        "severity": "high"
-                    })
-        
+                    violations.append(
+                        {
+                            "rule_id": rule.id,
+                            "step_id": step.get("id"),
+                            "description": rule.description,
+                            "remediation": rule.remediation,
+                            "severity": "high",
+                        }
+                    )
+
         return violations
-    
+
     def _validate_encryption_in_transit(
-        self,
-        steps: List[Dict[str, Any]],
-        rule: GovernanceRule
-    ) -> List[Dict[str, Any]]:
+        self, steps: list[dict[str, Any]], rule: GovernanceRule
+    ) -> list[dict[str, Any]]:
         """Validate encryption in transit."""
         violations = []
-        
+
         # Check for API/service steps without TLS
         for step in steps:
             if step.get("tool") in ["github", "aws", "kubernetes"]:
                 params = step.get("parameters", {})
                 if not params.get("tls_enabled", True):  # Default to true
-                    violations.append({
-                        "rule_id": rule.id,
-                        "step_id": step.get("id"),
-                        "description": rule.description,
-                        "remediation": rule.remediation,
-                        "severity": "high"
-                    })
-        
+                    violations.append(
+                        {
+                            "rule_id": rule.id,
+                            "step_id": step.get("id"),
+                            "description": rule.description,
+                            "remediation": rule.remediation,
+                            "severity": "high",
+                        }
+                    )
+
         return violations
-    
+
     def _validate_audit_logging(
-        self,
-        steps: List[Dict[str, Any]],
-        rule: GovernanceRule
-    ) -> List[Dict[str, Any]]:
+        self, steps: list[dict[str, Any]], rule: GovernanceRule
+    ) -> list[dict[str, Any]]:
         """Validate audit logging."""
         violations = []
-        
+
         # Check if any infrastructure step enables logging
         has_logging = any(
             "logging" in step.get("parameters", {}).get("features", [])
             or "audit" in step.get("parameters", {}).get("features", [])
             for step in steps
         )
-        
+
         if not has_logging:
-            violations.append({
-                "rule_id": rule.id,
-                "step_id": "global",
-                "description": rule.description,
-                "remediation": rule.remediation,
-                "severity": "high"
-            })
-        
+            violations.append(
+                {
+                    "rule_id": rule.id,
+                    "step_id": "global",
+                    "description": rule.description,
+                    "remediation": rule.remediation,
+                    "severity": "high",
+                }
+            )
+
         return violations
-    
+
     def _validate_https(
-        self,
-        steps: List[Dict[str, Any]],
-        rule: GovernanceRule
-    ) -> List[Dict[str, Any]]:
+        self, steps: list[dict[str, Any]], rule: GovernanceRule
+    ) -> list[dict[str, Any]]:
         """Validate HTTPS usage."""
         # In practice, check service configurations
         return []
-    
+
     def apply_remediations(
-        self,
-        execution_plan: Dict[str, Any],
-        violations: List[Dict[str, Any]]
-    ) -> Dict[str, Any]:
+        self, execution_plan: dict[str, Any], violations: list[dict[str, Any]]
+    ) -> dict[str, Any]:
         """
         Automatically apply remediations to execution plan.
-        
+
         Args:
             execution_plan: Original plan
             violations: List of violations
-            
+
         Returns:
             Remediated execution plan
         """
         logger.info(f"Applying {len(violations)} remediations")
-        
+
         remediated_plan = execution_plan.copy()
-        
+
         for violation in violations:
             rule_id = violation["rule_id"]
             step_id = violation["step_id"]
-            
+
             # Find step and apply remediation
             for step in remediated_plan.get("steps", []):
                 if step.get("id") == step_id:
@@ -402,7 +394,7 @@ class GovernanceOverlay:
                         step["parameters"]["features"].append("audit_logging")
                     elif "tls" in rule_id:
                         step["parameters"]["tls_enabled"] = True
-        
+
         logger.info("Remediations applied")
         return remediated_plan
 
@@ -411,7 +403,7 @@ class GovernanceOverlay:
 if __name__ == "__main__":
     # Create healthcare governance overlay
     healthcare_gov = GovernanceOverlay(IndustryType.HEALTHCARE)
-    
+
     # Validate a plan
     execution_plan = {
         "steps": [
@@ -420,21 +412,20 @@ if __name__ == "__main__":
                 "tool": "aws",
                 "parameters": {
                     "resources": ["database"],
-                    "encryption_enabled": False  # Violation!
-                }
+                    "encryption_enabled": False,  # Violation!
+                },
             }
         ]
     }
-    
+
     results = healthcare_gov.validate_project_plan(execution_plan)
-    
+
     print(f"Compliant: {results['compliant']}")
     print(f"Violations: {len(results['violations'])}")
-    
+
     if not results["compliant"]:
         # Apply remediations
         fixed_plan = healthcare_gov.apply_remediations(
-            execution_plan,
-            results["violations"]
+            execution_plan, results["violations"]
         )
         print("✅ Plan remediated for HIPAA compliance")

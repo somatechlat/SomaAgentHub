@@ -7,8 +7,7 @@ import contextlib
 import json
 import logging
 from collections import deque
-from datetime import datetime, timezone
-from typing import Deque, Optional
+from datetime import UTC, datetime
 
 try:
     from aiokafka import AIOKafkaConsumer, AIOKafkaProducer  # type: ignore
@@ -27,14 +26,14 @@ class NotificationBus:
 
     def __init__(self, settings: Settings) -> None:
         self._settings = settings
-        self._producer: Optional[AIOKafkaProducer] = None
-        self._consumer: Optional[AIOKafkaConsumer] = None
-        self._consume_task: Optional[asyncio.Task[None]] = None
-        self._cache: Deque[NotificationRecord] = deque(maxlen=settings.cache_limit)
+        self._producer: AIOKafkaProducer | None = None
+        self._consumer: AIOKafkaConsumer | None = None
+        self._consume_task: asyncio.Task[None] | None = None
+        self._cache: deque[NotificationRecord] = deque(maxlen=settings.cache_limit)
         self._lock = asyncio.Lock()
 
     @property
-    def cache(self) -> Deque[NotificationRecord]:
+    def cache(self) -> deque[NotificationRecord]:
         return self._cache
 
     async def startup(self) -> None:
@@ -42,16 +41,23 @@ class NotificationBus:
             logger.info("Kafka integration disabled via configuration")
             return
         if not self._settings.kafka_bootstrap_servers:
-            logger.warning("Kafka bootstrap servers not configured; running in in-memory mode")
+            logger.warning(
+                "Kafka bootstrap servers not configured; running in in-memory mode"
+            )
             return
         if AIOKafkaProducer is None:
             logger.error("aiokafka not installed; unable to initialise Kafka producer")
             return
 
         try:
-            self._producer = AIOKafkaProducer(bootstrap_servers=self._settings.kafka_bootstrap_servers)
+            self._producer = AIOKafkaProducer(
+                bootstrap_servers=self._settings.kafka_bootstrap_servers
+            )
             await self._producer.start()
-            logger.info("Kafka producer connected", extra={"topic": self._settings.produce_topic})
+            logger.info(
+                "Kafka producer connected",
+                extra={"topic": self._settings.produce_topic},
+            )
         except Exception as exc:  # noqa: BLE001
             logger.error("Failed to start Kafka producer", exc_info=exc)
             self._producer = None
@@ -69,7 +75,10 @@ class NotificationBus:
                 self._consume_task = asyncio.create_task(self._consume_loop())
                 logger.info(
                     "Kafka consumer subscribed",
-                    extra={"topic": self._settings.consume_topic, "group": self._settings.consumer_group},
+                    extra={
+                        "topic": self._settings.consume_topic,
+                        "group": self._settings.consumer_group,
+                    },
                 )
             except Exception as exc:  # noqa: BLE001
                 logger.error("Failed to start Kafka consumer", exc_info=exc)
@@ -93,7 +102,9 @@ class NotificationBus:
                     data = json.loads(message.value.decode("utf-8"))
                     record = NotificationRecord(**data)
                 except Exception:  # noqa: BLE001
-                    logger.warning("Failed to decode notification message", exc_info=True)
+                    logger.warning(
+                        "Failed to decode notification message", exc_info=True
+                    )
                     continue
                 async with self._lock:
                     self._cache.append(record)
@@ -109,7 +120,7 @@ class NotificationBus:
             message=payload.message,
             severity=payload.severity,
             metadata=payload.metadata or {},
-            timestamp=datetime.now(timezone.utc).isoformat(),
+            timestamp=datetime.now(UTC).isoformat(),
         )
         await self._send(record)
         async with self._lock:
@@ -118,7 +129,10 @@ class NotificationBus:
 
     async def _send(self, record: NotificationRecord) -> None:
         if self._producer is None:
-            logger.debug("Kafka producer unavailable; notification cached locally", extra=record.model_dump())
+            logger.debug(
+                "Kafka producer unavailable; notification cached locally",
+                extra=record.model_dump(),
+            )
             return
         try:
             await self._producer.send_and_wait(
@@ -128,7 +142,9 @@ class NotificationBus:
         except Exception as exc:  # noqa: BLE001
             logger.error("Failed to publish notification", exc_info=exc)
 
-    async def backlog(self, limit: int = 50, tenant_id: Optional[str] = None) -> list[NotificationRecord]:
+    async def backlog(
+        self, limit: int = 50, tenant_id: str | None = None
+    ) -> list[NotificationRecord]:
         async with self._lock:
             records = list(self._cache)
         if tenant_id:
@@ -138,7 +154,7 @@ class NotificationBus:
         return records
 
 
-_notification_bus: Optional[NotificationBus] = None
+_notification_bus: NotificationBus | None = None
 
 
 def get_notification_bus(settings: Settings) -> NotificationBus:

@@ -25,6 +25,7 @@ if str(_repo_root) not in sys.path:
     # expected import order for service‑local modules.
     sys.path.append(str(_repo_root))
 
+
 # Export a no‑op name for ``from services._path_setup import *`` compatibility.
 def ensure_repo_root() -> None:  # pragma: no cover
     """Explicitly ensure the repository root is on ``sys.path``.

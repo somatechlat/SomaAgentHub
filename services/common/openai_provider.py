@@ -6,18 +6,18 @@ Real integration with OpenAI API - no mocks or stubs.
 from __future__ import annotations
 
 import os
-from typing import AsyncGenerator, Any, Dict, Optional
+from collections.abc import AsyncGenerator
+from typing import Any
 
 try:
-    from openai import AsyncOpenAI
-    from openai import OpenAIError, RateLimitError, APIError
+    from openai import APIError, AsyncOpenAI, OpenAIError, RateLimitError
 except ImportError:
     AsyncOpenAI = None
     OpenAIError = Exception
     RateLimitError = Exception
     APIError = Exception
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 
 class OpenAIProvider:
@@ -25,12 +25,12 @@ class OpenAIProvider:
 
     def __init__(
         self,
-        api_key: Optional[str] = None,
-        organization: Optional[str] = None,
-        base_url: Optional[str] = None,
+        api_key: str | None = None,
+        organization: str | None = None,
+        base_url: str | None = None,
     ):
         """Initialize OpenAI provider.
-        
+
         Args:
             api_key: OpenAI API key (defaults to OPENAI_API_KEY env var)
             organization: OpenAI organization ID (optional)
@@ -38,15 +38,16 @@ class OpenAIProvider:
         """
         if AsyncOpenAI is None:
             raise RuntimeError("openai library not installed. Run: pip install openai")
-        
+
         self.api_key = api_key or os.getenv("OPENAI_API_KEY")
         if not self.api_key:
             raise ValueError("OpenAI API key not configured")
-        
+
         # If the real OpenAI library is unavailable, create a lightweight stub
         # that satisfies attribute access used in tests. The stub will raise a
         # clear error if any method is actually invoked.
         if AsyncOpenAI is None:
+
             class _DummyClient:
                 async def chat(self, *_, **__):  # pragma: no cover
                     raise RuntimeError("OpenAI library not installed")
@@ -78,12 +79,12 @@ class OpenAIProvider:
         prompt: str,
         model: str = "gpt-4o",
         temperature: float = 0.7,
-        max_tokens: Optional[int] = None,
-        system_message: Optional[str] = None,
-        **kwargs
-    ) -> Dict[str, Any]:
+        max_tokens: int | None = None,
+        system_message: str | None = None,
+        **kwargs,
+    ) -> dict[str, Any]:
         """Generate completion using OpenAI API.
-        
+
         Args:
             prompt: User prompt
             model: OpenAI model name
@@ -91,7 +92,7 @@ class OpenAIProvider:
             max_tokens: Maximum tokens to generate
             system_message: System message for chat models
             **kwargs: Additional OpenAI parameters
-            
+
         Returns:
             Dictionary with completion result and metadata
         """
@@ -99,19 +100,21 @@ class OpenAIProvider:
         if system_message:
             messages.append({"role": "system", "content": system_message})
         messages.append({"role": "user", "content": prompt})
-        
+
         try:
             response = await self.client.chat.completions.create(
                 model=model,
                 messages=messages,
                 temperature=temperature,
                 max_tokens=max_tokens,
-                **kwargs
+                **kwargs,
             )
-            
+
             usage = response.usage
-            cost = self._calculate_cost(model, usage.prompt_tokens, usage.completion_tokens)
-            
+            cost = self._calculate_cost(
+                model, usage.prompt_tokens, usage.completion_tokens
+            )
+
             return {
                 "completion": response.choices[0].message.content,
                 "model": model,
@@ -122,9 +125,9 @@ class OpenAIProvider:
                 },
                 "cost_usd": cost,
                 "finish_reason": response.choices[0].finish_reason,
-                "timestamp": datetime.now(timezone.utc).isoformat(),
+                "timestamp": datetime.now(UTC).isoformat(),
             }
-            
+
         except RateLimitError as exc:
             raise RuntimeError(f"OpenAI rate limit exceeded: {exc}") from exc
         except APIError as exc:
@@ -137,19 +140,19 @@ class OpenAIProvider:
         prompt: str,
         model: str = "gpt-4o",
         temperature: float = 0.7,
-        max_tokens: Optional[int] = None,
-        system_message: Optional[str] = None,
-        **kwargs
-    ) -> AsyncGenerator[Dict[str, Any], None]:
+        max_tokens: int | None = None,
+        system_message: str | None = None,
+        **kwargs,
+    ) -> AsyncGenerator[dict[str, Any], None]:
         """Generate streaming completion using OpenAI API.
-        
+
         Yields dictionaries with incremental completion chunks.
         """
         messages = []
         if system_message:
             messages.append({"role": "system", "content": system_message})
         messages.append({"role": "user", "content": prompt})
-        
+
         try:
             stream = await self.client.chat.completions.create(
                 model=model,
@@ -157,9 +160,9 @@ class OpenAIProvider:
                 temperature=temperature,
                 max_tokens=max_tokens,
                 stream=True,
-                **kwargs
+                **kwargs,
             )
-            
+
             async for chunk in stream:
                 if chunk.choices and chunk.choices[0].delta.content:
                     yield {
@@ -167,7 +170,7 @@ class OpenAIProvider:
                         "model": model,
                         "finish_reason": chunk.choices[0].finish_reason,
                     }
-                    
+
         except RateLimitError as exc:
             raise RuntimeError(f"OpenAI rate limit exceeded: {exc}") from exc
         except APIError as exc:
@@ -179,13 +182,13 @@ class OpenAIProvider:
         self,
         text: str,
         model: str = "text-embedding-3-small",
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Generate embedding vector for text.
-        
+
         Args:
             text: Input text
             model: Embedding model name
-            
+
         Returns:
             Dictionary with embedding vector and metadata
         """
@@ -194,7 +197,7 @@ class OpenAIProvider:
                 model=model,
                 input=text,
             )
-            
+
             return {
                 "embedding": response.data[0].embedding,
                 "model": model,
@@ -203,20 +206,26 @@ class OpenAIProvider:
                 },
                 "dimensions": len(response.data[0].embedding),
             }
-            
+
         except OpenAIError as exc:
             raise RuntimeError(f"OpenAI embedding error: {exc}") from exc
 
-    def _calculate_cost(self, model: str, prompt_tokens: int, completion_tokens: int) -> float:
+    def _calculate_cost(
+        self, model: str, prompt_tokens: int, completion_tokens: int
+    ) -> float:
         """Calculate cost in USD for a completion (internal helper)."""
         if model not in self.model_costs:
             # Default to gpt-4 pricing for unknown models
             costs = self.model_costs["gpt-4"]
         else:
             costs = self.model_costs[model]
-        return (prompt_tokens * costs["prompt"] + completion_tokens * costs["completion"]) / 1_000_000
+        return (
+            prompt_tokens * costs["prompt"] + completion_tokens * costs["completion"]
+        ) / 1_000_000
 
-    def calculate_cost(self, model: str, prompt_tokens: int, completion_tokens: int) -> float:
+    def calculate_cost(
+        self, model: str, prompt_tokens: int, completion_tokens: int
+    ) -> float:
         """Public method used by tests to compute token cost.
 
         Delegates to the internal ``_calculate_cost`` implementation.

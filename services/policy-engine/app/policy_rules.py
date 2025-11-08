@@ -4,14 +4,16 @@ from __future__ import annotations
 
 import json
 import os
-from datetime import datetime, timezone
+from collections.abc import Iterable
+from datetime import UTC, datetime
 from pathlib import Path
-from typing import Dict, Iterable, List, Literal
+from typing import Literal
 
 from pydantic import BaseModel, Field, ValidationError
 
 try:  # pragma: no cover - redis is optional in tests/local runs
-    from redis.asyncio import Redis, from_url as redis_from_url
+    from redis.asyncio import Redis
+    from redis.asyncio import from_url as redis_from_url
 except Exception:  # pragma: no cover
     Redis = None  # type: ignore[assignment]
     redis_from_url = None  # type: ignore[assignment]
@@ -36,14 +38,14 @@ class RulePack(BaseModel):
     """Collection of rules for a specific tenant."""
 
     tenant: str
-    rules: List[PolicyRule]
+    rules: list[PolicyRule]
     version: str = "default"
     source: str = "default"
-    updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    updated_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
 
     model_config = {"extra": "allow"}
 
-    def ordered_rules(self) -> List[PolicyRule]:
+    def ordered_rules(self) -> list[PolicyRule]:
         return sorted(self.rules, key=lambda rule: (rule.pattern.lower(), rule.name))
 
 
@@ -51,7 +53,7 @@ class RuleViolation(BaseModel):
     rule: PolicyRule
     excerpt: str
 
-    def model_dump(self) -> Dict[str, str | float]:  # noqa: D401 - compatibility helper
+    def model_dump(self) -> dict[str, str | float]:  # noqa: D401 - compatibility helper
         payload = self.rule.model_dump()
         payload["excerpt"] = self.excerpt
         return payload
@@ -70,8 +72,8 @@ def _excerpt_for_pattern(text: str, pattern: str, window: int = 40) -> str:
 class RuleEngine:
     """In-memory rule registry with deterministic ordering."""
 
-    def __init__(self, rules: Dict[str, List[PolicyRule]] | None = None) -> None:
-        self._rules: Dict[str, List[PolicyRule]] = {}
+    def __init__(self, rules: dict[str, list[PolicyRule]] | None = None) -> None:
+        self._rules: dict[str, list[PolicyRule]] = {}
         if rules:
             for tenant, rule_list in rules.items():
                 self.set_rules(tenant, rule_list)
@@ -79,10 +81,10 @@ class RuleEngine:
     def list_tenants(self) -> Iterable[str]:
         return self._rules.keys()
 
-    def get_rules(self, tenant: str) -> List[PolicyRule]:
+    def get_rules(self, tenant: str) -> list[PolicyRule]:
         return list(self._rules.get(tenant, []))
 
-    def set_rules(self, tenant: str, rules: List[PolicyRule]) -> None:
+    def set_rules(self, tenant: str, rules: list[PolicyRule]) -> None:
         ordered = [PolicyRule.model_validate(rule) for rule in rules]
         ordered.sort(key=lambda rule: (rule.pattern.lower(), rule.name))
         self._rules[tenant] = ordered
@@ -92,30 +94,36 @@ class RuleEngine:
         tenant_rules.append(PolicyRule.model_validate(rule))
         tenant_rules.sort(key=lambda item: (item.pattern.lower(), item.name))
 
-    def replace(self, mapping: Dict[str, List[PolicyRule]]) -> None:
+    def replace(self, mapping: dict[str, list[PolicyRule]]) -> None:
         self._rules.clear()
         for tenant, rules in mapping.items():
             self.set_rules(tenant, list(rules))
 
-    def evaluate(self, tenant: str, prompt: str) -> tuple[bool, float, List[RuleViolation]]:
-        violations: List[RuleViolation] = []
+    def evaluate(
+        self, tenant: str, prompt: str
+    ) -> tuple[bool, float, list[RuleViolation]]:
+        violations: list[RuleViolation] = []
         total_weight = 0.0
         lowered_prompt = prompt.lower()
         for rule in self.get_rules(tenant):
             if rule.pattern.lower() in lowered_prompt:
-                violations.append(RuleViolation(rule=rule, excerpt=_excerpt_for_pattern(prompt, rule.pattern)))
+                violations.append(
+                    RuleViolation(
+                        rule=rule, excerpt=_excerpt_for_pattern(prompt, rule.pattern)
+                    )
+                )
                 total_weight += rule.weight
         score = round(max(0.0, 1.0 - total_weight), 6)
         allowed = len(violations) == 0
         return allowed, score, violations
 
 
-def _load_default_rule_packs() -> Dict[str, RulePack]:
+def _load_default_rule_packs() -> dict[str, RulePack]:
     if not _RULES_FILE.exists():  # pragma: no cover - defensive guard
         return {}
     raw = json.loads(_RULES_FILE.read_text(encoding="utf-8"))
     version = raw.get("version", "default")
-    packs: Dict[str, RulePack] = {}
+    packs: dict[str, RulePack] = {}
     for entry in raw.get("tenants", []):
         tenant = entry.get("tenant")
         if not tenant:
@@ -133,8 +141,10 @@ def _load_default_rule_packs() -> Dict[str, RulePack]:
     return packs
 
 
-RULE_PACKS: Dict[str, RulePack] = _load_default_rule_packs()
-engine = RuleEngine({tenant: pack.ordered_rules() for tenant, pack in RULE_PACKS.items()})
+RULE_PACKS: dict[str, RulePack] = _load_default_rule_packs()
+engine = RuleEngine(
+    {tenant: pack.ordered_rules() for tenant, pack in RULE_PACKS.items()}
+)
 
 
 async def _get_redis_client() -> Redis | None:
@@ -152,16 +162,18 @@ async def _get_redis_client() -> Redis | None:
     return client
 
 
-def _apply_rule_packs(packs: Dict[str, RulePack]) -> None:
+def _apply_rule_packs(packs: dict[str, RulePack]) -> None:
     RULE_PACKS.clear()
     RULE_PACKS.update(packs)
     engine.replace({tenant: pack.ordered_rules() for tenant, pack in packs.items()})
 
 
-async def bootstrap_rule_engine(namespace: str = _REDIS_NAMESPACE) -> Dict[str, RulePack]:
+async def bootstrap_rule_engine(
+    namespace: str = _REDIS_NAMESPACE,
+) -> dict[str, RulePack]:
     """Load rule packs from Redis if available, otherwise persist defaults."""
 
-    packs: Dict[str, RulePack] = dict(RULE_PACKS)
+    packs: dict[str, RulePack] = dict(RULE_PACKS)
     client = await _get_redis_client()
     if client is not None:
         try:
@@ -190,20 +202,33 @@ def get_rule_pack(tenant: str) -> RulePack | None:
     return RULE_PACKS.get(tenant)
 
 
-def get_rules(tenant: str) -> List[PolicyRule]:
+def get_rules(tenant: str) -> list[PolicyRule]:
     return engine.get_rules(tenant)
 
 
-def list_tenants() -> List[str]:
+def list_tenants() -> list[str]:
     return sorted(engine.list_tenants())
 
 
-def set_rules(tenant: str, rules: List[PolicyRule], *, version: str = "runtime", source: str = "in-memory") -> RulePack:
-    pack = RulePack(tenant=tenant, rules=[PolicyRule.model_validate(rule) for rule in rules], version=version, source=source)
+def set_rules(
+    tenant: str,
+    rules: list[PolicyRule],
+    *,
+    version: str = "runtime",
+    source: str = "in-memory",
+) -> RulePack:
+    pack = RulePack(
+        tenant=tenant,
+        rules=[PolicyRule.model_validate(rule) for rule in rules],
+        version=version,
+        source=source,
+    )
     RULE_PACKS[tenant] = pack
     engine.set_rules(tenant, pack.ordered_rules())
     return pack
 
 
-def evaluate_prompt(tenant: str, prompt: str) -> tuple[bool, float, List[RuleViolation]]:
+def evaluate_prompt(
+    tenant: str, prompt: str
+) -> tuple[bool, float, list[RuleViolation]]:
     return engine.evaluate(tenant, prompt)

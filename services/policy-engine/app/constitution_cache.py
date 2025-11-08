@@ -1,5 +1,4 @@
-from datetime import datetime, timedelta, timezone
-from typing import Dict, Tuple
+from datetime import UTC, datetime, timedelta
 
 from .redis_client import get_constitution_hash as _redis_get_hash
 
@@ -7,7 +6,8 @@ from .redis_client import get_constitution_hash as _redis_get_hash
 _CACHE_TTL = 60
 
 # In‑memory cache: tenant -> (hash, expiry datetime)
-_cache: Dict[str, Tuple[str, datetime]] = {}
+_cache: dict[str, tuple[str, datetime]] = {}
+
 
 async def get_cached_hash(tenant: str) -> str:
     """Return a cached constitution hash for *tenant*.
@@ -17,7 +17,7 @@ async def get_cached_hash(tenant: str) -> str:
     store it in the in‑memory cache.
     """
     # Use timezone-aware UTC for consistency across services
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     entry = _cache.get(tenant)
     if entry:
         value, expiry = entry
@@ -27,6 +27,7 @@ async def get_cached_hash(tenant: str) -> str:
     value = await _redis_get_hash(tenant)
     _cache[tenant] = (value, now + timedelta(seconds=_CACHE_TTL))
     return value
+
 
 async def invalidate_hash(tenant: str) -> None:
     """Invalidate the cached constitution hash for *tenant*.

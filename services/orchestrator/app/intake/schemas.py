@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from pydantic import BaseModel, Field
 
@@ -11,9 +11,9 @@ class IntakeRequest(BaseModel):
     """Represents a request to fetch the next wizard/manual step."""
 
     plan_id: str
-    module_id: Optional[str] = None
+    module_id: str | None = None
     mode: str = Field(default="wizard", description="wizard or manual")
-    metadata: Dict[str, Any] = Field(default_factory=dict)
+    metadata: dict[str, Any] = Field(default_factory=dict)
 
 
 class IntakeAnswer(BaseModel):
@@ -23,7 +23,7 @@ class IntakeAnswer(BaseModel):
     module_id: str
     question_id: str
     value: Any
-    metadata: Dict[str, Any] = Field(default_factory=dict)
+    metadata: dict[str, Any] = Field(default_factory=dict)
 
 
 class ModuleState(BaseModel):
@@ -32,17 +32,17 @@ class ModuleState(BaseModel):
     plan_id: str
     module_id: str
     status: str
-    answers: Dict[str, Any] = Field(default_factory=dict)
-    pending_questions: List[str] = Field(default_factory=list)
+    answers: dict[str, Any] = Field(default_factory=dict)
+    pending_questions: list[str] = Field(default_factory=list)
 
 
 class IntakeResponse(BaseModel):
     """Response containing the next prompt or summary for the user."""
 
     plan_id: str
-    module_id: Optional[str] = None
+    module_id: str | None = None
     status: str = "pending"
-    prompt: Optional[str] = None
-    question: Optional[Dict[str, Any]] = None
-    summary: Optional[str] = None
+    prompt: str | None = None
+    question: dict[str, Any] | None = None
+    summary: str | None = None
     finished: bool = False

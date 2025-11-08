@@ -4,25 +4,25 @@ Integration module: Gateway API → Temporal Orchestrator.
 Connects wizard approval to MarketingCampaignWorkflow execution.
 """
 
-from datetime import datetime, timedelta, UTC
-from typing import Any, Dict
+from datetime import UTC, datetime, timedelta
+from typing import Any
 
 from temporalio import client as temporal_client
 
 
 async def start_marketing_campaign_workflow(
     temporal_client: temporal_client.Client,
-    wizard_session: Dict[str, Any],
+    wizard_session: dict[str, Any],
     task_queue: str = "somagent-tasks",
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """
     Start MarketingCampaignWorkflow from wizard approval.
-    
+
     Args:
         temporal_client: Temporal client instance
         wizard_session: Wizard session with user answers
         task_queue: Temporal task queue name
-        
+
     Returns:
         {
             "workflow_id": "campaign-...",
@@ -31,13 +31,13 @@ async def start_marketing_campaign_workflow(
         }
     """
     answers = wizard_session.get("answers", {})
-    
+
     # Extract campaign parameters from wizard answers
     campaign_name = answers.get("campaign_name", "Untitled Campaign")
     campaign_goals = answers.get("campaign_goals", [])
     target_audience = answers.get("target_audience", "")
     budget = float(answers.get("budget", 10000))
-    
+
     # Extract channel selection
     channels = []
     if answers.get("email_channel"):
@@ -46,18 +46,22 @@ async def start_marketing_campaign_workflow(
         channels.append("social")
     if answers.get("blog_channel"):
         channels.append("blog")
-    
+
     # Extract research parameters
     research_sources = answers.get("research_sources", ["notion"])
-    competitor_urls = answers.get("competitor_urls", "").split("\n") if answers.get("competitor_urls") else []
-    
+    competitor_urls = (
+        answers.get("competitor_urls", "").split("\n")
+        if answers.get("competitor_urls")
+        else []
+    )
+
     # Extract content parameters
     tone = answers.get("tone", "professional")
     brand_voice_id = answers.get("brand_voice_id")
-    
+
     # Build workflow input
     from ..workflows.marketing_campaign import CampaignInput
-    
+
     campaign_input = CampaignInput(
         campaign_name=campaign_name,
         campaign_goals=campaign_goals,
@@ -78,11 +82,11 @@ async def start_marketing_campaign_workflow(
             "reviewers": answers.get("reviewers", []),
         },
     )
-    
+
     # Generate workflow ID
     campaign_id = f"campaign-{campaign_name.lower().replace(' ', '-')}-{int(datetime.now(UTC).timestamp())}"
     workflow_id = campaign_id
-    
+
     # Start workflow
     handle = await temporal_client.start_workflow(
         "MarketingCampaignWorkflow",
@@ -92,7 +96,7 @@ async def start_marketing_campaign_workflow(
         start_timeout=timedelta(seconds=10),
         run_timeout=timedelta(hours=2),  # Max 2 hours (includes approval wait)
     )
-    
+
     return {
         "workflow_id": handle.id,
         "run_id": handle.run_id,
@@ -105,14 +109,14 @@ async def start_marketing_campaign_workflow(
 async def query_campaign_progress(
     temporal_client: temporal_client.Client,
     workflow_id: str,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """
     Query real-time campaign progress.
-    
+
     Args:
         temporal_client: Temporal client instance
         workflow_id: Campaign workflow ID
-        
+
     Returns:
         {
             "progress_percentage": 65,
@@ -121,32 +125,32 @@ async def query_campaign_progress(
         }
     """
     handle = temporal_client.get_workflow_handle(workflow_id)
-    
+
     # Query workflow for progress
     progress = await handle.query("get_progress")
-    
+
     return progress
 
 
 async def send_campaign_approval(
     temporal_client: temporal_client.Client,
     workflow_id: str,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """
     Send approval signal to campaign workflow.
-    
+
     Args:
         temporal_client: Temporal client instance
         workflow_id: Campaign workflow ID
-        
+
     Returns:
         {"status": "approved", "signal_sent_at": "..."}
     """
     handle = temporal_client.get_workflow_handle(workflow_id)
-    
+
     # Send approval signal
     await handle.signal("approve_campaign")
-    
+
     return {
         "status": "approved",
         "signal_sent_at": datetime.now(UTC).isoformat(),
@@ -158,24 +162,24 @@ async def update_campaign_content(
     workflow_id: str,
     content_id: str,
     new_content: str,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """
     Update campaign content during review phase.
-    
+
     Args:
         temporal_client: Temporal client instance
         workflow_id: Campaign workflow ID
         content_id: Content identifier (e.g., "email_subject")
         new_content: Updated content
-        
+
     Returns:
         {"status": "updated"}
     """
     handle = temporal_client.get_workflow_handle(workflow_id)
-    
+
     # Send content update signal
     await handle.signal("update_content", content_id, new_content)
-    
+
     return {
         "status": "updated",
         "content_id": content_id,
@@ -186,22 +190,22 @@ async def update_campaign_content(
 async def get_campaign_result(
     temporal_client: temporal_client.Client,
     workflow_id: str,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """
     Get final campaign result (blocks until complete).
-    
+
     Args:
         temporal_client: Temporal client instance
         workflow_id: Campaign workflow ID
-        
+
     Returns:
         CampaignResult dict
     """
     handle = temporal_client.get_workflow_handle(workflow_id)
-    
+
     # Wait for workflow completion
     result = await handle.result()
-    
+
     return {
         "campaign_id": result.campaign_id,
         "status": result.status,

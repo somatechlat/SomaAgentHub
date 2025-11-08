@@ -3,17 +3,16 @@
 from __future__ import annotations
 
 import math
-from typing import Any, Dict, List
+import time
+from typing import Any
 from uuid import uuid4
 
-import time
-
-from fastapi import APIRouter, Depends, Header, HTTPException, status
 import httpx
+from fastapi import APIRouter, Depends, Header, HTTPException, status
 
 from ..core.config import Settings, get_settings
 from ..core.metrics import record_execution, record_rate_limit
-from ..core.ratelimit import RateLimitExceeded, RateLimiter
+from ..core.ratelimit import RateLimiter, RateLimitExceeded
 from ..core.registry import get_adapter, list_adapters
 from ..core.sandbox import SandboxRunner
 from ..core.security import verify_release_signature
@@ -32,11 +31,11 @@ router = APIRouter(prefix="/v1", tags=["tools"])
 _settings = get_settings()
 _rate_limiter = RateLimiter(_settings.default_rate_limit_per_minute)
 _sandbox_runner = SandboxRunner(_settings.sandbox_base_path)
-_provision_logs: List[Dict[str, str]] = []
+_provision_logs: list[dict[str, str]] = []
 
 
 async def _emit_billing_event(
-    adapter: Dict[str, Any],
+    adapter: dict[str, Any],
     tenant_id: str,
     action: str,
     duration_seconds: float,
@@ -77,7 +76,9 @@ async def _emit_billing_event(
 
 
 @router.get("/adapters", response_model=AdapterListResponse)
-def list_adapters_route(settings: Settings = Depends(get_settings)) -> AdapterListResponse:
+def list_adapters_route(
+    settings: Settings = Depends(get_settings),
+) -> AdapterListResponse:
     """Return available tool adapters."""
 
     adapters = [AdapterMetadata(**adapter) for adapter in list_adapters(settings)]
@@ -100,12 +101,19 @@ async def execute_adapter(
 
     adapter = get_adapter(adapter_id, settings)
     if adapter is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Adapter not found")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Adapter not found"
+        )
     if adapter.get("status") != "available":
-        raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail="Adapter unavailable")
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Adapter unavailable",
+        )
 
     if not verify_release_signature(adapter, settings.release_signing_secret):
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Adapter signature invalid")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail="Adapter signature invalid"
+        )
 
     rate_key = f"{tenant_id}:{adapter_id}"
     start = time.perf_counter()
@@ -120,11 +128,13 @@ async def execute_adapter(
             headers={"Retry-After": str(retry_after)},
         )
 
-    execution_metadata: Dict[str, str] = {}
+    execution_metadata: dict[str, str] = {}
     if user_id:
         execution_metadata["requested_by"] = user_id
 
-    result = await _sandbox_runner.run(adapter, request.action, request.arguments | execution_metadata)
+    result = await _sandbox_runner.run(
+        adapter, request.action, request.arguments | execution_metadata
+    )
     duration_seconds = time.perf_counter() - start
     record_execution(adapter_id, tenant_id, result.status, duration_seconds)
 
@@ -134,7 +144,9 @@ async def execute_adapter(
         if isinstance(raw_tokens, (int, float)):
             tokens = int(raw_tokens)
 
-    await _emit_billing_event(adapter, tenant_id, request.action, duration_seconds, tokens)
+    await _emit_billing_event(
+        adapter, tenant_id, request.action, duration_seconds, tokens
+    )
 
     return AdapterExecuteResponse(
         job_id=result.job_id,
@@ -157,9 +169,11 @@ def provision_resources(
     settings: Settings = Depends(get_settings),
 ) -> ProvisionResponse:
     if not request.actions:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="actions required")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail="actions required"
+        )
 
-    results: List[ProvisionResult] = []
+    results: list[ProvisionResult] = []
     for action in request.actions:
         job_id = str(uuid4())
         message = "dry-run" if request.dry_run else "submitted"

@@ -8,7 +8,7 @@ from __future__ import annotations
 import asyncio
 import os
 from collections.abc import Mapping, Sequence
-from datetime import datetime, UTC
+from datetime import UTC, datetime
 from typing import Any
 
 import httpx
@@ -44,7 +44,9 @@ def _coerce_positive_int(value: Any, field_name: str) -> int:
     try:
         coerced = int(value)
     except (TypeError, ValueError) as exc:  # pragma: no cover - defensive branch
-        raise ValueError(f"{field_name} must be a positive integer (got {value!r})") from exc
+        raise ValueError(
+            f"{field_name} must be a positive integer (got {value!r})"
+        ) from exc
     if coerced < 1:
         raise ValueError(f"{field_name} must be >= 1 (got {coerced})")
     return coerced
@@ -54,7 +56,9 @@ def _coerce_non_negative_int(value: Any, field_name: str) -> int:
     try:
         coerced = int(value)
     except (TypeError, ValueError) as exc:  # pragma: no cover - defensive branch
-        raise ValueError(f"{field_name} must be a non-negative integer (got {value!r})") from exc
+        raise ValueError(
+            f"{field_name} must be a non-negative integer (got {value!r})"
+        ) from exc
     if coerced < 0:
         raise ValueError(f"{field_name} must be >= 0 (got {coerced})")
     return coerced
@@ -94,7 +98,10 @@ POLICY_ENGINE_URL = _ensure_endpoint(str(settings.policy_engine_url), "/v1/evalu
 SOMALLM_PROVIDER_URL = str(settings.somallm_provider_url)
 GATEWAY_API_URL = os.getenv(
     "GATEWAY_API_URL",
-    runtime_default(os.getenv("GATEWAY_API_URL", "http://gateway-api:10000"), "http://gateway-api:8080"),
+    runtime_default(
+        os.getenv("GATEWAY_API_URL", "http://gateway-api:10000"),
+        "http://gateway-api:8080",
+    ),
 )
 
 
@@ -137,9 +144,13 @@ async def launch_volcano_session_job(payload: dict[str, Any]) -> dict[str, Any]:
     if "min_member" in payload:
         spec.min_member = _coerce_positive_int(payload.get("min_member"), "min_member")
     if "parallelism" in payload:
-        spec.parallelism = _coerce_positive_int(payload.get("parallelism"), "parallelism")
+        spec.parallelism = _coerce_positive_int(
+            payload.get("parallelism"), "parallelism"
+        )
     if "completions" in payload:
-        spec.completions = _coerce_positive_int(payload.get("completions"), "completions")
+        spec.completions = _coerce_positive_int(
+            payload.get("completions"), "completions"
+        )
     if "ttl_seconds_after_finished" in payload:
         spec.ttl_seconds_after_finished = _coerce_non_negative_int(
             payload.get("ttl_seconds_after_finished"), "ttl_seconds_after_finished"
@@ -156,21 +167,29 @@ async def launch_volcano_session_job(payload: dict[str, Any]) -> dict[str, Any]:
     activity.logger.info("Submitted Volcano job %s", job_name)
 
     should_wait = payload.get("wait", True)
-    timeout_seconds = int(payload.get("timeout_seconds", settings.volcano_job_timeout_seconds))
+    timeout_seconds = int(
+        payload.get("timeout_seconds", settings.volcano_job_timeout_seconds)
+    )
     logs: str | None = None
 
     wait_error: Exception | None = None
     if should_wait:
         try:
-            await asyncio.to_thread(launcher.wait_for_completion, job_name, timeout_seconds)
+            await asyncio.to_thread(
+                launcher.wait_for_completion, job_name, timeout_seconds
+            )
         except VolcanoLauncherError as exc:  # type: ignore[misc]
             wait_error = exc
         try:
             logs = await asyncio.to_thread(launcher.fetch_logs, job_name)
         except VolcanoLauncherError as exc:  # type: ignore[misc]
-            activity.logger.warning("Failed to stream Volcano logs for %s: %s", job_name, exc)
+            activity.logger.warning(
+                "Failed to stream Volcano logs for %s: %s", job_name, exc
+            )
         if wait_error is not None:
-            raise RuntimeError(f"Volcano job {job_name} failed to complete: {wait_error}") from wait_error
+            raise RuntimeError(
+                f"Volcano job {job_name} failed to complete: {wait_error}"
+            ) from wait_error
 
     return {
         "status": "submitted",
@@ -181,7 +200,9 @@ async def launch_volcano_session_job(payload: dict[str, Any]) -> dict[str, Any]:
 
 
 @activity.defn
-async def decompose_project(project_description: str, user_id: str) -> list[dict[str, Any]]:
+async def decompose_project(
+    project_description: str, user_id: str
+) -> list[dict[str, Any]]:
     """
     Decompose project into executable tasks.
 
@@ -214,7 +235,10 @@ async def decompose_project(project_description: str, user_id: str) -> list[dict
     """
 
     # HTTP call to SLM service
-    async with httpx.AsyncClient(timeout=httpx.Timeout(10.0, connect=5.0), limits=httpx.Limits(max_connections=200, max_keepalive_connections=50)) as client:
+    async with httpx.AsyncClient(
+        timeout=httpx.Timeout(10.0, connect=5.0),
+        limits=httpx.Limits(max_connections=200, max_keepalive_connections=50),
+    ) as client:
         try:
             response = await client.post(
                 f"{SOMALLM_PROVIDER_URL}/v1/infer/sync",
@@ -298,7 +322,8 @@ async def create_task_plan(task_breakdown: dict[str, Any]) -> dict[str, Any]:
     while len(completed_tasks) < len(tasks):
         # Find tasks with all dependencies satisfied (logic)
         ready_tasks = [
-            t for t in tasks
+            t
+            for t in tasks
             if t["id"] not in completed_tasks
             and all(dep in completed_tasks for dep in t.get("dependencies", []))
         ]
@@ -307,11 +332,13 @@ async def create_task_plan(task_breakdown: dict[str, Any]) -> dict[str, Any]:
             # Circular dependency detected
             raise ValueError("Circular dependency in task graph")
 
-        waves.append({
-            "wave_number": len(waves) + 1,
-            "tasks": ready_tasks,
-            "parallel_count": len(ready_tasks),
-        })
+        waves.append(
+            {
+                "wave_number": len(waves) + 1,
+                "tasks": ready_tasks,
+                "parallel_count": len(ready_tasks),
+            }
+        )
 
         completed_tasks.update(t["id"] for t in ready_tasks)
 
@@ -377,7 +404,10 @@ async def execute_task(
     start_time = datetime.now(UTC)
 
     # Step 1: Policy check (call to policy engine)
-    async with httpx.AsyncClient(timeout=httpx.Timeout(10.0, connect=5.0), limits=httpx.Limits(max_connections=200, max_keepalive_connections=50)) as client:
+    async with httpx.AsyncClient(
+        timeout=httpx.Timeout(10.0, connect=5.0),
+        limits=httpx.Limits(max_connections=200, max_keepalive_connections=50),
+    ) as client:
         try:
             session_id = agent_instance.get("session_id", f"task-{task['id']}")
             policy_response = await client.post(
@@ -396,7 +426,9 @@ async def execute_task(
             policy_result = policy_response.json()
 
             if not policy_result["allowed"]:
-                activity.logger.warning(f"Task blocked by policy: {policy_result['reasons']}")
+                activity.logger.warning(
+                    f"Task blocked by policy: {policy_result['reasons']}"
+                )
                 return {
                     "status": "blocked",
                     "reason": "policy_violation",
@@ -445,14 +477,15 @@ async def execute_task(
             return {
                 "status": "failed",
                 "error": str(e),
-                "duration_ms": int((datetime.now(UTC) - start_time).total_seconds() * 1000),
+                "duration_ms": int(
+                    (datetime.now(UTC) - start_time).total_seconds() * 1000
+                ),
             }
 
 
 @activity.defn
 async def review_output(
-    task_results: list[dict[str, Any]],
-    project_description: str
+    task_results: list[dict[str, Any]], project_description: str
 ) -> dict[str, Any]:
     """
     Quality gate review of task outputs.
@@ -493,8 +526,7 @@ async def review_output(
 
 @activity.defn
 async def aggregate_results(
-    task_results: list[dict[str, Any]],
-    review_result: dict[str, Any]
+    task_results: list[dict[str, Any]], review_result: dict[str, Any]
 ) -> dict[str, Any]:
     """
     Aggregate task results into final project output.

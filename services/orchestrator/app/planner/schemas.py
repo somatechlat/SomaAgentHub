@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from enum import Enum
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from pydantic import BaseModel, Field
 
@@ -26,8 +26,8 @@ class PlannerRequest(BaseModel):
     tenant: str
     session_id: str
     user_prompt: str
-    persona: Optional[str] = None
-    metadata: Dict[str, Any] = Field(default_factory=dict)
+    persona: str | None = None
+    metadata: dict[str, Any] = Field(default_factory=dict)
 
 
 class ToolDescriptor(BaseModel):
@@ -36,16 +36,16 @@ class ToolDescriptor(BaseModel):
     name: str
     category: str
     status: str  # e.g., available, missing_credentials, unsupported
-    details: Dict[str, Any] = Field(default_factory=dict)
+    details: dict[str, Any] = Field(default_factory=dict)
 
 
 class PlannerContext(BaseModel):
     """Aggregated environment context for the planner."""
 
-    capsule_candidates: List[Dict[str, Any]]
-    available_tools: List[ToolDescriptor]
-    memory_snippets: List[str] = Field(default_factory=list)
-    tenant_defaults: Dict[str, Any] = Field(default_factory=dict)
+    capsule_candidates: list[dict[str, Any]]
+    available_tools: list[ToolDescriptor]
+    memory_snippets: list[str] = Field(default_factory=list)
+    tenant_defaults: dict[str, Any] = Field(default_factory=dict)
 
 
 class WizardQuestion(BaseModel):
@@ -55,9 +55,9 @@ class WizardQuestion(BaseModel):
     question_id: str
     prompt: str
     type: str
-    options: Optional[List[Any]] = None
-    default: Optional[Any] = None
-    depends_on: List[str] = Field(default_factory=list)
+    options: list[Any] | None = None
+    default: Any | None = None
+    depends_on: list[str] = Field(default_factory=list)
 
 
 class ModuleSpec(BaseModel):
@@ -65,12 +65,12 @@ class ModuleSpec(BaseModel):
 
     module_id: str
     title: str
-    summary: Optional[str] = None
+    summary: str | None = None
     status: PlanStatus = PlanStatus.DRAFT
-    dependencies: List[str] = Field(default_factory=list)
-    provisioning_capsule: Optional[str] = None
-    wizard_questions: List[WizardQuestion] = Field(default_factory=list)
-    metadata: Dict[str, Any] = Field(default_factory=dict)
+    dependencies: list[str] = Field(default_factory=list)
+    provisioning_capsule: str | None = None
+    wizard_questions: list[WizardQuestion] = Field(default_factory=list)
+    metadata: dict[str, Any] = Field(default_factory=dict)
 
 
 class ToolSuggestion(BaseModel):
@@ -78,8 +78,8 @@ class ToolSuggestion(BaseModel):
 
     capability: str
     preferred_tool: str
-    alternatives: List[str] = Field(default_factory=list)
-    notes: Optional[str] = None
+    alternatives: list[str] = Field(default_factory=list)
+    notes: str | None = None
 
 
 class RiskRecord(BaseModel):
@@ -87,7 +87,7 @@ class RiskRecord(BaseModel):
 
     description: str
     severity: str = "medium"
-    mitigation: Optional[str] = None
+    mitigation: str | None = None
 
 
 class ProjectPlan(BaseModel):
@@ -98,8 +98,8 @@ class ProjectPlan(BaseModel):
     capsule: str
     objective: str
     status: PlanStatus = PlanStatus.DRAFT
-    modules: List[ModuleSpec] = Field(default_factory=list)
-    tool_suggestions: List[ToolSuggestion] = Field(default_factory=list)
-    risks: List[RiskRecord] = Field(default_factory=list)
-    wizard_queue: List[WizardQuestion] = Field(default_factory=list)
-    metadata: Dict[str, Any] = Field(default_factory=dict)
+    modules: list[ModuleSpec] = Field(default_factory=list)
+    tool_suggestions: list[ToolSuggestion] = Field(default_factory=list)
+    risks: list[RiskRecord] = Field(default_factory=list)
+    wizard_queue: list[WizardQuestion] = Field(default_factory=list)
+    metadata: dict[str, Any] = Field(default_factory=dict)

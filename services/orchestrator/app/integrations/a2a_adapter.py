@@ -2,13 +2,17 @@
 
 from __future__ import annotations
 
-from typing import Any, Dict
 import os
+from typing import Any
 
 from temporalio import activity
 
 # Import core protocol components
-from ..core.a2a_protocol import A2AProtocol, AgentRegistry, ConfigMapAgentRegistryBackend
+from ..core.a2a_protocol import (
+    A2AProtocol,
+    AgentRegistry,
+    ConfigMapAgentRegistryBackend,
+)
 
 # Global singleton registry for the service runtime
 # Choose backend based on environment configuration – default to in‑memory JSON file
@@ -24,7 +28,7 @@ _protocol = A2AProtocol(_registry)
 
 
 @activity.defn(name="a2a-message")
-async def run_a2a_message(payload: Dict[str, Any]) -> Dict:
+async def run_a2a_message(payload: dict[str, Any]) -> dict:
     """Temporal activity that sends an A2A message to a target agent.
 
     Expected payload keys:
@@ -36,7 +40,7 @@ async def run_a2a_message(payload: Dict[str, Any]) -> Dict:
     target_agent_id: str = str(payload.get("target_agent_id", "")).strip()
     message: str = str(payload.get("message", "")).strip()
     sender_id: str = str(payload.get("sender_id", "")).strip()
-    metadata: Dict[str, Any] = payload.get("metadata") or {}
+    metadata: dict[str, Any] = payload.get("metadata") or {}
 
     if not target_agent_id:
         raise ValueError("'target_agent_id' is required for A2A messaging")

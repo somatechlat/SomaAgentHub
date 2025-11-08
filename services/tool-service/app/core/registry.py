@@ -3,13 +3,12 @@
 from __future__ import annotations
 
 from copy import deepcopy
-from typing import Dict
 
 from .config import Settings, get_settings
 from .security import compute_manifest_digest, compute_release_signature
 
 
-def _build_registry(settings: Settings) -> Dict[str, dict]:
+def _build_registry(settings: Settings) -> dict[str, dict]:
     adapters = {
         "plane": {
             "id": "plane",
@@ -80,10 +79,10 @@ def _build_registry(settings: Settings) -> Dict[str, dict]:
     return adapters
 
 
-_REGISTRY: Dict[str, dict] | None = None
+_REGISTRY: dict[str, dict] | None = None
 
 
-def get_registry(settings: Settings | None = None) -> Dict[str, dict]:
+def get_registry(settings: Settings | None = None) -> dict[str, dict]:
     global _REGISTRY
     if _REGISTRY is None:
         cfg = settings or get_settings()

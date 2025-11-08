@@ -6,23 +6,23 @@ Provides vector storage, semantic search, and RAG retrieval capabilities.
 from __future__ import annotations
 
 import os
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 # Attempt to import the real qdrant client. If unavailable, provide a lightweight
 # in‑memory fallback that implements the subset of async methods used by the test
 # suite. This avoids pulling the heavy external dependency during CI.
 try:
-    from qdrant_client import QdrantClient as QdrantClientLib
     from qdrant_client import AsyncQdrantClient
+    from qdrant_client import QdrantClient as QdrantClientLib
+    from qdrant_client.http.exceptions import UnexpectedResponse
     from qdrant_client.models import (
         Distance,
-        VectorParams,
-        PointStruct,
-        Filter,
         FieldCondition,
+        Filter,
         MatchValue,
+        PointStruct,
+        VectorParams,
     )
-    from qdrant_client.http.exceptions import UnexpectedResponse
 except ImportError:  # pragma: no cover – exercised in test environment
     QdrantClientLib = None
     AsyncQdrantClient = None
@@ -55,7 +55,9 @@ except ImportError:  # pragma: no cover – exercised in test environment
         async def create_collection(self, collection_name: str, vectors_config):
             # vectors_config carries size and distance; we only need size.
             size = getattr(vectors_config, "size", 0)
-            self._collections[collection_name] = _InMemoryCollection(collection_name, size)
+            self._collections[collection_name] = _InMemoryCollection(
+                collection_name, size
+            )
 
         async def upsert(self, collection_name: str, points):
             coll = self._collections[collection_name]
@@ -109,7 +111,11 @@ except ImportError:  # pragma: no cover – exercised in test environment
                         type(
                             "Point",
                             (),
-                            {"id": pid, "vector": point["vector"], "payload": point["payload"]},
+                            {
+                                "id": pid,
+                                "vector": point["vector"],
+                                "payload": point["payload"],
+                            },
                         )()
                     )
             return results
@@ -127,7 +133,7 @@ class QdrantClient:
     def __init__(
         self,
         url: str,
-        api_key: Optional[str] = None,
+        api_key: str | None = None,
         timeout: int = 30,
     ):
         """Initialize Qdrant client.
@@ -138,7 +144,9 @@ class QdrantClient:
             timeout: Request timeout in seconds
         """
         if AsyncQdrantClient is None:
-            raise RuntimeError("qdrant-client not installed. Run: pip install qdrant-client")
+            raise RuntimeError(
+                "qdrant-client not installed. Run: pip install qdrant-client"
+            )
 
         self.url = url
         self.client = AsyncQdrantClient(
@@ -154,7 +162,7 @@ class QdrantClient:
         distance: str = "Cosine",
     ) -> bool:
         """Create a new collection for vectors.
-        
+
         Handles missing external library by using a simple placeholder.
         """
         try:
@@ -165,14 +173,19 @@ class QdrantClient:
             distance_metric = getattr(Distance, distance.upper()) if Distance else None
             # Build vectors_config compatible with real or dummy client
             if VectorParams:
-                vectors_config = VectorParams(size=vector_size, distance=distance_metric)
+                vectors_config = VectorParams(
+                    size=vector_size, distance=distance_metric
+                )
             else:
                 # Dummy object with size attribute for the stub client
                 class _DummyConfig:
                     def __init__(self, size):
                         self.size = size
+
                 vectors_config = _DummyConfig(vector_size)
-            await self.client.create_collection(collection_name=collection_name, vectors_config=vectors_config)
+            await self.client.create_collection(
+                collection_name=collection_name, vectors_config=vectors_config
+            )
             return True
         except UnexpectedResponse as exc:
             raise RuntimeError(f"Qdrant collection creation failed: {exc}") from exc
@@ -180,14 +193,15 @@ class QdrantClient:
     async def upsert_points(
         self,
         collection_name: str,
-        points: List[Dict[str, Any]],
+        points: list[dict[str, Any]],
     ) -> bool:
-        """Insert or update points in a collection.
-        """
+        """Insert or update points in a collection."""
         try:
             if PointStruct:
                 point_structs = [
-                    PointStruct(id=p["id"], vector=p["vector"], payload=p.get("payload", {}))
+                    PointStruct(
+                        id=p["id"], vector=p["vector"], payload=p.get("payload", {})
+                    )
                     for p in points
                 ]
             else:
@@ -197,8 +211,14 @@ class QdrantClient:
                         self.id = id_
                         self.vector = vector
                         self.payload = payload
-                point_structs = [_SimplePoint(p["id"], p["vector"], p.get("payload", {})) for p in points]
-            await self.client.upsert(collection_name=collection_name, points=point_structs)
+
+                point_structs = [
+                    _SimplePoint(p["id"], p["vector"], p.get("payload", {}))
+                    for p in points
+                ]
+            await self.client.upsert(
+                collection_name=collection_name, points=point_structs
+            )
             return True
         except UnexpectedResponse as exc:
             raise RuntimeError(f"Qdrant upsert failed: {exc}") from exc
@@ -206,13 +226,13 @@ class QdrantClient:
     async def search(
         self,
         collection_name: str,
-        query_vector: List[float],
+        query_vector: list[float],
         limit: int = 10,
-        score_threshold: Optional[float] = None,
+        score_threshold: float | None = None,
         *,
-        filters: Optional[Dict[str, Any]] = None,
-        filter_conditions: Optional[Dict[str, Any]] = None,
-    ) -> List[Dict[str, Any]]:
+        filters: dict[str, Any] | None = None,
+        filter_conditions: dict[str, Any] | None = None,
+    ) -> list[dict[str, Any]]:
         """Search for similar vectors with optional metadata filters.
 
         ``filters`` is the preferred argument name. ``filter_conditions`` is kept
@@ -235,7 +255,10 @@ class QdrantClient:
                 score_threshold=score_threshold,
                 query_filter=query_filter,
             )
-            return [{"id": str(r.id), "score": r.score, "payload": r.payload} for r in results]
+            return [
+                {"id": str(r.id), "score": r.score, "payload": r.payload}
+                for r in results
+            ]
         except UnexpectedResponse as exc:
             raise RuntimeError(f"Qdrant search failed: {exc}") from exc
 
@@ -243,7 +266,7 @@ class QdrantClient:
         self,
         collection_name: str,
         point_id: str,
-    ) -> Optional[Dict[str, Any]]:
+    ) -> dict[str, Any] | None:
         """Retrieve a specific point by ID.
 
         Returns:
@@ -271,7 +294,7 @@ class QdrantClient:
     async def delete_points(
         self,
         collection_name: str,
-        point_ids: List[str],
+        point_ids: list[str],
     ) -> bool:
         """Delete points from a collection.
 
@@ -293,8 +316,7 @@ class QdrantClient:
             raise RuntimeError(f"Qdrant delete failed: {exc}") from exc
 
     async def delete_collection(self, collection_name: str) -> None:
-        """Delete a collection. Wrapper for client method.
-        """
+        """Delete a collection. Wrapper for client method."""
         try:
             await self.client.delete_collection(collection_name=collection_name)
         except UnexpectedResponse as exc:
@@ -303,7 +325,7 @@ class QdrantClient:
     async def count_points(
         self,
         collection_name: str,
-        filters: Optional[Dict[str, Any]] = None,
+        filters: dict[str, Any] | None = None,
     ) -> int:
         """Count points in a collection with optional filters."""
         try:

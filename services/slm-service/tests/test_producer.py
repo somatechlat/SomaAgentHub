@@ -1,11 +1,13 @@
 import asyncio
 import json
 
-from slm.producer import make_slm_request_message, Producer
+from slm.producer import Producer, make_slm_request_message
 
 
 def test_make_slm_request_message_minimal():
-    msg = make_slm_request_message("s1", "dialogue_reasoning", "Hello", {"timestamp": "t"})
+    msg = make_slm_request_message(
+        "s1", "dialogue_reasoning", "Hello", {"timestamp": "t"}
+    )
     assert msg["session_id"] == "s1"
     assert msg["role"] == "dialogue_reasoning"
     assert msg["prompt"] == "Hello"

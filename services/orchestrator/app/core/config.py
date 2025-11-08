@@ -8,7 +8,6 @@ from __future__ import annotations
 
 import os
 from functools import lru_cache
-from typing import Optional
 
 from pydantic import AnyUrl, Field
 from pydantic_settings import BaseSettings
@@ -23,23 +22,35 @@ class Settings(BaseSettings):
     # Accept TEMPORAL_HOST (preferred) with fallback to legacy TEMPORAL_TARGET_HOST
     temporal_target_host: str = Field(default="localhost:10009", alias="TEMPORAL_HOST")
     temporal_namespace: str = Field(default="default", alias="TEMPORAL_NAMESPACE")
-    temporal_task_queue: str = Field(default="somagent.session.workflows", alias="TEMPORAL_TASK_QUEUE")
+    temporal_task_queue: str = Field(
+        default="somagent.session.workflows", alias="TEMPORAL_TASK_QUEUE"
+    )
     temporal_enabled: bool = Field(default=False, alias="TEMPORAL_ENABLED")
 
     # Kafka audit stream
-    kafka_bootstrap_servers: Optional[str] = Field(default=None, alias="KAFKA_BOOTSTRAP_SERVERS")
+    kafka_bootstrap_servers: str | None = Field(
+        default=None, alias="KAFKA_BOOTSTRAP_SERVERS"
+    )
 
     # Policy & identity services (real HTTP endpoints)
     policy_engine_url: AnyUrl = Field(
-        default=os.getenv("POLICY_ENGINE_URL", "http://policy-engine:10020") + "/v1/evaluate", alias="POLICY_ENGINE_URL"
+        default=os.getenv("POLICY_ENGINE_URL", "http://policy-engine:10020")
+        + "/v1/evaluate",
+        alias="POLICY_ENGINE_URL",
     )
     identity_service_url: AnyUrl = Field(
-        default=os.getenv("IDENTITY_TOKEN_ISSUE_URL", "http://identity-service:10002/v1/tokens/issue"), alias="IDENTITY_SERVICE_URL"
+        default=os.getenv(
+            "IDENTITY_TOKEN_ISSUE_URL", "http://identity-service:10002/v1/tokens/issue"
+        ),
+        alias="IDENTITY_SERVICE_URL",
     )
 
     # Notification service used to broadcast orchestration milestones
-    notification_service_url: Optional[AnyUrl] = Field(
-        default=os.getenv("NOTIFICATION_SERVICE_URL", "http://notification-service:10026") + "/v1/notifications",
+    notification_service_url: AnyUrl | None = Field(
+        default=os.getenv(
+            "NOTIFICATION_SERVICE_URL", "http://notification-service:10026"
+        )
+        + "/v1/notifications",
         alias="NOTIFICATION_SERVICE_URL",
     )
 
@@ -61,18 +72,29 @@ class Settings(BaseSettings):
     )
 
     # Volcano scheduler integration (optional)
-    enable_volcano_scheduler: bool = Field(default=False, alias="ENABLE_VOLCANO_SCHEDULER")
+    enable_volcano_scheduler: bool = Field(
+        default=False, alias="ENABLE_VOLCANO_SCHEDULER"
+    )
     volcano_namespace: str = Field(default="soma-agent-hub", alias="VOLCANO_NAMESPACE")
-    volcano_default_queue: str = Field(default="interactive", alias="VOLCANO_DEFAULT_QUEUE")
-    volcano_session_image: str = Field(default="python:3.11-slim", alias="VOLCANO_SESSION_IMAGE")
+    volcano_default_queue: str = Field(
+        default="interactive", alias="VOLCANO_DEFAULT_QUEUE"
+    )
+    volcano_session_image: str = Field(
+        default="python:3.11-slim", alias="VOLCANO_SESSION_IMAGE"
+    )
     volcano_session_cpu: str = Field(default="500m", alias="VOLCANO_SESSION_CPU")
     volcano_session_memory: str = Field(default="512Mi", alias="VOLCANO_SESSION_MEMORY")
-    volcano_job_timeout_seconds: int = Field(default=300, alias="VOLCANO_JOB_TIMEOUT_SECONDS")
+    volcano_job_timeout_seconds: int = Field(
+        default=300, alias="VOLCANO_JOB_TIMEOUT_SECONDS"
+    )
     kubectl_binary: str = Field(default="kubectl", alias="KUBECTL_BINARY")
 
     # Constitution service manifest signing
     constitution_service_url: AnyUrl = Field(
-        default=os.getenv("CONSTITUTION_SERVICE_URL", "http://constitution-service:10024") + "/v1",
+        default=os.getenv(
+            "CONSTITUTION_SERVICE_URL", "http://constitution-service:10024"
+        )
+        + "/v1",
         alias="CONSTITUTION_SERVICE_URL",
     )
     manifest_signing_enabled: bool = Field(
@@ -85,11 +107,13 @@ class Settings(BaseSettings):
     )
 
     # Ray runtime (can be local or remote cluster)
-    ray_address: Optional[str] = Field(default="auto", alias="RAY_ADDRESS")
+    ray_address: str | None = Field(default="auto", alias="RAY_ADDRESS")
     ray_namespace: str = Field(default="somagent", alias="RAY_NAMESPACE")
 
     # OpenTelemetry exporter (optional)
-    otlp_endpoint: Optional[AnyUrl] = Field(default=None, alias="OTEL_EXPORTER_OTLP_ENDPOINT")
+    otlp_endpoint: AnyUrl | None = Field(
+        default=None, alias="OTEL_EXPORTER_OTLP_ENDPOINT"
+    )
 
     # Capsule repository – where manifest YAML files are stored. The orchestrator
     # fetches a manifest when a capsule run does not provide an explicit

@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from pydantic import BaseModel, Field
 
@@ -14,43 +14,43 @@ class AdapterMetadata(BaseModel):
     version: str
     signature: str
     rate_limit_per_minute: int
-    billing: Dict[str, Any] = Field(default_factory=dict)
+    billing: dict[str, Any] = Field(default_factory=dict)
     manifest_digest: str | None = None
-    manifest: Dict[str, Any] | None = None
+    manifest: dict[str, Any] | None = None
     source: str = "manual"
     signed_at: str | None = None
 
 
 class AdapterListResponse(BaseModel):
-    adapters: List[AdapterMetadata]
+    adapters: list[AdapterMetadata]
 
 
 class AdapterExecuteRequest(BaseModel):
     action: str
-    arguments: Dict[str, Any] = Field(default_factory=dict)
+    arguments: dict[str, Any] = Field(default_factory=dict)
 
 
 class AdapterExecuteResponse(BaseModel):
     job_id: str
     status: str
     duration_ms: float
-    output: Dict[str, Any] = Field(default_factory=dict)
-    sandbox: Dict[str, Any] = Field(default_factory=dict)
+    output: dict[str, Any] = Field(default_factory=dict)
+    sandbox: dict[str, Any] = Field(default_factory=dict)
     signature: str
     rate_limit_remaining: int
 
 
 class ProvisionAction(BaseModel):
     tool: str
-    kind: Optional[str] = None
-    name: Optional[str] = None
-    metadata: Dict[str, Any] = Field(default_factory=dict)
+    kind: str | None = None
+    name: str | None = None
+    metadata: dict[str, Any] = Field(default_factory=dict)
 
 
 class ProvisionRequest(BaseModel):
     tenant_id: str
     deliverable_id: str
-    actions: List[ProvisionAction]
+    actions: list[ProvisionAction]
     dry_run: bool = True
 
 
@@ -58,11 +58,11 @@ class ProvisionResult(BaseModel):
     tool: str
     status: str
     job_id: str
-    message: Optional[str] = None
+    message: str | None = None
     dry_run: bool = True
 
 
 class ProvisionResponse(BaseModel):
     deliverable_id: str
     tenant_id: str
-    results: List[ProvisionResult]
+    results: list[ProvisionResult]

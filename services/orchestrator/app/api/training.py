@@ -3,13 +3,15 @@
 from __future__ import annotations
 
 import json
+import logging
 import time
 
 from fastapi import APIRouter, HTTPException, status
-from pydantic import BaseModel
 from prometheus_client import Gauge
+from pydantic import BaseModel
 
 router = APIRouter(prefix="/v1/training", tags=["training"])
+logger = logging.getLogger(__name__)
 
 # Prometheus metrics
 TRAINING_MODE_STATE = Gauge(
@@ -36,25 +38,29 @@ class TrainingLockResponse(BaseModel):
 # Redis client for persistent lock state
 try:
     from services.common.redis_client import get_redis_client
+
     _redis_client = get_redis_client()
     _use_redis = True
 except Exception as exc:
-    print(f"[REDIS_WARNING] Redis client unavailable, using in-memory locks: {exc}")
+    logger.warning("[REDIS_WARNING] Redis client unavailable, using in-memory locks: %s", exc)
     _redis_client = None
     _use_redis = False
     _training_locks: dict[str, dict] = {}
 
 
-async def _emit_training_audit(tenant: str, action: str, user: str, details: dict) -> None:
+async def _emit_training_audit(
+    tenant: str, action: str, user: str, details: dict
+) -> None:
     """Emit training audit event to Kafka."""
     try:
         from services.common.kafka_client import get_kafka_client
+
         kafka_client = get_kafka_client()
-        
+
         # Ensure producer is started
         if kafka_client._producer is None:
             await kafka_client.start()
-        
+
         await kafka_client.send_event(
             topic="training.audit",
             event={
@@ -68,7 +74,7 @@ async def _emit_training_audit(tenant: str, action: str, user: str, details: dic
         )
     except Exception as exc:
         # Log error but don't block request
-        print(f"[KAFKA_ERROR] Failed to emit training audit event: {exc}")
+        logger.warning("[KAFKA_ERROR] Failed to emit training audit event: %s", exc)
         event = {
             "tenant": tenant,
             "action": action,
@@ -76,7 +82,7 @@ async def _emit_training_audit(tenant: str, action: str, user: str, details: dic
             "timestamp": time.time(),
             "details": details,
         }
-        print(f"[TRAINING_AUDIT] {json.dumps(event)}")
+        logger.info("[TRAINING_AUDIT] %s", json.dumps(event))
 
 
 @router.post("/enable", response_model=TrainingLockResponse)
@@ -85,6 +91,7 @@ async def enable_training_mode(req: TrainingLockRequest) -> TrainingLockResponse
     # Check admin capability via Identity service
     try:
         from services.common.identity_client import get_identity_client
+
         identity_client = get_identity_client()
         has_admin = await identity_client.check_user_capability(
             user_id=req.user,
@@ -98,8 +105,8 @@ async def enable_training_mode(req: TrainingLockRequest) -> TrainingLockResponse
             )
     except RuntimeError as exc:
         # If identity service unavailable, log warning and continue (dev mode)
-        print(f"[IDENTITY_WARNING] Admin check skipped: {exc}")
-    
+        logger.warning("[IDENTITY_WARNING] Admin check skipped: %s", exc)
+
     # Check if already locked
     if _use_redis:
         redis_key = f"training:lock:{req.tenant}"
@@ -116,21 +123,21 @@ async def enable_training_mode(req: TrainingLockRequest) -> TrainingLockResponse
                 status_code=status.HTTP_409_CONFLICT,
                 detail=f"Training mode already enabled by {existing.get('locked_by')}",
             )
-    
+
     lock_data = {
         "enabled": True,
         "locked_by": req.user,
         "locked_at": time.time(),
         "reason": req.reason,
     }
-    
+
     # Persist to Redis with TTL
     if _use_redis:
         redis_key = f"training:lock:{req.tenant}"
         await _redis_client.set_json(redis_key, lock_data, ttl=86400)  # 24 hour TTL
     else:
         _training_locks[req.tenant] = lock_data
-    
+
     # Emit audit event
     await _emit_training_audit(
         req.tenant,
@@ -138,10 +145,10 @@ async def enable_training_mode(req: TrainingLockRequest) -> TrainingLockResponse
         req.user,
         {"reason": req.reason},
     )
-    
+
     # Update metrics
     TRAINING_MODE_STATE.labels(tenant=req.tenant).set(1)
-    
+
     return TrainingLockResponse(tenant=req.tenant, **lock_data)
 
 
@@ -151,6 +158,7 @@ async def disable_training_mode(req: TrainingLockRequest) -> TrainingLockRespons
     # Check admin capability via Identity service
     try:
         from services.common.identity_client import get_identity_client
+
         identity_client = get_identity_client()
         has_admin = await identity_client.check_user_capability(
             user_id=req.user,
@@ -164,8 +172,8 @@ async def disable_training_mode(req: TrainingLockRequest) -> TrainingLockRespons
             )
     except RuntimeError as exc:
         # If identity service unavailable, log warning and continue (dev mode)
-        print(f"[IDENTITY_WARNING] Admin check skipped: {exc}")
-    
+        logger.warning("[IDENTITY_WARNING] Admin check skipped: %s", exc)
+
     if _use_redis:
         redis_key = f"training:lock:{req.tenant}"
         existing = await _redis_client.get_json(redis_key)
@@ -176,13 +184,15 @@ async def disable_training_mode(req: TrainingLockRequest) -> TrainingLockRespons
             )
         previous_lock = existing
     else:
-        if req.tenant not in _training_locks or not _training_locks[req.tenant].get("enabled"):
+        if req.tenant not in _training_locks or not _training_locks[req.tenant].get(
+            "enabled"
+        ):
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail="Training mode is not enabled for this tenant",
             )
         previous_lock = _training_locks[req.tenant]
-    
+
     # Emit audit event
     await _emit_training_audit(
         req.tenant,
@@ -190,17 +200,17 @@ async def disable_training_mode(req: TrainingLockRequest) -> TrainingLockRespons
         req.user,
         {"reason": req.reason, "previous_lock": previous_lock},
     )
-    
+
     # Clear lock
     if _use_redis:
         redis_key = f"training:lock:{req.tenant}"
         await _redis_client.delete(redis_key)
     else:
         _training_locks[req.tenant] = {"enabled": False}
-    
+
     # Update metrics
     TRAINING_MODE_STATE.labels(tenant=req.tenant).set(0)
-    
+
     return TrainingLockResponse(
         tenant=req.tenant,
         enabled=False,
@@ -220,7 +230,7 @@ async def get_training_status(tenant: str) -> TrainingLockResponse:
             lock_data = {"enabled": False}
     else:
         lock_data = _training_locks.get(tenant, {"enabled": False})
-    
+
     return TrainingLockResponse(
         tenant=tenant,
         enabled=lock_data.get("enabled", False),

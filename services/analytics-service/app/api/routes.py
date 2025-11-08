@@ -4,54 +4,54 @@ from __future__ import annotations
 
 import statistics
 import uuid
-from datetime import datetime, timedelta, timezone
-from typing import Any, Dict, List
+from datetime import UTC, datetime, timedelta
+from typing import Any
 
 from fastapi import APIRouter, HTTPException, status
 
 from ..core.config import get_settings
 from ..core.metrics import KAMACHIQ_RUNS_TOTAL
 from ..core.store import (
+    BenchmarkResult,
     BillingEvent,
     CapsuleRun,
     DisasterRecoveryDrill,
     GovernanceReport,
     KamachiqRun,
-    BenchmarkResult,
     store,
 )
 from .schemas import (
+    AgentOneSightDashboardResponse,
     AnomalyRecord,
     AnomalyResponse,
+    BenchmarkCollectionResponse,
+    BenchmarkRunRequest,
+    BenchmarkRunResponse,
+    BenchmarkScoreboardEntry,
+    BenchmarkScoreboardResponse,
     BillingEventRequest,
     BillingLedgerEntry,
     BillingLedgerResponse,
     CapsuleDashboardResponse,
     CapsuleRunAggregate,
     CapsuleRunRequest,
-    KamachiqRunRequest,
-    KamachiqRunResponse,
+    DisasterRecoveryDrillRequest,
+    DisasterRecoveryDrillResponse,
     GovernanceReportRequest,
     GovernanceReportResponse,
+    KamachiqRunRequest,
+    KamachiqRunResponse,
     NotificationFeed,
     NotificationLog,
     PersonaRegressionRequest,
     PersonaRegressionResponse,
     PersonaRegressionTransitionRequest,
-    DisasterRecoveryDrillRequest,
-    DisasterRecoveryDrillResponse,
-    BenchmarkRunRequest,
-    BenchmarkRunResponse,
-    BenchmarkCollectionResponse,
-    BenchmarkScoreboardEntry,
-    BenchmarkScoreboardResponse,
-    AgentOneSightDashboardResponse,
 )
 
 router = APIRouter(prefix="/v1", tags=["analytics"])
 
 
-def _calculate_benchmark_score(metrics: Dict[str, float]) -> float:
+def _calculate_benchmark_score(metrics: dict[str, float]) -> float:
     settings = get_settings()
     latency = metrics.get("latency_p95_ms")
     throughput = metrics.get("requests_per_second")
@@ -63,7 +63,9 @@ def _calculate_benchmark_score(metrics: Dict[str, float]) -> float:
 
     throughput_component = 0.0
     if throughput and throughput > 0:
-        throughput_component = min(throughput / settings.benchmark_throughput_target_rps, 2.0)
+        throughput_component = min(
+            throughput / settings.benchmark_throughput_target_rps, 2.0
+        )
 
     error_component = 1.0
     if error_rate is not None:
@@ -75,14 +77,21 @@ def _calculate_benchmark_score(metrics: Dict[str, float]) -> float:
     return round(score, 4)
 
 
-@router.post("/benchmarks/run", response_model=BenchmarkRunResponse, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/benchmarks/run",
+    response_model=BenchmarkRunResponse,
+    status_code=status.HTTP_201_CREATED,
+)
 def record_benchmark_run(payload: BenchmarkRunRequest) -> BenchmarkRunResponse:
-    metrics: Dict[str, float] = {}
+    metrics: dict[str, float] = {}
     for key, value in payload.metrics.items():
         try:
             metrics[key] = float(value)
         except (TypeError, ValueError):
-            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Metric '{key}' must be numeric")
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Metric '{key}' must be numeric",
+            )
 
     metadata = {key: str(value) for key, value in payload.metadata.items()}
     benchmark = BenchmarkResult(
@@ -157,27 +166,43 @@ def benchmark_scoreboard(
     return BenchmarkScoreboardResponse(scoreboard=entries)
 
 
-@router.get("/dashboards/agent-one-sight", response_model=AgentOneSightDashboardResponse)
+@router.get(
+    "/dashboards/agent-one-sight", response_model=AgentOneSightDashboardResponse
+)
 def agent_one_sight_dashboard(
     tenant_id: str | None = None,
     capsule_window_hours: int | None = None,
     benchmark_suite: str | None = None,
     notification_limit: int = 10,
 ) -> AgentOneSightDashboardResponse:
-    capsule_data = capsule_dashboard(tenant_id=tenant_id, window_hours=capsule_window_hours)
+    capsule_data = capsule_dashboard(
+        tenant_id=tenant_id, window_hours=capsule_window_hours
+    )
     anomaly_records = detect_anomalies().anomalies
     if tenant_id:
-        anomaly_records = [record for record in anomaly_records if record.tenant_id == tenant_id]
+        anomaly_records = [
+            record for record in anomaly_records if record.tenant_id == tenant_id
+        ]
 
     benchmarks = [
         BenchmarkScoreboardEntry(**entry)
-        for entry in store.benchmark_scoreboard(suite=benchmark_suite, tenant_id=tenant_id)
+        for entry in store.benchmark_scoreboard(
+            suite=benchmark_suite, tenant_id=tenant_id
+        )
     ]
 
     ledger = billing_ledger(tenant_id=tenant_id)
 
-    notifications_raw = store.notifications[-notification_limit:] if notification_limit > 0 else store.notifications
-    notifications = [NotificationLog(**entry) for entry in notifications_raw[-notification_limit:]] if notification_limit > 0 else [NotificationLog(**entry) for entry in notifications_raw]
+    notifications_raw = (
+        store.notifications[-notification_limit:]
+        if notification_limit > 0
+        else store.notifications
+    )
+    notifications = (
+        [NotificationLog(**entry) for entry in notifications_raw[-notification_limit:]]
+        if notification_limit > 0
+        else [NotificationLog(**entry) for entry in notifications_raw]
+    )
 
     regressions = store.pending_regressions()
     if tenant_id:
@@ -185,7 +210,7 @@ def agent_one_sight_dashboard(
     regressions_due = [PersonaRegressionResponse(**reg.__dict__) for reg in regressions]
 
     return AgentOneSightDashboardResponse(
-        generated_at=datetime.now(timezone.utc),
+        generated_at=datetime.now(UTC),
         tenant_id=tenant_id,
         capsule_dashboard=capsule_data,
         anomalies=anomaly_records,
@@ -210,11 +235,13 @@ def record_capsule_run(payload: CapsuleRunRequest) -> dict[str, str]:
         tokens=payload.tokens,
         revisions=payload.revisions,
         duration_seconds=payload.duration_seconds,
-        recorded_at=datetime.now(timezone.utc),
+        recorded_at=datetime.now(UTC),
     )
     store.record_run(run)
     if not payload.success:
-        store.log_notification(payload.tenant_id, f"Capsule {payload.capsule_id} reported a failure event")
+        store.log_notification(
+            payload.tenant_id, f"Capsule {payload.capsule_id} reported a failure event"
+        )
     return {"status": "accepted"}
 
 
@@ -229,16 +256,18 @@ def capsule_dashboard(
     if tenant_id:
         runs = [run for run in runs if run.tenant_id == tenant_id]
     if window_hours:
-        cutoff = datetime.now(timezone.utc) - timedelta(hours=window_hours)
+        cutoff = datetime.now(UTC) - timedelta(hours=window_hours)
         runs = [run for run in runs if run.recorded_at >= cutoff]
-    grouped: Dict[tuple[str, str], List[CapsuleRun]] = {}
+    grouped: dict[tuple[str, str], list[CapsuleRun]] = {}
     for run in runs:
         grouped.setdefault((run.tenant_id, run.capsule_id), []).append(run)
 
-    aggregates: List[CapsuleRunAggregate] = []
+    aggregates: list[CapsuleRunAggregate] = []
     for (tenant_id, capsule_id), items in grouped.items():
         total_runs = len(items)
-        success_rate = sum(1 for item in items if item.success) / total_runs if total_runs else 0.0
+        success_rate = (
+            sum(1 for item in items if item.success) / total_runs if total_runs else 0.0
+        )
         avg_tokens = statistics.fmean(item.tokens for item in items)
         avg_revisions = statistics.fmean(item.revisions for item in items)
         avg_duration = statistics.fmean(item.duration_seconds for item in items)
@@ -270,7 +299,7 @@ def detect_anomalies() -> AnomalyResponse:
     """Highlight capsules that violate baseline success thresholds."""
 
     settings = get_settings()
-    anomalies: List[AnomalyRecord] = []
+    anomalies: list[AnomalyRecord] = []
     for aggregate in capsule_dashboard().aggregates:
         if aggregate.success_rate < settings.anomaly_threshold:
             anomalies.append(
@@ -301,7 +330,9 @@ def scan_anomalies() -> AnomalyResponse:
 
 
 @router.post("/persona-regressions/run", response_model=PersonaRegressionResponse)
-def run_persona_regression(payload: PersonaRegressionRequest) -> PersonaRegressionResponse:
+def run_persona_regression(
+    payload: PersonaRegressionRequest,
+) -> PersonaRegressionResponse:
     """Record persona regression evaluation results and surface notifications."""
 
     note = payload.trigger_reason or "Scheduled evaluation"
@@ -311,11 +342,15 @@ def run_persona_regression(payload: PersonaRegressionRequest) -> PersonaRegressi
         status="completed",
         note=note,
     )
-    store.log_notification(payload.tenant_id, f"Persona {payload.persona_id} regression completed")
+    store.log_notification(
+        payload.tenant_id, f"Persona {payload.persona_id} regression completed"
+    )
     return PersonaRegressionResponse(**regression.__dict__)
 
 
-@router.post("/persona-regressions/transition", response_model=PersonaRegressionResponse)
+@router.post(
+    "/persona-regressions/transition", response_model=PersonaRegressionResponse
+)
 def transition_persona_regression(
     payload: PersonaRegressionTransitionRequest,
 ) -> PersonaRegressionResponse:
@@ -346,22 +381,32 @@ def transition_persona_regression(
     return PersonaRegressionResponse(**regression.__dict__)
 
 
-@router.get("/persona-regressions", response_model=List[PersonaRegressionResponse])
-def list_regressions() -> List[PersonaRegressionResponse]:
-    return [PersonaRegressionResponse(**reg.__dict__) for reg in store.list_regressions()]
+@router.get("/persona-regressions", response_model=list[PersonaRegressionResponse])
+def list_regressions() -> list[PersonaRegressionResponse]:
+    return [
+        PersonaRegressionResponse(**reg.__dict__) for reg in store.list_regressions()
+    ]
 
 
-@router.get("/persona-regressions/due", response_model=List[PersonaRegressionResponse])
-def due_regressions() -> List[PersonaRegressionResponse]:
-    return [PersonaRegressionResponse(**reg.__dict__) for reg in store.pending_regressions()]
+@router.get("/persona-regressions/due", response_model=list[PersonaRegressionResponse])
+def due_regressions() -> list[PersonaRegressionResponse]:
+    return [
+        PersonaRegressionResponse(**reg.__dict__) for reg in store.pending_regressions()
+    ]
 
 
-@router.post("/governance/reports", response_model=GovernanceReportResponse, status_code=status.HTTP_201_CREATED)
-def create_governance_report(payload: GovernanceReportRequest) -> GovernanceReportResponse:
+@router.post(
+    "/governance/reports",
+    response_model=GovernanceReportResponse,
+    status_code=status.HTTP_201_CREATED,
+)
+def create_governance_report(
+    payload: GovernanceReportRequest,
+) -> GovernanceReportResponse:
     report = GovernanceReport(
         report_id=str(uuid.uuid4()),
         tenant_id=payload.tenant_id,
-        generated_at=datetime.now(timezone.utc),
+        generated_at=datetime.now(UTC),
         summary=payload.summary,
         changes=payload.changes,
     )
@@ -370,8 +415,10 @@ def create_governance_report(payload: GovernanceReportRequest) -> GovernanceRepo
     return GovernanceReportResponse(**report.__dict__)
 
 
-@router.get("/governance/reports", response_model=List[GovernanceReportResponse])
-def list_governance_reports(tenant_id: str | None = None) -> List[GovernanceReportResponse]:
+@router.get("/governance/reports", response_model=list[GovernanceReportResponse])
+def list_governance_reports(
+    tenant_id: str | None = None,
+) -> list[GovernanceReportResponse]:
     reports = store.list_reports(tenant_id)
     return [GovernanceReportResponse(**report.__dict__) for report in reports]
 
@@ -382,14 +429,18 @@ def notification_feed() -> NotificationFeed:
     return NotificationFeed(notifications=notifications)
 
 
-@router.post("/kamachiq/runs", response_model=KamachiqRunResponse, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/kamachiq/runs",
+    response_model=KamachiqRunResponse,
+    status_code=status.HTTP_201_CREATED,
+)
 def record_kamachiq_run(payload: KamachiqRunRequest) -> KamachiqRunResponse:
     run = KamachiqRun(
         run_id=str(uuid.uuid4()),
         tenant_id=payload.tenant_id,
         name=payload.name,
         deliverable_count=payload.deliverable_count,
-        created_at=datetime.now(timezone.utc),
+        created_at=datetime.now(UTC),
         metadata={k: str(v) for k, v in payload.metadata.items()},
     )
     store.record_kamachiq_run(run)
@@ -398,14 +449,14 @@ def record_kamachiq_run(payload: KamachiqRunRequest) -> KamachiqRunResponse:
     return KamachiqRunResponse(**run.__dict__)
 
 
-@router.get("/kamachiq/runs", response_model=List[KamachiqRunResponse])
-def list_kamachiq_runs(tenant_id: str | None = None) -> List[KamachiqRunResponse]:
+@router.get("/kamachiq/runs", response_model=list[KamachiqRunResponse])
+def list_kamachiq_runs(tenant_id: str | None = None) -> list[KamachiqRunResponse]:
     runs = store.list_kamachiq_runs(tenant_id)
     return [KamachiqRunResponse(**run.__dict__) for run in runs]
 
 
 @router.get("/kamachiq/summary")
-def kamachiq_summary() -> Dict[str, Any]:
+def kamachiq_summary() -> dict[str, Any]:
     summary = store.kamachiq_summary()
     last = summary.get("last_run")
     if last and hasattr(last, "__dict__"):
@@ -414,7 +465,7 @@ def kamachiq_summary() -> Dict[str, Any]:
 
 
 @router.post("/kamachiq/blocked", status_code=status.HTTP_202_ACCEPTED)
-def record_blocked_deliverable(data: Dict[str, str]) -> dict[str, str]:
+def record_blocked_deliverable(data: dict[str, str]) -> dict[str, str]:
     tenant_id = data.get("tenant_id", "unknown")
     message = data.get("message") or "KAMACHIQ deliverable blocked"
     store.record_blocked_deliverable(data)
@@ -423,7 +474,7 @@ def record_blocked_deliverable(data: Dict[str, str]) -> dict[str, str]:
 
 
 @router.post("/kamachiq/resolved", status_code=status.HTTP_202_ACCEPTED)
-def record_resolved_deliverable(data: Dict[str, str]) -> dict[str, str]:
+def record_resolved_deliverable(data: dict[str, str]) -> dict[str, str]:
     tenant_id = data.get("tenant_id", "unknown")
     message = data.get("message") or "KAMACHIQ deliverable resolved"
     store.record_resolved_deliverable(data)
@@ -446,7 +497,7 @@ def record_billing_event(payload: BillingEventRequest) -> dict[str, str]:
         tokens=payload.tokens,
         cost=float(payload.cost),
         currency=currency,
-        recorded_at=datetime.now(timezone.utc),
+        recorded_at=datetime.now(UTC),
         metadata={k: str(v) for k, v in payload.metadata.items()},
     )
     store.record_billing_event(event)
@@ -463,7 +514,7 @@ def billing_ledger(tenant_id: str | None = None) -> BillingLedgerResponse:
     """Aggregate billing totals per tenant/capsule/service."""
 
     aggregates = store.aggregate_billing(tenant_id)
-    entries: List[BillingLedgerEntry] = []
+    entries: list[BillingLedgerEntry] = []
     for record in aggregates:
         entries.append(
             BillingLedgerEntry(
@@ -477,7 +528,9 @@ def billing_ledger(tenant_id: str | None = None) -> BillingLedgerResponse:
                 last_recorded_at=record["last_recorded_at"],
             )
         )
-    entries.sort(key=lambda entry: (entry.tenant_id, entry.capsule_id or "", entry.service))
+    entries.sort(
+        key=lambda entry: (entry.tenant_id, entry.capsule_id or "", entry.service)
+    )
     return BillingLedgerResponse(entries=entries)
 
 
@@ -486,7 +539,9 @@ def billing_ledger(tenant_id: str | None = None) -> BillingLedgerResponse:
     response_model=DisasterRecoveryDrillResponse,
     status_code=status.HTTP_201_CREATED,
 )
-def record_disaster_drill(payload: DisasterRecoveryDrillRequest) -> DisasterRecoveryDrillResponse:
+def record_disaster_drill(
+    payload: DisasterRecoveryDrillRequest,
+) -> DisasterRecoveryDrillResponse:
     """Record the outcome of a disaster recovery drill with RTO/RPO metrics."""
 
     rto_seconds = (payload.ended_at - payload.started_at).total_seconds()
@@ -510,18 +565,17 @@ def record_disaster_drill(payload: DisasterRecoveryDrillRequest) -> DisasterReco
     return DisasterRecoveryDrillResponse(**drill.__dict__)
 
 
-@router.get("/drills/disaster", response_model=List[DisasterRecoveryDrillResponse])
-def list_disaster_drills() -> List[DisasterRecoveryDrillResponse]:
+@router.get("/drills/disaster", response_model=list[DisasterRecoveryDrillResponse])
+def list_disaster_drills() -> list[DisasterRecoveryDrillResponse]:
     """List recorded disaster recovery drills."""
 
     return [
-        DisasterRecoveryDrillResponse(**drill.__dict__)
-        for drill in store.list_drills()
+        DisasterRecoveryDrillResponse(**drill.__dict__) for drill in store.list_drills()
     ]
 
 
 @router.get("/drills/disaster/summary")
-def disaster_drill_summary() -> Dict[str, Any]:
+def disaster_drill_summary() -> dict[str, Any]:
     """Return aggregate metrics for disaster recovery drills."""
 
     summary = store.drill_summary()
@@ -536,14 +590,14 @@ def disaster_drill_summary() -> Dict[str, Any]:
 def export_capsule_runs(
     tenant_id: str | None = None,
     window_hours: int | None = None,
-) -> Dict[str, List[Dict[str, Any]]]:
+) -> dict[str, list[dict[str, Any]]]:
     """Return capsule run logs as JSON for downstream ingestion."""
 
     runs = store.list_runs()
     if tenant_id:
         runs = [run for run in runs if run.tenant_id == tenant_id]
     if window_hours:
-        cutoff = datetime.now(timezone.utc) - timedelta(hours=window_hours)
+        cutoff = datetime.now(UTC) - timedelta(hours=window_hours)
         runs = [run for run in runs if run.recorded_at >= cutoff]
 
     payload = [
@@ -563,7 +617,9 @@ def export_capsule_runs(
 
 
 @router.get("/exports/billing-ledger")
-def export_billing_ledger(tenant_id: str | None = None) -> Dict[str, List[Dict[str, Any]]]:
+def export_billing_ledger(
+    tenant_id: str | None = None,
+) -> dict[str, list[dict[str, Any]]]:
     """Return aggregated billing ledger as JSON."""
 
     aggregates = store.aggregate_billing(tenant_id)

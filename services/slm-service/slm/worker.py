@@ -1,14 +1,15 @@
 """Async worker for consuming ``slm.requests`` and emitting ``slm.responses``."""
+
 import json
 import os
-from typing import Any, Dict
+from typing import Any
 
 from aiokafka import AIOKafkaConsumer, AIOKafkaProducer
 
 from .local_models import get_text_generator
 
 
-def process_request_message(msg: Dict[str, Any]) -> Dict[str, Any]:
+def process_request_message(msg: dict[str, Any]) -> dict[str, Any]:
     """Process a request using the deterministic Markov generator."""
 
     prompt = msg.get("prompt", "")

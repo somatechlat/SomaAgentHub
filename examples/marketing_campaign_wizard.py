@@ -8,8 +8,9 @@ import json
 import os
 import sys
 import time
+from collections.abc import Iterable
 from pathlib import Path
-from typing import Any, Dict, Iterable, List
+from typing import Any
 
 import requests
 
@@ -89,7 +90,7 @@ def build_parser() -> argparse.ArgumentParser:
     return parser
 
 
-def load_answers(path: Path | None) -> Dict[str, Any]:
+def load_answers(path: Path | None) -> dict[str, Any]:
     answers = dict(DEFAULT_ANSWERS)
     if not path:
         return answers
@@ -98,21 +99,23 @@ def load_answers(path: Path | None) -> Dict[str, Any]:
     return answers
 
 
-def fetch_wizards(base_url: str) -> List[Dict[str, Any]]:
+def fetch_wizards(base_url: str) -> list[dict[str, Any]]:
     resp = requests.get(f"{base_url}/v1/wizards", timeout=10)
     resp.raise_for_status()
     payload = resp.json()
     return payload.get("wizards", [])
 
 
-def find_wizard(wizards: Iterable[Dict[str, Any]], wizard_id: str) -> Dict[str, Any] | None:
+def find_wizard(
+    wizards: Iterable[dict[str, Any]], wizard_id: str
+) -> dict[str, Any] | None:
     for wizard in wizards:
         if wizard.get("wizard_id") == wizard_id:
             return wizard
     return None
 
 
-def start_session(base_url: str, wizard_id: str, user_id: str) -> Dict[str, Any]:
+def start_session(base_url: str, wizard_id: str, user_id: str) -> dict[str, Any]:
     resp = requests.post(
         f"{base_url}/v1/wizards/start",
         json={"wizard_id": wizard_id, "user_id": user_id},
@@ -122,7 +125,7 @@ def start_session(base_url: str, wizard_id: str, user_id: str) -> Dict[str, Any]
     return resp.json()
 
 
-def prompt_for_answer(question: Dict[str, Any], default: Any) -> Any:
+def prompt_for_answer(question: dict[str, Any], default: Any) -> Any:
     prompt = f"{question['prompt']} "
     if default not in (None, ""):
         prompt += f"[default: {default}] "
@@ -141,7 +144,7 @@ def prompt_for_answer(question: Dict[str, Any], default: Any) -> Any:
     return answer
 
 
-def encode_answer(question: Dict[str, Any], value: Any) -> Any:
+def encode_answer(question: dict[str, Any], value: Any) -> Any:
     qtype = question.get("type")
     if qtype == "multi_select":
         if isinstance(value, (list, tuple)):
@@ -168,7 +171,9 @@ def encode_answer(question: Dict[str, Any], value: Any) -> Any:
     return value
 
 
-def answer_question(base_url: str, session_id: str, question: Dict[str, Any], value: Any) -> Dict[str, Any]:
+def answer_question(
+    base_url: str, session_id: str, question: dict[str, Any], value: Any
+) -> dict[str, Any]:
     encoded = encode_answer(question, value)
     resp = requests.post(
         f"{base_url}/v1/wizards/{session_id}/answer",
@@ -179,15 +184,17 @@ def answer_question(base_url: str, session_id: str, question: Dict[str, Any], va
     return resp.json()
 
 
-def approve_plan(base_url: str, session_id: str) -> Dict[str, Any]:
+def approve_plan(base_url: str, session_id: str) -> dict[str, Any]:
     resp = requests.post(f"{base_url}/v1/wizards/{session_id}/approve", timeout=15)
     resp.raise_for_status()
     return resp.json()
 
 
-def poll_orchestrator(orchestrator_url: str, workflow_id: str, timeout_seconds: int) -> Dict[str, Any]:
+def poll_orchestrator(
+    orchestrator_url: str, workflow_id: str, timeout_seconds: int
+) -> dict[str, Any]:
     end_time = time.time() + timeout_seconds
-    status_payload: Dict[str, Any] = {}
+    status_payload: dict[str, Any] = {}
     while time.time() < end_time:
         resp = requests.get(f"{orchestrator_url}/v1/mao/{workflow_id}", timeout=10)
         if resp.status_code == 404:
@@ -202,7 +209,7 @@ def poll_orchestrator(orchestrator_url: str, workflow_id: str, timeout_seconds: 
     return status_payload
 
 
-def save_plan(plan: Dict[str, Any], path: Path):
+def save_plan(plan: dict[str, Any], path: Path):
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(plan, indent=2, sort_keys=True))
 
@@ -244,7 +251,9 @@ def main() -> int:
             user_value = default_value
 
         print(f"   → {qid}: {encode_answer(current_question, user_value)}")
-        response = answer_question(args.api_url, session_id, current_question, user_value)
+        response = answer_question(
+            args.api_url, session_id, current_question, user_value
+        )
         if response.get("completed"):
             summary = response["summary"]
             execution_plan = response["execution_plan"]
@@ -265,7 +274,9 @@ def main() -> int:
 
                 workflow_id = approval_response.get("workflow_id")
                 if args.poll_orchestrator and workflow_id:
-                    print(f"⏱️ Polling orchestrator {args.orchestrator_url} for workflow {workflow_id}...")
+                    print(
+                        f"⏱️ Polling orchestrator {args.orchestrator_url} for workflow {workflow_id}..."
+                    )
                     status_payload = poll_orchestrator(
                         args.orchestrator_url, workflow_id, args.max_poll_seconds
                     )
@@ -283,7 +294,10 @@ if __name__ == "__main__":
     try:
         sys.exit(main())
     except requests.HTTPError as exc:
-        print(f"HTTP error: {exc.response.status_code} {exc.response.text}", file=sys.stderr)
+        print(
+            f"HTTP error: {exc.response.status_code} {exc.response.text}",
+            file=sys.stderr,
+        )
         sys.exit(1)
     except Exception as exc:  # pragma: no cover - CLI safety net
         print(f"ERROR: {exc}", file=sys.stderr)

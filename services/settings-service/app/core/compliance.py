@@ -3,11 +3,9 @@
 from __future__ import annotations
 
 import re
-from datetime import datetime
-from datetime import timezone
-from typing import List
+from datetime import UTC, datetime
 
-from ..api.schemas import ComplianceIssue, ComplianceReport, CapsuleSubmissionRequest
+from ..api.schemas import CapsuleSubmissionRequest, ComplianceIssue, ComplianceReport
 
 VERSION_PATTERN = re.compile(r"^v?(\d+\.\d+\.\d+)$")
 
@@ -15,7 +13,7 @@ VERSION_PATTERN = re.compile(r"^v?(\d+\.\d+\.\d+)$")
 def run_compliance_lint(request: CapsuleSubmissionRequest) -> ComplianceReport:
     """Run lightweight linting rules and return a report."""
 
-    issues: List[ComplianceIssue] = []
+    issues: list[ComplianceIssue] = []
 
     if len(request.summary.strip()) < 20:
         issues.append(
@@ -52,5 +50,5 @@ def run_compliance_lint(request: CapsuleSubmissionRequest) -> ComplianceReport:
 def attestation_is_fresh(issued_at: datetime, tolerance_hours: int = 48) -> bool:
     """Check attestation freshness window."""
 
-    delta = datetime.now(timezone.utc) - issued_at
+    delta = datetime.now(UTC) - issued_at
     return delta.total_seconds() <= tolerance_hours * 3600

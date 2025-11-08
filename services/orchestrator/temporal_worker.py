@@ -4,23 +4,21 @@ Sprint-5: Executes autonomous project orchestration workflows.
 """
 
 import asyncio
-from contextlib import suppress
 import logging
 import os
-from typing import Optional
+from contextlib import suppress
 
 from temporalio.client import Client
 from temporalio.worker import Worker
-
 from workflows import (
-    KAMACHIQProjectWorkflow,
     AgentTaskWorkflow,
-    decompose_project,
+    KAMACHIQProjectWorkflow,
+    aggregate_results,
     create_task_plan,
-    spawn_agent,
+    decompose_project,
     execute_task,
     review_output,
-    aggregate_results,
+    spawn_agent,
 )
 
 logging.basicConfig(level=logging.INFO)
@@ -34,23 +32,23 @@ async def run_worker(
 ):
     """
     Run Temporal worker that executes KAMACHIQ workflows.
-    
+
     Args:
         temporal_host: Temporal server address
         task_queue: Task queue name
         namespace: Temporal namespace
     """
     logger.info(f"Connecting to Temporal server at {temporal_host}")
-    
+
     # Connect to Temporal server
     client = await Client.connect(
         temporal_host,
         namespace=namespace,
     )
-    
+
     logger.info(f"Connected to Temporal namespace: {namespace}")
     logger.info(f"Listening on task queue: {task_queue}")
-    
+
     # Create worker with workflows and activities
     worker = Worker(
         client,
@@ -68,12 +66,12 @@ async def run_worker(
             aggregate_results,
         ],
     )
-    
+
     logger.info("✅ Temporal worker started")
     logger.info("   - KAMACHIQProjectWorkflow: Autonomous project execution")
     logger.info("   - AgentTaskWorkflow: Individual agent task execution")
     logger.info("   - 6 activities registered")
-    
+
     # Run worker execution loop
     # ---------------------------------------------------------------------
     # Background task: report Temporal queue length to Prometheus
@@ -114,13 +112,13 @@ async def start_workflow_example(
 ):
     """
     Example: Start a KAMACHIQ workflow.
-    
+
     Demonstrates workflow execution.
     """
     workflow_id = f"kamachiq-project-{user_id}-{int(asyncio.get_event_loop().time())}"
-    
+
     logger.info(f"Starting workflow: {workflow_id}")
-    
+
     # Start workflow
     handle = await client.start_workflow(
         KAMACHIQProjectWorkflow.run,
@@ -128,26 +126,26 @@ async def start_workflow_example(
         id=workflow_id,
         task_queue="kamachiq-tasks",
     )
-    
+
     logger.info(f"Workflow started: {handle.id}")
     logger.info("Waiting for completion...")
-    
+
     # Wait for result
     result = await handle.result()
-    
+
     logger.info("✅ Workflow completed successfully!")
     logger.info(f"   Project ID: {result['project_id']}")
     logger.info(f"   Tasks: {result['task_count']}")
     logger.info(f"   Quality Score: {result['quality_score']}%")
     logger.info(f"   Status: {result['status']}")
-    
+
     return result
 
 
 async def main():
     """
     Main entry point for Temporal worker.
-    
+
     Environment variables:
     - TEMPORAL_HOST: Temporal server address (default: localhost:10009)
     - TEMPORAL_NAMESPACE: Namespace (default: default)
@@ -158,21 +156,21 @@ async def main():
     namespace = os.getenv("TEMPORAL_NAMESPACE", "default")
     task_queue = os.getenv("TEMPORAL_TASK_QUEUE", "kamachiq-tasks")
     run_example = os.getenv("RUN_EXAMPLE", "false").lower() == "true"
-    
+
     if run_example:
         # Run example workflow then start worker
         logger.info("Running example workflow first...")
-        
+
         client = await Client.connect(temporal_host, namespace=namespace)
-        
+
         await start_workflow_example(
             client,
             project_description="Create a simple Python CLI calculator that supports basic math operations",
             user_id="demo_user",
         )
-        
+
         logger.info("Example complete. Starting worker...")
-    
+
     # Run worker (blocks until shutdown)
     await run_worker(
         temporal_host=temporal_host,
@@ -184,14 +182,14 @@ async def main():
 if __name__ == "__main__":
     """
     Run Temporal worker.
-    
+
     Usage:
         # Start worker (connects to local Temporal server)
         python temporal_worker.py
-        
+
         # Start worker with example
         RUN_EXAMPLE=true python temporal_worker.py
-        
+
         # Connect to remote Temporal
         TEMPORAL_HOST=temporal.observability:10009 python temporal_worker.py
     """

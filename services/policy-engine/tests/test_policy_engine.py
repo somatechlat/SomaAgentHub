@@ -10,6 +10,7 @@ environment variable. The tests spin up a FastAPI ``TestClient`` and verify:
 """
 
 import os
+
 from fastapi.testclient import TestClient
 
 # Import the FastAPI app from the service implementation
@@ -42,6 +43,7 @@ def test_allow_endpoint_allowed_when_configured():
     import importlib
 
     import app.main as policy_mod  # type: ignore
+
     importlib.reload(policy_mod)
     test_client = TestClient(policy_mod.app)
 

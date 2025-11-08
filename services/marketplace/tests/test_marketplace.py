@@ -1,8 +1,9 @@
 import pytest
-from httpx import AsyncClient
 from fastapi import status
+from httpx import AsyncClient
 
 from services.marketplace.app.main import app
+
 
 @pytest.mark.asyncio
 async def test_capsule_crud():

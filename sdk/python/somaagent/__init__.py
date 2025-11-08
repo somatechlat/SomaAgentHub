@@ -8,20 +8,13 @@ __version__ = "0.1.0"
 
 from .client import SomaAgentClient
 from .async_client import AsyncSomaAgentClient
-from .models import (
-    Message,
-    Conversation,
-    Capsule,
-    Agent,
-    Task,
-    WorkflowRun
-)
+from .models import Message, Conversation, Capsule, Agent, Task, WorkflowRun
 from .exceptions import (
     SomaAgentError,
     APIError,
     AuthenticationError,
     RateLimitError,
-    ValidationError
+    ValidationError,
 )
 
 __all__ = [

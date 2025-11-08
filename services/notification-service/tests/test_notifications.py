@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-from pathlib import Path
 import sys
+from pathlib import Path
 
 from fastapi.testclient import TestClient
 
@@ -11,6 +11,7 @@ sys.path.insert(0, str(SERVICE_ROOT))
 
 from app.core.bus import get_notification_bus  # type: ignore  # noqa: E402
 from app.core.config import settings  # type: ignore  # noqa: E402
+
 from app.main import app  # type: ignore  # noqa: E402
 
 client = TestClient(app)
@@ -55,7 +56,9 @@ def test_backlog_endpoint_filters_by_tenant() -> None:
     assert client.post("/v1/notifications", json=first).status_code == 202
     assert client.post("/v1/notifications", json=second).status_code == 202
 
-    backlog_a = client.get("/v1/notifications/backlog", params={"tenant_id": "tenant-a"})
+    backlog_a = client.get(
+        "/v1/notifications/backlog", params={"tenant_id": "tenant-a"}
+    )
     assert backlog_a.status_code == 200
     results_a = backlog_a.json()["results"]
     assert len(results_a) == 1

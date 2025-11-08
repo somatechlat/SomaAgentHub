@@ -23,7 +23,7 @@ AWS_ADAPTER = StaticAdapter(
         {
             "id": "aws-p4d.24xlarge",
             "gpu_model": "A100",
-            "vram_gb": 40*8,
+            "vram_gb": 40 * 8,
             "cpu_cores": 96,
             "ram_gb": 1152,
             "storage_gb": 2000,

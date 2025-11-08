@@ -4,9 +4,9 @@ from __future__ import annotations
 
 from collections import defaultdict, deque
 from dataclasses import dataclass, field
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from statistics import fmean
-from typing import Any, Deque, Dict, List, Optional
+from typing import Any
 
 from ..core.config import get_settings
 
@@ -27,12 +27,12 @@ class CapsuleRun:
 class PersonaRegression:
     persona_id: str
     tenant_id: str
-    last_run_at: Optional[datetime] = None
+    last_run_at: datetime | None = None
     status: str = "pending"
-    notes: List[str] = field(default_factory=list)
-    queued_at: Optional[datetime] = None
-    running_at: Optional[datetime] = None
-    last_error: Optional[str] = None
+    notes: list[str] = field(default_factory=list)
+    queued_at: datetime | None = None
+    running_at: datetime | None = None
+    last_error: str | None = None
 
 
 @dataclass
@@ -41,7 +41,7 @@ class GovernanceReport:
     tenant_id: str
     generated_at: datetime
     summary: str
-    changes: List[str]
+    changes: list[str]
 
 
 @dataclass
@@ -51,7 +51,7 @@ class KamachiqRun:
     name: str
     deliverable_count: int
     created_at: datetime
-    metadata: Dict[str, str] = field(default_factory=dict)
+    metadata: dict[str, str] = field(default_factory=dict)
 
 
 @dataclass
@@ -62,9 +62,9 @@ class BillingEvent:
     cost: float
     currency: str
     recorded_at: datetime
-    capsule_id: Optional[str] = None
+    capsule_id: str | None = None
     tokens: int = 0
-    metadata: Dict[str, str] = field(default_factory=dict)
+    metadata: dict[str, str] = field(default_factory=dict)
 
 
 @dataclass
@@ -90,25 +90,25 @@ class BenchmarkResult:
     started_at: datetime
     completed_at: datetime
     score: float
-    metrics: Dict[str, float] = field(default_factory=dict)
-    metadata: Dict[str, str] = field(default_factory=dict)
-    tenant_id: Optional[str] = None
+    metrics: dict[str, float] = field(default_factory=dict)
+    metadata: dict[str, str] = field(default_factory=dict)
+    tenant_id: str | None = None
 
 
 class AnalyticsStore:
     """Simple in-memory analytics store."""
 
     def __init__(self) -> None:
-        self.runs: Deque[CapsuleRun] = deque(maxlen=1000)
-        self.regressions: Dict[str, PersonaRegression] = {}
-        self.governance_reports: Deque[GovernanceReport] = deque(maxlen=200)
-        self.notifications: List[Dict[str, str]] = []
-        self.kamachiq_runs: Deque[KamachiqRun] = deque(maxlen=200)
-        self.blocked_deliverables: Deque[Dict[str, str]] = deque(maxlen=200)
-        self.resolved_deliverables: Deque[Dict[str, str]] = deque(maxlen=200)
-        self.billing_events: Deque[BillingEvent] = deque(maxlen=5000)
-        self.drills: Deque[DisasterRecoveryDrill] = deque(maxlen=200)
-        self.benchmarks: Deque[BenchmarkResult] = deque(maxlen=500)
+        self.runs: deque[CapsuleRun] = deque(maxlen=1000)
+        self.regressions: dict[str, PersonaRegression] = {}
+        self.governance_reports: deque[GovernanceReport] = deque(maxlen=200)
+        self.notifications: list[dict[str, str]] = []
+        self.kamachiq_runs: deque[KamachiqRun] = deque(maxlen=200)
+        self.blocked_deliverables: deque[dict[str, str]] = deque(maxlen=200)
+        self.resolved_deliverables: deque[dict[str, str]] = deque(maxlen=200)
+        self.billing_events: deque[BillingEvent] = deque(maxlen=5000)
+        self.drills: deque[DisasterRecoveryDrill] = deque(maxlen=200)
+        self.benchmarks: deque[BenchmarkResult] = deque(maxlen=500)
 
     def record_run(self, run: CapsuleRun) -> None:
         self.runs.append(run)
@@ -131,7 +131,7 @@ class AnalyticsStore:
         error: str | None = None,
     ) -> PersonaRegression:
         regression = self.register_regression(persona_id, tenant_id)
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         regression.status = status
         if status == "queued":
             regression.queued_at = now
@@ -151,37 +151,42 @@ class AnalyticsStore:
     def store_governance_report(self, report: GovernanceReport) -> None:
         self.governance_reports.append(report)
 
-    def list_regressions(self) -> List[PersonaRegression]:
+    def list_regressions(self) -> list[PersonaRegression]:
         return list(self.regressions.values())
 
-    def list_runs(self) -> List[CapsuleRun]:
+    def list_runs(self) -> list[CapsuleRun]:
         return list(self.runs)
 
-    def list_reports(self, tenant_id: Optional[str] = None) -> List[GovernanceReport]:
+    def list_reports(self, tenant_id: str | None = None) -> list[GovernanceReport]:
         if tenant_id:
             return [r for r in self.governance_reports if r.tenant_id == tenant_id]
         return list(self.governance_reports)
 
     def log_notification(self, tenant_id: str, message: str) -> None:
-        self.notifications.append({
-            "tenant_id": tenant_id,
-            "message": message,
-            "timestamp": datetime.now(timezone.utc).isoformat(),
-        })
+        self.notifications.append(
+            {
+                "tenant_id": tenant_id,
+                "message": message,
+                "timestamp": datetime.now(UTC).isoformat(),
+            }
+        )
 
     def record_kamachiq_run(self, run: KamachiqRun) -> None:
         self.kamachiq_runs.append(run)
 
-    def list_kamachiq_runs(self, tenant_id: Optional[str] = None) -> List[KamachiqRun]:
+    def list_kamachiq_runs(self, tenant_id: str | None = None) -> list[KamachiqRun]:
         if tenant_id:
             return [r for r in self.kamachiq_runs if r.tenant_id == tenant_id]
         return list(self.kamachiq_runs)
 
-    def kamachiq_summary(self) -> Dict[str, Any]:
+    def kamachiq_summary(self) -> dict[str, Any]:
         runs = self.list_kamachiq_runs()
         if not runs:
             return {"count": 0, "average_deliverables": 0.0, "tenants": []}
-        total_deliverables = sum(int(run.metadata.get("deliverable_count", run.deliverable_count)) for run in runs)
+        total_deliverables = sum(
+            int(run.metadata.get("deliverable_count", run.deliverable_count))
+            for run in runs
+        )
         tenants = sorted(set(run.tenant_id for run in runs))
         return {
             "count": len(runs),
@@ -193,13 +198,17 @@ class AnalyticsStore:
     def record_billing_event(self, event: BillingEvent) -> None:
         self.billing_events.append(event)
 
-    def list_billing_events(self, tenant_id: Optional[str] = None) -> List[BillingEvent]:
+    def list_billing_events(
+        self, tenant_id: str | None = None
+    ) -> list[BillingEvent]:
         if tenant_id:
             return [e for e in self.billing_events if e.tenant_id == tenant_id]
         return list(self.billing_events)
 
-    def aggregate_billing(self, tenant_id: Optional[str] = None) -> List[Dict[str, Any]]:
-        aggregates: Dict[tuple[str, Optional[str], str, str], Dict[str, Any]] = {}
+    def aggregate_billing(
+        self, tenant_id: str | None = None
+    ) -> list[dict[str, Any]]:
+        aggregates: dict[tuple[str, str | None, str, str], dict[str, Any]] = {}
         for event in self.list_billing_events(tenant_id):
             key = (event.tenant_id, event.capsule_id, event.service, event.currency)
             entry = aggregates.setdefault(
@@ -222,26 +231,36 @@ class AnalyticsStore:
                 entry["last_recorded_at"] = event.recorded_at
         return list(aggregates.values())
 
-    def record_blocked_deliverable(self, data: Dict[str, str]) -> None:
+    def record_blocked_deliverable(self, data: dict[str, str]) -> None:
         self.blocked_deliverables.append(data)
 
-    def list_blocked_deliverables(self, tenant_id: Optional[str] = None) -> List[Dict[str, str]]:
+    def list_blocked_deliverables(
+        self, tenant_id: str | None = None
+    ) -> list[dict[str, str]]:
         if tenant_id:
-            return [d for d in self.blocked_deliverables if d.get("tenant_id") == tenant_id]
+            return [
+                d for d in self.blocked_deliverables if d.get("tenant_id") == tenant_id
+            ]
         return list(self.blocked_deliverables)
 
-    def record_resolved_deliverable(self, data: Dict[str, str]) -> None:
+    def record_resolved_deliverable(self, data: dict[str, str]) -> None:
         self.resolved_deliverables.append(data)
 
-    def list_resolved_deliverables(self, tenant_id: Optional[str] = None) -> List[Dict[str, str]]:
+    def list_resolved_deliverables(
+        self, tenant_id: str | None = None
+    ) -> list[dict[str, str]]:
         if tenant_id:
-            return [d for d in self.resolved_deliverables if d.get("tenant_id") == tenant_id]
+            return [
+                d for d in self.resolved_deliverables if d.get("tenant_id") == tenant_id
+            ]
         return list(self.resolved_deliverables)
 
-    def pending_regressions(self, now: Optional[datetime] = None) -> List[PersonaRegression]:
+    def pending_regressions(
+        self, now: datetime | None = None
+    ) -> list[PersonaRegression]:
         settings = get_settings()
-        now = now or datetime.now(timezone.utc)
-        due: List[PersonaRegression] = []
+        now = now or datetime.now(UTC)
+        due: list[PersonaRegression] = []
         for regression in self.regressions.values():
             if regression.status in {"queued", "running"}:
                 continue
@@ -259,10 +278,10 @@ class AnalyticsStore:
     def record_drill(self, drill: DisasterRecoveryDrill) -> None:
         self.drills.append(drill)
 
-    def list_drills(self) -> List[DisasterRecoveryDrill]:
+    def list_drills(self) -> list[DisasterRecoveryDrill]:
         return list(self.drills)
 
-    def drill_summary(self) -> Dict[str, Any]:
+    def drill_summary(self) -> dict[str, Any]:
         drills = self.list_drills()
         if not drills:
             return {
@@ -289,10 +308,10 @@ class AnalyticsStore:
 
     def list_benchmarks(
         self,
-        suite: Optional[str] = None,
-        scenario: Optional[str] = None,
-        tenant_id: Optional[str] = None,
-    ) -> List[BenchmarkResult]:
+        suite: str | None = None,
+        scenario: str | None = None,
+        tenant_id: str | None = None,
+    ) -> list[BenchmarkResult]:
         results = list(self.benchmarks)
         if suite:
             results = [item for item in results if item.suite == suite]
@@ -302,23 +321,23 @@ class AnalyticsStore:
             results = [item for item in results if item.tenant_id == tenant_id]
         return results
 
-    def latest_benchmarks(self, limit: int = 20) -> List[BenchmarkResult]:
+    def latest_benchmarks(self, limit: int = 20) -> list[BenchmarkResult]:
         return list(self.benchmarks)[-limit:]
 
     def benchmark_scoreboard(
         self,
-        suite: Optional[str] = None,
-        tenant_id: Optional[str] = None,
-    ) -> List[Dict[str, Any]]:
+        suite: str | None = None,
+        tenant_id: str | None = None,
+    ) -> list[dict[str, Any]]:
         results = self.list_benchmarks(suite=suite, tenant_id=tenant_id)
         if not results:
             return []
 
-        by_scenario: Dict[str, List[BenchmarkResult]] = defaultdict(list)
+        by_scenario: dict[str, list[BenchmarkResult]] = defaultdict(list)
         for result in results:
             by_scenario[result.scenario].append(result)
 
-        scoreboard: List[Dict[str, Any]] = []
+        scoreboard: list[dict[str, Any]] = []
         for scenario, items in by_scenario.items():
             best = max(items, key=lambda item: item.score)
             avg_latency = self._avg_metric(items, "latency_p95_ms")
@@ -341,8 +360,12 @@ class AnalyticsStore:
         return scoreboard
 
     @staticmethod
-    def _avg_metric(items: List[BenchmarkResult], metric: str) -> float:
-        values = [item.metrics.get(metric) for item in items if item.metrics.get(metric) is not None]
+    def _avg_metric(items: list[BenchmarkResult], metric: str) -> float:
+        values = [
+            item.metrics.get(metric)
+            for item in items
+            if item.metrics.get(metric) is not None
+        ]
         if not values:
             return 0.0
         return round(fmean(values), 4)

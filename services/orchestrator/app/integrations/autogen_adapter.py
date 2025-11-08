@@ -2,8 +2,9 @@
 
 from __future__ import annotations
 
+from collections.abc import Iterable
 from dataclasses import asdict, dataclass
-from typing import Any, Dict, Iterable, List, Optional
+from typing import Any
 
 from temporalio import activity
 
@@ -15,15 +16,17 @@ class AgentConfig:
     name: str
     model: str
     system_message: str = ""
-    llm_config: Optional[Dict[str, Any]] = None
+    llm_config: dict[str, Any] | None = None
 
     @classmethod
-    def from_dict(cls, payload: Dict[str, Any]) -> "AgentConfig":
+    def from_dict(cls, payload: dict[str, Any]) -> AgentConfig:
         try:
             name = str(payload["name"]).strip()
             model = str(payload.get("model", "gpt-4o-mini")).strip()
         except KeyError as exc:  # pragma: no cover - validated in tests
-            raise ValueError(f"agent config missing required field: {exc.args[0]}") from exc
+            raise ValueError(
+                f"agent config missing required field: {exc.args[0]}"
+            ) from exc
 
         if not name:
             raise ValueError("agent name cannot be empty")
@@ -50,7 +53,7 @@ def _get_autogen_components():
     return AssistantAgent, GroupChat, GroupChatManager, UserProxyAgent
 
 
-def _build_llm_config(agent: AgentConfig, default_temperature: float) -> Dict[str, Any]:
+def _build_llm_config(agent: AgentConfig, default_temperature: float) -> dict[str, Any]:
     if agent.llm_config:
         return agent.llm_config
     return {
@@ -66,7 +69,7 @@ def _build_llm_config(agent: AgentConfig, default_temperature: float) -> Dict[st
 def _termination_predicate(keywords: Iterable[str]):
     lowered = [kw.lower() for kw in keywords if kw]
 
-    def _is_termination(message: Dict[str, Any]) -> bool:
+    def _is_termination(message: dict[str, Any]) -> bool:
         if not lowered:
             return False
         content = message.get("content") or ""
@@ -75,8 +78,8 @@ def _termination_predicate(keywords: Iterable[str]):
     return _is_termination
 
 
-def _serialize_conversation(messages: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
-    serialized: List[Dict[str, Any]] = []
+def _serialize_conversation(messages: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    serialized: list[dict[str, Any]] = []
     for msg in messages:
         serialized.append(
             {
@@ -92,9 +95,8 @@ def _serialize_conversation(messages: List[Dict[str, Any]]) -> List[Dict[str, An
     return serialized
 
 
-
 @activity.defn(name="autogen-group-chat")
-async def run_autogen_group_chat(payload: Dict[str, Any]) -> Dict[str, Any]:
+async def run_autogen_group_chat(payload: dict[str, Any]) -> dict[str, Any]:
     """Execute a group-chat AutoGen conversation under Temporal control."""
 
     agents = payload.get("agents")
@@ -127,10 +129,12 @@ async def run_autogen_group_chat(payload: Dict[str, Any]) -> Dict[str, Any]:
 
     agent_configs = [AgentConfig.from_dict(agent) for agent in agents]
 
-    AssistantAgent, GroupChat, GroupChatManager, UserProxyAgent = _get_autogen_components()
+    AssistantAgent, GroupChat, GroupChatManager, UserProxyAgent = (
+        _get_autogen_components()
+    )
 
     # Instantiate AutoGen agents using supplied configuration.
-    autogen_agents: List[AssistantAgent] = []
+    autogen_agents: list[AssistantAgent] = []
     for config in agent_configs:
         llm_config = _build_llm_config(config, default_temperature=temperature)
         autogen_agents.append(
@@ -149,7 +153,9 @@ async def run_autogen_group_chat(payload: Dict[str, Any]) -> Dict[str, Any]:
         max_consecutive_auto_reply=0,
     )
 
-    groupchat = GroupChat(agents=[user_proxy, *autogen_agents], messages=[], max_round=max_rounds)
+    groupchat = GroupChat(
+        agents=[user_proxy, *autogen_agents], messages=[], max_round=max_rounds
+    )
     manager = GroupChatManager(groupchat=groupchat)
 
     try:

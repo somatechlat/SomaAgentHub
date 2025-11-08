@@ -23,10 +23,11 @@ variables to avoid repeated look‑ups.
 from __future__ import annotations
 
 import os
-from typing import Any, Mapping
+from collections.abc import Mapping
+from typing import Any
 
 import httpx
-from fastapi import Depends, Header, HTTPException, status
+from fastapi import Header, HTTPException, status
 
 # The Identity Service URL can be overridden via ``IDENTITY_SERVICE_URL``.
 IDENTITY_SERVICE_URL = os.getenv(
@@ -93,9 +94,12 @@ async def get_current_user(
             detail="Empty token provided",
         )
     return await _verify_token(token)
+
+
 # ---------------------------------------------------------------------------
 # Compatibility shim for the existing middleware
 # ---------------------------------------------------------------------------
+
 
 async def decode_token(token: str) -> Mapping[str, Any]:
     """Decode a JWT token using the Identity Service.

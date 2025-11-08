@@ -3,18 +3,22 @@
 from __future__ import annotations
 
 from datetime import timedelta
-from typing import Any, Dict
+from typing import Any
 
 from temporalio import workflow
 
 from ..core.framework_router import FrameworkRouter, MultiAgentPattern
 from ..integrations import (
+    run_a2a_message,
     run_autogen_group_chat,
     run_crewai_delegation,
     run_langgraph_routing,
-    run_a2a_message,
 )
-from ..workflows.session import PolicyEvaluationContext, evaluate_policy, emit_audit_event
+from ..workflows.session import (
+    PolicyEvaluationContext,
+    emit_audit_event,
+    evaluate_policy,
+)
 
 
 @workflow.defn(name="unified-multi-agent-workflow")
@@ -25,7 +29,7 @@ class UnifiedMultiAgentWorkflow:
         self.router = FrameworkRouter()
 
     @workflow.run
-    async def run(self, request: Dict[str, Any]) -> Dict[str, Any]:
+    async def run(self, request: dict[str, Any]) -> dict[str, Any]:
         logger = workflow.logger
         workflow_id = workflow.info().workflow_id
 
@@ -55,7 +59,7 @@ class UnifiedMultiAgentWorkflow:
             workflow_id=workflow_id,
         )
 
-        result: Dict[str, Any]
+        result: dict[str, Any]
         if pattern is MultiAgentPattern.GROUP_CHAT:
             result = await workflow.execute_activity(
                 run_autogen_group_chat,

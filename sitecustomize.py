@@ -21,12 +21,14 @@ It performs two duties:
 """
 
 import importlib
+import logging
 import os
 import sys
 from pathlib import Path
-import sys
+
 # Debug: indicate that sitecustomize has been loaded (appears in pytest output)
-print('>>> sitecustomize loaded')
+_logger = logging.getLogger("sitecustomize")
+_logger.debug("sitecustomize loaded")
 
 # ---------------------------------------------------------------------------
 # 1. Ensure the repository root is on ``sys.path``.
@@ -114,6 +116,7 @@ except Exception:
 # service directory already present at index 0.  No additional path manipulation
 # is required here.
 
+
 def _patch_redis_container() -> None:
     """Ensure ``RedisContainer`` provides ``get_connection_url``.
 
@@ -128,15 +131,20 @@ def _patch_redis_container() -> None:
         RedisContainer = getattr(module, "RedisContainer", None)
         if RedisContainer is None:
             return
+
         def get_connection_url(self):  # type: ignore[override]
             host = self.get_container_host_ip()
             port = self.get_exposed_port("6379/tcp")
             return f"redis://{host}:{port}"
+
         setattr(RedisContainer, "get_connection_url", get_connection_url)
         # Debug: confirm method presence after patch
-        print('DEBUG: after patch, hasattr(RedisContainer, "get_connection_url") =',
-              hasattr(RedisContainer, "get_connection_url"))
+        _logger.debug(
+            'after patch, hasattr(RedisContainer, "get_connection_url") = %s',
+            hasattr(RedisContainer, "get_connection_url"),
+        )
     except Exception as e:
-        print('DEBUG: _patch_redis_container exception:', e)
+        _logger.debug("_patch_redis_container exception: %s", e)
+
 
 _patch_redis_container()

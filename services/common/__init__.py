@@ -7,8 +7,8 @@ and extending the package path we make ``services.common`` resolve to the same
 module hierarchy.
 """
 
-import pkgutil
 import pathlib
+import pkgutil
 import sys
 
 # Repository root (two levels up from this file: services/common -> services -> repo)

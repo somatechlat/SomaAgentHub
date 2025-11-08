@@ -4,9 +4,9 @@ from __future__ import annotations
 
 import json
 import os
-import time
 from dataclasses import dataclass
-from typing import Any, Dict, Optional
+from typing import Any
+
 import requests
 from airflow.exceptions import AirflowException
 from airflow.models import BaseOperator
@@ -34,7 +34,7 @@ class TemporalStartConfig:
     prompt: str
     tenant: str
     user: str
-    metadata: Optional[Dict[str, Any]] = None
+    metadata: dict[str, Any] | None = None
 
 
 class SomaGatewayTemporalOperator(BaseOperator):
@@ -48,9 +48,9 @@ class SomaGatewayTemporalOperator(BaseOperator):
         prompt: str,
         tenant: str,
         user: str,
-        metadata: Optional[Dict[str, Any]] = None,
-        capsule_id: Optional[str] = None,
-        gateway_url: Optional[str] = None,
+        metadata: dict[str, Any] | None = None,
+        capsule_id: str | None = None,
+        gateway_url: str | None = None,
         timeout_seconds: int = 30,
         **kwargs: Any,
     ) -> None:
@@ -60,15 +60,21 @@ class SomaGatewayTemporalOperator(BaseOperator):
         self.user = user
         self.metadata = metadata or {}
         self.capsule_id = capsule_id
-        self.gateway_url = gateway_url or os.getenv("SOMAGENT_GATEWAY_URL", "http://gateway-api:8000")
+        self.gateway_url = gateway_url or os.getenv(
+            "SOMAGENT_GATEWAY_URL", "http://gateway-api:8000"
+        )
         self.timeout_seconds = timeout_seconds
 
-    def execute(self, context: Context) -> Dict[str, Any]:  # noqa: D401
+    def execute(self, context: Context) -> dict[str, Any]:  # noqa: D401
         token = _load_bearer_token()
         url = f"{self.gateway_url}/v1/sessions"
-        payload: Dict[str, Any] = {
+        payload: dict[str, Any] = {
             "prompt": self.prompt,
-            "metadata": {**self.metadata, "requested_by": self.user, "tenant": self.tenant},
+            "metadata": {
+                **self.metadata,
+                "requested_by": self.user,
+                "tenant": self.tenant,
+            },
         }
         if self.capsule_id:
             payload["capsule_id"] = self.capsule_id
@@ -79,7 +85,9 @@ class SomaGatewayTemporalOperator(BaseOperator):
         }
 
         self.log.info("Triggering Gateway session at %s", url)
-        resp = requests.post(url, json=payload, headers=headers, timeout=self.timeout_seconds)
+        resp = requests.post(
+            url, json=payload, headers=headers, timeout=self.timeout_seconds
+        )
         if resp.status_code >= 400:
             raise AirflowException(
                 f"Gateway call failed with status {resp.status_code}: {resp.text}"
@@ -88,7 +96,11 @@ class SomaGatewayTemporalOperator(BaseOperator):
         try:
             data = resp.json()
         except json.JSONDecodeError as exc:  # noqa: BLE001
-            raise AirflowException(f"Gateway response was not JSON: {resp.text}") from exc
+            raise AirflowException(
+                f"Gateway response was not JSON: {resp.text}"
+            ) from exc
 
-        self.log.info("Gateway accepted session request: session_id=%s", data.get("session_id"))
+        self.log.info(
+            "Gateway accepted session request: session_id=%s", data.get("session_id")
+        )
         return data

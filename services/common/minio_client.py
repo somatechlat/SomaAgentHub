@@ -6,7 +6,6 @@ Provides artifact storage for task capsules, workspace files, and generated outp
 from __future__ import annotations
 
 import os
-from typing import Dict, List, Optional
 from functools import lru_cache
 from io import BytesIO
 
@@ -32,7 +31,7 @@ class MinIOClient:
         region: str = "us-east-1",
     ):
         """Initialize MinIO client.
-        
+
         Args:
             endpoint: MinIO server endpoint (e.g., "minio:9000")
             access_key: Access key ID
@@ -44,10 +43,10 @@ class MinIOClient:
             raise ImportError(
                 "minio package not installed. Install with: pip install minio"
             )
-        
+
         self.endpoint = endpoint
         self.region = region
-        
+
         self.client = Minio(
             endpoint=endpoint,
             access_key=access_key,
@@ -58,7 +57,7 @@ class MinIOClient:
 
     def create_bucket(self, bucket_name: str) -> None:
         """Create a bucket if it doesn't exist.
-        
+
         Args:
             bucket_name: Name of the bucket to create
         """
@@ -73,18 +72,18 @@ class MinIOClient:
         bucket_name: str,
         object_name: str,
         file_path: str,
-        content_type: Optional[str] = None,
-        metadata: Optional[Dict[str, str]] = None,
+        content_type: str | None = None,
+        metadata: dict[str, str] | None = None,
     ) -> str:
         """Upload a file to MinIO.
-        
+
         Args:
             bucket_name: Target bucket name
             object_name: Object name (key) in bucket
             file_path: Path to local file
             content_type: MIME type (auto-detected if not provided)
             metadata: Optional metadata tags
-            
+
         Returns:
             Object ETag
         """
@@ -108,17 +107,17 @@ class MinIOClient:
         object_name: str,
         data: bytes,
         content_type: str = "application/octet-stream",
-        metadata: Optional[Dict[str, str]] = None,
+        metadata: dict[str, str] | None = None,
     ) -> str:
         """Upload bytes to MinIO.
-        
+
         Args:
             bucket_name: Target bucket name
             object_name: Object name (key) in bucket
             data: Bytes to upload
             content_type: MIME type
             metadata: Optional metadata tags
-            
+
         Returns:
             Object ETag
         """
@@ -144,7 +143,7 @@ class MinIOClient:
         file_path: str,
     ) -> None:
         """Download a file from MinIO.
-        
+
         Args:
             bucket_name: Source bucket name
             object_name: Object name (key) in bucket
@@ -167,11 +166,11 @@ class MinIOClient:
         object_name: str,
     ) -> bytes:
         """Download object as bytes from MinIO.
-        
+
         Args:
             bucket_name: Source bucket name
             object_name: Object name (key) in bucket
-            
+
         Returns:
             Object data as bytes
         """
@@ -195,7 +194,7 @@ class MinIOClient:
         object_name: str,
     ) -> None:
         """Delete an object from MinIO.
-        
+
         Args:
             bucket_name: Bucket name
             object_name: Object name (key) to delete
@@ -213,10 +212,10 @@ class MinIOClient:
     def delete_objects(
         self,
         bucket_name: str,
-        object_names: List[str],
+        object_names: list[str],
     ) -> None:
         """Delete multiple objects from MinIO.
-        
+
         Args:
             bucket_name: Bucket name
             object_names: List of object names to delete
@@ -238,16 +237,16 @@ class MinIOClient:
     def list_objects(
         self,
         bucket_name: str,
-        prefix: Optional[str] = None,
+        prefix: str | None = None,
         recursive: bool = True,
-    ) -> List[str]:
+    ) -> list[str]:
         """List objects in a bucket.
-        
+
         Args:
             bucket_name: Bucket name
             prefix: Filter by prefix (optional)
             recursive: List recursively (default: True)
-            
+
         Returns:
             List of object names
         """
@@ -267,13 +266,13 @@ class MinIOClient:
         self,
         bucket_name: str,
         object_name: str,
-    ) -> Dict[str, any]:
+    ) -> dict[str, any]:
         """Get object metadata.
-        
+
         Args:
             bucket_name: Bucket name
             object_name: Object name
-            
+
         Returns:
             Object metadata dictionary
         """
@@ -301,18 +300,18 @@ class MinIOClient:
         expires_seconds: int = 3600,
     ) -> str:
         """Generate a presigned URL for temporary object access.
-        
+
         Args:
             bucket_name: Bucket name
             object_name: Object name
             expires_seconds: URL expiry time in seconds (default: 1 hour)
-            
+
         Returns:
             Presigned URL string
         """
         try:
             from datetime import timedelta
-            
+
             url = self.client.presigned_get_object(
                 bucket_name=bucket_name,
                 object_name=object_name,
@@ -326,7 +325,7 @@ class MinIOClient:
 
     def health_check(self) -> bool:
         """Check if MinIO is accessible.
-        
+
         Returns:
             True if healthy, False otherwise
         """
@@ -339,32 +338,32 @@ class MinIOClient:
 
 
 # Singleton instance
-_minio_client: Optional[MinIOClient] = None
+_minio_client: MinIOClient | None = None
 
 
 @lru_cache
 def get_minio_client() -> MinIOClient:
     """Get or create singleton MinIO client instance.
-    
+
     Reads configuration from environment variables:
     - MINIO_ENDPOINT: MinIO server endpoint (default: "minio:9000")
     - MINIO_ACCESS_KEY: Access key ID (default: "minioadmin")
     - MINIO_SECRET_KEY: Secret access key (default: "minioadmin")
     - MINIO_SECURE: Use HTTPS (default: "false")
     - MINIO_REGION: S3 region (default: "us-east-1")
-    
+
     Returns:
         MinIOClient instance
     """
     global _minio_client
-    
+
     if _minio_client is None:
         endpoint = os.getenv("MINIO_ENDPOINT", "minio:9000")
         access_key = os.getenv("MINIO_ACCESS_KEY", "minioadmin")
         secret_key = os.getenv("MINIO_SECRET_KEY", "minioadmin")
         secure = os.getenv("MINIO_SECURE", "false").lower() == "true"
         region = os.getenv("MINIO_REGION", "us-east-1")
-        
+
         _minio_client = MinIOClient(
             endpoint=endpoint,
             access_key=access_key,
@@ -372,5 +371,5 @@ def get_minio_client() -> MinIOClient:
             secure=secure,
             region=region,
         )
-    
+
     return _minio_client

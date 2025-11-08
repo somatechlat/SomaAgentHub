@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import asdict, dataclass
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from temporalio import activity
 
@@ -17,12 +17,14 @@ class ManagerConfig:
     allow_delegation: bool = True
 
     @classmethod
-    def from_dict(cls, payload: Dict[str, Any]) -> "ManagerConfig":
+    def from_dict(cls, payload: dict[str, Any]) -> ManagerConfig:
         try:
             role = str(payload["role"]).strip()
             goal = str(payload["goal"]).strip()
         except KeyError as exc:  # pragma: no cover - validated in tests
-            raise ValueError(f"manager config missing required field: {exc.args[0]}") from exc
+            raise ValueError(
+                f"manager config missing required field: {exc.args[0]}"
+            ) from exc
 
         if not role:
             raise ValueError("manager role cannot be empty")
@@ -43,16 +45,18 @@ class WorkerConfig:
     role: str
     goal: str
     backstory: str = ""
-    tools: Optional[List[str]] = None
+    tools: list[str] | None = None
     verbose: bool = False
 
     @classmethod
-    def from_dict(cls, payload: Dict[str, Any]) -> "WorkerConfig":
+    def from_dict(cls, payload: dict[str, Any]) -> WorkerConfig:
         try:
             role = str(payload["role"]).strip()
             goal = str(payload["goal"]).strip()
         except KeyError as exc:  # pragma: no cover
-            raise ValueError(f"worker config missing required field: {exc.args[0]}") from exc
+            raise ValueError(
+                f"worker config missing required field: {exc.args[0]}"
+            ) from exc
 
         if not role:
             raise ValueError("worker role cannot be empty")
@@ -60,7 +64,9 @@ class WorkerConfig:
             raise ValueError("worker goal cannot be empty")
 
         tools = payload.get("tools") or None
-        if tools is not None and not isinstance(tools, list):  # pragma: no cover - defensive
+        if tools is not None and not isinstance(
+            tools, list
+        ):  # pragma: no cover - defensive
             raise ValueError("tools must be a list when provided")
 
         return cls(
@@ -75,11 +81,11 @@ class WorkerConfig:
 @dataclass(slots=True)
 class TaskConfig:
     description: str
-    agent_role: Optional[str] = None
+    agent_role: str | None = None
     expected_output: str | None = None
 
     @classmethod
-    def from_dict(cls, payload: Dict[str, Any]) -> "TaskConfig":
+    def from_dict(cls, payload: dict[str, Any]) -> TaskConfig:
         description = str(payload.get("description", "")).strip()
         if not description:
             raise ValueError("task description cannot be empty")
@@ -92,12 +98,16 @@ class TaskConfig:
         if expected_output is not None:
             expected_output = str(expected_output)
 
-        return cls(description=description, agent_role=agent_role, expected_output=expected_output)
+        return cls(
+            description=description,
+            agent_role=agent_role,
+            expected_output=expected_output,
+        )
 
 
 def _get_crewai_components():
     try:  # pragma: no cover - exercised in runtime environment
-        from crewai import Agent, Task, Crew, Process
+        from crewai import Agent, Crew, Process, Task
     except ImportError as exc:  # pragma: no cover
         raise RuntimeError(
             "CrewAI is not installed. Add `crewai` to service dependencies before scheduling "
@@ -110,13 +120,18 @@ def _get_crewai_components():
 def _select_process(process_type: str, process_cls: Any) -> Any:
     normalized = (process_type or "sequential").strip().lower()
     if normalized == "hierarchical":
-        return getattr(process_cls, "hierarchical", getattr(process_cls, "HIERARCHICAL", process_cls))
-    return getattr(process_cls, "sequential", getattr(process_cls, "SEQUENTIAL", process_cls))
-
+        return getattr(
+            process_cls,
+            "hierarchical",
+            getattr(process_cls, "HIERARCHICAL", process_cls),
+        )
+    return getattr(
+        process_cls, "sequential", getattr(process_cls, "SEQUENTIAL", process_cls)
+    )
 
 
 @activity.defn(name="crewai-delegation")
-async def run_crewai_delegation(payload: Dict[str, Any]) -> Dict[str, Any]:
+async def run_crewai_delegation(payload: dict[str, Any]) -> dict[str, Any]:
     """Execute a CrewAI delegation workflow under Temporal orchestration."""
 
     manager = payload.get("manager")
@@ -175,7 +190,9 @@ async def run_crewai_delegation(payload: Dict[str, Any]) -> Dict[str, Any]:
 
     crew_tasks = []
     for task_config in task_configs:
-        assigned_agent = worker_agents.get(task_config.agent_role or "") or manager_agent
+        assigned_agent = (
+            worker_agents.get(task_config.agent_role or "") or manager_agent
+        )
         crew_tasks.append(
             Task(
                 description=task_config.description,

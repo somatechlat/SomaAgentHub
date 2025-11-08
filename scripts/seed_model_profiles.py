@@ -11,9 +11,9 @@ Optional (not executed by default): --apply to POST to settings-service endpoint
 This script is intentionally self-contained and uses PyYAML and requests when needed.
 """
 import argparse
+import asyncio
 import json
 import sys
-import asyncio
 from pathlib import Path
 
 import yaml
@@ -37,9 +37,7 @@ def validate_schema(data: dict):
 
 def convert_to_seed(data: dict) -> dict:
     return {
-        "metadata": {
-            "source": "docs/slm_profiles.yaml"
-        },
+        "metadata": {"source": "docs/slm_profiles.yaml"},
         "profiles": data.get("profiles", []),
     }
 
@@ -55,7 +53,9 @@ async def upsert_postgres(seed: dict):
     Perform a real DB upsert using asyncpg.
     """
     import os
+
     import asyncpg
+
     # Use the POSTGRES_URL env var if provided; otherwise fall back to localhost defaults.
     dsn = os.getenv("POSTGRES_URL")
     if dsn:
@@ -80,8 +80,14 @@ def main(argv):
     parser = argparse.ArgumentParser()
     parser.add_argument("--yaml", default="docs/slm_profiles.yaml", help="source YAML")
     parser.add_argument("--write-json", help="path to write JSON seed file")
-    parser.add_argument("--dry-run", action="store_true", help="validate and print summary")
-    parser.add_argument("--apply", action="store_true", help="(placeholder) post to settings-service API")
+    parser.add_argument(
+        "--dry-run", action="store_true", help="validate and print summary"
+    )
+    parser.add_argument(
+        "--apply",
+        action="store_true",
+        help="(placeholder) post to settings-service API",
+    )
     args = parser.parse_args(argv)
 
     yaml_path = Path(args.yaml)

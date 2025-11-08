@@ -7,23 +7,28 @@ from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from httpx import AsyncClient, HTTPError
+from pydantic import BaseModel, Field
 
 from ..config import GatewaySettings, get_sah_settings
 from ..core.metrics import observe_forward_latency, record_moderation_decision
 from ..core.moderation import ModerationError, ModerationGuard
 from ..dependencies import moderation_guard_dependency, request_context_dependency
 from ..models.context import RequestContext
-from ..models.sessions import ModerationDetail, SessionCreateRequest, SessionCreateResponse
-from .dashboard import router as dashboard_router
+from ..models.sessions import (
+    ModerationDetail,
+    SessionCreateRequest,
+    SessionCreateResponse,
+)
 from .capsules import router as capsules_router
-from pydantic import BaseModel, Field
-from ..config import GatewaySettings, get_sah_settings
+from .dashboard import router as dashboard_router
 
 router = APIRouter(prefix="/v1", tags=["gateway"])
 
 
 @router.get("/status")
-def read_status(ctx: RequestContext = Depends(request_context_dependency)) -> dict[str, str]:
+def read_status(
+    ctx: RequestContext = Depends(request_context_dependency),
+) -> dict[str, str]:
     """Return gateway status plus basic request context."""
 
     return {
@@ -66,7 +71,11 @@ def _build_forward_headers(ctx: RequestContext) -> dict[str, str]:
     return headers
 
 
-@router.post("/sessions", response_model=SessionCreateResponse, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/sessions",
+    response_model=SessionCreateResponse,
+    status_code=status.HTTP_201_CREATED,
+)
 async def create_session(
     payload: SessionCreateRequest,
     ctx: RequestContext = Depends(request_context_dependency),
@@ -86,7 +95,9 @@ async def create_session(
         verdict = await guard.evaluate(ctx, payload.prompt)
     except ModerationError as exc:
         record_moderation_decision(ctx.tenant_id, "error", False, 0)
-        raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=str(exc)) from exc
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=str(exc)
+        ) from exc
 
     if not verdict.allowed:
         record_moderation_decision(
@@ -157,7 +168,9 @@ async def create_session(
 
 class BuildCostPrecheckRequest(BaseModel):
     project_id: str = Field(..., description="Project identifier")
-    tenant: str | None = Field(default=None, description="Tenant ID (defaults from context)")
+    tenant: str | None = Field(
+        default=None, description="Tenant ID (defaults from context)"
+    )
     gpu_model: str | None = Field(default=None)
     region: str | None = Field(default=None)
     hours_planned: float = Field(..., gt=0)
@@ -177,13 +190,17 @@ class BuildCostPrecheckResponse(BaseModel):
     recommended_action: str | None
 
 
-@router.post("/build/cost-precheck", response_model=BuildCostPrecheckResponse, tags=["build"])
+@router.post(
+    "/build/cost-precheck", response_model=BuildCostPrecheckResponse, tags=["build"]
+)
 async def build_cost_precheck(
     payload: BuildCostPrecheckRequest,
     ctx: RequestContext = Depends(request_context_dependency),
     settings: GatewaySettings = Depends(get_sah_settings),
 ) -> BuildCostPrecheckResponse:
-    pricing_url = settings.orchestrator_url  # orchestrator aggregates precheck logic too
+    pricing_url = (
+        settings.orchestrator_url
+    )  # orchestrator aggregates precheck logic too
     # Prefer calling orchestrator precheck so policy stays central
     url = pricing_url.rstrip("/") + "/v1/build/precheck"
 
@@ -210,7 +227,9 @@ async def build_cost_precheck(
             resp = await client.post(url, json=body, headers=headers)
         except HTTPError as exc:
             observe_forward_latency(ctx.tenant_id, time.perf_counter() - start)
-            raise HTTPException(status_code=502, detail=f"Precheck unreachable: {exc}") from exc
+            raise HTTPException(
+                status_code=502, detail=f"Precheck unreachable: {exc}"
+            ) from exc
     observe_forward_latency(ctx.tenant_id, time.perf_counter() - start)
     if resp.status_code >= 400:
         raise HTTPException(status_code=resp.status_code, detail=resp.text)
@@ -250,10 +269,11 @@ async def start_build_run(
     # Auto-create snapshot if client didn't supply one
     snapshot_id = payload.pricing_snapshot_id
     if not snapshot_id:
-        pricing_url = settings.orchestrator_url.rstrip("/") + "/v1/pricing/snapshot"
         # We call pricing service through gateway network; orchestrator URL won't expose pricing.
         # Adjust to pricing service if directly reachable.
-        pricing_direct = getattr(settings, "pricing_service_url", "http://pricing-service:10026")
+        pricing_direct = getattr(
+            settings, "pricing_service_url", "http://pricing-service:10026"
+        )
         snapshot_ep = pricing_direct.rstrip("/") + "/v1/pricing/snapshot"
         async with AsyncClient(timeout=10.0) as client:
             try:
@@ -261,9 +281,14 @@ async def start_build_run(
                 if resp_snap.status_code == 200:
                     snapshot_id = resp_snap.json().get("snapshot_id")
                 else:
-                    raise HTTPException(status_code=502, detail=f"Snapshot creation failed: {resp_snap.text}")
+                    raise HTTPException(
+                        status_code=502,
+                        detail=f"Snapshot creation failed: {resp_snap.text}",
+                    )
             except HTTPError as exc:
-                raise HTTPException(status_code=502, detail=f"Snapshot request error: {exc}") from exc
+                raise HTTPException(
+                    status_code=502, detail=f"Snapshot request error: {exc}"
+                ) from exc
     tenant = payload.tenant or ctx.tenant_id
     body = {
         "tenant": tenant,
@@ -281,12 +306,17 @@ async def start_build_run(
             resp = await client.post(orchestrator_url, json=body, headers=headers)
         except HTTPError as exc:
             observe_forward_latency(ctx.tenant_id, time.perf_counter() - start)
-            raise HTTPException(status_code=502, detail=f"Orchestrator unreachable: {exc}") from exc
+            raise HTTPException(
+                status_code=502, detail=f"Orchestrator unreachable: {exc}"
+            ) from exc
     observe_forward_latency(ctx.tenant_id, time.perf_counter() - start)
     if resp.status_code >= 400:
         raise HTTPException(status_code=resp.status_code, detail=resp.text)
     br = resp.json()
-    return BuildRunStartResponse(build_run_id=str(br.get("id")), status=str(br.get("status")))
+    return BuildRunStartResponse(
+        build_run_id=str(br.get("id")), status=str(br.get("status"))
+    )
+
 
 router.include_router(dashboard_router)
 router.include_router(capsules_router)

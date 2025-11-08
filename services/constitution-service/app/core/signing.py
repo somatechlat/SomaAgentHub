@@ -5,7 +5,6 @@ from __future__ import annotations
 import base64
 import os
 from dataclasses import dataclass
-from typing import Optional
 
 from .config import settings
 
@@ -32,13 +31,17 @@ class ManifestSigningError(RuntimeError):
 class ManifestSigner:
     """Thin wrapper around Ed25519 signing for persona manifests."""
 
-    def __init__(self, private_key: bytes, *, public_key: Optional[bytes] = None) -> None:
+    def __init__(
+        self, private_key: bytes, *, public_key: bytes | None = None
+    ) -> None:
         if SigningKey is None:
             raise ManifestSigningError(
                 "PyNaCl is required for signing manifests. Install with `pip install pynacl`."
             )
         self._signing_key = SigningKey(private_key)
-        self._verify_key = VerifyKey(public_key or self._signing_key.verify_key.encode())
+        self._verify_key = VerifyKey(
+            public_key or self._signing_key.verify_key.encode()
+        )
 
     @property
     def public_key(self) -> bytes:
@@ -52,7 +55,13 @@ class ManifestSigner:
             public_key=base64.b64encode(self.public_key).decode("utf-8"),
         )
 
-    def verify(self, payload: bytes, signature_b64: str, *, public_key_b64: Optional[str] = None) -> bool:
+    def verify(
+        self,
+        payload: bytes,
+        signature_b64: str,
+        *,
+        public_key_b64: str | None = None,
+    ) -> bool:
         key = self._verify_key
         if public_key_b64:
             if VerifyKey is None:
@@ -75,7 +84,7 @@ def load_signer_from_env() -> ManifestSigner:
     with open(private_key_path, "rb") as handle:
         private_key = handle.read().strip()
     public_key_path = settings.public_key_path or os.getenv("SOMAGENT_PUBLIC_KEY")
-    public_key_bytes: Optional[bytes] = None
+    public_key_bytes: bytes | None = None
     if public_key_path and os.path.exists(public_key_path):
         with open(public_key_path, "rb") as handle:
             public_key_bytes = handle.read().strip()

@@ -1,4 +1,3 @@
-import asyncio
 import pytest
 
 from services.common.opa_client import OPAClient
@@ -8,6 +7,7 @@ class DummyTransport:
     async def handle_async_request(self, request):
         # Very small mock that returns allowed when role present
         from httpx import Response
+
         return Response(200, json={"result": {"allowed": True}})
 
 
@@ -23,6 +23,7 @@ class DummyClient:
 
     async def send(self, request):
         from httpx import Response
+
         return Response(200, json={"result": {"allowed": True}})
 
 

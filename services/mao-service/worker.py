@@ -6,19 +6,18 @@ This worker processes activities for the MAO service.
 
 import asyncio
 import logging
+
 from temporalio.client import Client
 from temporalio.worker import Worker
-
-from workflows.project_workflow import ProjectWorkflow
 from workflows.activities import (
-    create_workspace,
-    provision_git_repo,
-    execute_capsule,
     bundle_artifacts,
-    notify_completion,
     cleanup_workspace,
+    create_workspace,
+    execute_capsule,
+    notify_completion,
+    provision_git_repo,
 )
-
+from workflows.project_workflow import ProjectWorkflow
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -27,21 +26,22 @@ logger = logging.getLogger(__name__)
 async def main():
     """
     Start the Temporal worker.
-    
+
     This worker:
     1. Connects to Temporal server
     2. Registers workflows and activities
     3. Processes tasks from the queue
     """
-    
+
     # Connect to Temporal
     import os
+
     temporal_host = os.getenv("TEMPORAL_HOST", "localhost:10009")
     temporal_namespace = os.getenv("TEMPORAL_NAMESPACE", "default")
     client = await Client.connect(temporal_host, namespace=temporal_namespace)
-    
+
     logger.info("✅ Connected to Temporal server")
-    
+
     # Create worker
     worker = Worker(
         client,
@@ -58,11 +58,11 @@ async def main():
         max_concurrent_activities=10,
         max_concurrent_workflow_tasks=10,
     )
-    
+
     logger.info("🚀 MAO worker started, listening on task queue: mao-task-queue")
     logger.info("   Workflows: ProjectWorkflow")
     logger.info("   Activities: 6 registered")
-    
+
     # Run worker
     await worker.run()
 

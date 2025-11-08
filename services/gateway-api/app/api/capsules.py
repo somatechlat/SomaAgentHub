@@ -5,7 +5,7 @@ Forwards capsule execution requests to the Orchestrator service.
 
 from __future__ import annotations
 
-from typing import Any, Dict
+from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from httpx import AsyncClient, HTTPError
@@ -19,8 +19,8 @@ router = APIRouter(tags=["capsules"])
 
 
 class CapsuleRunRequest(BaseModel):
-    params: Dict[str, Any] = {}
-    metadata: Dict[str, Any] = {}
+    params: dict[str, Any] = {}
+    metadata: dict[str, Any] = {}
 
 
 class CapsuleRunResponse(BaseModel):
@@ -31,7 +31,11 @@ class CapsuleRunResponse(BaseModel):
     version: str
 
 
-@router.post("/v1/capsules/{capsule_id}/{version}/run", response_model=CapsuleRunResponse, status_code=status.HTTP_202_ACCEPTED)
+@router.post(
+    "/v1/capsules/{capsule_id}/{version}/run",
+    response_model=CapsuleRunResponse,
+    status_code=status.HTTP_202_ACCEPTED,
+)
 async def start_capsule_run(
     capsule_id: str,
     version: str,
@@ -55,13 +59,20 @@ async def start_capsule_run(
 
     async with AsyncClient(timeout=15.0) as client:
         try:
-            resp = await client.post(f"{settings.orchestrator_url}/v1/capsule/run", json=forward)
+            resp = await client.post(
+                f"{settings.orchestrator_url}/v1/capsule/run", json=forward
+            )
         except HTTPError as exc:  # noqa: BLE001
-            raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail=f"Orchestrator unreachable: {exc}") from exc
+            raise HTTPException(
+                status_code=status.HTTP_502_BAD_GATEWAY,
+                detail=f"Orchestrator unreachable: {exc}",
+            ) from exc
 
     if resp.status_code >= 400:
-        raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail=f"Orchestrator error: {resp.text}")
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail=f"Orchestrator error: {resp.text}",
+        )
 
     data = resp.json()
     return CapsuleRunResponse(**data)
-

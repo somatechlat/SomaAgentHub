@@ -4,10 +4,8 @@ from __future__ import annotations
 
 import asyncio
 import json
-import secrets
 from dataclasses import dataclass
-from datetime import datetime, timedelta, timezone
-from typing import Optional
+from datetime import UTC, datetime, timedelta
 from uuid import uuid4
 
 try:  # pragma: no cover - redis may be absent during tests
@@ -15,11 +13,12 @@ try:  # pragma: no cover - redis may be absent during tests
 except Exception:  # pragma: no cover
     Redis = None  # type: ignore[assignment]
 
+import base64
+
+from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import rsa
 from cryptography.hazmat.primitives.asymmetric.rsa import RSAPublicKey
-from cryptography.hazmat.backends import default_backend
-import base64
 
 
 @dataclass(slots=True)
@@ -43,7 +42,7 @@ class SigningKey:
         return json.dumps(payload)
 
     @classmethod
-    def from_json(cls, raw: str) -> "SigningKey":
+    def from_json(cls, raw: str) -> SigningKey:
         data = json.loads(raw)
         return cls(
             kid=data["kid"],
@@ -53,8 +52,8 @@ class SigningKey:
             expires_at=datetime.fromisoformat(data["expires_at"]),
         )
 
-    def is_expired(self, at: Optional[datetime] = None) -> bool:
-        now = at or datetime.now(timezone.utc)
+    def is_expired(self, at: datetime | None = None) -> bool:
+        now = at or datetime.now(UTC)
         return now >= self.expires_at
 
 
@@ -63,7 +62,7 @@ class KeyManager:
 
     def __init__(
         self,
-        redis: Optional[Redis],
+        redis: Redis | None,
         *,
         rotation_interval: timedelta,
         namespace: str = "identity:keys",
@@ -71,7 +70,7 @@ class KeyManager:
         self._redis = redis
         self._rotation_interval = rotation_interval
         self._namespace = namespace
-        self._active: Optional[SigningKey] = None
+        self._active: SigningKey | None = None
         self._lock = asyncio.Lock()
         self._cache: dict[str, SigningKey] = {}
 
@@ -91,7 +90,7 @@ class KeyManager:
     async def stop(self) -> None:
         return None
 
-    async def _load_active(self) -> Optional[SigningKey]:
+    async def _load_active(self) -> SigningKey | None:
         if self._active and not self._active.is_expired():
             return self._active
 
@@ -116,7 +115,7 @@ class KeyManager:
                 key = await self._rotate()
             return key
 
-    async def get_by_kid(self, kid: str) -> Optional[SigningKey]:
+    async def get_by_kid(self, kid: str) -> SigningKey | None:
         if self._active and self._active.kid == kid:
             return self._active
         cached = self._cache.get(kid)
@@ -139,14 +138,16 @@ class KeyManager:
             return key
 
     def _should_rotate(self, key: SigningKey) -> bool:
-        age = datetime.now(timezone.utc) - key.created_at
+        age = datetime.now(UTC) - key.created_at
         return age >= self._rotation_interval
 
     async def _rotate(self, *, create_only: bool = False) -> SigningKey:
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         kid = uuid4().hex
         # Generate a new RSA keypair
-        private_key = rsa.generate_private_key(public_exponent=65537, key_size=2048, backend=default_backend())
+        private_key = rsa.generate_private_key(
+            public_exponent=65537, key_size=2048, backend=default_backend()
+        )
         public_key = private_key.public_key()
         private_pem = private_key.private_bytes(
             encoding=serialization.Encoding.PEM,
@@ -158,7 +159,13 @@ class KeyManager:
             format=serialization.PublicFormat.SubjectPublicKeyInfo,
         )
         expires_at = now + (self._rotation_interval * 2)
-        key = SigningKey(kid=kid, private_pem=private_pem, public_pem=public_pem, created_at=now, expires_at=expires_at)
+        key = SigningKey(
+            kid=kid,
+            private_pem=private_pem,
+            public_pem=public_pem,
+            created_at=now,
+            expires_at=expires_at,
+        )
         self._active = key
         self._cache[kid] = key
 
@@ -171,9 +178,11 @@ class KeyManager:
         numbers = pub.public_numbers()
         n = numbers.n
         e = numbers.e
+
         def b64url_uint(val: int) -> str:
             b = val.to_bytes((val.bit_length() + 7) // 8, byteorder="big")
             return base64.urlsafe_b64encode(b).rstrip(b"=").decode("ascii")
+
         return {
             "kty": "RSA",
             "use": "sig",
@@ -188,7 +197,9 @@ class KeyManager:
         keys: list[dict] = []
         # Include the active key first
         if self._active:
-            pub = serialization.load_pem_public_key(self._active.public_pem, backend=default_backend())
+            pub = serialization.load_pem_public_key(
+                self._active.public_pem, backend=default_backend()
+            )
             if isinstance(pub, RSAPublicKey):
                 keys.append(self._pubkey_to_jwk(self._active.kid, pub))
         # Include cached keys
@@ -196,7 +207,9 @@ class KeyManager:
             if self._active and kid == self._active.kid:
                 continue
             try:
-                pub = serialization.load_pem_public_key(key.public_pem, backend=default_backend())
+                pub = serialization.load_pem_public_key(
+                    key.public_pem, backend=default_backend()
+                )
                 if isinstance(pub, RSAPublicKey):
                     keys.append(self._pubkey_to_jwk(kid, pub))
             except Exception:

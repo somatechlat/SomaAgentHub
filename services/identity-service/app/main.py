@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import asyncio
-
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager, suppress
 from datetime import timedelta
@@ -12,6 +11,7 @@ from os import environ, getenv
 from fastapi import FastAPI
 from fastapi.responses import Response
 from prometheus_client import CONTENT_TYPE_LATEST, generate_latest
+
 from services.common.observability import setup_observability
 
 from .api.routes import router
@@ -21,7 +21,9 @@ from .core.key_manager import KeyManager
 from .core.storage import IdentityStore
 
 
-async def _rotation_worker(key_manager: KeyManager, interval: float, stop_event: asyncio.Event) -> None:
+async def _rotation_worker(
+    key_manager: KeyManager, interval: float, stop_event: asyncio.Event
+) -> None:
     try:
         while True:
             await key_manager.rotate_if_due()
@@ -71,6 +73,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     # uses the correct test container address.
     try:
         import services.common.redis_client as _redis_mod
+
         _redis_mod._redis_client = None
     except Exception:
         pass
@@ -141,7 +144,10 @@ def create_app() -> FastAPI:
     async def healthcheck() -> dict[str, str]:
         store: IdentityStore = app.state.identity_store
         healthy = await store.ping()
-        return {"status": "ok" if healthy else "degraded", "service": settings.service_name}
+        return {
+            "status": "ok" if healthy else "degraded",
+            "service": settings.service_name,
+        }
 
     @app.get("/metrics", tags=["system"])
     async def metrics() -> Response:
@@ -150,7 +156,9 @@ def create_app() -> FastAPI:
     @app.get("/ready", tags=["system"])
     async def ready() -> dict[str, str]:
         # Consider ready if key manager and identity store have been initialized
-        healthy = hasattr(app.state, "identity_store") and hasattr(app.state, "key_manager")
+        healthy = hasattr(app.state, "identity_store") and hasattr(
+            app.state, "key_manager"
+        )
         return {"status": "ready" if healthy else "starting"}
 
     @app.get("/")
@@ -162,10 +170,13 @@ def create_app() -> FastAPI:
     # Include OIDC discovery routes defined in the same module (they are
     # exported as ``oidc_router``). Import lazily to avoid circular imports.
     from .api.routes import oidc_router
+
     app.include_router(oidc_router)
 
     # REAL OpenTelemetry instrumentation - no mocks, exports to Prometheus
-    setup_observability(settings.service_name, app, service_version=settings.service_version)
+    setup_observability(
+        settings.service_name, app, service_version=settings.service_version
+    )
 
     return app
 

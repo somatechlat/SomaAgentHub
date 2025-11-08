@@ -4,15 +4,17 @@ from __future__ import annotations
 
 import asyncio
 import json
+import logging
 import time
-from typing import AsyncGenerator
+from collections.abc import AsyncGenerator
 
 from fastapi import APIRouter, Header, HTTPException, status
 from fastapi.responses import StreamingResponse
-from pydantic import BaseModel
 from prometheus_client import Counter, Histogram
+from pydantic import BaseModel
 
 router = APIRouter(prefix="/v1/conversation", tags=["conversation"])
+logger = logging.getLogger(__name__)
 
 # Prometheus metrics
 CONVERSATION_REQUESTS = Counter(
@@ -43,16 +45,19 @@ class ConversationStepResponse(BaseModel):
     policy_score: float | None = None
 
 
-async def _emit_conversation_event(session_id: str, tenant: str, event_type: str, data: dict) -> None:
+async def _emit_conversation_event(
+    session_id: str, tenant: str, event_type: str, data: dict
+) -> None:
     """Emit conversation event to Kafka topic."""
     try:
         from services.common.kafka_client import get_kafka_client
+
         kafka_client = get_kafka_client()
-        
+
         # Ensure producer is started
         if kafka_client._producer is None:
             await kafka_client.start()
-        
+
         await kafka_client.send_event(
             topic="conversation.events",
             event={
@@ -66,7 +71,7 @@ async def _emit_conversation_event(session_id: str, tenant: str, event_type: str
         )
     except Exception as exc:
         # Log error but don't block request
-        print(f"[KAFKA_ERROR] Failed to emit conversation event: {exc}")
+        logger.warning("[KAFKA_ERROR] Failed to emit conversation event: %s", exc)
         event = {
             "session_id": session_id,
             "tenant": tenant,
@@ -74,7 +79,7 @@ async def _emit_conversation_event(session_id: str, tenant: str, event_type: str
             "timestamp": time.time(),
             "data": data,
         }
-        print(f"[CONVERSATION_EVENT] {json.dumps(event)}")
+        logger.info("[CONVERSATION_EVENT] %s", json.dumps(event))
 
 
 @router.post("/step", response_model=ConversationStepResponse)
@@ -86,7 +91,7 @@ async def conversation_step(
 ) -> ConversationStepResponse:
     """Synchronous conversation turn with policy enforcement."""
     start_time = time.perf_counter()
-    
+
     # Validate policy headers
     if x_policy_decision and x_policy_decision.lower() == "deny":
         CONVERSATION_REQUESTS.labels(route="step", decision="deny").inc()
@@ -94,9 +99,9 @@ async def conversation_step(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Policy evaluation denied this request",
         )
-    
+
     CONVERSATION_REQUESTS.labels(route="step", decision="allow").inc()
-    
+
     # Emit conversation event
     await _emit_conversation_event(
         req.session_id,
@@ -108,13 +113,13 @@ async def conversation_step(
             "policy_score": float(x_policy_score) if x_policy_score else None,
         },
     )
-    
+
     # TODO: Call SLM service via queue/sync endpoint
     response_text = f"Echo: {req.prompt[:50]}..."
-    
+
     elapsed = time.perf_counter() - start_time
     CONVERSATION_LATENCY.labels(route="step").observe(elapsed)
-    
+
     return ConversationStepResponse(
         session_id=req.session_id,
         response=response_text,
@@ -135,12 +140,13 @@ async def _stream_conversation(
     await _emit_conversation_event(
         session_id, tenant, "conversation.stream_start", {"prompt": prompt}
     )
-    
+
     # Use OpenAI provider for real streaming completions
     try:
         from services.common.openai_provider import get_openai_provider
+
         openai_provider = get_openai_provider()
-        
+
         chunk_count = 0
         async for chunk in openai_provider.complete_stream(
             messages=[{"role": "user", "content": prompt}],
@@ -148,23 +154,23 @@ async def _stream_conversation(
         ):
             chunk_count += 1
             yield f"data: {json.dumps({'chunk': chunk})}\n\n"
-        
+
         yield f"data: {json.dumps({'done': True})}\n\n"
-        
+
         # Emit completion event
         await _emit_conversation_event(
             session_id, tenant, "conversation.stream_complete", {"chunks": chunk_count}
         )
     except Exception as exc:
         # Fallback to echo response if OpenAI unavailable
-        print(f"[OPENAI_ERROR] Streaming failed, using fallback: {exc}")
+        logger.warning("[OPENAI_ERROR] Streaming failed, using fallback: %s", exc)
         chunks = ["Hello", " from", " orchestrator", " streaming", " endpoint!"]
         for chunk in chunks:
             yield f"data: {json.dumps({'chunk': chunk})}\n\n"
             await asyncio.sleep(0.1)
-        
+
         yield f"data: {json.dumps({'done': True})}\n\n"
-        
+
         # Emit completion event
         await _emit_conversation_event(
             session_id, tenant, "conversation.stream_complete", {"chunks": len(chunks)}
@@ -180,7 +186,7 @@ async def conversation_stream(
 ) -> StreamingResponse:
     """Streaming conversation endpoint using Server-Sent Events."""
     start_time = time.perf_counter()
-    
+
     # Validate policy headers
     if x_policy_decision and x_policy_decision.lower() == "deny":
         CONVERSATION_REQUESTS.labels(route="stream", decision="deny").inc()
@@ -188,13 +194,13 @@ async def conversation_stream(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Policy evaluation denied this request",
         )
-    
+
     CONVERSATION_REQUESTS.labels(route="stream", decision="allow").inc()
-    
+
     # Record latency at stream start
     elapsed = time.perf_counter() - start_time
     CONVERSATION_LATENCY.labels(route="stream").observe(elapsed)
-    
+
     return StreamingResponse(
         _stream_conversation(
             req.session_id,

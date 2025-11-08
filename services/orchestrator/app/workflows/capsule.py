@@ -8,10 +8,10 @@ and artifact persistence.
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from datetime import datetime, timezone, timedelta
-from typing import Any, Dict
+from datetime import UTC, datetime, timedelta
+from typing import Any
 
-from temporalio import workflow, activity
+from temporalio import activity, workflow
 
 
 @dataclass
@@ -29,8 +29,8 @@ class CapsuleRunInput:
     version: str
     tenant: str
     user: str
-    params: Dict[str, Any] = field(default_factory=dict)
-    metadata: Dict[str, Any] = field(default_factory=dict)
+    params: dict[str, Any] = field(default_factory=dict)
+    metadata: dict[str, Any] = field(default_factory=dict)
     # Compatibility fields for the fake client used in tests.
     session_id: str = ""
     prompt: str = ""
@@ -52,13 +52,13 @@ class CapsuleRunResult:
     status: str
     started_at: datetime
     completed_at: datetime
-    params: Dict[str, Any]
-    metadata: Dict[str, Any]
+    params: dict[str, Any]
+    metadata: dict[str, Any]
     summary: str
 
 
 @activity.defn(name="capsule-generate-summary")
-def generate_summary(capsule_id: str, version: str, params: Dict[str, Any]) -> str:
+def generate_summary(capsule_id: str, version: str, params: dict[str, Any]) -> str:
     """Produce a deterministic summary of the run parameters.
 
     This keeps the workflow fully executable without mocks while still
@@ -76,7 +76,7 @@ class CapsuleRunWorkflow:
         logger = workflow.logger
         logger.info("Starting capsule run", payload=payload.__dict__)
 
-        started = datetime.now(timezone.utc)
+        started = datetime.now(UTC)
         summary = await workflow.execute_activity(
             generate_summary,
             payload.capsule_id,
@@ -92,7 +92,7 @@ class CapsuleRunWorkflow:
             user=payload.user,
             status="completed",
             started_at=started,
-            completed_at=datetime.now(timezone.utc),
+            completed_at=datetime.now(UTC),
             params=payload.params,
             metadata=payload.metadata,
             summary=summary,

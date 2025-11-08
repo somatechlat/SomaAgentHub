@@ -12,7 +12,9 @@ from common.config.runtime import runtime_default
 from common.config.settings import Settings as SharedSettings
 
 
-def load_secret(env_var: str, file_env: str | None = None, default: str | None = None) -> str:
+def load_secret(
+    env_var: str, file_env: str | None = None, default: str | None = None
+) -> str:
     """Load a secret from environment variable or mounted file."""
 
     value = os.getenv(env_var)
@@ -59,7 +61,10 @@ class IdentitySettings(SharedSettings):
     )
     jwk_set_url: str = Field(
         default=runtime_default(
-            os.getenv("IDENTITY_JWKS_URL", "http://identity-service:10002/.well-known/jwks.json"),
+            os.getenv(
+                "IDENTITY_JWKS_URL",
+                "http://identity-service:10002/.well-known/jwks.json",
+            ),
             "https://auth.soma-infra.svc.cluster.local:8080/.well-known/jwks.json",
         ),
         validation_alias=AliasChoices(
@@ -69,7 +74,10 @@ class IdentitySettings(SharedSettings):
         ),
     )
     redis_url: str | None = Field(
-        default=runtime_default(os.getenv("REDIS_URL", "redis://redis:6379/0"), "redis://redis.soma-infra.svc.cluster.local:6379/0"),
+        default=runtime_default(
+            os.getenv("REDIS_URL", "redis://redis:6379/0"),
+            "redis://redis.soma-infra.svc.cluster.local:6379/0",
+        ),
         validation_alias=AliasChoices(
             "SOMASTACK_REDIS_URL",
             "SOMASTACK_IDENTITY_REDIS_URL",
@@ -102,7 +110,9 @@ class IdentitySettings(SharedSettings):
         ),
     )
     clickhouse_host_raw: str | None = Field(
-        default=runtime_default("clickhouse", "clickhouse.soma-infra.svc.cluster.local"),
+        default=runtime_default(
+            "clickhouse", "clickhouse.soma-infra.svc.cluster.local"
+        ),
         validation_alias=AliasChoices(
             "SOMASTACK_CLICKHOUSE_HOST",
             "SOMASTACK_IDENTITY_CLICKHOUSE_HOST",
@@ -148,6 +158,7 @@ class IdentitySettings(SharedSettings):
     )
 
     # JWT symmetric secrets deprecated; Identity uses RS256 with live JWKS.
+
 
 @lru_cache
 def get_settings() -> IdentitySettings:

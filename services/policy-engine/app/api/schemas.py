@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from pydantic import BaseModel, Field
 
@@ -12,7 +12,7 @@ class PolicyRuleModel(BaseModel):
     name: str
     pattern: str
     weight: float = Field(default=0.35, ge=0.0)
-    description: Optional[str] = None
+    description: str | None = None
     severity: str = Field(default="medium")
 
 
@@ -21,16 +21,16 @@ class PolicyViolationModel(BaseModel):
     pattern: str
     weight: float
     severity: str
-    description: Optional[str] = None
+    description: str | None = None
     excerpt: str
 
 
 class EvaluationMetadata(BaseModel):
-    session_id: Optional[str] = None
-    capsule_id: Optional[str] = None
-    tool: Optional[str] = None
-    tags: List[str] = Field(default_factory=list)
-    extra: Dict[str, Any] = Field(default_factory=dict)
+    session_id: str | None = None
+    capsule_id: str | None = None
+    tool: str | None = None
+    tags: list[str] = Field(default_factory=list)
+    extra: dict[str, Any] = Field(default_factory=dict)
 
 
 class EvaluationRequest(BaseModel):
@@ -45,8 +45,8 @@ class EvaluationRequest(BaseModel):
 class EvaluationResponse(BaseModel):
     allowed: bool
     score: float
-    violations: List[PolicyViolationModel]
-    reasons: Dict[str, Any] = Field(default_factory=dict)
+    violations: list[PolicyViolationModel]
+    reasons: dict[str, Any] = Field(default_factory=dict)
     constitution_hash: str
     evaluated_at: datetime
 
@@ -62,8 +62,8 @@ class ScoreResponse(BaseModel):
     violation_count: int
     severity: str
     constitution_hash: str
-    violations: List[PolicyViolationModel]
+    violations: list[PolicyViolationModel]
 
 
 class PolicyUpdateRequest(BaseModel):
-    rules: List[PolicyRuleModel]
+    rules: list[PolicyRuleModel]

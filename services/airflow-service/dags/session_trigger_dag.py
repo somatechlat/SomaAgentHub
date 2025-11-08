@@ -5,7 +5,6 @@ from __future__ import annotations
 from datetime import datetime, timedelta
 
 from airflow import DAG
-
 from plugins.soma_temporal import SomaGatewayTemporalOperator
 
 DEFAULT_ARGS = {

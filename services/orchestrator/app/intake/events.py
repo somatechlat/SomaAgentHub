@@ -2,13 +2,15 @@
 
 from __future__ import annotations
 
-from typing import Any, Dict
+from typing import Any
 
 
 class IntakeEventEmitter:
     """Abstraction around Kafka or other event sinks."""
 
-    async def emit(self, event_type: str, payload: Dict[str, Any]) -> None:
+    async def emit(self, event_type: str, payload: dict[str, Any]) -> None:
         """Emit an intake event for auditing/analytics."""
 
-        raise NotImplementedError("IntakeEventEmitter.emit requires integration with the event bus")
+        raise NotImplementedError(
+            "IntakeEventEmitter.emit requires integration with the event bus"
+        )

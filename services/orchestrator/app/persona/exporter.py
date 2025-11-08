@@ -5,9 +5,9 @@ from __future__ import annotations
 import asyncio
 import logging
 from dataclasses import dataclass
-from datetime import datetime, UTC
+from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from pydantic import BaseModel, Field
 
@@ -28,7 +28,6 @@ from .signing import (
     build_signing_client,
 )
 
-
 logger = logging.getLogger(__name__)
 
 
@@ -43,15 +42,15 @@ class PersonaExportRequest(BaseModel):
     metadata: PersonaMetadata
     model_box: ModelBoxReference
     memory: MemorySnapshotReference
-    tools: List[ToolAccessDescriptor] = Field(default_factory=list)
-    evaluations: List[Any] = Field(
+    tools: list[ToolAccessDescriptor] = Field(default_factory=list)
+    evaluations: list[Any] = Field(
         default_factory=list,
         description="Evaluation records, validated upstream before export",
     )
     governance: GovernanceMetadata
     pricing: PricingModel = Field(default_factory=PricingModel)
     artifacts: ArtifactBundle = Field(default_factory=ArtifactBundle)
-    additional_metadata: Dict[str, Any] = Field(
+    additional_metadata: dict[str, Any] = Field(
         default_factory=dict,
         description="Loose metadata to persist alongside the manifest",
     )
@@ -65,29 +64,33 @@ class PersonaExportResult(BaseModel):
     manifest_path: Path
     created_at: datetime
     completed_at: datetime
-    metadata: Dict[str, Any] = Field(default_factory=dict)
+    metadata: dict[str, Any] = Field(default_factory=dict)
 
 
 @dataclass
 class PersonaExporterDependencies:
     """Thin dependency container allowing future injection of services."""
 
-    storage_client: Optional[Any] = None
-    memory_gateway: Optional[Any] = None
-    tool_registry: Optional[Any] = None
-    event_emitter: Optional[Any] = None
-    signing_client: Optional[ManifestSigningClient] = None
+    storage_client: Any | None = None
+    memory_gateway: Any | None = None
+    tool_registry: Any | None = None
+    event_emitter: Any | None = None
+    signing_client: ManifestSigningClient | None = None
 
 
 class PersonaExporter:
     """Coordinates persona capsule exports and manifest generation."""
 
-    def __init__(self, dependencies: Optional[PersonaExporterDependencies] = None) -> None:
+    def __init__(
+        self, dependencies: PersonaExporterDependencies | None = None
+    ) -> None:
         self._deps = dependencies or PersonaExporterDependencies()
         if self._deps.signing_client is None:
             self._deps.signing_client = build_signing_client()
 
-    async def export_persona(self, request: PersonaExportRequest) -> PersonaExportResult:
+    async def export_persona(
+        self, request: PersonaExportRequest
+    ) -> PersonaExportResult:
         """Primary entrypoint to export a persona manifest and supporting artifacts."""
 
         started_at = datetime.now(UTC)
@@ -151,7 +154,7 @@ class PersonaExporter:
     ) -> None:
         """Hook for future async tasks (artifact uploads, memory exports, etc.)."""
 
-        tasks: List[asyncio.Task[Any]] = []
+        tasks: list[asyncio.Task[Any]] = []
         # Placeholder: attach background uploads once dependencies exist.
         if tasks:
             await asyncio.gather(*tasks)

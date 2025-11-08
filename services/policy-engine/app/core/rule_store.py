@@ -7,16 +7,15 @@ supporting dynamic updates and deterministic scoring.
 from __future__ import annotations
 
 import json
-from typing import Any, Dict, List, Optional
+from typing import Any
 
-from ..redis_client import redis_client
 from ..policy_rules import PolicyRule
-
+from ..redis_client import redis_client
 
 RULE_PACK_TTL = 3600  # 1 hour cache TTL
 
 
-async def get_rule_pack(tenant: str) -> Optional[List[Dict[str, Any]]]:
+async def get_rule_pack(tenant: str) -> list[dict[str, Any]] | None:
     """Fetch rule pack for tenant from Redis cache."""
     key = f"policy:rules:{tenant}"
     try:
@@ -28,7 +27,7 @@ async def get_rule_pack(tenant: str) -> Optional[List[Dict[str, Any]]]:
     return None
 
 
-async def set_rule_pack(tenant: str, rules: List[Dict[str, Any]]) -> None:
+async def set_rule_pack(tenant: str, rules: list[dict[str, Any]]) -> None:
     """Store rule pack for tenant in Redis with TTL."""
     key = f"policy:rules:{tenant}"
     try:
@@ -46,7 +45,7 @@ async def invalidate_rule_pack(tenant: str) -> None:
         pass
 
 
-def rules_to_dicts(rules: List[PolicyRule]) -> List[Dict[str, Any]]:
+def rules_to_dicts(rules: list[PolicyRule]) -> list[dict[str, Any]]:
     """Convert PolicyRule objects to serializable dicts."""
     return [
         {
@@ -60,6 +59,6 @@ def rules_to_dicts(rules: List[PolicyRule]) -> List[Dict[str, Any]]:
     ]
 
 
-async def load_and_cache_rules(tenant: str, rules: List[PolicyRule]) -> None:
+async def load_and_cache_rules(tenant: str, rules: list[PolicyRule]) -> None:
     """Persist canonical rule definitions to Redis for given tenant."""
     await set_rule_pack(tenant, rules_to_dicts(rules))

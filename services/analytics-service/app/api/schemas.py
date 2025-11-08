@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Any, Dict, List, Optional, Literal
+from typing import Any, Literal
 
 from pydantic import BaseModel, Field
 
@@ -16,7 +16,7 @@ class CapsuleRunRequest(BaseModel):
     tokens: int
     revisions: int = 0
     duration_seconds: float
-    metadata: Dict[str, Any] = Field(default_factory=dict)
+    metadata: dict[str, Any] = Field(default_factory=dict)
 
 
 class CapsuleRunAggregate(BaseModel):
@@ -30,25 +30,25 @@ class CapsuleRunAggregate(BaseModel):
 
 
 class CapsuleDashboardResponse(BaseModel):
-    aggregates: List[CapsuleRunAggregate]
+    aggregates: list[CapsuleRunAggregate]
     window: str
 
 
 class PersonaRegressionRequest(BaseModel):
     persona_id: str
     tenant_id: str
-    trigger_reason: Optional[str] = None
+    trigger_reason: str | None = None
 
 
 class PersonaRegressionResponse(BaseModel):
     persona_id: str
     tenant_id: str
     status: str
-    last_run_at: Optional[datetime]
-    notes: List[str]
-    queued_at: Optional[datetime] = None
-    running_at: Optional[datetime] = None
-    last_error: Optional[str] = None
+    last_run_at: datetime | None
+    notes: list[str]
+    queued_at: datetime | None = None
+    running_at: datetime | None = None
+    last_error: str | None = None
 
 
 class AnomalyRecord(BaseModel):
@@ -61,7 +61,7 @@ class AnomalyRecord(BaseModel):
 
 
 class AnomalyResponse(BaseModel):
-    anomalies: List[AnomalyRecord]
+    anomalies: list[AnomalyRecord]
 
 
 class GovernanceReportResponse(BaseModel):
@@ -69,13 +69,13 @@ class GovernanceReportResponse(BaseModel):
     tenant_id: str
     generated_at: datetime
     summary: str
-    changes: List[str]
+    changes: list[str]
 
 
 class GovernanceReportRequest(BaseModel):
     tenant_id: str
     summary: str
-    changes: List[str]
+    changes: list[str]
 
 
 class NotificationLog(BaseModel):
@@ -85,14 +85,14 @@ class NotificationLog(BaseModel):
 
 
 class NotificationFeed(BaseModel):
-    notifications: List[NotificationLog]
+    notifications: list[NotificationLog]
 
 
 class KamachiqRunRequest(BaseModel):
     tenant_id: str
     name: str
     deliverable_count: int
-    metadata: Dict[str, Any] = Field(default_factory=dict)
+    metadata: dict[str, Any] = Field(default_factory=dict)
 
 
 class KamachiqRunResponse(BaseModel):
@@ -101,7 +101,7 @@ class KamachiqRunResponse(BaseModel):
     name: str
     deliverable_count: int
     created_at: datetime
-    metadata: Dict[str, Any] = Field(default_factory=dict)
+    metadata: dict[str, Any] = Field(default_factory=dict)
 
 
 class BillingEventRequest(BaseModel):
@@ -110,14 +110,14 @@ class BillingEventRequest(BaseModel):
     cost: float
     currency: str | None = None
     tokens: int = 0
-    capsule_id: Optional[str] = None
-    metadata: Dict[str, Any] = Field(default_factory=dict)
-    event_id: Optional[str] = None
+    capsule_id: str | None = None
+    metadata: dict[str, Any] = Field(default_factory=dict)
+    event_id: str | None = None
 
 
 class BillingLedgerEntry(BaseModel):
     tenant_id: str
-    capsule_id: Optional[str]
+    capsule_id: str | None
     service: str
     currency: str
     total_tokens: int
@@ -127,15 +127,15 @@ class BillingLedgerEntry(BaseModel):
 
 
 class BillingLedgerResponse(BaseModel):
-    entries: List[BillingLedgerEntry]
+    entries: list[BillingLedgerEntry]
 
 
 class PersonaRegressionTransitionRequest(BaseModel):
     tenant_id: str
     persona_id: str
     status: Literal["queued", "running", "completed", "failed"]
-    note: Optional[str] = None
-    error: Optional[str] = None
+    note: str | None = None
+    error: str | None = None
 
 
 class DisasterRecoveryDrillRequest(BaseModel):
@@ -145,7 +145,7 @@ class DisasterRecoveryDrillRequest(BaseModel):
     ended_at: datetime
     rpo_seconds: float
     succeeded: bool = True
-    notes: Optional[str] = None
+    notes: str | None = None
 
 
 class DisasterRecoveryDrillResponse(BaseModel):
@@ -157,7 +157,7 @@ class DisasterRecoveryDrillResponse(BaseModel):
     rto_seconds: float
     rpo_seconds: float
     succeeded: bool
-    notes: Optional[str] = None
+    notes: str | None = None
 
 
 class BenchmarkRunRequest(BaseModel):
@@ -167,9 +167,9 @@ class BenchmarkRunRequest(BaseModel):
     target: str
     started_at: datetime
     completed_at: datetime
-    metrics: Dict[str, Any] = Field(default_factory=dict)
-    metadata: Dict[str, Any] = Field(default_factory=dict)
-    tenant_id: Optional[str] = None
+    metrics: dict[str, Any] = Field(default_factory=dict)
+    metadata: dict[str, Any] = Field(default_factory=dict)
+    tenant_id: str | None = None
 
 
 class BenchmarkRunResponse(BaseModel):
@@ -181,13 +181,13 @@ class BenchmarkRunResponse(BaseModel):
     started_at: datetime
     completed_at: datetime
     score: float
-    metrics: Dict[str, float]
-    metadata: Dict[str, str]
-    tenant_id: Optional[str] = None
+    metrics: dict[str, float]
+    metadata: dict[str, str]
+    tenant_id: str | None = None
 
 
 class BenchmarkCollectionResponse(BaseModel):
-    results: List[BenchmarkRunResponse]
+    results: list[BenchmarkRunResponse]
 
 
 class BenchmarkScoreboardEntry(BaseModel):
@@ -202,17 +202,17 @@ class BenchmarkScoreboardEntry(BaseModel):
 
 
 class BenchmarkScoreboardResponse(BaseModel):
-    scoreboard: List[BenchmarkScoreboardEntry]
+    scoreboard: list[BenchmarkScoreboardEntry]
 
 
 class AgentOneSightDashboardResponse(BaseModel):
     generated_at: datetime
-    tenant_id: Optional[str]
+    tenant_id: str | None
     capsule_dashboard: CapsuleDashboardResponse
-    anomalies: List[AnomalyRecord]
-    benchmark_scoreboard: List[BenchmarkScoreboardEntry]
+    anomalies: list[AnomalyRecord]
+    benchmark_scoreboard: list[BenchmarkScoreboardEntry]
     billing_ledger: BillingLedgerResponse
-    kamachiq_summary: Dict[str, Any]
-    disaster_summary: Dict[str, Any]
-    notifications: List[NotificationLog]
-    regressions_due: List[PersonaRegressionResponse]
+    kamachiq_summary: dict[str, Any]
+    disaster_summary: dict[str, Any]
+    notifications: list[NotificationLog]
+    regressions_due: list[PersonaRegressionResponse]

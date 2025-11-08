@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 
@@ -20,11 +20,16 @@ router = APIRouter(prefix="/v1/notifications", tags=["notifications"])
 async def get_bus() -> NotificationBus:
     bus = get_notification_bus(settings)
     if bus is None:  # pragma: no cover - defensive
-        raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail="Notification bus unavailable")
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Notification bus unavailable",
+        )
     return bus
 
 
-@router.post("", response_model=EnqueueNotificationResponse, status_code=status.HTTP_202_ACCEPTED)
+@router.post(
+    "", response_model=EnqueueNotificationResponse, status_code=status.HTTP_202_ACCEPTED
+)
 async def enqueue_notification(
     payload: NotificationPayload,
     bus: NotificationBus = Depends(get_bus),
@@ -41,7 +46,7 @@ async def get_notification_backlog(
 ) -> NotificationBacklogResponse:
     records = await bus.backlog(limit=limit, tenant_id=tenant_id)
     return NotificationBacklogResponse(
-        generated_at=datetime.now(timezone.utc),
+        generated_at=datetime.now(UTC),
         tenant_id=tenant_id,
         results=records,
     )

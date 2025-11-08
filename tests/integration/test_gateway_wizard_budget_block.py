@@ -2,6 +2,7 @@
 
 Simulates scenario where pricing service reports over-budget so wizard approval returns status 'blocked'.
 """
+
 from __future__ import annotations
 
 import json
@@ -13,12 +14,15 @@ import requests
 from fastapi.testclient import TestClient
 
 # Match import technique used in other gateway tests
-BASE = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "services", "gateway-api"))
+BASE = os.path.abspath(
+    os.path.join(os.path.dirname(__file__), "..", "..", "services", "gateway-api")
+)
 if BASE not in sys.path:
     sys.path.insert(0, BASE)
 
-from app.main import app  # type: ignore  # noqa: E402
 from app.wizard_engine import wizard_engine  # type: ignore  # noqa: E402
+
+from app.main import app  # type: ignore  # noqa: E402
 
 client = TestClient(app)
 
@@ -29,8 +33,20 @@ def _register_block_wizard():
         "title": "Block Wizard",
         "version": "1.0",
         "questions": [
-            {"id": "budget_cap", "step": 1, "prompt": "Budget cap?", "type": "number", "required": True},
-            {"id": "hours_planned", "step": 2, "prompt": "Hours planned?", "type": "number", "required": True},
+            {
+                "id": "budget_cap",
+                "step": 1,
+                "prompt": "Budget cap?",
+                "type": "number",
+                "required": True,
+            },
+            {
+                "id": "hours_planned",
+                "step": 2,
+                "prompt": "Hours planned?",
+                "type": "number",
+                "required": True,
+            },
         ],
         "modules": [],
     }
@@ -63,17 +79,32 @@ def test_wizard_approval_blocked(monkeypatch):
                 },
             )
         if url.endswith("/v1/mao/start"):
-            return FakeResp(200, {"workflow_id": "wf-ignored", "orchestration_id": "orc-ignored", "task_queue": "q"})
+            return FakeResp(
+                200,
+                {
+                    "workflow_id": "wf-ignored",
+                    "orchestration_id": "orc-ignored",
+                    "task_queue": "q",
+                },
+            )
         return FakeResp(404, {"detail": "unexpected URL"})
 
     monkeypatch.setattr(requests, "post", fake_post)
 
-    start = client.post("/v1/wizards/start", json={"wizard_id": "block-wiz", "user_id": "tester"})
+    start = client.post(
+        "/v1/wizards/start", json={"wizard_id": "block-wiz", "user_id": "tester"}
+    )
     assert start.status_code == 200, start.text
     session_id = start.json()["session_id"]
 
-    assert client.post(f"/v1/wizards/{session_id}/answer", json={"value": 100}).status_code == 200
-    assert client.post(f"/v1/wizards/{session_id}/answer", json={"value": 12}).status_code == 200
+    assert (
+        client.post(f"/v1/wizards/{session_id}/answer", json={"value": 100}).status_code
+        == 200
+    )
+    assert (
+        client.post(f"/v1/wizards/{session_id}/answer", json={"value": 12}).status_code
+        == 200
+    )
 
     approve = client.post(f"/v1/wizards/{session_id}/approve")
     assert approve.status_code == 200

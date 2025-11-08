@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from dataclasses import asdict, dataclass, field
 from datetime import datetime, timedelta
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 import httpx
 from temporalio import activity, workflow
@@ -26,8 +26,8 @@ class AgentDirective:
     agent_id: str
     goal: str
     prompt: str
-    capabilities: List[str] = field(default_factory=list)
-    metadata: Dict[str, Any] = field(default_factory=dict)
+    capabilities: list[str] = field(default_factory=list)
+    metadata: dict[str, Any] = field(default_factory=dict)
 
 
 @dataclass
@@ -35,9 +35,9 @@ class MAOStartInput:
     orchestration_id: str
     tenant: str
     initiator: str
-    directives: List[AgentDirective]
-    notification_channel: Optional[str] = None
-    metadata: Dict[str, Any] = field(default_factory=dict)
+    directives: list[AgentDirective]
+    notification_channel: str | None = None
+    metadata: dict[str, Any] = field(default_factory=dict)
 
 
 @dataclass
@@ -45,8 +45,8 @@ class AgentExecutionResult:
     agent_id: str
     goal: str
     status: str
-    slm_response: Dict[str, Any]
-    token: Optional[Dict[str, Any]]
+    slm_response: dict[str, Any]
+    token: dict[str, Any] | None
     started_at: datetime
     completed_at: datetime
 
@@ -57,11 +57,11 @@ class MAOResult:
     tenant: str
     initiator: str
     status: str
-    agent_results: List[AgentExecutionResult]
+    agent_results: list[AgentExecutionResult]
     audit_event_id: str
-    notifications_sent: List[Dict[str, Any]]
+    notifications_sent: list[dict[str, Any]]
     completed_at: datetime
-    policy: Dict[str, Any]
+    policy: dict[str, Any]
 
 
 @dataclass
@@ -70,15 +70,17 @@ class NotificationEnvelope:
     channel: str
     message: str
     severity: str = "info"
-    metadata: Dict[str, str] = field(default_factory=dict)
+    metadata: dict[str, str] = field(default_factory=dict)
 
 
 @activity.defn(name="dispatch-notification")
-async def dispatch_notification(envelope: NotificationEnvelope) -> Dict[str, Any]:
+async def dispatch_notification(envelope: NotificationEnvelope) -> dict[str, Any]:
     """Send a notification via the notification service if configured."""
 
     if not settings.notification_service_url:
-        activity.logger.warning("Notification service URL not configured; skipping dispatch")
+        activity.logger.warning(
+            "Notification service URL not configured; skipping dispatch"
+        )
         return {"status": "skipped", "reason": "notification service disabled"}
 
     payload = {
@@ -90,7 +92,9 @@ async def dispatch_notification(envelope: NotificationEnvelope) -> Dict[str, Any
     }
 
     async with httpx.AsyncClient(timeout=10.0) as client:
-        response = await client.post(str(settings.notification_service_url), json=payload)
+        response = await client.post(
+            str(settings.notification_service_url), json=payload
+        )
         response.raise_for_status()
         return response.json()
 
@@ -108,7 +112,10 @@ class MultiAgentWorkflow:
             session_id=payload.orchestration_id,
             tenant=payload.tenant,
             user=payload.initiator,
-            payload={**payload.metadata, "directives": [asdict(d) for d in payload.directives]},
+            payload={
+                **payload.metadata,
+                "directives": [asdict(d) for d in payload.directives],
+            },
         )
 
         policy = await workflow.execute_activity(
@@ -117,8 +124,8 @@ class MultiAgentWorkflow:
             start_to_close_timeout=timedelta(seconds=30),
         )
 
-        notifications: List[Dict[str, Any]] = []
-        agent_results: List[AgentExecutionResult] = []
+        notifications: list[dict[str, Any]] = []
+        agent_results: list[AgentExecutionResult] = []
 
         if not policy.get("allowed", True):
             audit_event_id = await workflow.execute_activity(

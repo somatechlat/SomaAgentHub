@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import json
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from hashlib import sha256
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
@@ -22,9 +22,9 @@ from ..core.loader import get_loader
 from .schemas import (
     CapsuleCatalogEntry,
     CapsuleDetail,
+    CapsuleInstallationListResponse,
     CapsuleInstallRequest,
     CapsuleInstallResponse,
-    CapsuleInstallationListResponse,
     CapsuleReviewRequest,
     CapsuleReviewResponse,
     CapsuleRollbackRequest,
@@ -55,7 +55,10 @@ async def _resolve_package_row(
     result = await session.execute(stmt)
     row = result.mappings().first()
     if row is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Approved capsule version not found")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Approved capsule version not found",
+        )
     return row
 
 
@@ -75,24 +78,21 @@ def _installation_row_to_response(row) -> CapsuleInstallResponse:
 
 
 def _installation_select():
-    return (
-        select(
-            capsule_installations.c.id.label("installation_id"),
-            capsule_installations.c.package_id,
-            capsule_installations.c.tenant_id,
-            capsule_installations.c.environment,
-            capsule_installations.c.status,
-            capsule_installations.c.installed_at,
-            capsule_installations.c.installed_by,
-            capsule_installations.c.notes,
-            capsule_packages.c.capsule_id,
-            capsule_packages.c.version,
-        )
-        .select_from(
-            capsule_installations.join(
-                capsule_packages,
-                capsule_installations.c.package_id == capsule_packages.c.id,
-            )
+    return select(
+        capsule_installations.c.id.label("installation_id"),
+        capsule_installations.c.package_id,
+        capsule_installations.c.tenant_id,
+        capsule_installations.c.environment,
+        capsule_installations.c.status,
+        capsule_installations.c.installed_at,
+        capsule_installations.c.installed_by,
+        capsule_installations.c.notes,
+        capsule_packages.c.capsule_id,
+        capsule_packages.c.version,
+    ).select_from(
+        capsule_installations.join(
+            capsule_packages,
+            capsule_installations.c.package_id == capsule_packages.c.id,
         )
     )
 
@@ -168,13 +168,13 @@ async def read_capsule(
     result = await session.execute(stmt)
     row = result.mappings().first()
     if row is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Capsule not found")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Capsule not found"
+        )
 
     definition = json.loads(row["definition"])
     compliance = (
-        json.loads(row["compliance_report"])
-        if row.get("compliance_report")
-        else None
+        json.loads(row["compliance_report"]) if row.get("compliance_report") else None
     )
     return CapsuleDetail(
         capsule=definition,
@@ -198,7 +198,9 @@ async def submit_capsule(
     canonical = json.dumps(request.definition, sort_keys=True, separators=(",", ":"))
     computed_hash = sha256(canonical.encode("utf-8")).hexdigest()
     if computed_hash != request.attestation_hash:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Attestation hash mismatch")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail="Attestation hash mismatch"
+        )
 
     compliance_blob = (
         json.dumps(request.compliance_report, sort_keys=True)
@@ -227,7 +229,10 @@ async def submit_capsule(
         await session.commit()
     except IntegrityError as exc:  # user submitted existing version
         await session.rollback()
-        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Capsule version already submitted") from exc
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Capsule version already submitted",
+        ) from exc
 
     row = result.mappings().one()
     return CapsuleSubmissionResponse(
@@ -272,10 +277,12 @@ async def review_submission(
     result = await session.execute(fetch_stmt)
     row = result.mappings().first()
     if row is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Submission not found")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Submission not found"
+        )
 
     decision_status = "approved" if request.decision == "approve" else "rejected"
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     update_values = {
         "status": decision_status,
         "reviewer": request.reviewer,
@@ -343,12 +350,18 @@ async def install_capsule(
         .limit(1)
     )
     existing = (await session.execute(existing_stmt)).mappings().first()
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
 
     if existing and existing["status"] == "installed":
-        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Capsule already installed")
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT, detail="Capsule already installed"
+        )
 
-    merged_notes = payload.notes if payload.notes is not None else (existing.get("notes") if existing else None)
+    merged_notes = (
+        payload.notes
+        if payload.notes is not None
+        else (existing.get("notes") if existing else None)
+    )
 
     if existing:
         await session.execute(
@@ -382,7 +395,10 @@ async def install_capsule(
 
     row = await _fetch_installation(session, installation_id)
     if row is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Installation not found after creation")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Installation not found after creation",
+        )
     return _installation_row_to_response(row)
 
 
@@ -416,9 +432,14 @@ async def rollback_installation(
 ) -> CapsuleInstallResponse:
     row = await _fetch_installation(session, installation_id)
     if row is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Installation not found")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Installation not found"
+        )
     if row["status"] == "rolled_back":
-        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Installation already rolled back")
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Installation already rolled back",
+        )
 
     merged_notes = payload.notes if payload.notes is not None else row.get("notes")
 
@@ -429,12 +450,15 @@ async def rollback_installation(
             status="rolled_back",
             notes=merged_notes,
             installed_by=payload.performed_by,
-            installed_at=datetime.now(timezone.utc),
+            installed_at=datetime.now(UTC),
         )
     )
     await session.commit()
 
     refreshed = await _fetch_installation(session, installation_id)
     if refreshed is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Installation missing after update")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Installation missing after update",
+        )
     return _installation_row_to_response(refreshed)

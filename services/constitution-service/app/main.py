@@ -5,9 +5,9 @@ from __future__ import annotations
 import asyncio
 import logging
 import time
+from collections.abc import Iterable
 from contextlib import asynccontextmanager, suppress
 from random import uniform
-from typing import Iterable
 
 import httpx
 from fastapi import FastAPI
@@ -23,7 +23,7 @@ from .core.constitution import (
     load_verified_constitution,
 )
 from .core.models import ConstitutionBundle
-from .core.signing import ManifestSigningError, ManifestSigner, load_signer_from_env
+from .core.signing import ManifestSigner, ManifestSigningError, load_signer_from_env
 
 logger = logging.getLogger(__name__)
 
@@ -48,13 +48,19 @@ SYNC_ERROR_COUNTER = Counter(
 def create_app() -> FastAPI:
     @asynccontextmanager
     async def lifespan(app: FastAPI):
-        verified = load_verified_constitution(settings.bundle_path, settings.public_key_path)
+        verified = load_verified_constitution(
+            settings.bundle_path, settings.public_key_path
+        )
         redis_client = await create_redis_client(str(settings.redis_url))
         if redis_client is None:
-            logger.warning("Redis unavailable; serving constitution from in-memory registry only")
+            logger.warning(
+                "Redis unavailable; serving constitution from in-memory registry only"
+            )
         else:
             for tenant in settings.tenants:
-                await redis_client.setex(f"constitution:{tenant}", settings.cache_ttl_seconds, verified.hash)
+                await redis_client.setex(
+                    f"constitution:{tenant}", settings.cache_ttl_seconds, verified.hash
+                )
         registry = ConstitutionRegistry(verified, tenants=settings.tenants)
         app.state.redis_client = redis_client
         app.state.constitution_registry = registry
@@ -70,7 +76,11 @@ def create_app() -> FastAPI:
         stop_event = asyncio.Event()
         tasks: list[asyncio.Task[None]] = []
         if settings.sync_enabled:
-            tasks.append(asyncio.create_task(_sync_constitution_loop(app, stop_event, settings.tenants)))
+            tasks.append(
+                asyncio.create_task(
+                    _sync_constitution_loop(app, stop_event, settings.tenants)
+                )
+            )
         try:
             yield
         finally:
@@ -124,7 +134,9 @@ async def _persist_hashes(redis, tenants: Iterable[str], hash_value: str) -> Non
     if redis is None:
         return
     for tenant in tenants:
-        await redis.setex(f"constitution:{tenant}", settings.cache_ttl_seconds, hash_value)
+        await redis.setex(
+            f"constitution:{tenant}", settings.cache_ttl_seconds, hash_value
+        )
 
 
 async def _pull_remote_bundle(client: httpx.AsyncClient) -> ConstitutionBundle:
@@ -135,7 +147,9 @@ async def _pull_remote_bundle(client: httpx.AsyncClient) -> ConstitutionBundle:
     return ConstitutionBundle.model_validate(payload)
 
 
-async def _sync_constitution_loop(app: FastAPI, stop_event: asyncio.Event, tenants: Iterable[str]) -> None:
+async def _sync_constitution_loop(
+    app: FastAPI, stop_event: asyncio.Event, tenants: Iterable[str]
+) -> None:
     interval = max(5.0, settings.sync_interval_seconds)
     jitter = min(0.2 * interval, 30.0)
     registry: ConstitutionRegistry = app.state.constitution_registry
@@ -162,7 +176,9 @@ async def _sync_constitution_loop(app: FastAPI, stop_event: asyncio.Event, tenan
                 logger.warning("SomaBrain returned HTTP error during sync: %s", exc)
             except httpx.HTTPError as exc:
                 SYNC_ERROR_COUNTER.inc()
-                logger.warning("Failed to contact SomaBrain for constitution sync: %s", exc)
+                logger.warning(
+                    "Failed to contact SomaBrain for constitution sync: %s", exc
+                )
             except Exception as exc:  # pragma: no cover - defensive
                 SYNC_ERROR_COUNTER.inc()
                 logger.exception("Unexpected error during constitution sync: %s", exc)
@@ -170,5 +186,5 @@ async def _sync_constitution_loop(app: FastAPI, stop_event: asyncio.Event, tenan
             sleep_for = interval + (uniform(-jitter, jitter) if jitter else 0.0)
             try:
                 await asyncio.wait_for(stop_event.wait(), timeout=sleep_for)
-            except asyncio.TimeoutError:
+            except TimeoutError:
                 continue

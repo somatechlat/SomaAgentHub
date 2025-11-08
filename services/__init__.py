@@ -13,8 +13,8 @@ resolve ``services.<service>`` regardless of which directory appears first on
 ``sys.path``.
 """
 
-import pkgutil
 import pathlib
+import pkgutil
 import sys
 
 # ---------------------------------------------------------------------

@@ -2,13 +2,11 @@
 
 from __future__ import annotations
 
-from typing import Dict, List, Tuple
-
 from ..constitution_cache import get_cached_hash
 from ..policy_rules import RuleViolation, evaluate_prompt
 
 
-def _violation_to_dict(violation: RuleViolation) -> Dict[str, str | float]:
+def _violation_to_dict(violation: RuleViolation) -> dict[str, str | float]:
     rule = violation.rule
     return {
         "name": rule.name,
@@ -30,14 +28,18 @@ def compute_severity(score: float) -> str:
     return "critical"
 
 
-async def evaluate(tenant: str, prompt: str) -> Tuple[bool, float, List[Dict[str, str | float]], str]:
+async def evaluate(
+    tenant: str, prompt: str
+) -> tuple[bool, float, list[dict[str, str | float]], str]:
     allowed, score, violations = evaluate_prompt(tenant, prompt)
     constitution_hash = await get_cached_hash(tenant)
     violation_payload = [_violation_to_dict(v) for v in violations]
     return allowed, score, violation_payload, constitution_hash
 
 
-async def score_only(tenant: str, prompt: str) -> Tuple[float, List[Dict[str, str | float]], str]:
+async def score_only(
+    tenant: str, prompt: str
+) -> tuple[float, list[dict[str, str | float]], str]:
     _, score, violations = evaluate_prompt(tenant, prompt)
     constitution_hash = await get_cached_hash(tenant)
     violation_payload = [_violation_to_dict(v) for v in violations]

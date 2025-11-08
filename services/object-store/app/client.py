@@ -1,9 +1,9 @@
 from __future__ import annotations
 
-import os
 import datetime as dt
+import os
 from dataclasses import dataclass
-from typing import BinaryIO, Optional
+from typing import BinaryIO
 
 # ``minio`` is an optional dependency used only when interacting with a real
 # MinIO/S3 service. The test suite replaces the ``Minio`` class with a dummy
@@ -15,6 +15,7 @@ try:
     from minio import Minio  # type: ignore
     from minio.error import S3Error  # type: ignore
 except Exception:  # pragma: no cover – exercised only when ``minio`` is missing
+
     class Minio:  # pylint: disable=too-few-public-methods
         """Fallback stub used only for test environments without the real
         ``minio`` package.
@@ -42,7 +43,7 @@ class ObjectStoreSettings:
     default_bucket: str = "somagent-artifacts"
 
     @classmethod
-    def from_env(cls) -> "ObjectStoreSettings":
+    def from_env(cls) -> ObjectStoreSettings:
         endpoint = os.getenv("MINIO_ENDPOINT", "localhost:9000")
         access_key = os.getenv("MINIO_ACCESS_KEY", "minioadmin")
         secret_key = os.getenv("MINIO_SECRET_KEY", "minioadmin")
@@ -52,7 +53,7 @@ class ObjectStoreSettings:
 
 
 class ObjectStoreClient:
-    def __init__(self, settings: Optional[ObjectStoreSettings] = None) -> None:
+    def __init__(self, settings: ObjectStoreSettings | None = None) -> None:
         self.settings = settings or ObjectStoreSettings.from_env()
         self._client = Minio(
             endpoint=self.settings.endpoint,
@@ -61,13 +62,20 @@ class ObjectStoreClient:
             secure=self.settings.secure,
         )
 
-    def ensure_bucket(self, bucket: Optional[str] = None) -> str:
+    def ensure_bucket(self, bucket: str | None = None) -> str:
         bucket = bucket or self.settings.default_bucket
         if not self._client.bucket_exists(bucket):
             self._client.make_bucket(bucket)
         return bucket
 
-    def upload(self, object_name: str, data: BinaryIO, length: int, bucket: Optional[str] = None, content_type: str = "application/octet-stream") -> str:
+    def upload(
+        self,
+        object_name: str,
+        data: BinaryIO,
+        length: int,
+        bucket: str | None = None,
+        content_type: str = "application/octet-stream",
+    ) -> str:
         bucket = self.ensure_bucket(bucket)
         self._client.put_object(
             bucket_name=bucket,
@@ -78,7 +86,12 @@ class ObjectStoreClient:
         )
         return f"s3://{bucket}/{object_name}"
 
-    def presign_get(self, object_name: str, bucket: Optional[str] = None, expires_seconds: int = 3600) -> str:
+    def presign_get(
+        self,
+        object_name: str,
+        bucket: str | None = None,
+        expires_seconds: int = 3600,
+    ) -> str:
         bucket = bucket or self.settings.default_bucket
         return self._client.presigned_get_object(
             bucket,
@@ -86,7 +99,7 @@ class ObjectStoreClient:
             expires=dt.timedelta(seconds=expires_seconds),
         )
 
-    def delete(self, object_name: str, bucket: Optional[str] = None) -> None:
+    def delete(self, object_name: str, bucket: str | None = None) -> None:
         bucket = bucket or self.settings.default_bucket
         try:
             self._client.remove_object(bucket, object_name)

@@ -1,16 +1,15 @@
 from __future__ import annotations
 
-from datetime import datetime, timezone
+import os
+import sys
+from datetime import UTC, datetime
 from pathlib import Path
 from types import SimpleNamespace
-from typing import Any, Dict, Tuple
+from typing import Any
 from uuid import uuid4
 
 import pytest
 from fastapi.testclient import TestClient
-
-import sys
-import os
 
 ROOT = Path(__file__).resolve().parents[3]
 if str(ROOT) not in sys.path:
@@ -18,10 +17,11 @@ if str(ROOT) not in sys.path:
 
 os.environ.setdefault("ENABLE_SPIFFE", "false")
 
+from temporalio.client import RPCError, RPCStatusCode
+
 from services.orchestrator.app.main import create_app
 from services.orchestrator.app.workflows.mao import AgentExecutionResult, MAOResult
 from services.orchestrator.app.workflows.session import SessionStartResult
-from temporalio.client import RPCError, RPCStatusCode
 
 
 class FakeWorkflowHandle:
@@ -52,10 +52,12 @@ class FakeWorkflowHandle:
 
 class FakeTemporalClient:
     def __init__(self) -> None:
-        self.workflows: Dict[str, FakeWorkflowHandle] = {}
+        self.workflows: dict[str, FakeWorkflowHandle] = {}
         self.closed = False
 
-    async def start_workflow(self, workflow: str, payload: Any, *, id: str, **kwargs: Any) -> FakeWorkflowHandle:  # noqa: D417
+    async def start_workflow(
+        self, workflow: str, payload: Any, *, id: str, **kwargs: Any
+    ) -> FakeWorkflowHandle:  # noqa: D417
         run_id = str(uuid4())
         if workflow == "multi-agent-orchestration-workflow":
             agent_results = [
@@ -65,8 +67,8 @@ class FakeTemporalClient:
                     status="completed",
                     slm_response={"completion": f"ok:{directive.prompt[:15]}"},
                     token={"access_token": f"token-{directive.agent_id}"},
-                    started_at=datetime.now(timezone.utc),
-                    completed_at=datetime.now(timezone.utc),
+                    started_at=datetime.now(UTC),
+                    completed_at=datetime.now(UTC),
                 )
                 for directive in payload.directives
             ]
@@ -78,7 +80,7 @@ class FakeTemporalClient:
                 agent_results=agent_results,
                 audit_event_id=str(uuid4()),
                 notifications_sent=[],
-                completed_at=datetime.now(timezone.utc),
+                completed_at=datetime.now(UTC),
                 policy={"allowed": True, "workflow": workflow},
             )
         else:
@@ -91,7 +93,7 @@ class FakeTemporalClient:
                 token={"access_token": "fake-token", "user": payload.user},
                 slm_response={"completion": f"ok:{payload.prompt[:10]}"},
                 audit_event_id=str(uuid4()),
-                completed_at=datetime.now(timezone.utc),
+                completed_at=datetime.now(UTC),
             )
         handle = FakeWorkflowHandle(workflow_id=id, run_id=run_id, result=result)
         handle.input_payload = payload  # type: ignore[attr-defined]
@@ -113,7 +115,9 @@ class FakeTemporalClient:
 
 
 @pytest.fixture
-def api_client(monkeypatch: pytest.MonkeyPatch) -> Tuple[TestClient, FakeTemporalClient]:
+def api_client(
+    monkeypatch: pytest.MonkeyPatch,
+) -> tuple[TestClient, FakeTemporalClient]:
     fake_client = FakeTemporalClient()
 
     # Ensure the in-memory settings object enables Temporal so create_app

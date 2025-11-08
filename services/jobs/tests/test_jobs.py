@@ -1,10 +1,11 @@
 import asyncio
 
 import pytest
-from httpx import AsyncClient
 from fastapi import status
+from httpx import AsyncClient
 
 from services.jobs.app.main import app
+
 
 @pytest.mark.asyncio
 async def test_create_and_get_job():
@@ -26,6 +27,7 @@ async def test_create_and_get_job():
         final = resp3.json()
         assert final["status"] == "completed"
         assert final["result"]["message"] == "Task demo completed"
+
 
 @pytest.mark.asyncio
 async def test_health_and_metrics():

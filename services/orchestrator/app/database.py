@@ -11,7 +11,12 @@ from __future__ import annotations
 import os
 from contextlib import asynccontextmanager
 
-from sqlmodel import SQLModel, create_engine
+from sqlalchemy.ext.asyncio import (
+    async_sessionmaker,
+    create_async_engine,
+)
+from sqlmodel import create_engine
+
 # ``sqlmodel`` does not expose ``async_sessionmaker`` directly. Use the
 # implementation from SQLAlchemy's async extension. ``create_async_engine``
 # creates an ``AsyncEngine`` compatible with ``async_sessionmaker``.
@@ -22,10 +27,6 @@ from sqlmodel import SQLModel, create_engine
 # session class from ``sqlmodel.ext.asyncio.session`` while keeping the
 # ``async_sessionmaker`` and ``create_async_engine`` utilities from SQLAlchemy.
 from sqlmodel.ext.asyncio.session import AsyncSession
-from sqlalchemy.ext.asyncio import (
-    async_sessionmaker,
-    create_async_engine,
-)
 
 # ---------------------------------------------------------------------------
 # Configuration – read from environment (or default to a local dev DB).

@@ -3,26 +3,26 @@
 
 from __future__ import annotations
 
-from fastapi import APIRouter, HTTPException, status, Response
-from pydantic import BaseModel, Field
-from typing import List
-
-from ..planner.planner_service import PlannerService
-from ..planner.client import PlannerClient, PlannerClientConfig
-from ..planner.schemas import PlannerRequest, PlannerContext, ProjectPlan
-from ..repository.plan_repository import PlanRepository
-from services.common.observability import get_tracer
+from fastapi import APIRouter, HTTPException, Response, status
 from opentelemetry.trace import Status, StatusCode
+from pydantic import BaseModel, Field
+
+from services.common.observability import get_tracer
+from services.common.opa_client import get_opa_client
+
 from ..metrics.planner import (
+    planner_batch_refine_requests,
+    planner_delete_requests,
     planner_generate_requests,
-    planner_refine_requests,
+    planner_get_requests,
     planner_latency_seconds,
     planner_list_requests,
-    planner_batch_refine_requests,
-    planner_get_requests,
-    planner_delete_requests,
+    planner_refine_requests,
 )
-from services.common.opa_client import get_opa_client
+from ..planner.client import PlannerClient, PlannerClientConfig
+from ..planner.planner_service import PlannerService
+from ..planner.schemas import PlannerContext, PlannerRequest, ProjectPlan
+from ..repository.plan_repository import PlanRepository
 
 router = APIRouter(prefix="/v1/planner", tags=["planner"])
 
@@ -43,7 +43,8 @@ _tracer = get_tracer("planner-api")
 # ``generate_plan`` calls concurrently using ``asyncio.gather``. This showcases
 # how the service can handle parallel work without blocking the event loop.
 # ---------------------------------------------------------------------------
-import asyncio
+import asyncio  # noqa: E402
+
 
 class GeneratePlanPayload(BaseModel):
     """Payload for the /generate endpoint.
@@ -52,6 +53,7 @@ class GeneratePlanPayload(BaseModel):
     surrounding environment (available tools, memory snippets, etc.). Both are
     required for a meaningful plan.
     """
+
     request: PlannerRequest
     context: PlannerContext
 
@@ -61,7 +63,10 @@ class BatchGeneratePayload(BaseModel):
 
     requests: list[GeneratePlanPayload]
 
-@router.post("/generate", response_model=ProjectPlan, status_code=status.HTTP_201_CREATED)
+
+@router.post(
+    "/generate", response_model=ProjectPlan, status_code=status.HTTP_201_CREATED
+)
 async def generate_plan(payload: GeneratePlanPayload) -> ProjectPlan:
     """Generate a new project plan.
 
@@ -95,7 +100,11 @@ async def generate_plan(payload: GeneratePlanPayload) -> ProjectPlan:
                 raise HTTPException(status_code=400, detail=str(exc)) from exc
 
 
-@router.post("/batch/generate", response_model=list[ProjectPlan], status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/batch/generate",
+    response_model=list[ProjectPlan],
+    status_code=status.HTTP_201_CREATED,
+)
 async def batch_generate(payload: BatchGeneratePayload) -> list[ProjectPlan]:
     """Generate multiple plans in parallel.
 
@@ -108,7 +117,10 @@ async def batch_generate(payload: BatchGeneratePayload) -> list[ProjectPlan]:
     with planner_latency_seconds.labels(endpoint="batch_generate").time():
         with _tracer.start_as_current_span("batch_generate_plan_endpoint") as span:
             try:
-                coros = [_service.generate_plan(req.request, req.context) for req in payload.requests]
+                coros = [
+                    _service.generate_plan(req.request, req.context)
+                    for req in payload.requests
+                ]
                 results = await asyncio.gather(*coros, return_exceptions=False)
                 span.set_attribute("batch.size", len(payload.requests))
                 return results
@@ -117,6 +129,7 @@ async def batch_generate(payload: BatchGeneratePayload) -> list[ProjectPlan]:
                 span.set_status(Status(StatusCode.ERROR, str(exc)))
                 raise HTTPException(status_code=400, detail=str(exc)) from exc
 
+
 class RefinePlanPayload(BaseModel):
     """Payload for the /refine endpoint.
 
@@ -124,6 +137,7 @@ class RefinePlanPayload(BaseModel):
     the user changed, and an optional `context` can be supplied for additional
     information.
     """
+
     plan_id: str = Field(..., description="Identifier of the plan to refine")
     updates: dict = Field(..., description="Partial fields to merge into the plan")
     context: PlannerContext | None = None
@@ -136,7 +150,8 @@ class BatchRefinePayload(BaseModel):
     parallel. The response preserves the order of the input list.
     """
 
-    requests: List[RefinePlanPayload]
+    requests: list[RefinePlanPayload]
+
 
 @router.post("/refine", response_model=ProjectPlan)
 async def refine_plan(payload: RefinePlanPayload) -> ProjectPlan:
@@ -191,8 +206,8 @@ async def refine_plan(payload: RefinePlanPayload) -> ProjectPlan:
 
 # The ``/list`` endpoint must be defined *before* the dynamic ``/{plan_id}``
 # route to avoid the latter capturing the literal ``list`` path segment.
-@router.get("/list", response_model=List[ProjectPlan])
-async def list_plans() -> List[ProjectPlan]:
+@router.get("/list", response_model=list[ProjectPlan])
+async def list_plans() -> list[ProjectPlan]:
     """Return a list of all persisted plans.
 
     This endpoint is useful for UI dashboards or admin tooling to view the
@@ -240,8 +255,8 @@ async def delete_plan(plan_id: str) -> Response:
     return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
-@router.post("/batch/refine", response_model=List[ProjectPlan])
-async def batch_refine(payload: BatchRefinePayload) -> List[ProjectPlan]:
+@router.post("/batch/refine", response_model=list[ProjectPlan])
+async def batch_refine(payload: BatchRefinePayload) -> list[ProjectPlan]:
     """Refine multiple plans in parallel.
 
     Each ``RefinePlanPayload`` is processed concurrently using ``asyncio.gather``.
@@ -259,19 +274,26 @@ async def batch_refine(payload: BatchRefinePayload) -> List[ProjectPlan]:
         context={},
     )
     if not authorized:
-        raise HTTPException(status_code=403, detail="Unauthorized to batch refine plans")
+        raise HTTPException(
+            status_code=403, detail="Unauthorized to batch refine plans"
+        )
 
     planner_batch_refine_requests.labels(method="batch").inc(len(payload.requests))
     with planner_latency_seconds.labels(endpoint="batch_refine").time():
+
         async def _process(req: RefinePlanPayload) -> ProjectPlan:
             # Fetch existing plan
             existing = await _repo.get_plan(req.plan_id)
             if existing is None:
-                raise HTTPException(status_code=404, detail=f"Plan {req.plan_id} not found")
+                raise HTTPException(
+                    status_code=404, detail=f"Plan {req.plan_id} not found"
+                )
             try:
                 current_plan = ProjectPlan.parse_obj(existing.payload)
             except Exception as exc:
-                raise HTTPException(status_code=500, detail="Corrupted plan data") from exc
+                raise HTTPException(
+                    status_code=500, detail="Corrupted plan data"
+                ) from exc
             refined = await _service.refine_plan(
                 current_plan,
                 req.updates,

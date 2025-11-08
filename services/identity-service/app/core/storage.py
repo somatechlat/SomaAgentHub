@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import json
 from collections.abc import Iterable
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from redis.asyncio import Redis
 
@@ -69,7 +69,9 @@ class IdentityStore:
     # Training lock management
     # ------------------------------------------------------------------
     async def set_training_lock(self, lock: TrainingLockStatus) -> TrainingLockStatus:
-        await self._client.set(self._training_key(lock.tenant_id), lock.model_dump_json())
+        await self._client.set(
+            self._training_key(lock.tenant_id), lock.model_dump_json()
+        )
         return lock
 
     async def get_training_lock(self, tenant_id: str) -> TrainingLockStatus | None:
@@ -81,7 +83,9 @@ class IdentityStore:
     # ------------------------------------------------------------------
     # Token management
     # ------------------------------------------------------------------
-    async def store_token_claims(self, jti: str, claims: dict, ttl_seconds: int) -> None:
+    async def store_token_claims(
+        self, jti: str, claims: dict, ttl_seconds: int
+    ) -> None:
         payload = json.dumps(claims)
         await self._client.setex(self._token_key(jti), ttl_seconds, payload)
 
@@ -137,4 +141,4 @@ def utc_from_timestamp(timestamp: int | float) -> datetime:
     construct a UTC‑aware ``datetime`` that works across all supported Python
     versions.
     """
-    return datetime.fromtimestamp(timestamp, tz=timezone.utc)
+    return datetime.fromtimestamp(timestamp, tz=UTC)

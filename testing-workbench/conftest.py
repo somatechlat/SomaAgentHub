@@ -3,21 +3,24 @@ Testing Workbench Configuration
 Shared fixtures and configuration for all tests.
 """
 
-import pytest
-import httpx
 import os
-from typing import Dict, Any
+from typing import Any
+
+import httpx
+import pytest
 
 
 @pytest.fixture(scope="session")
-def test_config() -> Dict[str, Any]:
+def test_config() -> dict[str, Any]:
     """Test configuration from environment variables."""
     return {
         "gateway_url": os.getenv("GATEWAY_URL", "http://localhost:10000"),
         "orchestrator_url": os.getenv("ORCHESTRATOR_URL", "http://localhost:10001"),
         "identity_url": os.getenv("IDENTITY_URL", "http://localhost:10002"),
         "redis_url": os.getenv("REDIS_URL", "redis://localhost:10003"),
-        "postgres_url": os.getenv("POSTGRES_URL", "postgresql://somaagent:somaagent@localhost:10004/somaagent"),
+        "postgres_url": os.getenv(
+            "POSTGRES_URL", "postgresql://somaagent:somaagent@localhost:10004/somaagent"
+        ),
         "timeout": int(os.getenv("TEST_TIMEOUT", "30")),
     }
 

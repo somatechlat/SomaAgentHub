@@ -2,24 +2,25 @@
 
 from __future__ import annotations
 
+import uuid
 from dataclasses import asdict, is_dataclass
-from typing import Any, Dict, List
+from typing import Any
 from uuid import uuid4
 
+import httpx
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from pydantic import BaseModel, Field
+from sqlmodel import Session, select
 from temporalio import client as temporal_client
 from temporalio.client import RPCError, RPCStatusCode
-from sqlmodel import Session, select
-from services.orchestrator.app.repository.models import BuildRun
+
 from services.orchestrator.app.database import get_session
-import uuid
-import httpx
+from services.orchestrator.app.repository.models import BuildRun
 
 from ..core.config import settings
+from ..workflows.capsule import CapsuleRunInput
 from ..workflows.mao import AgentDirective, MAOStartInput
 from ..workflows.session import SessionStartInput
-from ..workflows.capsule import CapsuleRunInput
 
 # Import conversation and training endpoints
 from .conversation import router as conversation_router
@@ -30,6 +31,8 @@ router = APIRouter(prefix="/v1", tags=["orchestrator"])
 router.include_router(conversation_router)
 router.include_router(projects_router)
 router.include_router(training_router)
+
+
 class BuildRunCreate(BaseModel):
     tenant: str
     project_id: str
@@ -38,6 +41,7 @@ class BuildRunCreate(BaseModel):
     estimated_cost: float
     template_set: str = "default"
     policy_reason: str = ""
+
 
 class BuildRunResponse(BaseModel):
     id: uuid.UUID
@@ -51,6 +55,7 @@ class BuildRunResponse(BaseModel):
     policy_reason: str
     created_at: str
     updated_at: str
+
 
 @router.post("/build-runs", response_model=BuildRunResponse, tags=["build"])
 def create_build_run(payload: BuildRunCreate, session: Session = Depends(get_session)):
@@ -80,7 +85,10 @@ def create_build_run(payload: BuildRunCreate, session: Session = Depends(get_ses
         updated_at=br.updated_at.isoformat(),
     )
 
-@router.get("/build-runs/{build_run_id}", response_model=BuildRunResponse, tags=["build"])
+
+@router.get(
+    "/build-runs/{build_run_id}", response_model=BuildRunResponse, tags=["build"]
+)
 def get_build_run(build_run_id: str, session: Session = Depends(get_session)):
     try:
         bid = uuid.UUID(build_run_id)
@@ -144,11 +152,16 @@ async def build_precheck(payload: BuildPrecheckRequest) -> BuildPrecheckResponse
     # Remove None values
     params = {k: v for k, v in params.items() if v is not None}
 
-    url = settings.pricing_service_url.rstrip("/") + "/v1/pricing/evaluate-budget/with-policy"
+    url = (
+        settings.pricing_service_url.rstrip("/")
+        + "/v1/pricing/evaluate-budget/with-policy"
+    )
     async with httpx.AsyncClient(timeout=5.0) as client:
         r = await client.post(url, params=params)
     if r.status_code != 200:
-        raise HTTPException(status_code=502, detail=f"Pricing precheck failed: {r.text}")
+        raise HTTPException(
+            status_code=502, detail=f"Pricing precheck failed: {r.text}"
+        )
     data = r.json()
 
     require_payment = False
@@ -175,8 +188,11 @@ async def build_precheck(payload: BuildPrecheckRequest) -> BuildPrecheckResponse
         require_payment=require_payment,
         recommended_action=recommended,
     )
+
+
 # Planner endpoints – generate, refine, retrieve, delete plans
-from .planner import router as planner_router
+from .planner import router as planner_router  # noqa: E402
+
 router.include_router(planner_router)
 
 
@@ -184,8 +200,12 @@ class SessionStartRequest(BaseModel):
     tenant: str = Field(..., description="Tenant identifier")
     user: str = Field(..., description="User starting the session")
     prompt: str = Field(..., description="Conversation seed prompt")
-    model: str = Field(default="somagent-demo", description="Requested model identifier")
-    metadata: Dict[str, Any] = Field(default_factory=dict, description="Additional session metadata")
+    model: str = Field(
+        default="somagent-demo", description="Requested model identifier"
+    )
+    metadata: dict[str, Any] = Field(
+        default_factory=dict, description="Additional session metadata"
+    )
 
 
 class SessionStartResponse(BaseModel):
@@ -200,23 +220,23 @@ class SessionStatusResponse(BaseModel):
     run_id: str
     status: str
     history_length: int | None = None
-    result: Dict[str, Any] | None = None
+    result: dict[str, Any] | None = None
 
 
 class AgentDirectiveModel(BaseModel):
     agent_id: str
     goal: str
     prompt: str
-    capabilities: List[str] = Field(default_factory=list)
-    metadata: Dict[str, Any] = Field(default_factory=dict)
+    capabilities: list[str] = Field(default_factory=list)
+    metadata: dict[str, Any] = Field(default_factory=dict)
 
 
 class MultiAgentStartRequest(BaseModel):
     tenant: str
     initiator: str
-    directives: List[AgentDirectiveModel]
+    directives: list[AgentDirectiveModel]
     notification_channel: str | None = None
-    metadata: Dict[str, Any] = Field(default_factory=dict)
+    metadata: dict[str, Any] = Field(default_factory=dict)
 
 
 class MultiAgentStartResponse(BaseModel):
@@ -231,8 +251,12 @@ class CapsuleRunRequest(BaseModel):
     user: str
     capsule_id: str = Field(..., description="Capsule identifier, e.g. org/name")
     version: str = Field(default="latest", description="Capsule version/tag")
-    params: Dict[str, Any] = Field(default_factory=dict, description="Input parameters for the capsule run")
-    metadata: Dict[str, Any] = Field(default_factory=dict, description="Arbitrary metadata for audit/tracing")
+    params: dict[str, Any] = Field(
+        default_factory=dict, description="Input parameters for the capsule run"
+    )
+    metadata: dict[str, Any] = Field(
+        default_factory=dict, description="Arbitrary metadata for audit/tracing"
+    )
 
 
 class CapsuleRunResponse(BaseModel):
@@ -250,7 +274,7 @@ async def get_temporal_client(request: Request) -> temporal_client.Client:
     return client
 
 
-def _normalize_result(result_obj: Any) -> Dict[str, Any] | None:
+def _normalize_result(result_obj: Any) -> dict[str, Any] | None:
     if result_obj is None:
         return None
     if is_dataclass(result_obj):
@@ -262,8 +286,14 @@ def _normalize_result(result_obj: Any) -> Dict[str, Any] | None:
     return {"value": result_obj}
 
 
-@router.post("/sessions/start", response_model=SessionStartResponse, status_code=status.HTTP_202_ACCEPTED)
-async def start_session(request: Request, client: temporal_client.Client = Depends(get_temporal_client)) -> SessionStartResponse:
+@router.post(
+    "/sessions/start",
+    response_model=SessionStartResponse,
+    status_code=status.HTTP_202_ACCEPTED,
+)
+async def start_session(
+    request: Request, client: temporal_client.Client = Depends(get_temporal_client)
+) -> SessionStartResponse:
     """Kick off the Temporal session workflow and return identifiers for tracking.
 
     This handler is tolerant in dev to payloads that provide either
@@ -340,7 +370,9 @@ async def start_session(request: Request, client: temporal_client.Client = Depen
 
 
 @router.get("/sessions/{workflow_id}", response_model=SessionStatusResponse)
-async def get_session_status(workflow_id: str, client: temporal_client.Client = Depends(get_temporal_client)) -> SessionStatusResponse:
+async def get_session_status(
+    workflow_id: str, client: temporal_client.Client = Depends(get_temporal_client)
+) -> SessionStatusResponse:
     """Fetch workflow status and (if completed) the result payload."""
 
     try:
@@ -354,12 +386,14 @@ async def get_session_status(workflow_id: str, client: temporal_client.Client = 
         raise HTTPException(status_code=404, detail=str(exc)) from exc
 
     status_name = desc.status.name.lower()
-    result: Dict[str, Any] | None = None
+    result: dict[str, Any] | None = None
     if status_name == "completed":
         try:
             result_obj = await handle.result()
             result = _normalize_result(result_obj)
-        except Exception as exc:  # pragma: no cover - Temporal result retrieval edge cases
+        except (
+            Exception
+        ) as exc:  # pragma: no cover - Temporal result retrieval edge cases
             result = {"error": str(exc)}
 
     # ``desc`` may be a simple namespace without an ``id`` attribute (as in the
@@ -374,7 +408,11 @@ async def get_session_status(workflow_id: str, client: temporal_client.Client = 
     )
 
 
-@router.post("/mao/start", response_model=MultiAgentStartResponse, status_code=status.HTTP_202_ACCEPTED)
+@router.post(
+    "/mao/start",
+    response_model=MultiAgentStartResponse,
+    status_code=status.HTTP_202_ACCEPTED,
+)
 async def start_multi_agent(
     payload: MultiAgentStartRequest,
     client: temporal_client.Client = Depends(get_temporal_client),
@@ -382,7 +420,9 @@ async def start_multi_agent(
     orchestration_id = payload.metadata.get("orchestration_id") or f"mao-{uuid4()}"
     workflow_id = f"mao-{orchestration_id}"
 
-    directives = [AgentDirective(**directive.model_dump()) for directive in payload.directives]
+    directives = [
+        AgentDirective(**directive.model_dump()) for directive in payload.directives
+    ]
 
     handle = await client.start_workflow(
         "multi-agent-orchestration-workflow",
@@ -418,7 +458,11 @@ async def get_multi_agent_status(
     return await get_session_status(workflow_id, client)
 
 
-@router.post("/capsule/run", response_model=CapsuleRunResponse, status_code=status.HTTP_202_ACCEPTED)
+@router.post(
+    "/capsule/run",
+    response_model=CapsuleRunResponse,
+    status_code=status.HTTP_202_ACCEPTED,
+)
 async def start_capsule_run(
     payload: CapsuleRunRequest,
     client: temporal_client.Client = Depends(get_temporal_client),
@@ -458,7 +502,9 @@ async def start_capsule_run(
             },
         )
         if allowed is False:
-            raise HTTPException(status_code=403, detail="Not allowed to execute capsule")
+            raise HTTPException(
+                status_code=403, detail="Not allowed to execute capsule"
+            )
     except Exception:
         # If OPA is unavailable or the policy is missing we fall back to allow –
         # this mirrors the behaviour of other endpoints where OPA is optional.
@@ -479,7 +525,9 @@ async def start_capsule_run(
         task_queue=settings.temporal_task_queue,
     )
 
-    rid = getattr(handle, "run_id", None) or getattr(handle, "first_execution_run_id", None)
+    rid = getattr(handle, "run_id", None) or getattr(
+        handle, "first_execution_run_id", None
+    )
 
     return CapsuleRunResponse(
         workflow_id=handle.id,

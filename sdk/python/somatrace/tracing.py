@@ -73,7 +73,9 @@ def init_tracing(
     if not app_name:
         raise ValueError("app_name must be a non-empty string")
 
-    otlp_endpoint = endpoint or os.getenv("OTEL_EXPORTER_OTLP_ENDPOINT", _DEFAULT_ENDPOINT)
+    otlp_endpoint = endpoint or os.getenv(
+        "OTEL_EXPORTER_OTLP_ENDPOINT", _DEFAULT_ENDPOINT
+    )
     os.environ.setdefault("OTEL_EXPORTER_OTLP_ENDPOINT", otlp_endpoint)
 
     existing_headers = os.getenv("OTEL_EXPORTER_OTLP_HEADERS", "")

@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from enum import Enum
-from typing import Any, Dict
+from typing import Any
 
 
 class MultiAgentPattern(str, Enum):
@@ -19,7 +19,7 @@ class FrameworkRouter:
     def __init__(self, *, default_pattern: MultiAgentPattern | None = None) -> None:
         self.default_pattern = default_pattern or MultiAgentPattern.GROUP_CHAT
 
-    def detect_pattern(self, payload: Dict[str, Any]) -> MultiAgentPattern:
+    def detect_pattern(self, payload: dict[str, Any]) -> MultiAgentPattern:
         explicit = payload.get("pattern")
         if explicit:
             try:
@@ -57,6 +57,6 @@ class FrameworkRouter:
         except KeyError:  # pragma: no cover - defensive
             raise ValueError(f"no framework mapping for pattern '{pattern}'")
 
-    def route(self, payload: Dict[str, Any]) -> str:
+    def route(self, payload: dict[str, Any]) -> str:
         pattern = self.detect_pattern(payload)
         return self.select_framework(pattern)

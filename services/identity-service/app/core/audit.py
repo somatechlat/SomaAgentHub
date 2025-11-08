@@ -2,16 +2,19 @@
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
 import asyncio
+from datetime import UTC, datetime
 from typing import Any
 
 from services.common.audit_logger import (
     AuditEvent,
     AuditEventType,
-    AuditLogger as SharedAuditLogger,
     AuditSeverity,
 )
+from services.common.audit_logger import (
+    AuditLogger as SharedAuditLogger,
+)
+
 from .config import IdentitySettings
 
 
@@ -21,7 +24,9 @@ class AuditLogger:
     def __init__(self, settings: IdentitySettings) -> None:
         clickhouse = settings.clickhouse
         if not clickhouse.host or clickhouse.port is None:
-            raise ValueError("ClickHouse host and port must be configured for audit logging")
+            raise ValueError(
+                "ClickHouse host and port must be configured for audit logging"
+            )
 
         self._logger = SharedAuditLogger(
             clickhouse_host=clickhouse.host,
@@ -53,7 +58,7 @@ class AuditLogger:
         metadata.setdefault("event", event_type)
 
         event = AuditEvent(
-            timestamp=datetime.now(timezone.utc),
+            timestamp=datetime.now(UTC),
             event_type=audit_type,
             severity=severity,
             actor_id=actor_id,
@@ -78,4 +83,8 @@ class AuditLogger:
             return AuditEventType.AUTH_LOGIN, "issue", AuditSeverity.INFO
         if event_type == "token.revoked":
             return AuditEventType.AUTH_LOGOUT, "revoke", AuditSeverity.INFO
-        return AuditEventType.SECURITY_ALERT, event_type.replace("token.", ""), AuditSeverity.WARNING
+        return (
+            AuditEventType.SECURITY_ALERT,
+            event_type.replace("token.", ""),
+            AuditSeverity.WARNING,
+        )

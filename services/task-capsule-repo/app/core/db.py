@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
+from collections.abc import AsyncIterator
 from datetime import datetime
-from typing import AsyncIterator
 
 from sqlalchemy import (
     Boolean,
@@ -19,7 +19,12 @@ from sqlalchemy import (
     select,
     text,
 )
-from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession, async_sessionmaker, create_async_engine
+from sqlalchemy.ext.asyncio import (
+    AsyncEngine,
+    AsyncSession,
+    async_sessionmaker,
+    create_async_engine,
+)
 
 from .config import get_settings
 
@@ -56,7 +61,9 @@ capsule_packages = Table(
         default=datetime.utcnow,
         server_default=text("now()"),
     ),
-    UniqueConstraint("capsule_id", "version", name="uq_capsule_packages_capsule_version"),
+    UniqueConstraint(
+        "capsule_id", "version", name="uq_capsule_packages_capsule_version"
+    ),
 )
 
 capsule_reviews = Table(

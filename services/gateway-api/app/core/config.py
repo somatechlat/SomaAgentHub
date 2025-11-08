@@ -6,10 +6,13 @@ from functools import lru_cache
 from pathlib import Path
 
 from pydantic import Field
+
 from common.config.settings import Settings as SharedSettings
 
 
-def load_secret(env_var: str, file_env: str | None = None, default: str | None = None) -> str:
+def load_secret(
+    env_var: str, file_env: str | None = None, default: str | None = None
+) -> str:
     """Load a secret from environment variable or mounted file."""
 
     import os
@@ -34,12 +37,22 @@ class GatewaySettings(SharedSettings):
 
     service_name: str = Field(default="sah", alias="SERVICE_NAME")
     debug: bool = Field(default=False, alias="DEBUG")
-    orchestrator_url: str = Field(default="http://orchestrator:10001", alias="ORCHESTRATOR_URL")
-    pricing_service_url: str = Field(default="http://pricing-service:10026", alias="PRICING_SERVICE_URL")
+    orchestrator_url: str = Field(
+        default="http://orchestrator:10001", alias="ORCHESTRATOR_URL"
+    )
+    pricing_service_url: str = Field(
+        default="http://pricing-service:10026", alias="PRICING_SERVICE_URL"
+    )
     redis_url: str | None = Field(default="redis://redis:6379/0", alias="REDIS_URL")
-    kafka_bootstrap_servers_raw: str | None = Field(default="kafka:9092", alias="KAFKA_BOOTSTRAP_SERVERS")
-    auth_url_raw: str | None = Field(default="http://identity-service:10002", alias="AUTH_URL")
-    admin_api_url: str = Field(default="http://settings-service:8000", alias="ADMIN_API_URL")
+    kafka_bootstrap_servers_raw: str | None = Field(
+        default="kafka:9092", alias="KAFKA_BOOTSTRAP_SERVERS"
+    )
+    auth_url_raw: str | None = Field(
+        default="http://identity-service:10002", alias="AUTH_URL"
+    )
+    admin_api_url: str = Field(
+        default="http://settings-service:8000", alias="ADMIN_API_URL"
+    )
     tls_certfile: str | None = Field(default=None, alias="TLS_CERTFILE")
     tls_keyfile: str | None = Field(default=None, alias="TLS_KEYFILE")
     tls_ca_cert: str | None = Field(default=None, alias="TLS_CA_CERT")
@@ -66,12 +79,20 @@ class GatewaySettings(SharedSettings):
         return ""
 
     def moderation_terms(self) -> list[str]:
-        return [term.strip().lower() for term in self.moderation_blocklist.split(",") if term.strip()]
+        return [
+            term.strip().lower()
+            for term in self.moderation_blocklist.split(",")
+            if term.strip()
+        ]
 
     def allowed_tenants(self) -> list[str]:
         if not self.residency_allowed:
             return []
-        return [tenant.strip() for tenant in self.residency_allowed.split(",") if tenant.strip()]
+        return [
+            tenant.strip()
+            for tenant in self.residency_allowed.split(",")
+            if tenant.strip()
+        ]
 
 
 @lru_cache

@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import List, Optional
 
 
 @dataclass
@@ -14,8 +13,8 @@ class RequestContext:
     """
 
     tenant_id: str
-    user_id: Optional[str]
-    capabilities: List[str]
+    user_id: str | None
+    capabilities: list[str]
     client_type: str
     deployment_mode: str
     request_id: str

@@ -41,6 +41,7 @@ def test_remember_and_recall():
     assert data["key"] == "test_key"
     assert data["value"] == {"msg": "hello"}
 
+
 def test_healthz_endpoint():
     """Validate the /healthz endpoint returns JSON with dependency booleans."""
     resp = client.get("/healthz")

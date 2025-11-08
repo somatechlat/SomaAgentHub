@@ -7,15 +7,15 @@ REST API. It can be used by gateway, orchestrator, and other services.
 from __future__ import annotations
 
 import os
-from typing import Any, Dict, Optional
 from functools import lru_cache
+from typing import Any
 
 import httpx
+from fastapi import HTTPException, status
+
 # Preserve a reference to the original AsyncClient class (the real implementation).
 # This avoids recursion when tests monkey‑patch ``httpx.AsyncClient`` with a lambda.
 from httpx._client import AsyncClient as _OriginalAsyncClient
-
-from fastapi import HTTPException, status
 
 
 class OPAClient:
@@ -74,27 +74,27 @@ class OPAClient:
     async def evaluate_policy(
         self,
         policy_path: str,
-        input_data: Dict[str, Any],
+        input_data: dict[str, Any],
         rule: str = "allow",
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Evaluate a policy via OPA's REST API.
-        
+
         Args:
             policy_path: Policy path (e.g., "somagent/session/authorization")
             input_data: Input data for the policy evaluation
             rule: Rule name to evaluate (default: "allow")
-            
+
         Returns:
             Dictionary with evaluation result, typically containing:
                 - allowed: bool (whether the action is allowed)
                 - reason: str (optional explanation)
                 - metadata: dict (additional context)
-                
+
         Raises:
             HTTPException: If OPA is unreachable or returns an error
         """
         url = f"{self.opa_url}/v1/data/{policy_path}/{rule}"
-        
+
         try:
             # Use the helper that respects any monkey‑patched ``httpx.AsyncClient``.
             async with self._create_client() as client:
@@ -126,12 +126,12 @@ class OPAClient:
         except httpx.TimeoutException as exc:
             raise HTTPException(
                 status_code=status.HTTP_504_GATEWAY_TIMEOUT,
-                detail=f"OPA policy evaluation timed out: {policy_path}"
+                detail=f"OPA policy evaluation timed out: {policy_path}",
             ) from exc
         except httpx.HTTPStatusError as exc:
             raise HTTPException(
                 status_code=status.HTTP_502_BAD_GATEWAY,
-                detail=f"OPA policy evaluation failed: {exc.response.status_code}"
+                detail=f"OPA policy evaluation failed: {exc.response.status_code}",
             ) from exc
         except Exception as exc:
             # In the test environment the OPA server is mocked via a
@@ -142,7 +142,7 @@ class OPAClient:
                 return {"allowed": True}
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail=f"OPA policy evaluation error: {str(exc)}"
+                detail=f"OPA policy evaluation error: {str(exc)}",
             ) from exc
 
     async def check_authorization(
@@ -151,7 +151,7 @@ class OPAClient:
         user_id: str,
         action: str,
         resource: str,
-        context: Optional[Dict[str, Any]] = None,
+        context: dict[str, Any] | None = None,
     ) -> bool:
         """Convenience method to check if an action is authorized.
 
@@ -181,7 +181,7 @@ class OPAClient:
         tenant: str,
         capsule: str,
         version: str,
-        roles: Optional[list[str]] = None,
+        roles: list[str] | None = None,
     ) -> bool:
         """Check capsule result write permission using dedicated policy.
 
@@ -213,9 +213,9 @@ class OPAClient:
     async def evaluate_constitution(
         self,
         action_type: str,
-        payload: Dict[str, Any],
+        payload: dict[str, Any],
         tenant_id: str,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Evaluate an action against constitutional policies.
 
         Args:
@@ -239,7 +239,7 @@ class OPAClient:
 
     async def health_check(self) -> bool:
         """Check if OPA server is reachable and healthy.
-        
+
         Returns:
             True if OPA is healthy, False otherwise
         """
@@ -256,7 +256,7 @@ class OPAClient:
 @lru_cache
 def get_opa_client() -> OPAClient:
     """Return a cached OPA client instance from environment variables.
-    
+
     Required environment variables:
         OPA_URL: OPA server URL (default: http://opa:8181)
         OPA_TIMEOUT: Request timeout in seconds (default: 5.0)
@@ -266,7 +266,8 @@ def get_opa_client() -> OPAClient:
 
     return OPAClient(opa_url=opa_url, timeout=timeout)
 
-async def check_policy(policy_name: str, input: Dict[str, Any]) -> Optional[bool]:
+
+async def check_policy(policy_name: str, input: dict[str, Any]) -> bool | None:
     """Generic helper to evaluate a simple allow/deny policy path.
 
     ``policy_name`` should include any package prefix (e.g. ``somagent/capsule/allow_write_capsule_results``).
@@ -278,11 +279,17 @@ async def check_policy(policy_name: str, input: Dict[str, Any]) -> Optional[bool
     rule = parts[-1]
     path = "/".join(parts[:-1]) if len(parts) > 1 else ""
     try:
-        result = await client.evaluate_policy(policy_path=path, input_data=input, rule=rule)
+        result = await client.evaluate_policy(
+            policy_path=path, input_data=input, rule=rule
+        )
         allowed = result.get("allowed")
         if isinstance(allowed, bool):
             return allowed
-        if isinstance(result, dict) and "result" in result and isinstance(result["result"], bool):
+        if (
+            isinstance(result, dict)
+            and "result" in result
+            and isinstance(result["result"], bool)
+        ):
             return bool(result["result"])
         return None
     except Exception:

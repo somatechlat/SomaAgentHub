@@ -34,13 +34,18 @@ from __future__ import annotations
 import subprocess
 import tempfile
 from pathlib import Path
-from typing import Any, Dict, List
+from typing import Any
+
+import httpx  # Added for manifest fetch (ruff F821)
+from services.orchestrator.app.core.config import (
+    settings,
+)  # Provides capsule_repo_url
 
 import yaml
+from services.object_store.app.client import ObjectStoreClient, ObjectStoreSettings
 from temporalio import activity
 
 from services.common.observability import get_meter, get_tracer
-from services.object_store.app.client import ObjectStoreClient, ObjectStoreSettings
 from services.orchestrator.workflows.capsule import CapsuleRunInput
 
 # ---------------------------------------------------------------------------
@@ -76,7 +81,7 @@ def _upload_artifact(
     return client.presign_get(object_key)
 
 
-def _run_docker_step(step: Dict[str, Any], payload: CapsuleRunInput) -> str:
+def _run_docker_step(step: dict[str, Any], payload: CapsuleRunInput) -> str:
     """Run a single Docker step and return its stdout.
 
     ``step`` must contain at least an ``image`` key.  ``command`` may be a
@@ -122,7 +127,7 @@ def _run_docker_step(step: Dict[str, Any], payload: CapsuleRunInput) -> str:
 
 
 @activity.defn(name="execute_capsule")
-async def execute_capsule(payload: CapsuleRunInput) -> Dict[str, Any]:
+async def execute_capsule(payload: CapsuleRunInput) -> dict[str, Any]:
     """Execute a capsule.
 
     The activity supports two modes:
@@ -135,7 +140,9 @@ async def execute_capsule(payload: CapsuleRunInput) -> Dict[str, Any]:
       object store.
     """
     # Record that we started a run.
-    _executor_counter.add(1, {"capsule": payload.capsule_id, "version": payload.version})
+    _executor_counter.add(
+        1, {"capsule": payload.capsule_id, "version": payload.version}
+    )
 
     # -------------------------------------------------------------------
     # Helper to create the object‑store client – we lazily initialise it only
@@ -154,7 +161,7 @@ async def execute_capsule(payload: CapsuleRunInput) -> Dict[str, Any]:
     # Determine which execution mode to use.
     # -------------------------------------------------------------------
     params = payload.params or {}
-    steps: List[Dict[str, Any]] = []
+    steps: list[dict[str, Any]] = []
     # 1️⃣ If a manifest is explicitly provided in the payload, use it.
     if "manifest" in params:
         manifest_src = params["manifest"]
@@ -183,7 +190,7 @@ async def execute_capsule(payload: CapsuleRunInput) -> Dict[str, Any]:
             steps = []
 
     if steps:
-        artefacts: List[str] = []
+        artefacts: list[str] = []
         for step in steps:
             with _executor_tracer.start_as_current_span("capsule_step") as span:
                 span.set_attribute("capsule.id", payload.capsule_id)
@@ -213,7 +220,9 @@ async def execute_capsule(payload: CapsuleRunInput) -> Dict[str, Any]:
             elif isinstance(cmd, list):
                 docker_cmd.extend(cmd)
             else:
-                raise ValueError("payload.params.command must be a string or list of strings")
+                raise ValueError(
+                    "payload.params.command must be a string or list of strings"
+                )
 
         activity.logger.info(
             "Running Docker command for capsule (legacy mode)",

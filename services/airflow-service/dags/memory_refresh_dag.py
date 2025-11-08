@@ -1,6 +1,5 @@
-from datetime import datetime, timedelta
 import os
-import time
+from datetime import datetime, timedelta
 
 import requests
 from airflow import DAG

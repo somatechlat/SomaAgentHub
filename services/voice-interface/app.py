@@ -5,15 +5,15 @@ Speech-to-text and text-to-speech for KAMACHIQ.
 Uses OpenAI Whisper for ASR and OpenAI TTS for voice synthesis.
 """
 
-from fastapi import FastAPI, UploadFile, File, HTTPException
+import io
+import logging
+import os
+import tempfile
+
+import openai
+from fastapi import FastAPI, File, HTTPException, UploadFile
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
-from typing import Optional
-import logging
-import openai
-import os
-import io
-import tempfile
 
 logger = logging.getLogger(__name__)
 
@@ -28,15 +28,18 @@ openai.api_key = OPENAI_API_KEY
 # PYDANTIC MODELS
 # ============================================================================
 
+
 class TranscriptionResponse(BaseModel):
     """Response from speech-to-text."""
+
     text: str
-    language: Optional[str] = None
-    duration: Optional[float] = None
+    language: str | None = None
+    duration: float | None = None
 
 
 class TTSRequest(BaseModel):
     """Request for text-to-speech."""
+
     text: str
     voice: str = "alloy"  # alloy, echo, fable, onyx, nova, shimmer
     model: str = "tts-1"  # tts-1 or tts-1-hd
@@ -50,22 +53,23 @@ class TTSRequest(BaseModel):
 app = FastAPI(
     title="Voice Interface Service",
     description="Speech-to-text and text-to-speech for KAMACHIQ",
-    version="1.0.0"
+    version="1.0.0",
 )
 
 # ============================================================================
 # SPEECH-TO-TEXT (Whisper)
 # ============================================================================
 
+
 @app.post("/transcribe", response_model=TranscriptionResponse)
 async def transcribe_audio(
     audio: UploadFile = File(..., description="Audio file (mp3, wav, m4a, etc.)"),
-    language: Optional[str] = None,
-    prompt: Optional[str] = None
+    language: str | None = None,
+    prompt: str | None = None,
 ):
     """
     Transcribe audio to text using Whisper.
-    
+
     Args:
         audio: Audio file upload
         language: Optional language code (e.g., 'en', 'es')
@@ -74,12 +78,14 @@ async def transcribe_audio(
     try:
         # Read audio file
         audio_data = await audio.read()
-        
+
         # Save to temp file (Whisper API requires file)
-        with tempfile.NamedTemporaryFile(suffix=f".{audio.filename.split('.')[-1]}", delete=False) as temp_file:
+        with tempfile.NamedTemporaryFile(
+            suffix=f".{audio.filename.split('.')[-1]}", delete=False
+        ) as temp_file:
             temp_file.write(audio_data)
             temp_path = temp_file.name
-        
+
         # Transcribe with Whisper
         with open(temp_path, "rb") as audio_file:
             params = {"file": audio_file, "model": "whisper-1"}
@@ -87,20 +93,20 @@ async def transcribe_audio(
                 params["language"] = language
             if prompt:
                 params["prompt"] = prompt
-            
+
             transcript = openai.Audio.transcribe(**params)
-        
+
         # Cleanup
         os.remove(temp_path)
-        
+
         logger.info(f"Transcribed audio: {len(transcript.text)} characters")
-        
+
         return TranscriptionResponse(
             text=transcript.text,
             language=transcript.get("language"),
-            duration=transcript.get("duration")
+            duration=transcript.get("duration"),
         )
-        
+
     except Exception as e:
         logger.error(f"Transcription failed: {e}")
         raise HTTPException(status_code=500, detail=f"Transcription failed: {str(e)}")
@@ -108,8 +114,7 @@ async def transcribe_audio(
 
 @app.post("/transcribe-stream", response_model=TranscriptionResponse)
 async def transcribe_stream(
-    audio: UploadFile = File(...),
-    language: Optional[str] = None
+    audio: UploadFile = File(...), language: str | None = None
 ):
     """
     Real-time transcription with streaming support.
@@ -124,11 +129,12 @@ async def transcribe_stream(
 # TEXT-TO-SPEECH (OpenAI TTS)
 # ============================================================================
 
+
 @app.post("/speak")
 async def text_to_speech(request: TTSRequest):
     """
     Convert text to speech using OpenAI TTS.
-    
+
     Returns streaming audio response.
     """
     try:
@@ -137,22 +143,22 @@ async def text_to_speech(request: TTSRequest):
             model=request.model,
             voice=request.voice,
             input=request.text,
-            speed=request.speed
+            speed=request.speed,
         )
-        
+
         # Stream audio
         audio_stream = io.BytesIO(response.content)
-        
-        logger.info(f"Generated speech: {len(request.text)} characters, voice={request.voice}")
-        
+
+        logger.info(
+            f"Generated speech: {len(request.text)} characters, voice={request.voice}"
+        )
+
         return StreamingResponse(
             audio_stream,
             media_type="audio/mpeg",
-            headers={
-                "Content-Disposition": "attachment; filename=speech.mp3"
-            }
+            headers={"Content-Disposition": "attachment; filename=speech.mp3"},
         )
-        
+
     except Exception as e:
         logger.error(f"TTS failed: {e}")
         raise HTTPException(status_code=500, detail=f"TTS failed: {str(e)}")
@@ -170,25 +176,22 @@ async def text_to_speech_stream(request: TTSRequest):
             voice=request.voice,
             input=request.text,
             speed=request.speed,
-            response_format="opus"  # Better for streaming
+            response_format="opus",  # Better for streaming
         )
-        
+
         # Create streaming generator
         def audio_generator():
             chunk_size = 4096
             audio_data = response.content
             for i in range(0, len(audio_data), chunk_size):
-                yield audio_data[i:i+chunk_size]
-        
+                yield audio_data[i : i + chunk_size]
+
         return StreamingResponse(
             audio_generator(),
             media_type="audio/opus",
-            headers={
-                "Content-Disposition": "inline",
-                "Cache-Control": "no-cache"
-            }
+            headers={"Content-Disposition": "inline", "Cache-Control": "no-cache"},
         )
-        
+
     except Exception as e:
         logger.error(f"Streaming TTS failed: {e}")
         raise HTTPException(status_code=500, detail=f"Streaming TTS failed: {str(e)}")
@@ -198,20 +201,20 @@ async def text_to_speech_stream(request: TTSRequest):
 # VOICE COMMAND PARSING
 # ============================================================================
 
+
 @app.post("/parse-voice-command")
 async def parse_voice_command(
-    audio: UploadFile = File(...),
-    context: Optional[str] = None
+    audio: UploadFile = File(...), context: str | None = None
 ):
     """
     Parse voice command into structured intent.
-    
+
     Combines Whisper transcription with GPT-4 intent parsing.
     """
     try:
         # Transcribe audio
         transcription = await transcribe_audio(audio, prompt=context)
-        
+
         # Parse intent with GPT-4
         intent_prompt = f"""
 Parse this voice command into a structured intent:
@@ -226,33 +229,34 @@ Extract:
 
 Return JSON.
 """
-        
+
         response = openai.ChatCompletion.create(
             model="gpt-4",
             messages=[
-                {"role": "system", "content": "You are a voice command parser for KAMACHIQ."},
-                {"role": "user", "content": intent_prompt}
+                {
+                    "role": "system",
+                    "content": "You are a voice command parser for KAMACHIQ.",
+                },
+                {"role": "user", "content": intent_prompt},
             ],
             temperature=0.3,
-            max_tokens=500
+            max_tokens=500,
         )
-        
+
         intent_text = response.choices[0].message.content
-        
+
         # Extract JSON
         import json
+
         if "```json" in intent_text:
             intent_text = intent_text.split("```json")[1].split("```")[0].strip()
-        
+
         intent = json.loads(intent_text)
-        
+
         logger.info(f"Parsed voice command: {transcription.text} → {intent}")
-        
-        return {
-            "transcription": transcription.text,
-            "intent": intent
-        }
-        
+
+        return {"transcription": transcription.text, "intent": intent}
+
     except Exception as e:
         logger.error(f"Voice command parsing failed: {e}")
         raise HTTPException(status_code=500, detail=f"Parsing failed: {str(e)}")
@@ -262,22 +266,22 @@ Return JSON.
 # VOICE-TO-PROJECT (Complete workflow)
 # ============================================================================
 
+
 @app.post("/voice-to-project")
 async def voice_to_project(
     audio: UploadFile = File(..., description="Voice description of project to create")
 ):
     """
     Complete voice-to-project workflow.
-    
+
     User speaks project description → KAMACHIQ creates it.
     """
     try:
         # Transcribe
         transcription = await transcribe_audio(
-            audio,
-            prompt="User describing a software project to create"
+            audio, prompt="User describing a software project to create"
         )
-        
+
         # Parse project requirements with GPT-4
         project_prompt = f"""
 The user described a project in voice:
@@ -293,35 +297,43 @@ Extract structured project requirements:
 
 Return JSON.
 """
-        
+
         response = openai.ChatCompletion.create(
             model="gpt-4",
             messages=[
-                {"role": "system", "content": "You are KAMACHIQ's voice interface parsing project descriptions."},
-                {"role": "user", "content": project_prompt}
+                {
+                    "role": "system",
+                    "content": "You are KAMACHIQ's voice interface parsing project descriptions.",
+                },
+                {"role": "user", "content": project_prompt},
             ],
             temperature=0.5,
-            max_tokens=1000
+            max_tokens=1000,
         )
-        
+
         import json
+
         project_spec_text = response.choices[0].message.content
         if "```json" in project_spec_text:
-            project_spec_text = project_spec_text.split("```json")[1].split("```")[0].strip()
-        
+            project_spec_text = (
+                project_spec_text.split("```json")[1].split("```")[0].strip()
+            )
+
         project_spec = json.loads(project_spec_text)
-        
+
         logger.info(f"Voice-to-project: {project_spec.get('name', 'Unknown')}")
-        
+
         return {
             "transcription": transcription.text,
             "project_spec": project_spec,
-            "message": "Project specification parsed from voice. Ready for KAMACHIQ creation."
+            "message": "Project specification parsed from voice. Ready for KAMACHIQ creation.",
         }
-        
+
     except Exception as e:
         logger.error(f"Voice-to-project failed: {e}")
-        raise HTTPException(status_code=500, detail=f"Voice-to-project failed: {str(e)}")
+        raise HTTPException(
+            status_code=500, detail=f"Voice-to-project failed: {str(e)}"
+        )
 
 
 @app.get("/voices")
@@ -334,7 +346,7 @@ def list_voices():
             {"id": "fable", "description": "Expressive, storytelling voice"},
             {"id": "onyx", "description": "Deep, authoritative voice"},
             {"id": "nova", "description": "Energetic, youthful voice"},
-            {"id": "shimmer", "description": "Soft, calm voice"}
+            {"id": "shimmer", "description": "Soft, calm voice"},
         ]
     }
 
@@ -346,12 +358,14 @@ def health_check():
         "status": "healthy",
         "service": "voice-interface",
         "whisper": "ready",
-        "tts": "ready"
+        "tts": "ready",
     }
 
 
 if __name__ == "__main__":
-    import uvicorn
     import os
+
+    import uvicorn
+
     port = int(os.getenv("PORT"))
     uvicorn.run(app, host="0.0.0.0", port=port)

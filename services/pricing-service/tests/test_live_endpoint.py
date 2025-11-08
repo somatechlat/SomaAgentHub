@@ -1,5 +1,6 @@
 import os
 import sys
+
 from fastapi.testclient import TestClient
 
 BASE = os.path.dirname(os.path.dirname(__file__))
@@ -7,7 +8,7 @@ if BASE not in sys.path:
     sys.path.insert(0, BASE)
 
 for name in list(sys.modules.keys()):
-    if name == 'app' or name.startswith('app.'):
+    if name == "app" or name.startswith("app."):
         del sys.modules[name]
 
 from app.main import app  # type: ignore  # noqa: E402
@@ -32,7 +33,15 @@ def test_filter_gpu_model():
 
 
 def test_budget_evaluation():
-    r = client.post("/v1/pricing/evaluate-budget", params={"gpu_model": "A100", "hours_planned": 1.5, "quantity": 2, "budget_cap": 20})
+    r = client.post(
+        "/v1/pricing/evaluate-budget",
+        params={
+            "gpu_model": "A100",
+            "hours_planned": 1.5,
+            "quantity": 2,
+            "budget_cap": 20,
+        },
+    )
     assert r.status_code == 200
     payload = r.json()
     assert "estimated_cost" in payload

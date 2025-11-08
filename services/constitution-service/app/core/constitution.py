@@ -5,10 +5,10 @@ from __future__ import annotations
 import base64
 import json
 import logging
+from collections.abc import Iterable
 from dataclasses import dataclass
 from hashlib import sha256
 from pathlib import Path
-from typing import Iterable
 
 from cryptography.exceptions import InvalidSignature
 from cryptography.hazmat.primitives import hashes, serialization
@@ -49,29 +49,39 @@ def _verify_hash(bundle: ConstitutionBundle, canonical_document: bytes) -> None:
         )
 
 
-def _verify_signature(bundle: ConstitutionBundle, canonical_document: bytes, public_key_path: Path) -> None:
+def _verify_signature(
+    bundle: ConstitutionBundle, canonical_document: bytes, public_key_path: Path
+) -> None:
     signature_bytes = base64.b64decode(bundle.signature.value)
     public_key = serialization.load_pem_public_key(public_key_path.read_bytes())
     try:
-        public_key.verify(signature_bytes, canonical_document, padding.PKCS1v15(), hashes.SHA256())
+        public_key.verify(
+            signature_bytes, canonical_document, padding.PKCS1v15(), hashes.SHA256()
+        )
     except InvalidSignature as exc:  # pragma: no cover - defensive guard
         raise ConstitutionVerificationError("Signature verification failed") from exc
 
 
-def _build_verified(bundle: ConstitutionBundle, public_key_path: Path) -> VerifiedConstitution:
+def _build_verified(
+    bundle: ConstitutionBundle, public_key_path: Path
+) -> VerifiedConstitution:
     canonical_document = canonicalise_document(bundle)
     _verify_hash(bundle, canonical_document)
     _verify_signature(bundle, canonical_document, public_key_path)
     return VerifiedConstitution(bundle=bundle, canonical_document=canonical_document)
 
 
-def load_verified_constitution(bundle_path: Path, public_key_path: Path) -> VerifiedConstitution:
+def load_verified_constitution(
+    bundle_path: Path, public_key_path: Path
+) -> VerifiedConstitution:
     """Load, validate, and return the signed constitution bundle."""
 
     try:
         raw = json.loads(bundle_path.read_text(encoding="utf-8"))
     except FileNotFoundError as exc:
-        raise ConstitutionVerificationError(f"Constitution bundle not found at {bundle_path}") from exc
+        raise ConstitutionVerificationError(
+            f"Constitution bundle not found at {bundle_path}"
+        ) from exc
 
     bundle = ConstitutionBundle.model_validate(raw)
     verified = _build_verified(bundle, public_key_path)
@@ -91,7 +101,9 @@ def normalise_tenant(tenant: str) -> str:
 class ConstitutionRegistry:
     """In-memory registry that serves the verified constitution for all tenants."""
 
-    def __init__(self, verified: VerifiedConstitution, tenants: Iterable[str] | None = None) -> None:
+    def __init__(
+        self, verified: VerifiedConstitution, tenants: Iterable[str] | None = None
+    ) -> None:
         self._verified = verified
         tenant_set = {normalise_tenant(t) for t in (tenants or {"global"})}
         if not tenant_set:
@@ -108,7 +120,10 @@ class ConstitutionRegistry:
     def get_bundle(self, tenant: str) -> ConstitutionBundle:
         tenant_key = normalise_tenant(tenant)
         if tenant_key not in self._tenants:
-            logger.debug("Tenant %s not explicitly registered; serving global constitution", tenant)
+            logger.debug(
+                "Tenant %s not explicitly registered; serving global constitution",
+                tenant,
+            )
         return self._verified.bundle
 
     def get_hash(self, tenant: str) -> str:
@@ -119,7 +134,9 @@ class ConstitutionRegistry:
         self._verified = verified
 
 
-def build_verified_from_bundle(bundle: ConstitutionBundle, public_key_path: Path) -> VerifiedConstitution:
+def build_verified_from_bundle(
+    bundle: ConstitutionBundle, public_key_path: Path
+) -> VerifiedConstitution:
     """Validate *bundle* and return a :class:`VerifiedConstitution`."""
 
     return _build_verified(bundle, public_key_path)

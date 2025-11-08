@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import sys
 from types import ModuleType, SimpleNamespace
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 import pytest
 
@@ -27,13 +27,19 @@ END_SENTINEL = object()
 
 
 class DummyCompiledGraph:
-    def __init__(self, nodes: Dict[str, Any], edges: Dict[str, List[str]], conditionals: Dict[str, Any], start: str):
+    def __init__(
+        self,
+        nodes: dict[str, Any],
+        edges: dict[str, list[str]],
+        conditionals: dict[str, Any],
+        start: str,
+    ):
         self.nodes = nodes
         self.edges = edges
         self.conditionals = conditionals
         self.start = start
 
-    async def ainvoke(self, state: Dict[str, Any]) -> Dict[str, Any]:
+    async def ainvoke(self, state: dict[str, Any]) -> dict[str, Any]:
         current = self.start
         while current and current is not END_SENTINEL:
             handler = self.nodes[current]
@@ -56,10 +62,10 @@ class DummyCompiledGraph:
 
 class DummyStateGraph:
     def __init__(self, _state_type: Any):
-        self.nodes: Dict[str, Any] = {}
-        self.edges: Dict[str, List[str]] = {}
-        self.conditionals: Dict[str, Any] = {}
-        self.start: Optional[str] = None
+        self.nodes: dict[str, Any] = {}
+        self.edges: dict[str, list[str]] = {}
+        self.conditionals: dict[str, Any] = {}
+        self.start: str | None = None
 
     def add_node(self, name: str, handler: Any) -> None:
         self.nodes[name] = handler
@@ -67,7 +73,9 @@ class DummyStateGraph:
     def add_edge(self, source: str, target: str) -> None:
         self.edges.setdefault(source, []).append(target)
 
-    def add_conditional_edges(self, source: str, condition, mapping: Dict[str, Any]) -> None:
+    def add_conditional_edges(
+        self, source: str, condition, mapping: dict[str, Any]
+    ) -> None:
         mapping = {
             key: (END_SENTINEL if value == LangGraphFixtures.END else value)
             for key, value in mapping.items()
@@ -78,7 +86,9 @@ class DummyStateGraph:
         self.start = name
 
     def compile(self) -> DummyCompiledGraph:
-        return DummyCompiledGraph(self.nodes, self.edges, self.conditionals, self.start or "")
+        return DummyCompiledGraph(
+            self.nodes, self.edges, self.conditionals, self.start or ""
+        )
 
 
 class LangGraphFixtures:
@@ -88,15 +98,15 @@ class LangGraphFixtures:
     def install_handlers_module(module_name: str = "tests.langgraph_handlers") -> str:
         module = ModuleType(module_name)
 
-        def classifier(state: Dict[str, Any]) -> Dict[str, Any]:
+        def classifier(state: dict[str, Any]) -> dict[str, Any]:
             state.setdefault("history", [])
             state["topic"] = state.get("input", "")
             return state
 
-        def resolver(state: Dict[str, Any]) -> str:
+        def resolver(state: dict[str, Any]) -> str:
             return "support" if "support" in state.get("input", "") else "__default__"
 
-        def support_handler(state: Dict[str, Any]) -> Dict[str, Any]:
+        def support_handler(state: dict[str, Any]) -> dict[str, Any]:
             state["handled_by"] = "support"
             return state
 
@@ -114,7 +124,9 @@ def patch_langgraph(monkeypatch: pytest.MonkeyPatch) -> None:
         "_get_langgraph_components",
         lambda: (DummyStateGraph, LangGraphFixtures.END),
     )
-    monkeypatch.setattr(langgraph_adapter, "activity", SimpleNamespace(logger=DummyLogger()))
+    monkeypatch.setattr(
+        langgraph_adapter, "activity", SimpleNamespace(logger=DummyLogger())
+    )
 
 
 @pytest.mark.asyncio
@@ -157,13 +169,17 @@ async def test_langgraph_routing_requires_nodes() -> None:
 
 @pytest.mark.asyncio
 async def test_langgraph_routing_edge_validation() -> None:
-    module_name = LangGraphFixtures.install_handlers_module("tests.langgraph_handlers_alt")
+    module_name = LangGraphFixtures.install_handlers_module(
+        "tests.langgraph_handlers_alt"
+    )
 
     with pytest.raises(ValueError):
         await langgraph_adapter.run_langgraph_routing(
             {
                 "graph": {
-                    "nodes": [{"name": "classifier", "handler": f"{module_name}.classifier"}],
+                    "nodes": [
+                        {"name": "classifier", "handler": f"{module_name}.classifier"}
+                    ],
                     "edges": [{"from": "classifier"}],
                 },
                 "state": {"input": "hi"},

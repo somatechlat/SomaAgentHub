@@ -27,19 +27,19 @@ port range via the ``MEMORY_GATEWAY_PORT`` variable.
 from __future__ import annotations
 
 import os
-from typing import List
 
-from fastapi import FastAPI, HTTPException
-from pydantic import BaseModel, Field
-from prometheus_client import Counter, generate_latest, CONTENT_TYPE_LATEST
+from fastapi import FastAPI
 from fastapi.responses import Response
+from prometheus_client import CONTENT_TYPE_LATEST, Counter, generate_latest
+from pydantic import BaseModel, Field
 
 app = FastAPI(title="SOMA Policy Engine")
+
 
 # ---------------------------------------------------------------------------
 # Configuration helpers
 # ---------------------------------------------------------------------------
-def _parse_allowed_actions(env_value: str | None) -> List[tuple[str, str]]:
+def _parse_allowed_actions(env_value: str | None) -> list[tuple[str, str]]:
     """Parse ``ALLOWED_ACTIONS`` into a list of ``(action, resource)`` tuples.
 
     The environment variable format is ``action:resource,action:resource``. Empty
@@ -47,7 +47,7 @@ def _parse_allowed_actions(env_value: str | None) -> List[tuple[str, str]]:
     """
     if not env_value:
         return []
-    pairs: List[tuple[str, str]] = []
+    pairs: list[tuple[str, str]] = []
     for item in env_value.split(","):
         if ":" not in item:
             continue
@@ -55,7 +55,9 @@ def _parse_allowed_actions(env_value: str | None) -> List[tuple[str, str]]:
         pairs.append((action.strip(), resource.strip()))
     return pairs
 
+
 ALLOWED_ACTIONS = _parse_allowed_actions(os.getenv("ALLOWED_ACTIONS"))
+
 
 # ---------------------------------------------------------------------------
 # Request / response models
@@ -65,13 +67,16 @@ class AllowRequest(BaseModel):
     action: str = Field(..., description="Action being requested, e.g. 'read'")
     resource: str = Field(..., description="Target resource, e.g. 'memory'")
 
+
 class AllowResponse(BaseModel):
     allowed: bool
+
 
 # ---------------------------------------------------------------------------
 # Metrics
 # ---------------------------------------------------------------------------
 REQUESTS = Counter("policy_engine_requests_total", "Total requests to policy engine")
+
 
 # ---------------------------------------------------------------------------
 # Endpoints
@@ -94,17 +99,17 @@ async def metrics() -> Response:
 
 @app.post("/v1/allow", response_model=AllowResponse)
 async def allow(request: AllowRequest) -> AllowResponse:
-        """Very simple policy evaluation.
+    """Very simple policy evaluation.
 
-        The logic is:
-        * If ``ALLOWED_ACTIONS`` is empty → deny everything.
-        * Otherwise, allow only when the ``action:resource`` pair appears in the
-            configured list.
-        """
-        # In a real implementation we would also evaluate ``subject`` based rules.
-        pair = (request.action, request.resource)
-        is_allowed = pair in ALLOWED_ACTIONS
-        return AllowResponse(allowed=is_allowed)
+    The logic is:
+    * If ``ALLOWED_ACTIONS`` is empty → deny everything.
+    * Otherwise, allow only when the ``action:resource`` pair appears in the
+        configured list.
+    """
+    # In a real implementation we would also evaluate ``subject`` based rules.
+    pair = (request.action, request.resource)
+    is_allowed = pair in ALLOWED_ACTIONS
+    return AllowResponse(allowed=is_allowed)
 
 
 # ---------------------------------------------------------------------------
@@ -112,17 +117,19 @@ async def allow(request: AllowRequest) -> AllowResponse:
 # ---------------------------------------------------------------------------
 @app.post("/v1/evaluate", response_model=AllowResponse)
 async def evaluate(request: AllowRequest) -> AllowResponse:
-        """Alias for the ``/v1/allow`` endpoint used by legacy orchestrator code.
+    """Alias for the ``/v1/allow`` endpoint used by legacy orchestrator code.
 
-        The orchestrator configuration builds the URL as
-        ``${POLICY_ENGINE_URL}/v1/evaluate``. To avoid breaking existing flows we
-        expose the same logic under this path.
-        """
-        return await allow(request)
+    The orchestrator configuration builds the URL as
+    ``${POLICY_ENGINE_URL}/v1/evaluate``. To avoid breaking existing flows we
+    expose the same logic under this path.
+    """
+    return await allow(request)
+
+
 """Entry point for policy engine service.
 
 This module simply re-exports the application defined in :mod:`policy_app`
 so ``uvicorn app.main:app`` uses the fully featured service implementation.
 """
 
-from .policy_app import app  # noqa: F401
+from .policy_app import app  # noqa: F401,E402

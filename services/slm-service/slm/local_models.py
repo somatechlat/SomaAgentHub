@@ -6,15 +6,16 @@ second-order Markov chain, while the embedding model relies on TF-IDF vectors.
 Both models are deterministic once initialised and do not require external
 network calls.
 """
+
 from __future__ import annotations
 
+import random
+import re
 from collections import Counter, defaultdict
+from collections.abc import Iterable, Sequence
 from dataclasses import dataclass
 from functools import lru_cache
 from pathlib import Path
-from typing import Dict, Iterable, List, Sequence
-import random
-import re
 
 import numpy as np
 from sklearn.feature_extraction.text import TfidfVectorizer
@@ -45,14 +46,14 @@ class MarkovTextGenerator:
         self.tokens = self._tokenize(corpus)
         if len(self.tokens) < order + 1:
             raise ValueError("corpus too small for markov chain")
-        self.model: Dict[tuple[str, ...], Counter[str]] = defaultdict(Counter)
+        self.model: dict[tuple[str, ...], Counter[str]] = defaultdict(Counter)
         for idx in range(len(self.tokens) - order):
             state = tuple(self.tokens[idx : idx + order])
             nxt = self.tokens[idx + order]
             self.model[state][nxt] += 1
 
     @staticmethod
-    def _tokenize(text: str) -> List[str]:
+    def _tokenize(text: str) -> list[str]:
         return _TOKEN_REGEX.findall(text.lower())
 
     def _temperature_sample(self, counter: Counter[str], temperature: float) -> str:
@@ -66,14 +67,22 @@ class MarkovTextGenerator:
         choices = list(counter.keys())
         return self.random.choices(choices, weights=probs, k=1)[0]
 
-    def generate(self, prompt: str, max_tokens: int = 64, temperature: float = 0.8) -> GenerationResult:
+    def generate(
+        self, prompt: str, max_tokens: int = 64, temperature: float = 0.8
+    ) -> GenerationResult:
         prompt_tokens = self._tokenize(prompt)
         if not prompt_tokens:
             prompt_tokens = self.tokens[: self.order]
-        state = tuple(prompt_tokens[-self.order :]) if len(prompt_tokens) >= self.order else tuple(self.tokens[: self.order])
-        generated: List[str] = []
+        state = (
+            tuple(prompt_tokens[-self.order :])
+            if len(prompt_tokens) >= self.order
+            else tuple(self.tokens[: self.order])
+        )
+        generated: list[str] = []
         for _ in range(max_tokens):
-            next_token = self._temperature_sample(self.model.get(state, Counter()), temperature)
+            next_token = self._temperature_sample(
+                self.model.get(state, Counter()), temperature
+            )
             generated.append(next_token)
             if len(state) == self.order:
                 state = tuple((*state[1:], next_token))
@@ -88,7 +97,7 @@ class MarkovTextGenerator:
 
     @staticmethod
     def _detokenize(tokens: Sequence[str]) -> str:
-        pieces: List[str] = []
+        pieces: list[str] = []
         for token in tokens:
             if not pieces:
                 pieces.append(token)
@@ -108,7 +117,7 @@ class TfidfEmbeddingModel:
         self.vectorizer.fit(documents)
         self.name = "somasuite-tfidf-v1"
 
-    def embed(self, texts: List[str]) -> List[List[float]]:
+    def embed(self, texts: list[str]) -> list[list[float]]:
         matrix = self.vectorizer.transform(texts)
         return matrix.toarray().tolist()
 

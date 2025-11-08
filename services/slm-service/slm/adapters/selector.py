@@ -1,17 +1,19 @@
 import asyncio
-from typing import Dict
+
+from slm.metrics import emit_metric
 
 # Import the submodules rather than the functions directly so that tests can monkeypatch
 # the functions on the module objects.
-from . import primary_adapter
-from . import local_fallback
-from slm.metrics import emit_metric
+from . import local_fallback, primary_adapter
 
-async def select_and_call(prompt: str, settings: Dict) -> Dict:
+
+async def select_and_call(prompt: str, settings: dict) -> dict:
     """Try the primary provider, fall back to local adapter on error or timeout."""
     try:
         # enforce a short timeout for sprint-1
-        res = await asyncio.wait_for(primary_adapter.call_primary_provider(prompt, settings), timeout=1.0)
+        res = await asyncio.wait_for(
+            primary_adapter.call_primary_provider(prompt, settings), timeout=1.0
+        )
         emit_metric("provider.used", "primary", {"role": settings.get("role")})
         return res
     except Exception as e:

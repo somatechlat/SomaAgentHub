@@ -5,8 +5,8 @@ repository root.  This module ensures the ``common`` directory is reachable and
 merged as a namespace package.
 """
 
-import pkgutil
 import pathlib
+import pkgutil
 import sys
 
 repo_root = pathlib.Path(__file__).resolve().parents[2]

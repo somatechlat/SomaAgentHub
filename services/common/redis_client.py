@@ -6,10 +6,10 @@ for Redis usage across services (caching, locks, pub/sub).
 
 from __future__ import annotations
 
-import os
 import json
-from typing import Any, Dict, Optional
+import os
 from contextlib import asynccontextmanager
+from typing import Any
 
 try:
     import redis.asyncio as redis
@@ -17,11 +17,14 @@ try:
     from redis.exceptions import RedisError
 except Exception:  # pragma: no cover - fallback if redis not installed
     redis = None
+
     # Lightweight fallback stubs for typing when redis isn't present
     class _RedisStub:  # noqa: D401
         pass
+
     class _RedisErrorStub(Exception):
         pass
+
     Redis = _RedisStub
     RedisError = _RedisErrorStub
 
@@ -36,22 +39,24 @@ class RedisClient:
         decode_responses: bool = True,
     ):
         """Initialize Redis client.
-        
+
         Args:
             url: Redis connection URL (e.g., redis://localhost:6379/0)
             max_connections: Maximum connections in pool
             decode_responses: Auto-decode bytes to strings
         """
         if redis is None:
-            raise RuntimeError("redis library not installed. Run: pip install redis[asyncio]")
-        
+            raise RuntimeError(
+                "redis library not installed. Run: pip install redis[asyncio]"
+            )
+
         self.url = url
         self._pool = redis.ConnectionPool.from_url(
             url,
             max_connections=max_connections,
             decode_responses=decode_responses,
         )
-        self._client: Optional[Redis] = None
+        self._client: Redis | None = None
 
     async def get_client(self) -> Redis:
         """Get or create Redis client."""
@@ -72,7 +77,7 @@ class RedisClient:
     # Key-Value Operations
     # ============================================================================
 
-    async def get(self, key: str) -> Optional[str]:
+    async def get(self, key: str) -> str | None:
         """Get value for key."""
         client = await self.get_client()
         try:
@@ -84,15 +89,15 @@ class RedisClient:
         self,
         key: str,
         value: str,
-        ttl: Optional[int] = None,
+        ttl: int | None = None,
     ) -> bool:
         """Set key to value with optional TTL.
-        
+
         Args:
             key: Redis key
             value: Value to store
             ttl: Time-to-live in seconds (optional)
-            
+
         Returns:
             True if successful
         """
@@ -107,7 +112,7 @@ class RedisClient:
 
     async def delete(self, *keys: str) -> int:
         """Delete one or more keys.
-        
+
         Returns:
             Number of keys deleted
         """
@@ -119,7 +124,7 @@ class RedisClient:
 
     async def exists(self, *keys: str) -> int:
         """Check if keys exist.
-        
+
         Returns:
             Number of keys that exist
         """
@@ -133,7 +138,7 @@ class RedisClient:
     # JSON Operations
     # ============================================================================
 
-    async def get_json(self, key: str) -> Optional[Dict[str, Any]]:
+    async def get_json(self, key: str) -> dict[str, Any] | None:
         """Get JSON value for key."""
         value = await self.get(key)
         if value is None:
@@ -146,8 +151,8 @@ class RedisClient:
     async def set_json(
         self,
         key: str,
-        value: Dict[str, Any],
-        ttl: Optional[int] = None,
+        value: dict[str, Any],
+        ttl: int | None = None,
     ) -> bool:
         """Set JSON value for key."""
         json_str = json.dumps(value)
@@ -157,7 +162,7 @@ class RedisClient:
     # Hash Operations
     # ============================================================================
 
-    async def hget(self, name: str, key: str) -> Optional[str]:
+    async def hget(self, name: str, key: str) -> str | None:
         """Get hash field value."""
         client = await self.get_client()
         try:
@@ -173,7 +178,7 @@ class RedisClient:
         except RedisError as exc:
             raise RuntimeError(f"Redis HSET error: {exc}") from exc
 
-    async def hgetall(self, name: str) -> Dict[str, str]:
+    async def hgetall(self, name: str) -> dict[str, str]:
         """Get all hash fields and values."""
         client = await self.get_client()
         try:
@@ -191,16 +196,16 @@ class RedisClient:
         name: str,
         timeout: int = 10,
         blocking: bool = True,
-        blocking_timeout: Optional[int] = None,
+        blocking_timeout: int | None = None,
     ):
         """Distributed lock context manager.
-        
+
         Args:
             name: Lock name
             timeout: Lock timeout in seconds
             blocking: Whether to wait for lock acquisition
             blocking_timeout: Max wait time for lock (if blocking)
-            
+
         Usage:
             async with redis_client.lock("my-lock"):
                 # Critical section
@@ -213,7 +218,7 @@ class RedisClient:
             blocking=blocking,
             blocking_timeout=blocking_timeout,
         )
-        
+
         try:
             await lock.acquire()
             yield lock
@@ -235,21 +240,21 @@ class RedisClient:
 
 
 # Singleton instance
-_redis_client: Optional[RedisClient] = None
+_redis_client: RedisClient | None = None
 
 
 def get_redis_client() -> RedisClient:
     """Get or create singleton Redis client.
-    
+
     Required environment variables:
         REDIS_URL: Redis connection URL (e.g., redis://localhost:6379/0)
         REDIS_MAX_CONNECTIONS: Maximum connections (optional, default: 50)
     """
     global _redis_client
-    
+
     if _redis_client is not None:
         return _redis_client
-    
+
     # Primary environment variable used by most services.
     # Primary environment variable used by most services.
     redis_url = os.getenv("REDIS_URL")
@@ -272,12 +277,12 @@ def get_redis_client() -> RedisClient:
                 break
     if not redis_url:
         raise RuntimeError("REDIS_URL environment variable not set")
-    
+
     max_connections = int(os.getenv("REDIS_MAX_CONNECTIONS", "50"))
-    
+
     _redis_client = RedisClient(
         url=redis_url,
         max_connections=max_connections,
     )
-    
+
     return _redis_client

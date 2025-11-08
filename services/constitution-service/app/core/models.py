@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import List
 
 from pydantic import BaseModel, Field
 
@@ -16,7 +15,7 @@ class Principle(BaseModel):
 
 class GovernanceTopic(BaseModel):
     topic: str
-    requirements: List[str]
+    requirements: list[str]
 
 
 class AuditStorage(BaseModel):
@@ -26,33 +25,33 @@ class AuditStorage(BaseModel):
 
 
 class AuditStreams(BaseModel):
-    topics: List[str]
+    topics: list[str]
     retention_days: int = Field(gt=0)
     storage: AuditStorage
 
 
 class Enforcement(BaseModel):
-    governance_topics: List[GovernanceTopic]
+    governance_topics: list[GovernanceTopic]
     audit_streams: AuditStreams
 
 
 class RevisionEntry(BaseModel):
     version: str
-    changes: List[str]
+    changes: list[str]
 
 
 class Localization(BaseModel):
     default_locale: str
-    available_locales: List[str]
+    available_locales: list[str]
     status: str
 
 
 class ConstitutionDocument(BaseModel):
     title: str
     preamble: str
-    principles: List[Principle]
+    principles: list[Principle]
     enforcement: Enforcement
-    revision_history: List[RevisionEntry]
+    revision_history: list[RevisionEntry]
     localization: Localization
 
 
@@ -83,4 +82,4 @@ class HashResponse(BaseModel):
 
 class ValidationResult(BaseModel):
     valid: bool
-    issues: List[str] = Field(default_factory=list)
+    issues: list[str] = Field(default_factory=list)

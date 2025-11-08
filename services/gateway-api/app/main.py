@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
+from contextlib import asynccontextmanager
 from typing import Any
 
 import httpx
@@ -11,7 +12,6 @@ from fastapi import FastAPI, HTTPException
 from fastapi.responses import Response
 from prometheus_client import CONTENT_TYPE_LATEST, generate_latest
 from pydantic import BaseModel
-from contextlib import asynccontextmanager
 
 from services.common.observability import setup_observability
 from services.common.spiffe_auth import init_spiffe
@@ -55,17 +55,20 @@ class WizardAnswerRequest(BaseModel):
     value: Any
 
 
-setup_observability(settings.service_name or "sah", app, service_version=settings.service_version)
+setup_observability(
+    settings.service_name or "sah", app, service_version=settings.service_version
+)
 
 # Attempt SPIFFE initialization early to ensure SVID material is available for downstream calls.
 spiffe_identity = init_spiffe(settings.service_name or "sah")
 if spiffe_identity:
-    logger.info("SPIFFE identity loaded", extra={"spiffe_id": spiffe_identity.spiffe_id})
+    logger.info(
+        "SPIFFE identity loaded", extra={"spiffe_id": spiffe_identity.spiffe_id}
+    )
 else:
-    logger.info("SPIFFE identity not initialized; falling back to non-mTLS workload identity")
-
-
- 
+    logger.info(
+        "SPIFFE identity not initialized; falling back to non-mTLS workload identity"
+    )
 
 
 async def _check_kafka() -> bool:
@@ -75,7 +78,9 @@ async def _check_kafka() -> bool:
         host, _, port_raw = endpoint.partition(":")
         port = int(port_raw or 9092)
         try:
-            _reader, writer = await asyncio.wait_for(asyncio.open_connection(host, port), timeout=3)
+            _reader, writer = await asyncio.wait_for(
+                asyncio.open_connection(host, port), timeout=3
+            )
         except Exception:
             continue
         writer.close()
@@ -118,6 +123,7 @@ async def healthz() -> dict[str, Any]:
         },
     }
 
+
 # Provide a legacy /health endpoint for compatibility with services that expect it.
 @app.get("/health", tags=["system"])
 async def health() -> dict[str, Any]:
@@ -133,21 +139,21 @@ async def health() -> dict[str, Any]:
 @app.get("/ready", tags=["system"])
 async def ready() -> dict[str, Any]:
     """Readiness check - verify all critical dependencies are accessible.
-    
+
     This includes:
     - Database migrations: For Postgres-backed state
     - Cache availability: For Redis
     - Message queue: For async job processing
     """
     health = await healthz()
-    
+
     # TODO: Add database migration checks
     # Example: Check if all pending migrations have been applied
     # db = get_db_session()
     # pending_migrations = await db.check_pending_migrations()
     # if pending_migrations:
     #     return {"status": "not_ready", "error": f"Pending migrations: {pending_migrations}"}
-    
+
     return {"status": health["status"], "details": health["checks"]}
 
 
@@ -170,7 +176,9 @@ def list_wizards() -> dict[str, Any]:
 
 
 @app.post("/v1/wizards/start", tags=["wizard"])
-def start_wizard(request: WizardStartRequest) -> dict[str, Any]:  # pragma: no cover - interacts with external services
+def start_wizard(
+    request: WizardStartRequest,
+) -> dict[str, Any]:  # pragma: no cover - interacts with external services
     try:
         return wizard_engine.start_wizard(
             wizard_id=request.wizard_id,
@@ -184,9 +192,13 @@ def start_wizard(request: WizardStartRequest) -> dict[str, Any]:  # pragma: no c
 
 
 @app.post("/v1/wizards/{session_id}/answer", tags=["wizard"])
-def submit_wizard_answer(session_id: str, answer: WizardAnswerRequest) -> dict[str, Any]:
+def submit_wizard_answer(
+    session_id: str, answer: WizardAnswerRequest
+) -> dict[str, Any]:
     try:
-        return wizard_engine.submit_answer(session_id=session_id, answer={"value": answer.value})
+        return wizard_engine.submit_answer(
+            session_id=session_id, answer={"value": answer.value}
+        )
     except ValueError as exc:
         raise HTTPException(status_code=404, detail=str(exc))
     except Exception as exc:

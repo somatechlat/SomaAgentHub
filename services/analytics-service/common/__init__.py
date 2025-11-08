@@ -7,8 +7,8 @@ directory is on ``sys.path``.  This shim creates a *namespace* package that
 extends its ``__path__`` to include the repository‑level ``common`` directory.
 """
 
-import pkgutil
 import pathlib
+import pkgutil
 import sys
 
 # Resolve the repository root (two levels up from this file: analytics-service -> services -> repo)

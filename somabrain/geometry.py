@@ -2,10 +2,9 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
-from typing import Iterable, List, Sequence, Tuple
-
 import math
+from collections.abc import Iterable, Sequence
+from dataclasses import dataclass
 
 
 @dataclass
@@ -33,11 +32,11 @@ class GeodesicKernel:
         self,
         query: Sequence[float],
         candidates: Iterable[Sequence[float]],
-    ) -> List[float]:
+    ) -> list[float]:
         """Return a score per candidate using a soft geodesic kernel."""
 
         q = _normalize(query, self._config.epsilon)
-        scores: List[float] = []
+        scores: list[float] = []
         for vector in candidates:
             v = _normalize(vector, self._config.epsilon)
             cosine = _dot(q, v)
@@ -49,7 +48,7 @@ class GeodesicKernel:
         return scores
 
 
-def _normalize(vector: Sequence[float], epsilon: float) -> Tuple[float, ...]:
+def _normalize(vector: Sequence[float], epsilon: float) -> tuple[float, ...]:
     norm = math.sqrt(sum(component * component for component in vector))
     if norm <= epsilon:
         return tuple(vector)

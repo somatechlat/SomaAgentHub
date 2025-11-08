@@ -17,6 +17,7 @@ def test_select_and_call_primary_timeout(monkeypatch):
         return {"text": "slow", "tokens": 1, "latency_ms": 2000}
 
     import slm.adapters.primary_adapter as pa
+
     monkeypatch.setattr(pa, "call_primary_provider", slow_primary)
 
     async def run():

@@ -1,18 +1,19 @@
-from fastapi import FastAPI, Response, HTTPException
-from typing import List
-from pydantic import BaseModel, Field
-from typing import Any
-from prometheus_client import Counter, Gauge, generate_latest, CONTENT_TYPE_LATEST
-from fastapi import UploadFile, File, Depends
 import io
-import os
+import logging
+from typing import Any
+
+from fastapi import FastAPI, File, HTTPException, Response, UploadFile
+from prometheus_client import CONTENT_TYPE_LATEST, Counter, Gauge, generate_latest
+from pydantic import BaseModel, Field
 
 app = FastAPI(title="SOMABrain Metrics Service")
+logger = logging.getLogger(__name__)
 
 # Global in‑memory store used when Qdrant is unavailable
 MEMORY_STORE: dict[str, Any] = {}
 # Flag indicating whether Qdrant client is usable; default to False until import succeeds
 _use_qdrant: bool = False
+
 
 @app.on_event("startup")
 async def startup_event():
@@ -27,46 +28,59 @@ async def startup_event():
     behaviour where a pre‑existing collection is considered a success.
     """
     if _use_qdrant:
+
         async def _ensure(name: str, size: int = 768) -> None:
             try:
-                await _qdrant_client.create_collection(collection_name=name, vector_size=size)
-                print(f"[STARTUP] Created Qdrant collection: {name} ({size}-dim)")
+                await _qdrant_client.create_collection(
+                    collection_name=name, vector_size=size
+                )
+                logger.info("[STARTUP] Created Qdrant collection: %s (%s-dim)", name, size)
             except Exception as exc:
                 # Collection may already exist; log and continue.
-                print(f"[STARTUP] Qdrant collection '{name}' setup: {exc}")
+                logger.info("[STARTUP] Qdrant collection '%s' setup: %s", name, exc)
 
         await _ensure("memory", size=768)
         await _ensure("capsule_runs", size=768)
 
+
 # Qdrant client for vector-backed semantic memory
 try:
+    from services.common.audit_logger import AuditEventType, AuditSeverity, audit_log
     from services.common.qdrant_client import get_qdrant_client
-    from services.common.audit_logger import audit_log, AuditEventType, AuditSeverity
+
     _qdrant_client = get_qdrant_client()
     _use_qdrant = True
 except Exception as exc:
-    print(f"[QDRANT_WARNING] Qdrant client unavailable, using in-memory store: {exc}")
+    logger.warning("[QDRANT_WARNING] Qdrant client unavailable, using in-memory store: %s", exc)
     _qdrant_client = None
     _use_qdrant = False
+
 
 class RememberRequest(BaseModel):
     key: str = Field(..., description="Identifier for the memory entry")
     value: Any = Field(..., description="Arbitrary JSON‑serialisable value")
 
+
 class RecallResponse(BaseModel):
     key: str
     value: Any
 
+
 class RAGRequest(BaseModel):
-    query: str = Field(..., description="Search query for retrieval‑augmented generation")
+    query: str = Field(
+        ..., description="Search query for retrieval‑augmented generation"
+    )
+
 
 class RAGResponse(BaseModel):
     answer: str
     sources: list[str] = []
 
+
 # ---------------------------------------------------------------------------
 # Result persistence (Week 1)
 # ---------------------------------------------------------------------------
+
 
 class CapsuleResultIn(BaseModel):
     capsule: str
@@ -74,6 +88,7 @@ class CapsuleResultIn(BaseModel):
     tenant: str
     user: str
     metadata: dict[str, Any] = {}
+
 
 class CapsuleResultOut(BaseModel):
     url: str
@@ -84,6 +99,7 @@ class CapsuleResultOut(BaseModel):
     user: str
     metadata: dict[str, Any]
 
+
 def _get_object_store():
     # Lazy import to avoid hard dependency when not used
     # Import the object store client using the underscore‑based package name.
@@ -91,8 +107,10 @@ def _get_object_store():
     # which cannot be imported as a Python module. An alias package
     # ``services.object_store`` is provided to expose the same functionality.
     from services.object_store.app.client import ObjectStoreClient, ObjectStoreSettings
+
     settings = ObjectStoreSettings.from_env()
     return ObjectStoreClient(settings)
+
 
 @app.post("/v1/remember", response_model=RememberRequest)
 async def remember(payload: RememberRequest):
@@ -100,13 +118,20 @@ async def remember(payload: RememberRequest):
     global _use_qdrant
     if _use_qdrant:
         # Generate embedding via SLM service (fallback to zero vector on any error)
-        import httpx
-        import os
         import json
+        import os
 
-        text_to_embed = json.dumps(payload.value) if not isinstance(payload.value, str) else payload.value
+        import httpx
+
+        text_to_embed = (
+            json.dumps(payload.value)
+            if not isinstance(payload.value, str)
+            else payload.value
+        )
         try:
-            slm_url = os.getenv("SOMALLM_PROVIDER_URL") or os.getenv("SLM_SERVICE_URL", "http://localhost:10022")
+            slm_url = os.getenv("SOMALLM_PROVIDER_URL") or os.getenv(
+                "SLM_SERVICE_URL", "http://localhost:10022"
+            )
             async with httpx.AsyncClient(timeout=10.0) as client:
                 response = await client.post(
                     f"{slm_url}/v1/embeddings",
@@ -116,7 +141,9 @@ async def remember(payload: RememberRequest):
                 data = response.json()
                 vector = data["vectors"][0]["embedding"]
         except Exception as exc:
-            print(f"[SOMALLM_WARNING] Embedding generation failed, using zero vector: {exc}")
+            logger.warning(
+                "[SOMALLM_WARNING] Embedding generation failed, using zero vector: %s", exc
+            )
             vector = [0.0] * 768
 
         # Attempt to upsert into Qdrant, but gracefully fallback to the in‑memory store
@@ -127,13 +154,21 @@ async def remember(payload: RememberRequest):
                     {
                         "id": payload.key,
                         "vector": vector,
-                        "payload": {"key": payload.key, "value": payload.value, "text": text_to_embed},
+                        "payload": {
+                            "key": payload.key,
+                            "value": payload.value,
+                            "text": text_to_embed,
+                        },
                     }
                 ],
             )
             return payload
-        except Exception as exc:  # pragma: no cover – exercised in tests when Qdrant is unavailable
-            print(f"[QDRANT_WARNING] Upsert failed, falling back to in‑memory store: {exc}")
+        except (
+            Exception
+        ) as exc:  # pragma: no cover – exercised in tests when Qdrant is unavailable
+            logger.warning(
+                "[QDRANT_WARNING] Upsert failed, falling back to in-memory store: %s", exc
+            )
             # Store in the in‑memory fallback and disable Qdrant usage for this request cycle
             MEMORY_STORE[payload.key] = payload.value
             # Ensure subsequent recall uses the in‑memory path
@@ -142,6 +177,7 @@ async def remember(payload: RememberRequest):
     else:
         MEMORY_STORE[payload.key] = payload.value
         return payload
+
 
 @app.post("/v1/capsule/results", response_model=CapsuleResultOut, tags=["capsule"])
 async def save_capsule_result(
@@ -155,12 +191,20 @@ async def save_capsule_result(
     # Authorize via OPA (best‑effort; deny on explicit false)
     try:
         from services.common.opa_client import check_policy
+
         allowed = await check_policy(
             policy_name="allow_write_capsule_results",
-            input={"user": user, "tenant": tenant, "capsule": capsule, "version": version},
+            input={
+                "user": user,
+                "tenant": tenant,
+                "capsule": capsule,
+                "version": version,
+            },
         )
         if allowed is False:
-            raise HTTPException(status_code=403, detail="Not allowed to write capsule results")
+            raise HTTPException(
+                status_code=403, detail="Not allowed to write capsule results"
+            )
     except Exception:
         # If OPA unreachable, proceed but this can be tightened later
         pass
@@ -198,7 +242,10 @@ async def save_capsule_result(
             MEMORY_STORE[object_key] = record
             activity_logger = getattr(_qdrant_client, "logger", None)
             if activity_logger:
-                activity_logger.error("Failed to upsert capsule result to Qdrant", extra={"error": str(exc)})
+                activity_logger.error(
+                    "Failed to upsert capsule result to Qdrant",
+                    extra={"error": str(exc)},
+                )
     else:
         MEMORY_STORE[object_key] = record
 
@@ -231,10 +278,12 @@ async def save_capsule_result(
         metadata=record["metadata"],
     )
 
+
 # ---------------------------------------------------------------------------
 # Compatibility aliases – older roadmap expects /memories endpoints without the
 # version prefix. These simply forward to the versioned implementations.
 # ---------------------------------------------------------------------------
+
 
 @app.post("/memories", response_model=RememberRequest)
 async def post_memory(payload: RememberRequest):
@@ -245,6 +294,7 @@ async def post_memory(payload: RememberRequest):
     """
     return await remember(payload)
 
+
 @app.get("/memories/{key}", response_model=RecallResponse)
 async def get_memory(key: str):
     """Alias for ``/v1/recall/{key}``.
@@ -253,11 +303,14 @@ async def get_memory(key: str):
     """
     return await recall(key)
 
+
 @app.get("/v1/recall/{key}", response_model=RecallResponse)
 async def recall(key: str):
     if _use_qdrant:
         try:
-            point = await _qdrant_client.get_point(collection_name="memory", point_id=key)
+            point = await _qdrant_client.get_point(
+                collection_name="memory", point_id=key
+            )
             if point is None:
                 raise HTTPException(status_code=404, detail="Key not found")
             return RecallResponse(key=key, value=point.payload.get("value"))
@@ -268,12 +321,14 @@ async def recall(key: str):
             raise HTTPException(status_code=404, detail="Key not found")
         return RecallResponse(key=key, value=MEMORY_STORE[key])
 
+
 # ---------------------------------------------------------------------------
 # Memory listing endpoint
 # ---------------------------------------------------------------------------
 
-@app.get("/v1/memories", response_model=List[str])
-async def list_memories() -> List[str]:
+
+@app.get("/v1/memories", response_model=list[str])
+async def list_memories() -> list[str]:
     """Return a list of stored memory keys.
 
     For the in‑memory fallback we simply return the keys of ``MEMORY_STORE``.
@@ -283,34 +338,37 @@ async def list_memories() -> List[str]:
     """
     return list(MEMORY_STORE.keys())
 
+
 @app.post("/v1/rag/retrieve", response_model=RAGResponse)
 async def rag(request: RAGRequest):
     if _use_qdrant:
         # Generate query embedding via SLM service
-        import httpx
         import os
-        
+
+        import httpx
+
         try:
-            slm_url = os.getenv("SOMALLM_PROVIDER_URL") or os.getenv("SLM_SERVICE_URL", "http://localhost:10022")
+            slm_url = os.getenv("SOMALLM_PROVIDER_URL") or os.getenv(
+                "SLM_SERVICE_URL", "http://localhost:10022"
+            )
             async with httpx.AsyncClient(timeout=10.0) as client:
                 response = await client.post(
-                    f"{slm_url}/v1/embeddings",
-                    json={"input": [request.query]}
+                    f"{slm_url}/v1/embeddings", json={"input": [request.query]}
                 )
                 response.raise_for_status()
                 data = response.json()
                 query_vector = data["vectors"][0]["embedding"]
         except Exception as exc:
-            print(f"[SOMALLM_WARNING] Query embedding failed, using zero vector: {exc}")
+            logger.warning("[SOMALLM_WARNING] Query embedding failed, using zero vector: %s", exc)
             query_vector = [0.0] * 768  # Fallback to zero vector
-        
+
         results = await _qdrant_client.search(
             collection_name="memory",
             query_vector=query_vector,
             limit=5,
             score_threshold=0.7,
         )
-        
+
         sources = [r.payload.get("key", "unknown") for r in results]
         # Build answer from retrieved context
         context_texts = [r.payload.get("text", "") for r in results]
@@ -321,13 +379,17 @@ async def rag(request: RAGRequest):
         # In production, this should use a configured fallback (e.g., ES, database search)
         raise HTTPException(
             status_code=503,
-            detail="Vector store (Qdrant) unavailable. Configure SLM_SERVICE_URL and Qdrant to enable RAG."
+            detail="Vector store (Qdrant) unavailable. Configure SLM_SERVICE_URL and Qdrant to enable RAG.",
         )
 
+
 # Metrics
-REQUESTS = Counter("somabrain_requests_total", "Total requests to SOMABrain metrics endpoint")
+REQUESTS = Counter(
+    "somabrain_requests_total", "Total requests to SOMABrain metrics endpoint"
+)
 QDRANT_UP = Gauge("qdrant_up", "Qdrant availability as seen by memory-gateway")
 REDIS_UP = Gauge("redis_up", "Redis availability as seen by memory-gateway")
+
 
 async def _check_qdrant() -> bool:
     if not _use_qdrant or _qdrant_client is None:
@@ -337,14 +399,17 @@ async def _check_qdrant() -> bool:
     except Exception:
         return False
 
+
 async def _check_redis() -> bool:
     try:
         # Import lazily to avoid hard dependency in minimal setups
         from services.common.redis_client import get_redis_client  # type: ignore
+
         client = get_redis_client()
         return await client.health_check()
     except Exception:
         return False
+
 
 @app.get("/metrics", response_class=Response)
 async def metrics():
@@ -365,10 +430,12 @@ async def metrics():
     data = generate_latest()
     return Response(content=data, media_type=CONTENT_TYPE_LATEST)
 
+
 @app.get("/health", tags=["system"])
 async def health() -> Response:
     """Simple health check for the memory‑gateway service."""
     return Response(content="OK", media_type="text/plain")
+
 
 # New healthz endpoint providing detailed status for CI and external monitoring
 @app.get("/healthz", tags=["system"])

@@ -9,25 +9,32 @@ from fastapi.testclient import TestClient
 pytest.importorskip("testcontainers.redis")
 pytest.importorskip("testcontainers.kafka")
 
-from testcontainers.redis import RedisContainer
 from testcontainers.kafka import KafkaContainer
+from testcontainers.redis import RedisContainer
+
 
 # Fixtures will import the service apps after environment variables are set.
 @pytest.fixture
 def identity_app():
     from services.identity_service.app.main import app
+
     return app
+
 
 @pytest.fixture
 def gateway_app():
     # Ensure orchestrator URL is set before importing the gateway.
     from services.gateway_api.app.main import app
+
     return app
+
 
 @pytest.fixture
 def policy_app():
     from services.policy_engine.policy_app import app
+
     return app
+
 
 # Helper to issue a JWT from the identity service.
 def get_jwt_token(client: TestClient, user_id: str, tenant_id: str) -> str:
@@ -45,17 +52,21 @@ def get_jwt_token(client: TestClient, user_id: str, tenant_id: str) -> str:
     assert resp.status_code == 200
     return resp.json()["token"]
 
+
 @pytest.fixture
 def identity_client(identity_app):
     return TestClient(identity_app)
+
 
 @pytest.fixture
 def gateway_client(gateway_app):
     return TestClient(gateway_app)
 
+
 @pytest.fixture
 def policy_client(policy_app):
     return TestClient(policy_app)
+
 
 @pytest.fixture(scope="session")
 def redis_container():
@@ -66,6 +77,7 @@ def redis_container():
     yield container
     container.stop()
 
+
 @pytest.fixture(scope="session")
 def kafka_container():
     """Start a real Kafka container for the duration of the test session."""
@@ -75,10 +87,12 @@ def kafka_container():
     yield container
     container.stop()
 
+
 @pytest.fixture(scope="session", autouse=True)
 def start_slm_worker(kafka_container, redis_container):
     """Run the real SLM async worker using the real Kafka broker."""
     from slm.worker import start_worker
+
     loop = asyncio.get_event_loop()
     task = loop.create_task(start_worker())
     yield
@@ -88,13 +102,14 @@ def start_slm_worker(kafka_container, redis_container):
     except Exception:
         pass
 
+
 def test_end_to_end_flow(identity_client, gateway_client, policy_client):
     # 1. Obtain JWT from identity service.
     user_id = "user123"
     tenant_id = "tenantA"
     token = get_jwt_token(identity_client, user_id, tenant_id)
 
-        # 2. Call gateway to start a session (this forwards to the REAL orchestrator).
+    # 2. Call gateway to start a session (this forwards to the REAL orchestrator).
     session_payload = {
         "prompt": "hello world",
         "capsule_id": None,
@@ -102,7 +117,9 @@ def test_end_to_end_flow(identity_client, gateway_client, policy_client):
     }
     headers = {"Authorization": f"Bearer {token}"}
     # Ensure gateway is pointed at a real orchestrator via env var
-    assert os.getenv("SOMAGENT_GATEWAY_ORCHESTRATOR_URL"), "Set SOMAGENT_GATEWAY_ORCHESTRATOR_URL to real Orchestrator URL"
+    assert os.getenv(
+        "SOMAGENT_GATEWAY_ORCHESTRATOR_URL"
+    ), "Set SOMAGENT_GATEWAY_ORCHESTRATOR_URL to real Orchestrator URL"
     resp = gateway_client.post("/v1/sessions", json=session_payload, headers=headers)
     assert resp.status_code == 201
     session_id = resp.json()["session_id"]
@@ -123,18 +140,21 @@ def test_end_to_end_flow(identity_client, gateway_client, policy_client):
 
     # 4. Send an SLM request using the producer (mocked) and verify a response.
     from services.slm_service.slm.producer import Producer
+
     prod = Producer()
     # Send a real request to Kafka; the background worker will process it.
     asyncio.run(prod.send(session_id, "assistant", "test prompt", {}))
 
     # Consume the response from the real Kafka topic to verify.
     from aiokafka import AIOKafkaConsumer
+
     consumer = AIOKafkaConsumer(
         "slm.responses",
         bootstrap_servers=os.getenv("KAFKA_BOOTSTRAP_SERVERS").split(","),
         group_id="test_consumer",
         auto_offset_reset="earliest",
     )
+
     async def _consume_one():
         await consumer.start()
         try:
@@ -142,9 +162,11 @@ def test_end_to_end_flow(identity_client, gateway_client, policy_client):
                 return msg.value
         finally:
             await consumer.stop()
+
     response_bytes = asyncio.run(_consume_one())
     assert response_bytes is not None
     import json
+
     resp_obj = json.loads(response_bytes)
     assert resp_obj["session_id"] == session_id
 

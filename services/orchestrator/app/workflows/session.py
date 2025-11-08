@@ -8,8 +8,8 @@ from __future__ import annotations
 
 import json
 from dataclasses import asdict, dataclass, field
-from datetime import datetime, timezone, timedelta, UTC
-from typing import Any, Dict, Optional
+from datetime import UTC, datetime, timedelta
+from typing import Any
 from uuid import uuid4
 
 import httpx
@@ -30,7 +30,7 @@ class SessionStartInput:
     user: str
     prompt: str
     model: str = "somagent-demo"
-    metadata: Dict[str, Any] = field(default_factory=dict)
+    metadata: dict[str, Any] = field(default_factory=dict)
 
 
 @dataclass
@@ -39,12 +39,12 @@ class SessionStartResult:
     tenant: str
     user: str
     status: str
-    policy: Dict[str, Any]
-    token: Optional[Dict[str, Any]]
-    slm_response: Dict[str, Any]
+    policy: dict[str, Any]
+    token: dict[str, Any] | None
+    slm_response: dict[str, Any]
     audit_event_id: str
     completed_at: datetime
-    volcano_job: Optional[Dict[str, Any]] = None
+    volcano_job: dict[str, Any] | None = None
 
 
 @dataclass
@@ -52,7 +52,7 @@ class PolicyEvaluationContext:
     session_id: str
     tenant: str
     user: str
-    payload: Dict[str, Any]
+    payload: dict[str, Any]
 
 
 @dataclass
@@ -60,7 +60,7 @@ class IdentityTokenRequest:
     user_id: str
     tenant_id: str
     capabilities: list[str]
-    mfa_code: Optional[str] = None
+    mfa_code: str | None = None
 
 
 @dataclass
@@ -95,7 +95,7 @@ def _policy_endpoint(base_url: str) -> str:
 
 
 @activity.defn(name="evaluate-policy")
-async def evaluate_policy(ctx: PolicyEvaluationContext) -> Dict[str, Any]:
+async def evaluate_policy(ctx: PolicyEvaluationContext) -> dict[str, Any]:
     """Invoke the policy engine using the real HTTP endpoint."""
 
     async with httpx.AsyncClient(timeout=10.0) as client:
@@ -107,7 +107,7 @@ async def evaluate_policy(ctx: PolicyEvaluationContext) -> Dict[str, Any]:
 
 
 @activity.defn(name="issue-identity-token")
-async def issue_identity_token(req: IdentityTokenRequest) -> Dict[str, Any]:
+async def issue_identity_token(req: IdentityTokenRequest) -> dict[str, Any]:
     async with httpx.AsyncClient(timeout=10.0) as client:
         endpoint = _identity_endpoint(str(settings.identity_service_url))
         response = await client.post(endpoint, json=asdict(req))
@@ -117,19 +117,27 @@ async def issue_identity_token(req: IdentityTokenRequest) -> Dict[str, Any]:
 
 
 @activity.defn(name="emit-audit-event")
-async def emit_audit_event(event: Dict[str, Any]) -> str:
+async def emit_audit_event(event: dict[str, Any]) -> str:
     """Publish an audit event to Kafka using the configured bootstrap servers."""
 
     audit_id = str(uuid4())
-    event = {**event, "audit_id": audit_id, "emitted_at": datetime.now(timezone.utc).isoformat()}
+    event = {
+        **event,
+        "audit_id": audit_id,
+        "emitted_at": datetime.now(UTC).isoformat(),
+    }
 
     bootstrap = settings.kafka_bootstrap_servers
     if not bootstrap:
-        activity.logger.warning("Kafka bootstrap servers not configured; audit event stored locally")
+        activity.logger.warning(
+            "Kafka bootstrap servers not configured; audit event stored locally"
+        )
         activity.logger.info(json.dumps(event))
         return audit_id
 
-    producer = AIOKafkaProducer(bootstrap_servers=[s.strip() for s in bootstrap.split(",") if s.strip()])
+    producer = AIOKafkaProducer(
+        bootstrap_servers=[s.strip() for s in bootstrap.split(",") if s.strip()]
+    )
     await producer.start()
     try:
         await producer.send_and_wait("agent.audit", json.dumps(event).encode("utf-8"))
@@ -139,17 +147,23 @@ async def emit_audit_event(event: Dict[str, Any]) -> str:
 
 
 @activity.defn(name="run-slm-completion")
-def run_slm_completion(request: SlmRequest) -> Dict[str, Any]:
+def run_slm_completion(request: SlmRequest) -> dict[str, Any]:
     """Execute a Ray remote function to simulate a completion call."""
 
     import time
 
     import ray
 
-    ray.init(address=settings.ray_address or "auto", namespace=settings.ray_namespace, ignore_reinit_error=True)
+    ray.init(
+        address=settings.ray_address or "auto",
+        namespace=settings.ray_namespace,
+        ignore_reinit_error=True,
+    )
 
     @ray.remote
-    def _generate_completion(prompt: str, model: str, session_id: str, tenant: str, user: str) -> Dict[str, Any]:
+    def _generate_completion(
+        prompt: str, model: str, session_id: str, tenant: str, user: str
+    ) -> dict[str, Any]:
         # In production this is where a provider adapter is called. We keep the
         # function simple but real (executed inside Ray) to honour the principle
         # of avoiding mocks.
@@ -194,7 +208,11 @@ class SessionWorkflow:
             session_id=payload.session_id,
             tenant=payload.tenant,
             user=payload.user,
-            payload={**payload.metadata, "session_id": payload.session_id, "prompt": payload.prompt},
+            payload={
+                **payload.metadata,
+                "session_id": payload.session_id,
+                "prompt": payload.prompt,
+            },
         )
 
         policy = await workflow.execute_activity(
@@ -224,7 +242,7 @@ class SessionWorkflow:
                 token=None,
                 slm_response={},
                 audit_event_id=audit_id,
-                completed_at=datetime.now(timezone.utc),
+                completed_at=datetime.now(UTC),
             )
 
         volcano_job_result: dict[str, Any] | None = None
@@ -319,7 +337,7 @@ class SessionWorkflow:
             token=token,
             slm_response=slm_response,
             audit_event_id=audit_event_id,
-            completed_at=datetime.now(timezone.utc),
+            completed_at=datetime.now(UTC),
             volcano_job=volcano_job_result,
         )
         logger.info("Session workflow completed", result=result.__dict__)

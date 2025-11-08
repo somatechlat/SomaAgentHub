@@ -6,11 +6,10 @@ import json
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Union
+from typing import Any
 
 import yaml
 from pydantic import BaseModel, Field, HttpUrl, ValidationError, validator
-
 
 SCHEMA_VERSION = "0.2.0"
 
@@ -23,10 +22,10 @@ class PersonaOwner(BaseModel):
     """Represents a human or organization responsible for the persona."""
 
     name: str
-    contact: Optional[str] = Field(
+    contact: str | None = Field(
         default=None, description="Email or URL for the persona maintainer"
     )
-    organization: Optional[str] = Field(default=None, description="Owning organization")
+    organization: str | None = Field(default=None, description="Owning organization")
 
 
 class ModelCapability(BaseModel):
@@ -34,7 +33,7 @@ class ModelCapability(BaseModel):
 
     feature: str
     enabled: bool = True
-    notes: Optional[str] = None
+    notes: str | None = None
 
 
 class ModelBoxReference(BaseModel):
@@ -42,12 +41,14 @@ class ModelBoxReference(BaseModel):
 
     model_box_id: str = Field(..., description="Unique identifier in the SLM catalog")
     version: str = Field(..., description="Semantic version of the model box")
-    provider: str = Field(..., description="Provider or serving stack (e.g., openai, groq, vllm)")
+    provider: str = Field(
+        ..., description="Provider or serving stack (e.g., openai, groq, vllm)"
+    )
     default_mode: str = Field(
         "production",
         description="Preferred deployment mode for this persona (production, staging, etc.)",
     )
-    capabilities: List[ModelCapability] = Field(
+    capabilities: list[ModelCapability] = Field(
         default_factory=list,
         description="Feature flags exposed by the model box",
     )
@@ -73,9 +74,7 @@ class MemorySnapshotReference(BaseModel):
         ..., description="Embedding model used when producing the snapshot"
     )
     item_count: int = Field(..., ge=0, description="Total number of memory items")
-    checksum: str = Field(
-        ..., description="SHA256 checksum for integrity validation"
-    )
+    checksum: str = Field(..., description="SHA256 checksum for integrity validation")
 
 
 class ToolAccessDescriptor(BaseModel):
@@ -89,7 +88,7 @@ class ToolAccessDescriptor(BaseModel):
         "read",
         description="Scope expected (read, write, admin, custom policy identifier)",
     )
-    notes: Optional[str] = None
+    notes: str | None = None
 
 
 class EvaluationScore(BaseModel):
@@ -97,13 +96,13 @@ class EvaluationScore(BaseModel):
 
     benchmark: str
     score: float = Field(..., description="Normalized score between 0 and 1")
-    dataset: Optional[str] = None
+    dataset: str | None = None
     captured_at: datetime = Field(
         default_factory=datetime.utcnow,
         description="Timestamp when the evaluation was recorded",
     )
-    reference_link: Optional[HttpUrl] = None
-    notes: Optional[str] = None
+    reference_link: HttpUrl | None = None
+    notes: str | None = None
 
     @validator("score")
     def _check_score(cls, value: float) -> float:  # noqa: D401
@@ -123,7 +122,7 @@ class GovernanceMetadata(BaseModel):
     training_snapshot_id: str = Field(
         ..., description="Identifier of the training mode session used for export"
     )
-    approvals: List[str] = Field(
+    approvals: list[str] = Field(
         default_factory=list,
         description="List of user IDs or capability grants that approved publication",
     )
@@ -145,12 +144,12 @@ class PricingModel(BaseModel):
         ge=0.0,
         description="Reference price in USD for the selected pricing model",
     )
-    billing_period_minutes: Optional[int] = Field(
+    billing_period_minutes: int | None = Field(
         default=None,
         ge=1,
         description="Applies to rental/subscription models: duration in minutes",
     )
-    notes: Optional[str] = None
+    notes: str | None = None
 
 
 class PersonaMetadata(BaseModel):
@@ -160,13 +159,13 @@ class PersonaMetadata(BaseModel):
     version: str = Field(..., description="Semantic version of this persona snapshot")
     display_name: str = Field(..., description="Human-readable name")
     summary: str = Field(..., description="Short marketing/description blurb")
-    domains: List[str] = Field(
+    domains: list[str] = Field(
         default_factory=list,
         description="Domain tags (e.g., project-management, finance, chemistry)",
     )
     created_at: datetime = Field(default_factory=datetime.utcnow)
     updated_at: datetime = Field(default_factory=datetime.utcnow)
-    owners: List[PersonaOwner] = Field(
+    owners: list[PersonaOwner] = Field(
         default_factory=list, description="Maintainers responsible for the persona"
     )
 
@@ -174,15 +173,15 @@ class PersonaMetadata(BaseModel):
 class ArtifactBundle(BaseModel):
     """Supporting artifacts emitted during export."""
 
-    prompts_uri: Optional[str] = Field(
+    prompts_uri: str | None = Field(
         default=None,
         description="Location of prompt templates bundled with the persona",
     )
-    evaluation_report_uri: Optional[str] = Field(
+    evaluation_report_uri: str | None = Field(
         default=None,
         description="Location of evaluation results (JSON, PDF, etc.)",
     )
-    release_notes_uri: Optional[str] = Field(
+    release_notes_uri: str | None = Field(
         default=None,
         description="Location of release notes or changelog for this persona version",
     )
@@ -191,11 +190,19 @@ class ArtifactBundle(BaseModel):
 class ManifestSignature(BaseModel):
     """Cryptographic signature binding the manifest to the constitution service."""
 
-    algorithm: str = Field(..., description="Signing algorithm identifier (e.g., ed25519)")
+    algorithm: str = Field(
+        ..., description="Signing algorithm identifier (e.g., ed25519)"
+    )
     signature: str = Field(..., description="Base64-encoded detached signature")
-    public_key: str = Field(..., description="Base64-encoded public key used for verification")
-    digest: str = Field(..., description="SHA3-256 digest of the canonical manifest payload")
-    signed_at: datetime = Field(..., description="Timestamp when the manifest was signed")
+    public_key: str = Field(
+        ..., description="Base64-encoded public key used for verification"
+    )
+    digest: str = Field(
+        ..., description="SHA3-256 digest of the canonical manifest payload"
+    )
+    signed_at: datetime = Field(
+        ..., description="Timestamp when the manifest was signed"
+    )
 
 
 class PersonaManifest(BaseModel):
@@ -205,11 +212,11 @@ class PersonaManifest(BaseModel):
     metadata: PersonaMetadata
     model_box: ModelBoxReference
     memory: MemorySnapshotReference
-    tools: List[ToolAccessDescriptor] = Field(
+    tools: list[ToolAccessDescriptor] = Field(
         default_factory=list,
         description="Tool adapters and scopes required by the persona",
     )
-    evaluations: List[EvaluationScore] = Field(
+    evaluations: list[EvaluationScore] = Field(
         default_factory=list, description="Evaluation signals backing the persona"
     )
     governance: GovernanceMetadata
@@ -221,7 +228,7 @@ class PersonaManifest(BaseModel):
         default_factory=ArtifactBundle,
         description="Supporting artifacts published alongside the persona",
     )
-    signature: Optional[ManifestSignature] = Field(
+    signature: ManifestSignature | None = Field(
         default=None,
         description="Cryptographic signature issued by the constitution service",
     )
@@ -235,11 +242,13 @@ class ManifestIO:
     """Structured response from manifest utility helpers."""
 
     manifest: PersonaManifest
-    raw: Dict[str, Any]
-    source_path: Optional[Path] = None
+    raw: dict[str, Any]
+    source_path: Path | None = None
 
 
-def _load_data_from_source(source: Union[str, Path, bytes, Dict[str, Any]]) -> Dict[str, Any]:
+def _load_data_from_source(
+    source: str | Path | bytes | dict[str, Any],
+) -> dict[str, Any]:
     """Normalise different manifest sources into a dictionary."""
 
     if isinstance(source, dict):
@@ -257,7 +266,7 @@ def _load_data_from_source(source: Union[str, Path, bytes, Dict[str, Any]]) -> D
     raise ManifestValidationError("Unsupported manifest source type")
 
 
-def _load_data_from_bytes(data: bytes) -> Dict[str, Any]:
+def _load_data_from_bytes(data: bytes) -> dict[str, Any]:
     """Decode YAML or JSON payload into a dictionary."""
 
     try:
@@ -266,11 +275,13 @@ def _load_data_from_bytes(data: bytes) -> Dict[str, Any]:
         try:
             return json.loads(data.decode("utf-8"))
         except json.JSONDecodeError as exc:
-            raise ManifestValidationError("Manifest payload is not valid YAML or JSON") from exc
+            raise ManifestValidationError(
+                "Manifest payload is not valid YAML or JSON"
+            ) from exc
 
 
 def validate_persona_manifest(
-    payload: Union[str, Path, bytes, Dict[str, Any]]
+    payload: str | Path | bytes | dict[str, Any],
 ) -> PersonaManifest:
     """Validate a manifest payload and return the parsed PersonaManifest."""
 
@@ -282,18 +293,20 @@ def validate_persona_manifest(
     return manifest
 
 
-def load_persona_manifest(source: Union[str, Path, bytes]) -> ManifestIO:
+def load_persona_manifest(source: str | Path | bytes) -> ManifestIO:
     """Load a persona manifest from disk or bytes, returning the model + raw payload."""
 
     data = _load_data_from_source(source)
-    source_path: Optional[Path] = None
+    source_path: Path | None = None
     if "_source_path" in data:
         source_path = Path(data.pop("_source_path"))
     manifest = validate_persona_manifest(data)
     return ManifestIO(manifest=manifest, raw=data, source_path=source_path)
 
 
-def dump_persona_manifest(manifest: PersonaManifest, destination: Union[str, Path]) -> Path:
+def dump_persona_manifest(
+    manifest: PersonaManifest, destination: str | Path
+) -> Path:
     """Serialise a persona manifest to YAML at the given destination path."""
 
     path = Path(destination)

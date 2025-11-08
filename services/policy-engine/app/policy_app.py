@@ -4,19 +4,20 @@ import asyncio
 import json
 import os
 import time
+from collections.abc import Iterable
 from contextlib import asynccontextmanager, suppress
 from random import uniform
-from typing import Any, Dict, Iterable, List
+from typing import Any
 
 from fastapi import FastAPI
 from fastapi.responses import Response
-from pydantic import BaseModel, Field
 from prometheus_client import CONTENT_TYPE_LATEST, Counter, Histogram, generate_latest
-
-from .observability import setup_observability
+from pydantic import BaseModel, Field
 
 from .constitution_cache import get_cached_hash, invalidate_hash
-from .core.engine import compute_severity, evaluate as evaluate_engine
+from .core.engine import compute_severity
+from .core.engine import evaluate as evaluate_engine
+from .observability import setup_observability
 from .policy_rules import PolicyRule, bootstrap_rule_engine, get_rules, list_tenants
 from .redis_client import get_constitution_hash
 
@@ -47,7 +48,9 @@ EVALUATION_SCORE = Histogram(
 )
 
 
-async def _prefetch_constitution_hashes(stop_event: asyncio.Event, interval_seconds: float = 300.0) -> None:
+async def _prefetch_constitution_hashes(
+    stop_event: asyncio.Event, interval_seconds: float = 300.0
+) -> None:
     """Periodically prefetch constitution hashes to keep the local cache warm."""
 
     jitter = 0.1 * interval_seconds
@@ -64,11 +67,13 @@ async def _prefetch_constitution_hashes(stop_event: asyncio.Event, interval_seco
         sleep_for = max(5.0, interval_seconds + uniform(-jitter, jitter))
         try:
             await asyncio.wait_for(stop_event.wait(), timeout=sleep_for)
-        except asyncio.TimeoutError:
+        except TimeoutError:
             continue
 
 
-async def _listen_constitution_updates(stop_event: asyncio.Event, max_backoff: float = 30.0) -> None:
+async def _listen_constitution_updates(
+    stop_event: asyncio.Event, max_backoff: float = 30.0
+) -> None:
     """Consume ``constitution.updated`` events and invalidate cached hashes with backoff."""
 
     bootstrap = os.getenv("KAFKA_BOOTSTRAP_SERVERS")
@@ -118,14 +123,14 @@ async def _listen_constitution_updates(stop_event: asyncio.Event, max_backoff: f
 async def lifespan(app: FastAPI):
     from .core.rule_store import load_and_cache_rules
     from .policy_rules import get_rules
-    
+
     await bootstrap_rule_engine()
-    
+
     # Persist canonical rule packs to Redis for all tenants
     for tenant in list_tenants() or ["global"]:
         rules = get_rules(tenant)
         await load_and_cache_rules(tenant, rules)
-    
+
     stop_event = asyncio.Event()
     tasks = [
         asyncio.create_task(_prefetch_constitution_hashes(stop_event)),
@@ -154,17 +159,17 @@ class EvalRequest(BaseModel):
     user: str
     prompt: str
     role: str
-    metadata: Dict[str, Any] = Field(default_factory=dict)
+    metadata: dict[str, Any] = Field(default_factory=dict)
 
 
 class EvalResponse(BaseModel):
     allowed: bool
     score: float
     severity: str
-    reasons: Dict[str, Any]
+    reasons: dict[str, Any]
 
 
-def _rule_to_dict(rule: PolicyRule) -> Dict[str, Any]:
+def _rule_to_dict(rule: PolicyRule) -> dict[str, Any]:
     return {
         "name": rule.name,
         "pattern": rule.pattern,
@@ -177,22 +182,28 @@ def _rule_to_dict(rule: PolicyRule) -> Dict[str, Any]:
 @app.post("/v1/evaluate", response_model=EvalResponse)
 async def evaluate(req: EvalRequest):
     started = time.perf_counter()
-    allowed, score, violations, constitution_hash = await evaluate_engine(req.tenant, req.prompt)
+    allowed, score, violations, constitution_hash = await evaluate_engine(
+        req.tenant, req.prompt
+    )
     severity = compute_severity(score)
-    reasons: Dict[str, Any] = {
+    reasons: dict[str, Any] = {
         "constitution_hash": constitution_hash,
         "policy": violations,
     }
     decision = "allow" if allowed else "deny"
     elapsed = time.perf_counter() - started
-    EVALUATION_COUNTER.labels(tenant=req.tenant, decision=decision, severity=severity).inc()
+    EVALUATION_COUNTER.labels(
+        tenant=req.tenant, decision=decision, severity=severity
+    ).inc()
     EVALUATION_LATENCY.labels(tenant=req.tenant).observe(elapsed)
     EVALUATION_SCORE.labels(tenant=req.tenant).observe(score)
-    return EvalResponse(allowed=allowed, score=score, severity=severity, reasons=reasons)
+    return EvalResponse(
+        allowed=allowed, score=score, severity=severity, reasons=reasons
+    )
 
 
 @app.get("/health", tags=["system"])
-def health() -> Dict[str, str]:
+def health() -> dict[str, str]:
     return {"status": "ok", "service": "policy-engine"}
 
 
@@ -202,7 +213,7 @@ def metrics() -> Response:
 
 
 @app.get("/")
-def root() -> Dict[str, str]:
+def root() -> dict[str, str]:
     return {"message": "SomaGent Policy Engine"}
 
 
@@ -211,8 +222,8 @@ def evaluate_sync(req: EvalRequest):
     return asyncio.run(evaluate(req))
 
 
-@app.get("/v1/policies/{tenant}", response_model=List[Dict[str, Any]])
-def list_policies(tenant: str) -> List[Dict[str, Any]]:
+@app.get("/v1/policies/{tenant}", response_model=list[dict[str, Any]])
+def list_policies(tenant: str) -> list[dict[str, Any]]:
     """Return the list of forbidden substrings for *tenant*.
 
     This endpoint is useful for debugging and for the UI to display the
@@ -235,7 +246,10 @@ async def health_redis() -> dict:
         return {"status": "ok"}
     except Exception:
         from fastapi import HTTPException, status
-        raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail="Redis unavailable")
+
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail="Redis unavailable"
+        )
 
 
 # ---------------------------------------------------------------------------

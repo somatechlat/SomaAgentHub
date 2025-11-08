@@ -1,11 +1,13 @@
 #!/usr/bin/env python3
 import sys
 from pathlib import Path
+
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
-from slm.adapters.selector import select_and_call
 import asyncio
+
+from slm.adapters.selector import select_and_call
 
 
 async def run():

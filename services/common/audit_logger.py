@@ -212,7 +212,7 @@ class AuditLogger:
                     request_id, session_id
                 ) VALUES
                 """,
-                [tuple(data.values())]
+                [tuple(data.values())],
             )
 
             # Also log to application logs for immediate visibility
@@ -410,7 +410,7 @@ def audit_log(
     outcome: str,
     service_name: str,
     severity: AuditSeverity = AuditSeverity.INFO,
-    **kwargs
+    **kwargs,
 ) -> None:
     """
     Convenience function to log an audit event.

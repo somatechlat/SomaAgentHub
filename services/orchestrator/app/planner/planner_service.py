@@ -2,13 +2,13 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
-from typing import Any, Dict, Optional
-
 import json
+from dataclasses import dataclass
+from typing import Any
+
+from ..repository.plan_repository import PlanRepository
 from .client import PlannerClient
 from .schemas import PlannerContext, PlannerRequest, ProjectPlan
-from ..repository.plan_repository import PlanRepository
 
 
 @dataclass
@@ -62,9 +62,9 @@ class PlannerService:
     async def refine_plan(
         self,
         plan: ProjectPlan,
-        updates: Dict[str, Any],
+        updates: dict[str, Any],
         *,
-        context: Optional[PlannerContext] = None,
+        context: PlannerContext | None = None,
     ) -> ProjectPlan:
         """Iteratively refine an existing plan.
 

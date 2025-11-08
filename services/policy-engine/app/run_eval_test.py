@@ -6,6 +6,7 @@ Pytest will skip this module during automated test runs.
 
 from __future__ import annotations
 
+import logging
 import sys
 from pathlib import Path
 
@@ -20,12 +21,18 @@ from app.policy_app import EvalRequest, evaluate_sync  # noqa: E402
 
 
 def main() -> None:
-    req = EvalRequest(session_id="s1", tenant="t1", user="u1", prompt="Hello world", role="dialogue_reasoning")
+    req = EvalRequest(
+        session_id="s1",
+        tenant="t1",
+        user="u1",
+        prompt="Hello world",
+        role="dialogue_reasoning",
+    )
     try:
         res = evaluate_sync(req)
-        print(res.model_dump_json(indent=2))
+        logging.getLogger(__name__).info(res.model_dump_json(indent=2))
     except Exception as exc:  # pragma: no cover - manual harness
-        print(f"Evaluation failed: {exc}")
+        logging.getLogger(__name__).error("Evaluation failed: %s", exc)
 
     req2 = EvalRequest(
         session_id="s2",
@@ -36,9 +43,9 @@ def main() -> None:
     )
     try:  # pragma: no cover - manual harness
         res2 = evaluate_sync(req2)
-        print(res2.model_dump_json(indent=2))
+        logging.getLogger(__name__).info(res2.model_dump_json(indent=2))
     except Exception as exc:
-        print(f"Evaluation failed: {exc}")
+        logging.getLogger(__name__).error("Evaluation failed: %s", exc)
 
 
 if __name__ == "__main__":  # pragma: no cover - manual harness

@@ -11,12 +11,12 @@ from __future__ import annotations
 import argparse
 import os
 import time
-from typing import Any, Dict
+from typing import Any
 
 import requests
 
 
-def build_payload(args: argparse.Namespace) -> Dict[str, Any]:
+def build_payload(args: argparse.Namespace) -> dict[str, Any]:
     now = int(time.time())
     return {
         "iss": args.issuer,
@@ -30,17 +30,36 @@ def build_payload(args: argparse.Namespace) -> Dict[str, Any]:
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("identity_url", nargs="?", default=os.getenv("IDENTITY_SERVICE_URL", "http://localhost:10002"), help="Identity Service base URL")
-    parser.add_argument("--tenant", default=os.getenv("SOMAGENT_AIRFLOW_TENANT", "demo"))
-    parser.add_argument("--user", dest="user", default=os.getenv("SOMAGENT_AIRFLOW_SUBJECT", "airflow-service"), help="User ID for the token")
-    parser.add_argument("--mfa", dest="mfa", default=os.getenv("SOMAGENT_AIRFLOW_MFA_CODE", ""), help="MFA code if required")
+    parser.add_argument(
+        "identity_url",
+        nargs="?",
+        default=os.getenv("IDENTITY_SERVICE_URL", "http://localhost:10002"),
+        help="Identity Service base URL",
+    )
+    parser.add_argument(
+        "--tenant", default=os.getenv("SOMAGENT_AIRFLOW_TENANT", "demo")
+    )
+    parser.add_argument(
+        "--user",
+        dest="user",
+        default=os.getenv("SOMAGENT_AIRFLOW_SUBJECT", "airflow-service"),
+        help="User ID for the token",
+    )
+    parser.add_argument(
+        "--mfa",
+        dest="mfa",
+        default=os.getenv("SOMAGENT_AIRFLOW_MFA_CODE", ""),
+        help="MFA code if required",
+    )
     parser.add_argument(
         "--capabilities",
         nargs="*",
         default=["scheduler", "system"],
         help="Capabilities to embed in the token (space separated)",
     )
-    parser.add_argument("--ttl", type=int, default=600, help="Token lifetime in seconds")
+    parser.add_argument(
+        "--ttl", type=int, default=600, help="Token lifetime in seconds"
+    )
     return parser.parse_args()
 
 

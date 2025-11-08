@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Dict, List
 
 import yaml
 
@@ -15,11 +14,13 @@ class CapsuleLoader:
 
     def __init__(self, base_path: Path) -> None:
         self.base_path = base_path
-        self._cache: Dict[str, dict] = {}
+        self._cache: dict[str, dict] = {}
 
-    def load_all(self) -> List[dict]:
+    def load_all(self) -> list[dict]:
         capsules = []
-        for path in sorted(self.base_path.glob("*.yml")) + sorted(self.base_path.glob("*.yaml")):
+        for path in sorted(self.base_path.glob("*.yml")) + sorted(
+            self.base_path.glob("*.yaml")
+        ):
             capsule = self._load_file(path)
             if capsule:
                 capsules.append(capsule)

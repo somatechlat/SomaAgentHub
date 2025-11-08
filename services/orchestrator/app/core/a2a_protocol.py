@@ -8,12 +8,13 @@ minimal version is sufficient for the integration tests and the unified workflow
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
 import asyncio
 import json
 import os
+from collections.abc import Iterable
+from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Dict, Iterable, List, Optional, Protocol
+from typing import Any, Protocol
 
 
 class AgentNotFoundError(RuntimeError):
@@ -30,9 +31,9 @@ class AgentCard:
 
     agent_id: str
     entrypoint: str  # Temporal workflow name to invoke
-    capabilities: List[str] = field(default_factory=list)
+    capabilities: list[str] = field(default_factory=list)
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         return {
             "agent_id": self.agent_id,
             "entrypoint": self.entrypoint,
@@ -40,7 +41,7 @@ class AgentCard:
         }
 
     @classmethod
-    def from_dict(cls, payload: Dict[str, Any]) -> "AgentCard":
+    def from_dict(cls, payload: dict[str, Any]) -> AgentCard:
         return cls(
             agent_id=str(payload["agent_id"]),
             entrypoint=str(payload["entrypoint"]),
@@ -54,7 +55,9 @@ class AgentRegistryBackend(Protocol):
     async def load_agents(self) -> Iterable[AgentCard]:  # pragma: no cover - interface
         ...
 
-    async def persist_agents(self, agents: Iterable[AgentCard]) -> None:  # pragma: no cover - interface
+    async def persist_agents(
+        self, agents: Iterable[AgentCard]
+    ) -> None:  # pragma: no cover - interface
         ...
 
 
@@ -63,7 +66,7 @@ class AgentRegistry:
 
     def __init__(self, backend: AgentRegistryBackend | None = None) -> None:
         self._backend = backend
-        self._agents: Dict[str, AgentCard] = {}
+        self._agents: dict[str, AgentCard] = {}
         self._loaded = backend is None
 
     async def _ensure_loaded(self) -> None:
@@ -95,19 +98,21 @@ class AgentRegistry:
         self._agents.pop(agent_id, None)
         await self._persist()
 
-    async def get_agent(self, agent_id: str) -> Optional[AgentCard]:
+    async def get_agent(self, agent_id: str) -> AgentCard | None:
         """Retrieve an agent card by id, or ``None`` if not found."""
 
         await self._ensure_loaded()
         return self._agents.get(agent_id)
 
-    async def discover(self, capability: str) -> List[AgentCard]:
+    async def discover(self, capability: str) -> list[AgentCard]:
         """Return all agents that expose the given capability."""
 
         await self._ensure_loaded()
-        return [card for card in self._agents.values() if capability in card.capabilities]
+        return [
+            card for card in self._agents.values() if capability in card.capabilities
+        ]
 
-    async def list_agents(self) -> List[AgentCard]:
+    async def list_agents(self) -> list[AgentCard]:
         """Return all registered agents."""
 
         await self._ensure_loaded()
@@ -121,10 +126,10 @@ class AgentRegistry:
         self._loaded = False
         await self._ensure_loaded()
 
-
     # ---------------------------------------------------------------------------
     # Optional ConfigMap‑based backend
     # ---------------------------------------------------------------------------
+
 
 class ConfigMapAgentRegistryBackend:
     """Persist agent cards in a Kubernetes ``ConfigMap``.
@@ -150,7 +155,9 @@ class ConfigMapAgentRegistryBackend:
         try:
             from kubernetes import client, config
         except ImportError as exc:
-            raise RuntimeError("kubernetes python client is required for ConfigMapAgentRegistryBackend") from exc
+            raise RuntimeError(
+                "kubernetes python client is required for ConfigMapAgentRegistryBackend"
+            ) from exc
         # Load in‑cluster config; fallback to default kubeconfig for local dev.
         try:
             config.load_incluster_config()
@@ -161,7 +168,9 @@ class ConfigMapAgentRegistryBackend:
     async def load_agents(self) -> Iterable[AgentCard]:
         await self._ensure_client()
         try:
-            cm = self._client.read_namespaced_config_map(self._configmap_name, self._namespace)
+            cm = self._client.read_namespaced_config_map(
+                self._configmap_name, self._namespace
+            )
             data = cm.data or {}
             raw = data.get("agents", "[]")
             payload = json.loads(raw)
@@ -179,10 +188,14 @@ class ConfigMapAgentRegistryBackend:
         }
         try:
             # Try to replace; if it does not exist we create it.
-            self._client.replace_namespaced_config_map(self._configmap_name, self._namespace, body)
+            self._client.replace_namespaced_config_map(
+                self._configmap_name, self._namespace, body
+            )
         except Exception:
             # Create on failure (e.g., NotFound)
             self._client.create_namespaced_config_map(self._namespace, body)
+
+
 class JsonFileAgentRegistryBackend:
     """Persistence backend storing agent cards as JSON on disk."""
 
@@ -191,7 +204,7 @@ class JsonFileAgentRegistryBackend:
         self._path.parent.mkdir(parents=True, exist_ok=True)
 
     async def load_agents(self) -> Iterable[AgentCard]:
-        def _load() -> List[AgentCard]:
+        def _load() -> list[AgentCard]:
             if not self._path.exists():
                 return []
             with self._path.open("r", encoding="utf-8") as handle:
@@ -216,7 +229,7 @@ class A2AMessage:
 
     input: str
     sender: str
-    metadata: Dict[str, Any] = field(default_factory=dict)
+    metadata: dict[str, Any] = field(default_factory=dict)
 
 
 class A2AProtocol:
@@ -230,8 +243,8 @@ class A2AProtocol:
         target_agent_id: str,
         message: str,
         sender_id: str,
-        metadata: Optional[Dict[str, Any]] = None,
-    ) -> Dict:
+        metadata: dict[str, Any] | None = None,
+    ) -> dict:
         """Send a message to ``target_agent_id`` and return the child workflow result.
 
         The implementation looks up the ``AgentCard`` in the registry, then invokes a

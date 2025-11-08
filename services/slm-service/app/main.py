@@ -3,14 +3,13 @@
 from __future__ import annotations
 
 from time import perf_counter
-from typing import List
 
 from fastapi import Depends, FastAPI
 from fastapi.responses import Response
-from pydantic import BaseModel, Field, constr
 from prometheus_client import CONTENT_TYPE_LATEST, Counter, Histogram, generate_latest
-
+from pydantic import BaseModel, Field, constr
 from slm.local_models import get_embedding_model, get_text_generator
+
 from .observability import setup_observability
 
 
@@ -33,16 +32,16 @@ class InferSyncResponse(BaseModel):
 
 
 class EmbeddingRequest(BaseModel):
-    input: List[constr(strip_whitespace=True, min_length=1)] = Field(..., min_length=1)
+    input: list[constr(strip_whitespace=True, min_length=1)] = Field(..., min_length=1)
 
 
 class EmbeddingVector(BaseModel):
-    embedding: List[float]
+    embedding: list[float]
 
 
 class EmbeddingResponse(BaseModel):
     model: str
-    vectors: List[EmbeddingVector]
+    vectors: list[EmbeddingVector]
     vector_length: int
 
 
@@ -97,9 +96,13 @@ def root():
 
 
 @app.post("/v1/infer/sync", response_model=InferSyncResponse, tags=["slm-service"])
-def infer_sync(request: InferSyncRequest, generator=Depends(get_text_generator)) -> InferSyncResponse:
+def infer_sync(
+    request: InferSyncRequest, generator=Depends(get_text_generator)
+) -> InferSyncResponse:
     start = perf_counter()
-    result = generator.generate(request.prompt, max_tokens=request.max_tokens, temperature=request.temperature)
+    result = generator.generate(
+        request.prompt, max_tokens=request.max_tokens, temperature=request.temperature
+    )
     duration = perf_counter() - start
     INFER_REQUESTS.labels(model=MODEL_NAME).inc()
     INFER_LATENCY.labels(model=MODEL_NAME).observe(duration)
@@ -113,7 +116,9 @@ def infer_sync(request: InferSyncRequest, generator=Depends(get_text_generator))
 
 
 @app.post("/v1/embeddings", response_model=EmbeddingResponse, tags=["slm-service"])
-def create_embeddings(request: EmbeddingRequest, model=Depends(get_embedding_model)) -> EmbeddingResponse:
+def create_embeddings(
+    request: EmbeddingRequest, model=Depends(get_embedding_model)
+) -> EmbeddingResponse:
     start = perf_counter()
     vectors = model.embed(request.input)
     duration = perf_counter() - start
@@ -121,25 +126,39 @@ def create_embeddings(request: EmbeddingRequest, model=Depends(get_embedding_mod
     EMBED_LATENCY.labels(model=model.name).observe(duration)
     payload = [EmbeddingVector(embedding=[float(x) for x in vec]) for vec in vectors]
     vector_length = len(payload[0].embedding) if payload else 0
-    return EmbeddingResponse(model=model.name, vectors=payload, vector_length=vector_length)
+    return EmbeddingResponse(
+        model=model.name, vectors=payload, vector_length=vector_length
+    )
 
 
-@app.post("/v1/chat/completions", response_model=InferSyncResponse, tags=["slm-service"])
-def chat_completion(request: InferSyncRequest, generator=Depends(get_text_generator)) -> InferSyncResponse:
+@app.post(
+    "/v1/chat/completions", response_model=InferSyncResponse, tags=["slm-service"]
+)
+def chat_completion(
+    request: InferSyncRequest, generator=Depends(get_text_generator)
+) -> InferSyncResponse:
     """Backward-compatible endpoint that mirrors the sync inference capability."""
     return infer_sync(request, generator=generator)
 
 
 @app.get("/models", tags=["slm-service"])
 def list_models():
-    return {"models": [{"id": MODEL_NAME, "name": "SomaSuite Markov Text", "status": "ready"}]}
+    return {
+        "models": [
+            {"id": MODEL_NAME, "name": "SomaSuite Markov Text", "status": "ready"}
+        ]
+    }
 
 
 @app.post("/models/load", tags=["slm-service"])
 def load_model(model: dict):
     requested = model.get("id", MODEL_NAME)
     if requested != MODEL_NAME:
-        return {"message": "Model not recognised", "model_id": requested, "status": "ignored"}
+        return {
+            "message": "Model not recognised",
+            "model_id": requested,
+            "status": "ignored",
+        }
     # Model is lazily initialised via get_text_generator; calling it ensures readiness.
     get_text_generator()
     return {"message": "Model ready", "model_id": MODEL_NAME, "status": "ready"}

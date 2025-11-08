@@ -21,7 +21,7 @@ class FlinkConfig:
     metrics_job: str
 
     @classmethod
-    def from_env(cls) -> "FlinkConfig":
+    def from_env(cls) -> FlinkConfig:
         return cls(
             bootstrap_servers=os.getenv("KAFKA_BOOTSTRAP_SERVERS", "kafka:9092"),
             topic=os.getenv("KAFKA_TOPIC", "soma.events"),
@@ -40,7 +40,12 @@ class PrometheusSink(RichSinkFunction):
 
     def invoke(self, value: Row, context):  # noqa: D401
         registry = CollectorRegistry()
-        gauge = Gauge("soma_events_per_minute", "Events processed per minute", ["window_start"], registry=registry)
+        gauge = Gauge(
+            "soma_events_per_minute",
+            "Events processed per minute",
+            ["window_start"],
+            registry=registry,
+        )
         gauge.labels(window_start=str(value.window_start)).set(value.cnt)
         push_to_gateway(self._pushgateway, job=self._job_name, registry=registry)
 

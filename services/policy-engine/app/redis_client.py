@@ -32,6 +32,7 @@ async def _build_client():
 # Note: policy modules can await _ensure_client() to lazily establish connection
 redis_client = None
 
+
 async def _ensure_client():
     global redis_client
     if redis_client is None:

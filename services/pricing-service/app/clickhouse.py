@@ -1,7 +1,9 @@
 from clickhouse_driver import Client
+
 from .config import get_settings
 
 _client = None
+
 
 def get_client() -> Client:
     global _client

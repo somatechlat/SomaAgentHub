@@ -26,16 +26,16 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import timedelta
-from typing import Any, Dict
+from typing import Any
 
-from temporalio import activity, workflow
+from temporalio import workflow
+
 from services.common.observability import get_meter, get_tracer
-import subprocess
-from prometheus_client import Counter
 
 # ---------------------------------------------------------------------------
 # Input model
 # ---------------------------------------------------------------------------
+
 
 @dataclass
 class CapsuleRunInput:
@@ -56,8 +56,8 @@ class CapsuleRunInput:
     version: str
     tenant: str
     user: str
-    params: Dict[str, Any]
-    metadata: Dict[str, Any]
+    params: dict[str, Any]
+    metadata: dict[str, Any]
 
     # Compatibility fields for the fake client used in tests.
     session_id: str = ""
@@ -91,6 +91,7 @@ _capsule_histogram = _capsule_meter.create_histogram(
 
 _tracer = get_tracer("capsule_workflow")
 
+
 @workflow.defn(name="capsule-run-workflow")
 class CapsuleRunWorkflow:
     """Temporal workflow that orchestrates a single capsule execution.
@@ -104,11 +105,14 @@ class CapsuleRunWorkflow:
     @workflow.run
     async def run(self, payload: CapsuleRunInput) -> str:
         # Increment the total run counter.
-        _capsule_counter.add(1, {
-            "capsule": payload.capsule_id,
-            "version": payload.version,
-            "tenant": payload.tenant,
-        })
+        _capsule_counter.add(
+            1,
+            {
+                "capsule": payload.capsule_id,
+                "version": payload.version,
+                "tenant": payload.tenant,
+            },
+        )
 
         # Start a span for the whole workflow execution.
         with _tracer.start_as_current_span("capsule_run_workflow") as span:

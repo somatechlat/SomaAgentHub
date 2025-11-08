@@ -59,8 +59,18 @@ _DRIVER_IMPL = _load_real_driver()
 if _DRIVER_IMPL is not None:
     # Mirror the external driver's public surface so downstream imports
     # behave exactly as if they imported the official package.
-    globals().update({name: getattr(_DRIVER_IMPL, name) for name in dir(_DRIVER_IMPL) if not name.startswith("__")})
-    __all__ = getattr(_DRIVER_IMPL, "__all__", [name for name in globals() if not name.startswith("__")])
+    globals().update(
+        {
+            name: getattr(_DRIVER_IMPL, name)
+            for name in dir(_DRIVER_IMPL)
+            if not name.startswith("__")
+        }
+    )
+    __all__ = getattr(
+        _DRIVER_IMPL,
+        "__all__",
+        [name for name in globals() if not name.startswith("__")],
+    )
 else:
 
     class Client:

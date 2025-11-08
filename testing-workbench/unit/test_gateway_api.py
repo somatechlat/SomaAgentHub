@@ -3,13 +3,13 @@ Gateway API Unit Tests
 Tests for Gateway API service functionality.
 """
 
-import pytest
 import httpx
+import pytest
 
 
 class TestGatewayAPI:
     """Unit tests for Gateway API service."""
-    
+
     @pytest.mark.asyncio
     async def test_gateway_healthz(self, http_client, test_config):
         """Test Gateway /healthz endpoint."""
@@ -25,7 +25,7 @@ class TestGatewayAPI:
             assert "redis" in data["checks"]
         except httpx.ConnectError:
             pytest.skip("Gateway API not running")
-    
+
     @pytest.mark.asyncio
     async def test_gateway_ready(self, http_client, test_config):
         """Test Gateway /ready endpoint."""
@@ -37,7 +37,7 @@ class TestGatewayAPI:
             assert "details" in data
         except httpx.ConnectError:
             pytest.skip("Gateway API not running")
-    
+
     @pytest.mark.asyncio
     async def test_gateway_root(self, http_client, test_config):
         """Test Gateway root endpoint."""
@@ -48,7 +48,7 @@ class TestGatewayAPI:
             assert data["message"] == "SomaAgentHub Service"
         except httpx.ConnectError:
             pytest.skip("Gateway API not running")
-    
+
     @pytest.mark.asyncio
     async def test_gateway_metrics(self, http_client, test_config):
         """Test Gateway /metrics endpoint."""
@@ -59,7 +59,7 @@ class TestGatewayAPI:
             assert "# HELP" in response.text or "# TYPE" in response.text
         except httpx.ConnectError:
             pytest.skip("Gateway API not running")
-    
+
     @pytest.mark.asyncio
     async def test_list_wizards(self, http_client, test_config):
         """Test Gateway /v1/wizards endpoint."""

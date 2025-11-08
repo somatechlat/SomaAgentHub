@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import contextvars
 import uuid
-from typing import Any, Dict
+from typing import Any
 
 from fastapi import Request
 
@@ -18,7 +18,7 @@ _request_context_var: contextvars.ContextVar[RequestContext] = contextvars.Conte
 def build_request_context(
     request: Request,
     defaults: dict[str, str],
-    claims: Dict[str, Any],
+    claims: dict[str, Any],
 ) -> RequestContext:
     tenant_id = claims.get("tenant_id") or defaults.get("default_tenant_id")
     if not tenant_id:

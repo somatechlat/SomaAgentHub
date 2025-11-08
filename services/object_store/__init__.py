@@ -14,8 +14,8 @@ This file makes the above import work without moving or renaming the existing
 code.
 """
 
-import pkgutil
 import pathlib
+import pkgutil
 
 # Resolve the sibling directory that actually contains the implementation.
 _repo_root = pathlib.Path(__file__).resolve().parent.parent

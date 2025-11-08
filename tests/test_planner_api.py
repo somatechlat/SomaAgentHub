@@ -8,15 +8,19 @@ router.
 
 from __future__ import annotations
 
-import pytest
 import httpx
+import pytest
+
+# Import the router module so we can monkey‑patch the singleton service/repo.
+from services.orchestrator.app.api.planner import _repo, _service, router
 
 # Import the FastAPI app for the orchestrator service.
 from services.orchestrator.app.main import app
-
-# Import the router module so we can monkey‑patch the singleton service/repo.
-from services.orchestrator.app.api.planner import _service, _repo, router
-from services.orchestrator.app.planner.schemas import ProjectPlan, PlannerRequest, PlannerContext
+from services.orchestrator.app.planner.schemas import (
+    PlannerContext,
+    PlannerRequest,
+    ProjectPlan,
+)
 
 
 @pytest.fixture(autouse=True)
@@ -50,7 +54,9 @@ async def test_generate_plan_success(monkeypatch):
     """POST /v1/planner/generate returns a persisted ProjectPlan."""
     expected = dummy_plan()
 
-    async def fake_generate(request: PlannerRequest, context: PlannerContext) -> ProjectPlan:
+    async def fake_generate(
+        request: PlannerRequest, context: PlannerContext
+    ) -> ProjectPlan:
         return expected
 
     monkeypatch.setattr(_service, "generate_plan", fake_generate)
@@ -82,7 +88,9 @@ async def test_batch_generate_parallel(monkeypatch):
     """POST /v1/planner/batch/generate runs multiple generations concurrently."""
     plans = [dummy_plan(f"plan-{i}") for i in range(3)]
 
-    async def fake_generate(request: PlannerRequest, context: PlannerContext) -> ProjectPlan:
+    async def fake_generate(
+        request: PlannerRequest, context: PlannerContext
+    ) -> ProjectPlan:
         # Return the next plan from the list.
         return plans.pop(0)
 

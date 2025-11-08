@@ -10,7 +10,7 @@ from dataclasses import dataclass, field
 @dataclass
 class Message:
     """Chat message."""
-    
+
     id: str
     conversation_id: str
     role: str  # user, assistant, system
@@ -22,7 +22,7 @@ class Message:
 @dataclass
 class Conversation:
     """Chat conversation."""
-    
+
     id: str
     user_id: str
     messages: List[Message] = field(default_factory=list)
@@ -34,7 +34,7 @@ class Conversation:
 @dataclass
 class Capsule:
     """Marketplace capsule metadata."""
-    
+
     id: str
     name: str
     description: str
@@ -51,7 +51,7 @@ class Capsule:
 @dataclass
 class Task:
     """Project or workflow task description."""
-    
+
     id: str
     status: str
     name: Optional[str] = None
@@ -66,7 +66,7 @@ class Task:
 @dataclass
 class Agent:
     """AI agent."""
-    
+
     id: str
     name: str
     instructions: str
@@ -79,7 +79,7 @@ class Agent:
 @dataclass
 class WorkflowRun:
     """Workflow execution run."""
-    
+
     id: str
     workflow_type: str
     status: str  # running, completed, failed

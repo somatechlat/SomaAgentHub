@@ -3,11 +3,10 @@
 from __future__ import annotations
 
 import os
-from typing import Callable
+from collections.abc import Callable
 
 from fastapi import HTTPException, Request, status
 from fastapi.responses import JSONResponse
-
 from starlette.middleware.base import BaseHTTPMiddleware
 
 from .auth import decode_token
@@ -36,12 +35,13 @@ class ContextMiddleware(BaseHTTPMiddleware):
         environment = (settings.environment or "development").lower()
         self._allow_anonymous = environment != "production"
         self._anonymous_user = os.getenv("SOMAGENT_GATEWAY_ANON_USER", "dev-user")
-        
+
         # Check if OPA is configured
         self._opa_enabled = bool(os.getenv("OPA_URL"))
         if self._opa_enabled:
             try:
                 from services.common.opa_client import get_opa_client
+
                 self._opa_client = get_opa_client()
             except Exception:
                 self._opa_enabled = False
@@ -68,12 +68,17 @@ class ContextMiddleware(BaseHTTPMiddleware):
                 "capabilities": [],
             }
         else:
-            return JSONResponse(status_code=status.HTTP_401_UNAUTHORIZED, content={"detail": "Missing bearer token"})
+            return JSONResponse(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                content={"detail": "Missing bearer token"},
+            )
 
         try:
             ctx = build_request_context(request, self._defaults, claims)
         except ValueError as exc:
-            return JSONResponse(status_code=status.HTTP_400_BAD_REQUEST, content={"detail": str(exc)})
+            return JSONResponse(
+                status_code=status.HTTP_400_BAD_REQUEST, content={"detail": str(exc)}
+            )
 
         if self._allowed_tenants and ctx.tenant_id not in self._allowed_tenants:
             return JSONResponse(
@@ -96,7 +101,7 @@ class ContextMiddleware(BaseHTTPMiddleware):
                         "method": request.method,
                         "client_type": ctx.client_type,
                         "deployment_mode": ctx.deployment_mode,
-                    }
+                    },
                 )
                 if not authorized:
                     return JSONResponse(

@@ -3,8 +3,9 @@
 from __future__ import annotations
 
 import os
+from collections.abc import Iterable, Sequence
 from dataclasses import dataclass
-from typing import Any, Dict, Iterable, List, Optional, Sequence
+from typing import Any
 
 try:  # pragma: no cover - optional dependency for production
     import numpy as _np  # type: ignore
@@ -20,7 +21,7 @@ class RetrievalConfig:
 
     top_k: int = 8
     include_scores: bool = True
-    use_geodesic: Optional[bool] = None
+    use_geodesic: bool | None = None
 
 
 @dataclass(slots=True)
@@ -29,7 +30,7 @@ class MemoryResult:
 
     memory_id: str
     score: float
-    payload: Dict[str, Any]
+    payload: dict[str, Any]
 
 
 class MemoryClient:
@@ -45,7 +46,7 @@ class MemoryClient:
         self,
         vector_store: Any,
         *,
-        geodesic_kernel: Optional[GeodesicKernel] = None,
+        geodesic_kernel: GeodesicKernel | None = None,
         default_top_k: int = 8,
     ) -> None:
         self._vector_store = vector_store
@@ -58,8 +59,8 @@ class MemoryClient:
         self,
         embedding: Sequence[float],
         *,
-        config: Optional[RetrievalConfig] = None,
-    ) -> List[MemoryResult]:
+        config: RetrievalConfig | None = None,
+    ) -> list[MemoryResult]:
         """Retrieve relevant memories using cosine or geodesic similarity."""
 
         cfg = config or RetrievalConfig(top_k=self._default_top_k)
@@ -73,7 +74,7 @@ class MemoryClient:
         )
         scores = self._score_results(embedding, raw_hits, use_geodesic)
 
-        results: List[MemoryResult] = []
+        results: list[MemoryResult] = []
         for hit, score in zip(raw_hits, scores):
             payload = getattr(hit, "payload", {}) or {}
             memory_id = payload.get("id") or getattr(hit, "id", "unknown")
@@ -91,7 +92,7 @@ class MemoryClient:
         query: Sequence[float],
         hits: Iterable[Any],
         use_geodesic: bool,
-    ) -> List[float]:
+    ) -> list[float]:
         embeddings = [self._extract_embedding(hit) for hit in hits]
         if not embeddings:
             return []
@@ -102,8 +103,8 @@ class MemoryClient:
     def _cosine_scores(
         self,
         query: Sequence[float],
-        embeddings: List[Sequence[float]],
-    ) -> List[float]:
+        embeddings: list[Sequence[float]],
+    ) -> list[float]:
         if _np is not None:
             q = _np.asarray(query)
             q_norm = _np.linalg.norm(q) or 1.0
@@ -125,7 +126,7 @@ class MemoryClient:
 
         q_norm = norm(query)
         normalized_query = [x / q_norm for x in query]
-        scores: List[float] = []
+        scores: list[float] = []
         for emb in embeddings:
             v_norm = norm(emb)
             normalized = [x / v_norm for x in emb]

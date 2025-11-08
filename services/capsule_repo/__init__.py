@@ -6,9 +6,9 @@ statements such as ``import services.capsule_repo.app.main`` we provide this
 shim that simply re‑exports the module tree from the real directory.
 """
 
-from importlib import import_module
-import sys
 import pathlib
+import sys
+from importlib import import_module
 
 # Resolve the absolute path of the sibling ``capsule-repo`` package.
 _pkg_path = pathlib.Path(__file__).resolve().parent.parent / "capsule-repo"

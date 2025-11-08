@@ -3,19 +3,17 @@
 # imports like ``from slm.producer import Producer`` to resolve to the files in
 # that directory without duplicating code.
 
-import pathlib
 import asyncio
+import pathlib
 
 _service_path = (
-    pathlib.Path(__file__).resolve().parent.parent
-    / "services"
-    / "slm-service"
-    / "slm"
+    pathlib.Path(__file__).resolve().parent.parent / "services" / "slm-service" / "slm"
 )
 
 if _service_path.is_dir():
     # Prepend so our proxy takes precedence.
     __path__.insert(0, str(_service_path))
+
 
 # Ensure an event loop exists for test code that uses ``asyncio.get_event_loop``
 # which raises RuntimeError when no loop is set (Python 3.11+).
@@ -34,6 +32,7 @@ class _TestLoopPolicy(asyncio.DefaultEventLoopPolicy):
             loop = self.new_event_loop()
             self.set_event_loop(loop)
             return loop
+
 
 asyncio.set_event_loop_policy(_TestLoopPolicy())
 

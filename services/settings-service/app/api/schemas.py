@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from pydantic import BaseModel, Field
 
@@ -40,9 +40,9 @@ class NotificationChannel(BaseModel):
 
 class NotificationPreferences(BaseModel):
     tenant_id: str
-    user_id: Optional[str] = None
-    quiet_hours: Optional[str] = None
-    channels: List[NotificationChannel] = Field(default_factory=list)
+    user_id: str | None = None
+    quiet_hours: str | None = None
+    channels: list[NotificationChannel] = Field(default_factory=list)
 
 
 class AttestationRecord(BaseModel):
@@ -60,31 +60,31 @@ class ComplianceIssue(BaseModel):
 
 class ComplianceReport(BaseModel):
     passed: bool
-    issues: List[ComplianceIssue] = Field(default_factory=list)
+    issues: list[ComplianceIssue] = Field(default_factory=list)
 
 
 class BillingRecordRequest(BaseModel):
     tenant_id: str
-    capsule_id: Optional[str] = None
+    capsule_id: str | None = None
     tokens: int
     cost_usd: float
     recorded_by: str
-    metadata: Dict[str, Any] = Field(default_factory=dict)
+    metadata: dict[str, Any] = Field(default_factory=dict)
 
 
 class BillingEvent(BaseModel):
     event_id: str
     tenant_id: str
-    capsule_id: Optional[str] = None
+    capsule_id: str | None = None
     tokens: int
     cost_usd: float
     recorded_at: datetime
     recorded_by: str
-    metadata: Dict[str, Any] = Field(default_factory=dict)
+    metadata: dict[str, Any] = Field(default_factory=dict)
 
 
 class BillingLedger(BaseModel):
     tenant_id: str
     total_tokens: int
     total_cost_usd: float
-    events: List[BillingEvent] = Field(default_factory=list)
+    events: list[BillingEvent] = Field(default_factory=list)

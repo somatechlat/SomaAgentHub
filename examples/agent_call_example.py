@@ -31,7 +31,7 @@ import asyncio
 import json
 import os
 import sys
-from typing import Any, Dict, Optional
+from typing import Any
 
 try:
     from somaagent import AsyncSomaAgentClient
@@ -42,7 +42,7 @@ except ImportError as exc:  # pragma: no cover - helpful guidance
     ) from exc
 
 
-def _env_default(name: str, fallback: Optional[str] = None) -> Optional[str]:
+def _env_default(name: str, fallback: str | None = None) -> str | None:
     """Return environment override if present."""
 
     value = os.getenv(name)
@@ -82,7 +82,7 @@ def build_parser() -> argparse.ArgumentParser:
     return parser
 
 
-async def run_example(args: argparse.Namespace) -> Dict[str, Any]:
+async def run_example(args: argparse.Namespace) -> dict[str, Any]:
     """Execute the example workflow and return structured result."""
 
     async with AsyncSomaAgentClient(
@@ -115,7 +115,7 @@ async def run_example(args: argparse.Namespace) -> Dict[str, Any]:
         return result
 
 
-def pretty_print(result: Dict[str, Any], *, dump_json: bool = False) -> None:
+def pretty_print(result: dict[str, Any], *, dump_json: bool = False) -> None:
     """Display example results in a friendly format."""
 
     if dump_json:

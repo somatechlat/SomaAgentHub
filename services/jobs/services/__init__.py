@@ -3,5 +3,7 @@
 This file uses pkgutil.extend_path so that the 'services' package can be split across
 multiple locations (the repository root and the test's added path).
 """
+
 import pkgutil
+
 __path__ = pkgutil.extend_path(__path__, __name__)

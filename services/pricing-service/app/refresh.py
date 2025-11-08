@@ -1,15 +1,17 @@
+import logging
 import threading
 import time
-from typing import List
+
 from .aggregator import fetch_live_offers
 from .clickhouse import get_client
-from .models import PricingOffer
 from .config import get_settings
+from .models import PricingOffer
 
 _running = False
+logger = logging.getLogger(__name__)
 
 
-def _ingest_offers(offers: List[PricingOffer]) -> None:
+def _ingest_offers(offers: list[PricingOffer]) -> None:
     ch = get_client()
     rows = [
         (
@@ -61,9 +63,9 @@ def _loop():
                 try:
                     _ingest_offers(offers)
                 except Exception as e:
-                    print(f"[pricing-service] ingest failed: {e}")
+                    logger.warning("[pricing-service] ingest failed: %s", e)
         except Exception as e:
-            print(f"[pricing-service] refresh loop error: {e}")
+            logger.warning("[pricing-service] refresh loop error: %s", e)
         time.sleep(interval)
 
 

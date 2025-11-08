@@ -2,11 +2,16 @@
 
 from __future__ import annotations
 
-from typing import List
-
-from .models import Plan
 from sqlmodel import select
+
 from ..database import get_async_session
+from .models import (
+    Plan,
+    PlanModuleRecord,
+    PlanEvent,
+    ToolBindingRecord,
+    ProvisioningTaskRecord,
+)
 
 
 class PlanRepository:
@@ -51,7 +56,7 @@ class PlanRepository:
             result = await session.exec(statement)
             return result.first()
 
-    async def list_modules(self, plan_id: str) -> List[PlanModuleRecord]:
+    async def list_modules(self, plan_id: str) -> list[PlanModuleRecord]:
         raise NotImplementedError
 
     async def upsert_module(self, module: PlanModuleRecord) -> None:
@@ -60,19 +65,21 @@ class PlanRepository:
     async def append_event(self, event: PlanEvent) -> None:
         raise NotImplementedError
 
-    async def list_events(self, plan_id: str) -> List[PlanEvent]:
+    async def list_events(self, plan_id: str) -> list[PlanEvent]:
         raise NotImplementedError
 
     async def upsert_tool_binding(self, binding: ToolBindingRecord) -> None:
         raise NotImplementedError
 
-    async def list_tool_bindings(self, plan_id: str) -> List[ToolBindingRecord]:
+    async def list_tool_bindings(self, plan_id: str) -> list[ToolBindingRecord]:
         raise NotImplementedError
 
     async def upsert_provisioning_task(self, task: ProvisioningTaskRecord) -> None:
         raise NotImplementedError
 
-    async def list_provisioning_tasks(self, plan_id: str) -> List[ProvisioningTaskRecord]:
+    async def list_provisioning_tasks(
+        self, plan_id: str
+    ) -> list[ProvisioningTaskRecord]:
         raise NotImplementedError
 
     async def delete_plan(self, plan_id: str) -> None:

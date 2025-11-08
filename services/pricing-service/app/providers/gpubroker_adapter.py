@@ -1,8 +1,10 @@
-from typing import List
-from datetime import datetime, timezone
+from datetime import UTC, datetime
+
 import httpx
-from ..models import PricingOffer
+
 from ..config import get_settings
+from ..models import PricingOffer
+
 
 class GPUBrokerAdapter:
     def __init__(self, base_url: str):
@@ -11,7 +13,7 @@ class GPUBrokerAdapter:
     def name(self) -> str:
         return "gpubroker"
 
-    def fetch(self) -> List[PricingOffer]:
+    def fetch(self) -> list[PricingOffer]:
         url = self.base_url + "/providers"
         try:
             with httpx.Client(timeout=5.0) as client:
@@ -20,17 +22,25 @@ class GPUBrokerAdapter:
             data = r.json()
         except Exception:
             return []
-        offers: List[PricingOffer] = []
-        items = data if isinstance(data, list) else data.get("items") or data.get("providers") or []
-        now = datetime.now(timezone.utc)
+        offers: list[PricingOffer] = []
+        items = (
+            data
+            if isinstance(data, list)
+            else data.get("items") or data.get("providers") or []
+        )
+        now = datetime.now(UTC)
         for it in items:
             try:
                 price_hour = float(it.get("price_per_hour"))
                 offers.append(
                     PricingOffer(
                         id=str(it.get("id") or it.get("name") or "gpu-offer"),
-                        provider=str(it.get("provider") or it.get("source") or "unknown"),
-                        gpu_model=str(it.get("gpu") or it.get("gpu_model") or "unknown"),
+                        provider=str(
+                            it.get("provider") or it.get("source") or "unknown"
+                        ),
+                        gpu_model=str(
+                            it.get("gpu") or it.get("gpu_model") or "unknown"
+                        ),
                         vram_gb=float(it.get("vram_gb") or 0.0),
                         cpu_cores=int(it.get("cpu_cores") or 0),
                         ram_gb=float(it.get("ram_gb") or 0.0),
@@ -47,7 +57,9 @@ class GPUBrokerAdapter:
                         billing_increment_min=int(it.get("billing_increment_min") or 0),
                         min_rent_hours=float(it.get("min_rent_hours") or 0.0),
                         provision_latency_s=float(it.get("provision_latency_s") or 0.0),
-                        deprovision_latency_s=float(it.get("deprovision_latency_s") or 0.0),
+                        deprovision_latency_s=float(
+                            it.get("deprovision_latency_s") or 0.0
+                        ),
                         last_seen_at=now,
                         source="gpubroker",
                         confidence=0.8,

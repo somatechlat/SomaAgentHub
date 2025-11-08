@@ -159,7 +159,9 @@ class Settings(BaseSettings):
         ),
     )
     clickhouse_host_raw: str | None = Field(
-        default=runtime_default("clickhouse", "clickhouse.soma-infra.svc.cluster.local"),
+        default=runtime_default(
+            "clickhouse", "clickhouse.soma-infra.svc.cluster.local"
+        ),
         validation_alias=AliasChoices(
             "SOMASTACK_CLICKHOUSE_HOST",
             "SOMAGENT_CLICKHOUSE_HOST",

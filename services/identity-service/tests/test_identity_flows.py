@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from fastapi import status
 
@@ -21,7 +21,9 @@ def test_user_token_flow(client) -> None:
     assert enroll.status_code == status.HTTP_200_OK
     secret = enroll.json()["secret"]
 
-    verify = client.post("/v1/users/alice/mfa/verify", json={"user_id": "alice", "code": secret})
+    verify = client.post(
+        "/v1/users/alice/mfa/verify", json={"user_id": "alice", "code": secret}
+    )
     assert verify.status_code == status.HTTP_200_OK
     assert verify.json()["mfa_enabled"] is True
 
@@ -45,7 +47,7 @@ def test_user_token_flow(client) -> None:
     assert body["user_id"] == "alice"
     assert body["tenant_id"] == "tenant-1"
     assert "session:start" in body["capabilities"]
-    assert datetime.fromisoformat(body["expires_at"]) > datetime.now(timezone.utc)
+    assert datetime.fromisoformat(body["expires_at"]) > datetime.now(UTC)
 
     revoke = client.post("/v1/tokens/revoke", json={"token": token})
     assert revoke.status_code == status.HTTP_200_OK

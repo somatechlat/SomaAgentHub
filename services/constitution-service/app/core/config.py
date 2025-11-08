@@ -1,7 +1,7 @@
 """Configuration for the constitution service."""
 
-from functools import lru_cache
 import os
+from functools import lru_cache
 from pathlib import Path
 
 from pydantic import Field
@@ -17,6 +17,7 @@ class Settings(BaseSettings):
     # ``default_port`` is a constant, not a Pydantic field, so we annotate it as
     # ``ClassVar`` to avoid the ``non‑annotated attribute`` validation error.
     from typing import ClassVar
+
     default_port: ClassVar[str] = os.getenv("MEMORY_GATEWAY_PORT", "10021")
     somabrain_base_url: str = os.getenv(
         "SOMABRAIN_BASE_URL",
@@ -27,14 +28,22 @@ class Settings(BaseSettings):
     http_timeout_seconds: float = 30.0
     sync_interval_seconds: float = 300.0
     sync_enabled: bool = True
-    data_dir: Path = Field(default_factory=lambda: Path(__file__).resolve().parent.parent / "data")
+    data_dir: Path = Field(
+        default_factory=lambda: Path(__file__).resolve().parent.parent / "data"
+    )
     bundle_path: Path | None = None
     public_key_path: Path | None = None
     private_key_path: Path | None = None
-    tenants: list[str] = Field(default_factory=lambda: ["somagent", "tenantA", "tenantB"])
-    model_config = SettingsConfigDict(env_prefix="SOMAGENT_CONSTITUTION_", extra="allow")
+    tenants: list[str] = Field(
+        default_factory=lambda: ["somagent", "tenantA", "tenantB"]
+    )
+    model_config = SettingsConfigDict(
+        env_prefix="SOMAGENT_CONSTITUTION_", extra="allow"
+    )
 
-    def model_post_init(self, __context) -> None:  # pragma: no cover - simple config wiring
+    def model_post_init(
+        self, __context
+    ) -> None:  # pragma: no cover - simple config wiring
         if self.bundle_path is None:
             self.bundle_path = self.data_dir / "constitution_bundle.json"
         if self.public_key_path is None:

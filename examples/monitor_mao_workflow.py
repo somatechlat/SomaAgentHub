@@ -8,7 +8,7 @@ import json
 import os
 import sys
 import time
-from typing import Any, Dict
+from typing import Any
 
 import requests
 
@@ -55,13 +55,13 @@ def build_parser() -> argparse.ArgumentParser:
     return parser
 
 
-def fetch_status(orchestrator_url: str, workflow_id: str) -> Dict[str, Any]:
+def fetch_status(orchestrator_url: str, workflow_id: str) -> dict[str, Any]:
     resp = requests.get(f"{orchestrator_url}/v1/mao/{workflow_id}", timeout=10)
     resp.raise_for_status()
     return resp.json()
 
 
-def print_status(payload: Dict[str, Any], *, raw: bool, show_history: bool) -> None:
+def print_status(payload: dict[str, Any], *, raw: bool, show_history: bool) -> None:
     if raw:
         print(json.dumps(payload, indent=2))
         return
@@ -96,7 +96,10 @@ def main() -> int:
         try:
             payload = fetch_status(args.orchestrator_url, args.workflow_id)
         except requests.HTTPError as exc:
-            print(f"HTTP error: {exc.response.status_code} {exc.response.text}", file=sys.stderr)
+            print(
+                f"HTTP error: {exc.response.status_code} {exc.response.text}",
+                file=sys.stderr,
+            )
             return 1
         except Exception as exc:  # pragma: no cover - network edge cases
             print(f"ERROR: {exc}", file=sys.stderr)

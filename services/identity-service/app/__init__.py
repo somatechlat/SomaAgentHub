@@ -12,6 +12,6 @@ import sys
 # The repository root is four levels up from this file (service/app/__init__.py).
 _repo_root = pathlib.Path(__file__).resolve().parents[3]
 if str(_repo_root) not in sys.path:
-	sys.path.insert(0, str(_repo_root))
+    sys.path.insert(0, str(_repo_root))
 
-import services._path_setup  # noqa: F401
+import services._path_setup  # noqa: F401,E402

@@ -1,8 +1,8 @@
 from __future__ import annotations
 
-from datetime import datetime, timedelta, timezone
-from pathlib import Path
 import sys
+from datetime import UTC, datetime, timedelta
+from pathlib import Path
 
 import pytest
 from fastapi.testclient import TestClient
@@ -11,8 +11,9 @@ PROJECT_ROOT = Path(__file__).resolve().parents[3]
 SERVICE_ROOT = PROJECT_ROOT / "services" / "analytics-service"
 sys.path.insert(0, str(SERVICE_ROOT))
 
-from app.main import app  # type: ignore  # noqa: E402
 from app.core.store import store  # type: ignore  # noqa: E402
+
+from app.main import app  # type: ignore  # noqa: E402
 
 client = TestClient(app)
 
@@ -28,8 +29,8 @@ def setup_function() -> None:
 
 
 def test_record_benchmark_run_and_scoreboard() -> None:
-    started = datetime.now(timezone.utc) - timedelta(seconds=10)
-    completed = datetime.now(timezone.utc)
+    started = datetime.now(UTC) - timedelta(seconds=10)
+    completed = datetime.now(UTC)
     payload = {
         "suite": "session",
         "scenario": "fast_path",
@@ -70,8 +71,8 @@ def test_rejects_non_numeric_metrics() -> None:
         "scenario": "bad_metric",
         "service": "orchestrator",
         "target": "http://localhost:8002",
-    "started_at": datetime.now(timezone.utc).isoformat(),
-    "completed_at": datetime.now(timezone.utc).isoformat(),
+        "started_at": datetime.now(UTC).isoformat(),
+        "completed_at": datetime.now(UTC).isoformat(),
         "metrics": {"latency_p95_ms": "unknown"},
     }
 
@@ -81,8 +82,8 @@ def test_rejects_non_numeric_metrics() -> None:
 
 
 def test_agent_one_sight_dashboard_combines_sections() -> None:
-    started = datetime.now(timezone.utc) - timedelta(seconds=5)
-    completed = datetime.now(timezone.utc)
+    started = datetime.now(UTC) - timedelta(seconds=5)
+    completed = datetime.now(UTC)
     benchmark_payload = {
         "suite": "session",
         "scenario": "overview",
@@ -90,7 +91,11 @@ def test_agent_one_sight_dashboard_combines_sections() -> None:
         "target": "http://localhost:8002",
         "started_at": started.isoformat(),
         "completed_at": completed.isoformat(),
-        "metrics": {"latency_p95_ms": 800, "requests_per_second": 90, "error_rate": 0.01},
+        "metrics": {
+            "latency_p95_ms": 800,
+            "requests_per_second": 90,
+            "error_rate": 0.01,
+        },
     }
     assert client.post("/v1/benchmarks/run", json=benchmark_payload).status_code == 201
 

@@ -4,10 +4,9 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from datetime import timedelta
-from typing import Any, Dict
+from typing import Any
 
 from temporalio import activity, workflow
-
 
 # ---------------------------------------------------------------------------
 # Data contracts
@@ -22,7 +21,7 @@ class PersonaRentalRequest:
     model_box_id: str
     renter: str
     duration_minutes: int = 10
-    context: Dict[str, Any] = field(default_factory=dict)
+    context: dict[str, Any] = field(default_factory=dict)
 
 
 @dataclass
@@ -33,7 +32,7 @@ class PersonaRentalResult:
     status: str
     started_at: str
     ended_at: str
-    metadata: Dict[str, Any] = field(default_factory=dict)
+    metadata: dict[str, Any] = field(default_factory=dict)
 
 
 # ---------------------------------------------------------------------------
@@ -42,7 +41,7 @@ class PersonaRentalResult:
 
 
 @activity.defn(name="persona-rental.begin")
-async def begin_rental(request: PersonaRentalRequest) -> Dict[str, Any]:
+async def begin_rental(request: PersonaRentalRequest) -> dict[str, Any]:
     """Reserve entitlements, create session scaffolding, and emit audit events."""
 
     activity.logger.info(
@@ -63,7 +62,7 @@ async def begin_rental(request: PersonaRentalRequest) -> Dict[str, Any]:
 
 
 @activity.defn(name="persona-rental.cleanup")
-async def cleanup_rental(request: PersonaRentalRequest) -> Dict[str, Any]:
+async def cleanup_rental(request: PersonaRentalRequest) -> dict[str, Any]:
     """Release entitlements, emit completion events, and persist billing usage."""
 
     activity.logger.info(
