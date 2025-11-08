@@ -73,7 +73,7 @@ class SPIFFEAuthenticator:
 
         self.identity = identity
         logger.info(f"Fetched SPIFFE identity: {spiffe_id}")
-        return identity
+        return self.identity
 
     def get_tls_credentials(self) -> tuple[bytes, bytes, bytes]:
         """
@@ -133,6 +133,9 @@ class SPIFFEAuthenticator:
         # SPIRE agent handles automatic rotation
         # This method can be used to force immediate rotation
         logger.info("Certificate rotation requested")
+        if self.identity is None:
+            logger.warning("Cannot rotate certificates: identity not initialized")
+            return
         self.fetch_identity(self.identity.service_name)
 
 

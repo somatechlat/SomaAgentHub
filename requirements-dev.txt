@@ -3,6 +3,8 @@ mypy
 pytest
 pytest-asyncio
 httpx
+types-requests
+types-PyYAML
 pyautogen>=0.2.0
 crewai>=0.28.8
 langgraph>=0.0.39

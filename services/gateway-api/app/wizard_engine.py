@@ -407,13 +407,13 @@ class WizardEngine:
             if operator == "!=":
                 return left != right
             if operator == ">":
-                return left > right  # type: ignore[operator]
+                return left > right
             if operator == "<":
-                return left < right  # type: ignore[operator]
+                return left < right
             if operator == ">=":
-                return left >= right  # type: ignore[operator]
+                return left >= right
             if operator == "<=":
-                return left <= right  # type: ignore[operator]
+                return left <= right
         except TypeError:
             return False
         return False

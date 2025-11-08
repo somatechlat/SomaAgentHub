@@ -5,6 +5,7 @@ This service manages the lifecycle of multi-agent projects using Temporal workfl
 """
 
 from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect
+from contextlib import asynccontextmanager
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 from typing import List, Dict, Any, Optional
@@ -91,10 +92,28 @@ class ProjectStatusResponse(BaseModel):
 
 # FastAPI app
 
+temporal_client: Optional[TemporalClient] = None
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    global temporal_client
+    temporal_client = await TemporalClient.connect(
+        os.getenv("TEMPORAL_HOST", "localhost:10009"),
+        namespace="default",
+    )
+    try:
+        yield
+    finally:
+        if temporal_client:
+            await temporal_client.close()
+
+
 app = FastAPI(
     title="Multi-Agent Orchestrator (MAO) Service",
     description="Orchestrates multi-agent projects using Temporal workflows",
     version="1.0.0",
+    lifespan=lifespan,
 )
 
 app.add_middleware(
@@ -106,28 +125,7 @@ app.add_middleware(
 )
 
 
-# Global Temporal client
-temporal_client: Optional[TemporalClient] = None
-
-
-@app.on_event("startup")
-async def startup_event():
-    """Initialize Temporal client on startup."""
-    global temporal_client
-    
-    temporal_client = await TemporalClient.connect(
-        os.getenv("TEMPORAL_HOST", "localhost:10009"),  # Temporal server address
-        namespace="default",
-    )
-    
-    print("✅ Connected to Temporal server")
-
-
-@app.on_event("shutdown")
-async def shutdown_event():
-    """Cleanup on shutdown."""
-    if temporal_client:
-        await temporal_client.close()
+print("✅ MAO service will connect to Temporal during startup via lifespan")
 
 
 @app.get("/health")

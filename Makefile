@@ -330,7 +330,39 @@ logs-orch:
 # Ensure Gateway (and Orchestrator) are reachable for these
 
 test-int:
-	pytest -q tests/integration/test_workflows.py::test_start_session_via_gateway
+	OTEL_SDK_DISABLED=true $(PYTEST) -q tests/integration
+
+# ---------------------------------------------------------------------------
+# Static analysis & quality gates
+# ---------------------------------------------------------------------------
+.PHONY: lint lint-fix type quality
+lint:
+	@echo "Running ruff lint checks..."
+	@$(PY) -m ruff check .
+
+lint-fix:
+	@echo "Applying ruff autofixes..."
+	@$(PY) -m ruff check --fix .
+
+type:
+	@echo "Running mypy type checks (focused scope for green baseline)..."
+	@(cd services/gateway-api && ../../$(PY) -m mypy --follow-imports=skip app/wizard_engine.py app/api/dashboard.py app/core/context.py app/core/auth.py)
+
+.PHONY: check
+check: ## Run lint + type + focused tests with OTEL disabled
+	@echo "Installing dev dependencies..."
+	@$(PY) -m pip install -r requirements-dev.txt >/dev/null
+	@echo "Running code quality checks (ruff + mypy)..."
+	@$(MAKE) lint
+	@$(MAKE) type
+	@echo "Running unit tests (pricing, gateway) and integration tests..."
+	@OTEL_SDK_DISABLED=true $(PYTEST) -q services/pricing-service/tests
+	@OTEL_SDK_DISABLED=true $(PYTEST) -q services/gateway-api/tests
+	@OTEL_SDK_DISABLED=true $(PYTEST) -q tests/integration
+	@echo "All checks passed."
+
+quality: lint type
+	@echo "Quality gate completed (lint + type)."
 
 # E2E test hits Gateway and polls Orchestrator
 # Optionally override E2E_GATEWAY_URL and E2E_ORCHESTRATOR_URL

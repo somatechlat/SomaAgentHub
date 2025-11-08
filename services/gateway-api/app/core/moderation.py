@@ -5,7 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import List
 
-import redis.asyncio as redis
+from redis.asyncio import Redis, RedisError
 
 from ..models.context import RequestContext
 from .config import GatewaySettings, get_settings
@@ -31,7 +31,7 @@ class ModerationVerdict:
 class ModerationGuard:
     """Performs lightweight content moderation with strike tracking."""
 
-    def __init__(self, redis_client: redis.Redis, settings: GatewaySettings | None = None) -> None:
+    def __init__(self, redis_client: Redis, settings: GatewaySettings | None = None) -> None:
         self.redis = redis_client
         self.settings = settings or get_settings()
         self.block_terms = self.settings.moderation_terms()
@@ -45,7 +45,7 @@ class ModerationGuard:
         key = self._strike_key(tenant_id, user_id)
         try:
             value = await self.redis.get(key)
-        except redis.RedisError as exc:  # noqa: BLE001
+        except RedisError as exc:  # noqa: BLE001
             raise ModerationError("failed to read strike counter") from exc
         if value is None:
             return 0
@@ -60,7 +60,7 @@ class ModerationGuard:
             strikes = await self.redis.incr(key)
             if self.settings.moderation_strike_ttl_seconds > 0:
                 await self.redis.expire(key, self.settings.moderation_strike_ttl_seconds)
-        except redis.RedisError as exc:  # noqa: BLE001
+        except RedisError as exc:  # noqa: BLE001
             raise ModerationError("failed to increment strike counter") from exc
         return int(strikes)
 
@@ -122,5 +122,5 @@ def get_moderation_guard() -> ModerationGuard:
     global _moderation_guard
     if _moderation_guard is None:
         client = get_redis_client()
-        _moderation_guard = ModerationGuard(client)
+        _moderation_guard = ModerationGuard(client)  # RedisClient is compatible for our usage
     return _moderation_guard

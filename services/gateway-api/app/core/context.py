@@ -55,4 +55,7 @@ def reset_request_context(token: contextvars.Token[RequestContext]) -> None:
 
 
 def get_request_context() -> RequestContext | None:
-    return _request_context_var.get(None)  # type: ignore[arg-type]
+    try:
+        return _request_context_var.get()
+    except LookupError:
+        return None

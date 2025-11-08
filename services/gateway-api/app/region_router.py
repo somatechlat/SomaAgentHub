@@ -9,7 +9,7 @@ Routes requests to the appropriate regional backend based on:
 
 import os
 import logging
-from typing import Optional, Dict
+from typing import Optional, Dict, Any, List
 from enum import Enum
 from fastapi import Request, HTTPException
 from geolite2 import geolite2
@@ -70,7 +70,8 @@ class RegionRouter:
             Region enum for routing
         """
         # Get client IP
-        client_ip = request.client.host
+        client_host = request.client
+        client_ip = client_host.host if client_host else "127.0.0.1"
         
         # Check for forwarded IP (behind load balancer)
         forwarded_for = request.headers.get("X-Forwarded-For")
@@ -79,13 +80,15 @@ class RegionRouter:
         
         # Lookup geolocation
         try:
-            match = self.geo_reader.get(client_ip)
-            if match and 'continent' in match:
-                continent = match['continent']['code']
+            match: Dict[str, Any] | None = self.geo_reader.get(client_ip)
+            if match and isinstance(match.get('continent'), dict):
+                code = match['continent'].get('code')
+                continent = str(code) if isinstance(code, str) else None
                 
                 # Route based on continent
                 for region, config in REGION_CONFIG.items():
-                    if continent in config['continents'] and config['enabled']:
+                    continents: List[str] = config['continents']  # type: ignore[assignment]
+                    if continent and continent in continents and bool(config['enabled']):
                         logger.info(f"Routing {client_ip} ({continent}) to {region}")
                         return region
         except Exception as e:
@@ -136,14 +139,15 @@ class RegionRouter:
         Returns:
             Endpoint URL
         """
-        config = REGION_CONFIG.get(region)
+        config: Dict[str, Any] | None = REGION_CONFIG.get(region)
         if not config or not config['enabled']:
             raise HTTPException(
                 status_code=503,
                 detail=f"Region {region} is not available"
             )
         
-        return config['endpoint']
+        endpoint_val = config['endpoint']
+        return str(endpoint_val)
     
     def validate_data_residency(self, user_id: str, target_region: Region) -> bool:
         """
@@ -183,7 +187,7 @@ class RegionRouter:
         # For now, default to US
         return DataResidencyZone.US
     
-    def get_healthy_regions(self) -> list[Region]:
+    def get_healthy_regions(self) -> List[Region]:
         """
         Get list of currently healthy regions.
         
@@ -191,7 +195,6 @@ class RegionRouter:
             List of Region enums that are enabled and healthy
         """
         import httpx
-        import asyncio
         
         healthy = []
         
@@ -201,7 +204,8 @@ class RegionRouter:
             
             # REAL health check: ping regional endpoint
             try:
-                endpoint = config['endpoint'].rstrip('/') + '/healthz'
+                endpoint_val = config['endpoint']
+                endpoint = str(endpoint_val).rstrip('/') + '/healthz'
                 response = httpx.get(endpoint, timeout=5.0)
                 if response.status_code < 500:
                     healthy.append(region)
@@ -222,8 +226,8 @@ class RegionRouter:
         """
         import random
         
-        regions = []
-        weights = []
+        regions: List[Region] = []
+        weights: List[int] = []
         
         for region, config in REGION_CONFIG.items():
             if config['enabled']:

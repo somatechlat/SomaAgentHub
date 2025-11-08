@@ -97,7 +97,7 @@ async def get_current_user(
 # Compatibility shim for the existing middleware
 # ---------------------------------------------------------------------------
 
-async def decode_token(token: str) -> dict[str, Any]:
+async def decode_token(token: str) -> Mapping[str, Any]:
     """Decode a JWT token using the Identity Service.
 
     The original implementation performed local JWT validation or delegated to

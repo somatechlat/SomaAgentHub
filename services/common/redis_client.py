@@ -15,10 +15,15 @@ try:
     import redis.asyncio as redis
     from redis.asyncio import Redis
     from redis.exceptions import RedisError
-except ImportError:
+except Exception:  # pragma: no cover - fallback if redis not installed
     redis = None
-    Redis = None
-    RedisError = Exception
+    # Lightweight fallback stubs for typing when redis isn't present
+    class _RedisStub:  # noqa: D401
+        pass
+    class _RedisErrorStub(Exception):
+        pass
+    Redis = _RedisStub
+    RedisError = _RedisErrorStub
 
 
 class RedisClient:
@@ -56,11 +61,12 @@ class RedisClient:
 
     async def close(self) -> None:
         """Close Redis connection pool."""
-        if self._client:
+        if self._client is not None:
             await self._client.close()
             self._client = None
         if self._pool:
-            await self._pool.disconnect()
+            # ConnectionPool.disconnect is sync in redis-py
+            self._pool.disconnect()
 
     # ============================================================================
     # Key-Value Operations
@@ -93,9 +99,9 @@ class RedisClient:
         client = await self.get_client()
         try:
             if ttl:
-                return await client.setex(key, ttl, value)
+                return bool(await client.setex(key, ttl, value))
             else:
-                return await client.set(key, value)
+                return bool(await client.set(key, value))
         except RedisError as exc:
             raise RuntimeError(f"Redis SET error for key {key}: {exc}") from exc
 
@@ -171,7 +177,7 @@ class RedisClient:
         """Get all hash fields and values."""
         client = await self.get_client()
         try:
-            return await client.hgetall(name)
+            return dict(await client.hgetall(name))
         except RedisError as exc:
             raise RuntimeError(f"Redis HGETALL error: {exc}") from exc
 
