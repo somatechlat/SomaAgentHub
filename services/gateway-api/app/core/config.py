@@ -35,6 +35,7 @@ class GatewaySettings(SharedSettings):
     service_name: str = Field(default="sah", alias="SERVICE_NAME")
     debug: bool = Field(default=False, alias="DEBUG")
     orchestrator_url: str = Field(default="http://orchestrator:10001", alias="ORCHESTRATOR_URL")
+    pricing_service_url: str = Field(default="http://pricing-service:10026", alias="PRICING_SERVICE_URL")
     redis_url: str | None = Field(default="redis://redis:6379/0", alias="REDIS_URL")
     kafka_bootstrap_servers_raw: str | None = Field(default="kafka:9092", alias="KAFKA_BOOTSTRAP_SERVERS")
     auth_url_raw: str | None = Field(default="http://identity-service:10002", alias="AUTH_URL")

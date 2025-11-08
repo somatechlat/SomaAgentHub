@@ -10,6 +10,7 @@ class Settings(BaseSettings):
     clickhouse_database: str = Field("soma", alias="CLICKHOUSE_DATABASE")
     opa_url: str = Field("http://opa:8181", alias="OPA_URL")
     cache_ttl_seconds: int = Field(300, alias="PRICING_CACHE_TTL_SECONDS")
+    gpubroker_url: str | None = Field(None, alias="GPUBROKER_URL")
 
     class Config:
         env_file = ".env"

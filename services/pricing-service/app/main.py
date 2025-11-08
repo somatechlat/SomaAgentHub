@@ -5,6 +5,7 @@ import statistics
 import uuid
 import httpx
 from prometheus_fastapi_instrumentator import Instrumentator
+from prometheus_client import Counter
 
 from .config import get_settings
 from .models import LivePricingResponse, LivePricingSummary, PricingOffer
@@ -13,6 +14,14 @@ from .bootstrap import ensure_tables
 from .clickhouse import get_client
 
 app = FastAPI(title="Pricing Service", version="0.1.0")
+
+REQS = Counter("pricing_requests_total", "Requests to pricing endpoints", ["endpoint"])
+CACHE_HITS = Counter("pricing_cache_hits_total", "Cache hits in live offers fetch")
+BUDGET_DECISIONS = Counter(
+    "pricing_budget_decisions_total",
+    "Budget evaluation decisions",
+    ["within_budget", "policy_allow"],
+)
 
 
 @app.get("/healthz")
@@ -61,6 +70,7 @@ def get_live_pricing(
         return True
 
     filtered = [o for o in offers if keep(o)]
+    REQS.labels(endpoint="live").inc()
 
     # Sorting
     reverse = order.lower() == "desc"
@@ -122,6 +132,7 @@ def _startup():
 
 @app.post("/v1/pricing/snapshot")
 def create_snapshot():
+    REQS.labels(endpoint="snapshot_create").inc()
     offers: List[PricingOffer] = fetch_live_offers()
     if not offers:
         raise HTTPException(status_code=503, detail="No offers available to snapshot")
@@ -189,6 +200,7 @@ def create_snapshot():
 
 @app.get("/v1/pricing/snapshot/{snapshot_id}")
 def get_snapshot(snapshot_id: str):
+    REQS.labels(endpoint="snapshot_get").inc()
     try:
         sid = uuid.UUID(snapshot_id)
     except Exception:
@@ -270,6 +282,8 @@ def evaluate_budget(
     estimated_cost = best.price_per_hour * hours_planned * quantity
     within = estimated_cost <= budget_cap
 
+    BUDGET_DECISIONS.labels(within_budget=str(within), policy_allow="").inc()
+    REQS.labels(endpoint="evaluate_budget").inc()
     return {
         "within_budget": within,
         "estimated_cost": estimated_cost,
@@ -332,6 +346,11 @@ def evaluate_budget_with_policy(
 
     decision = _opa_decide(opa_input)
 
+    allowed = True
+    if isinstance(decision, dict):
+        allowed = bool(decision.get("allow_build", True))
+    BUDGET_DECISIONS.labels(within_budget=str(within), policy_allow=str(allowed)).inc()
+    REQS.labels(endpoint="evaluate_budget_with_policy").inc()
     return {
         "within_budget": within,
         "estimated_cost": estimated_cost,

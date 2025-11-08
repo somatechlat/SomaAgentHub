@@ -2,9 +2,13 @@ from typing import List, Tuple
 from datetime import datetime, timezone
 import time
 from .config import get_settings
+from prometheus_client import Counter
 from .models import PricingOffer
 
 # Placeholder provider data; will be replaced by real adapters.
+from .models import PricingOffer
+from .providers.aws_adapter import AWS_ADAPTER
+from .providers.runpod_adapter import RUNPOD_ADAPTER
 # Intentionally minimal (not a mock of external calls, just internal stub) to unblock API work.
 
 _SAMPLE = [
@@ -53,6 +57,7 @@ _SAMPLE = [
 ]
 
 _CACHE: Tuple[float, List[PricingOffer]] | None = None
+CACHE_HITS = Counter("pricing_cache_hits_total", "Cache hits in live offers fetch")
 
 
 def fetch_live_offers() -> List[PricingOffer]:
@@ -60,11 +65,13 @@ def fetch_live_offers() -> List[PricingOffer]:
     now = time.time()
     ttl = get_settings().cache_ttl_seconds
     if _CACHE and (now - _CACHE[0]) < ttl:
+        CACHE_HITS.inc()
         return _CACHE[1]
 
     offers: List[PricingOffer] = []
     for raw in _SAMPLE:
-        raw["price_per_minute"] = raw["price_per_hour"] / 60.0
-        offers.append(PricingOffer(**raw))
-    _CACHE = (now, offers)
-    return offers
+    ADAPTERS = [AWS_ADAPTER, RUNPOD_ADAPTER]
+    offers: List[PricingOffer] = []
+    for adapter in ADAPTERS:
+        for offer in adapter.fetch():
+            offers.append(offer)

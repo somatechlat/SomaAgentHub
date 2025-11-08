@@ -1,0 +1,12 @@
+# Example Helm values for a new service
+image: your-repo/your-image:latest
+replicaCount: 1
+service:
+  port: 8080
+resources:
+  limits:
+    cpu: 500m
+    memory: 512Mi
+  requests:
+    cpu: 250m
+    memory: 256Mi

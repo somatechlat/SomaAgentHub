@@ -177,6 +177,7 @@ Immediate Actionable Checklist (pick one to start):
 8) Publish Python SDK stub (`soma-sdk-py`) with `register_tool`
 9) Set up service mesh (Linkerd/Istio) in dev cluster
 10) Write end‑to‑end build test asserting final URL reachability
+11) Implement provider adapter layer in `pricing-service` (aws, runpod initial) and expose metrics counters (`pricing_requests_total`, `pricing_budget_decisions_total`).
 
 ---
 This file supersedes all prior roadmap documents. Do not recreate separate roadmap markdowns—extend this file only.

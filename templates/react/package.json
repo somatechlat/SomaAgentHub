@@ -1,0 +1,10 @@
+{
+  "name": "template-react-app",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "start": "echo 'Add react-scripts or vite here'",
+    "build": "echo 'Add build tooling'"
+  },
+  "dependencies": {}
+}

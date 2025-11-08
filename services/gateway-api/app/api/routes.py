@@ -16,6 +16,8 @@ from ..models.context import RequestContext
 from ..models.sessions import ModerationDetail, SessionCreateRequest, SessionCreateResponse
 from .dashboard import router as dashboard_router
 from .capsules import router as capsules_router
+from pydantic import BaseModel, Field
+from ..config import GatewaySettings, get_sah_settings
 
 router = APIRouter(prefix="/v1", tags=["gateway"])
 
@@ -151,6 +153,123 @@ async def create_session(
         moderation=moderation,
         payload=orchestrator_data,
     )
+
+
+class BuildCostPrecheckRequest(BaseModel):
+    project_id: str = Field(..., description="Project identifier")
+    tenant: str | None = Field(default=None, description="Tenant ID (defaults from context)")
+    gpu_model: str | None = Field(default=None)
+    region: str | None = Field(default=None)
+    hours_planned: float = Field(..., gt=0)
+    quantity: int = Field(default=1, ge=1)
+    budget_cap: float = Field(..., gt=0)
+    payment_approved: bool = Field(default=False)
+    required_feature: str | None = Field(default=None)
+    current_agents: int = Field(default=0, ge=0)
+
+
+class BuildCostPrecheckResponse(BaseModel):
+    within_budget: bool
+    estimated_cost: float
+    currency: str | None
+    policy_decision: dict | None
+    require_payment: bool
+    recommended_action: str | None
+
+
+@router.post("/build/cost-precheck", response_model=BuildCostPrecheckResponse, tags=["build"])
+async def build_cost_precheck(
+    payload: BuildCostPrecheckRequest,
+    ctx: RequestContext = Depends(request_context_dependency),
+    settings: GatewaySettings = Depends(get_sah_settings),
+) -> BuildCostPrecheckResponse:
+    pricing_url = settings.orchestrator_url  # orchestrator aggregates precheck logic too
+    # Prefer calling orchestrator precheck so policy stays central
+    url = pricing_url.rstrip("/") + "/v1/build/precheck"
+
+    tenant = payload.tenant or ctx.tenant_id
+    body = {
+        "tenant": tenant,
+        "project_id": payload.project_id,
+        "gpu_model": payload.gpu_model,
+        "region": payload.region,
+        "hours_planned": payload.hours_planned,
+        "quantity": payload.quantity,
+        "budget_cap": payload.budget_cap,
+        "payment_approved": payload.payment_approved,
+        "required_feature": payload.required_feature,
+        "current_agents": payload.current_agents,
+    }
+    # Remove None entries
+    body = {k: v for k, v in body.items() if v is not None}
+
+    headers = _build_forward_headers(ctx)
+    start = time.perf_counter()
+    async with AsyncClient(timeout=10.0) as client:
+        try:
+            resp = await client.post(url, json=body, headers=headers)
+        except HTTPError as exc:
+            observe_forward_latency(ctx.tenant_id, time.perf_counter() - start)
+            raise HTTPException(status_code=502, detail=f"Precheck unreachable: {exc}") from exc
+    observe_forward_latency(ctx.tenant_id, time.perf_counter() - start)
+    if resp.status_code >= 400:
+        raise HTTPException(status_code=resp.status_code, detail=resp.text)
+    data = resp.json()
+    return BuildCostPrecheckResponse(
+        within_budget=bool(data.get("within_budget", False)),
+        estimated_cost=float(data.get("estimated_cost", 0.0)),
+        currency=data.get("currency"),
+        policy_decision=data.get("policy_decision"),
+        require_payment=bool(data.get("require_payment", False)),
+        recommended_action=data.get("recommended_action"),
+    )
+
+
+class BuildRunStartRequest(BaseModel):
+    project_id: str
+    pricing_snapshot_id: str
+    budget_cap: float
+    estimated_cost: float
+    template_set: str = "default"
+    policy_reason: str | None = None
+    tenant: str | None = None
+
+
+class BuildRunStartResponse(BaseModel):
+    build_run_id: str
+    status: str
+
+
+@router.post("/build/run", response_model=BuildRunStartResponse, tags=["build"])
+async def start_build_run(
+    payload: BuildRunStartRequest,
+    ctx: RequestContext = Depends(request_context_dependency),
+    settings: GatewaySettings = Depends(get_sah_settings),
+) -> BuildRunStartResponse:
+    orchestrator_url = settings.orchestrator_url.rstrip("/") + "/v1/build-runs"
+    tenant = payload.tenant or ctx.tenant_id
+    body = {
+        "tenant": tenant,
+        "project_id": payload.project_id,
+        "pricing_snapshot_id": payload.pricing_snapshot_id,
+        "budget_cap": payload.budget_cap,
+        "estimated_cost": payload.estimated_cost,
+        "template_set": payload.template_set,
+        "policy_reason": payload.policy_reason or "",
+    }
+    headers = _build_forward_headers(ctx)
+    start = time.perf_counter()
+    async with AsyncClient(timeout=10.0) as client:
+        try:
+            resp = await client.post(orchestrator_url, json=body, headers=headers)
+        except HTTPError as exc:
+            observe_forward_latency(ctx.tenant_id, time.perf_counter() - start)
+            raise HTTPException(status_code=502, detail=f"Orchestrator unreachable: {exc}") from exc
+    observe_forward_latency(ctx.tenant_id, time.perf_counter() - start)
+    if resp.status_code >= 400:
+        raise HTTPException(status_code=resp.status_code, detail=resp.text)
+    br = resp.json()
+    return BuildRunStartResponse(build_run_id=str(br.get("id")), status=str(br.get("status")))
 
 router.include_router(dashboard_router)
 router.include_router(capsules_router)

@@ -1,0 +1,41 @@
+from .base import StaticAdapter
+
+AWS_ADAPTER = StaticAdapter(
+    "aws",
+    [
+        {
+            "id": "aws-g5.xlarge",
+            "gpu_model": "A10G",
+            "vram_gb": 24,
+            "cpu_cores": 4,
+            "ram_gb": 16,
+            "storage_gb": 50,
+            "region": "us-east-1",
+            "zone": "us-east-1a",
+            "availability": 0.92,
+            "spot": False,
+            "price_per_hour": 0.9,
+            "tags": ["general"],
+            "frameworks": ["pytorch", "tensorflow"],
+            "billing_increment_min": 1,
+            "confidence": 0.7,
+        },
+        {
+            "id": "aws-p4d.24xlarge",
+            "gpu_model": "A100",
+            "vram_gb": 40*8,
+            "cpu_cores": 96,
+            "ram_gb": 1152,
+            "storage_gb": 2000,
+            "region": "us-west-2",
+            "zone": "us-west-2a",
+            "availability": 0.55,
+            "spot": False,
+            "price_per_hour": 32.77,
+            "tags": ["training"],
+            "frameworks": ["pytorch"],
+            "billing_increment_min": 60,
+            "confidence": 0.6,
+        },
+    ],
+)
