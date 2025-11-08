@@ -34,6 +34,26 @@ class Plan(SQLModel, table=True):
     payload: Dict[str, Any] = Field(sa_column=Column(JSON))
     created_at: datetime = Field(default_factory=datetime.utcnow)
     updated_at: datetime = Field(default_factory=datetime.utcnow)
+
+
+class BuildRun(SQLModel, table=True):
+    """Represents a single build workflow execution snapshot.
+
+    Links pricing snapshot + budget evaluation + selected template set.
+    Status flow: pending -> initializing -> provisioning -> building -> deploying -> completed / failed.
+    """
+
+    id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
+    tenant: str = Field(index=True)
+    project_id: str = Field(index=True)
+    pricing_snapshot_id: str = Field(index=True)
+    budget_cap: float = Field(default=0.0)
+    estimated_cost: float = Field(default=0.0)
+    status: str = Field(default="pending", index=True)
+    template_set: str = Field(default="default")
+    policy_reason: str = Field(default="")
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    updated_at: datetime = Field(default_factory=datetime.utcnow)
 """ORM/DTO models for storing project plan artifacts."""
 
 # NOTE: ``from __future__ import annotations`` must appear only once at the top

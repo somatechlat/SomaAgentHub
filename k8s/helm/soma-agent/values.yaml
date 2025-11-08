@@ -63,6 +63,7 @@ ports:
   "flink-service": 10024
   "airflow-service": 10025
   opa: 8181
+  pricing-service: 10026
 
 # OPA (Open Policy Agent) configuration – used by the dedicated OPA deployment
 opa:
@@ -190,6 +191,24 @@ services:
       - name: BILLING_CURRENCY
         value: "usd"
       - name: BILLING_USAGE_AGG_INTERVAL_SECONDS
+        value: "300"
+  pricing-service:
+    enabled: true
+    image: "somaagent/pricing-service"
+    env:
+      - name: CLICKHOUSE_HOST
+        value: "clickhouse"
+      - name: CLICKHOUSE_PORT
+        value: "8123"
+      - name: CLICKHOUSE_USER
+        value: "default"
+      - name: CLICKHOUSE_PASSWORD
+        value: ""
+      - name: CLICKHOUSE_DATABASE
+        value: "soma"
+      - name: OPA_URL
+        value: "http://opa:8181"
+      - name: PRICING_CACHE_TTL_SECONDS
         value: "300"
 
 # Ingress configuration (currently disabled)

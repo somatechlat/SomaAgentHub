@@ -10,6 +10,11 @@ from fastapi import APIRouter, Depends, HTTPException, Request, status
 from pydantic import BaseModel, Field
 from temporalio import client as temporal_client
 from temporalio.client import RPCError, RPCStatusCode
+from sqlmodel import Session, select
+from services.orchestrator.app.repository.models import BuildRun
+from services.orchestrator.app.database import get_session
+import uuid
+import httpx
 
 from ..core.config import settings
 from ..workflows.mao import AgentDirective, MAOStartInput
@@ -25,6 +30,151 @@ router = APIRouter(prefix="/v1", tags=["orchestrator"])
 router.include_router(conversation_router)
 router.include_router(projects_router)
 router.include_router(training_router)
+class BuildRunCreate(BaseModel):
+    tenant: str
+    project_id: str
+    pricing_snapshot_id: str
+    budget_cap: float
+    estimated_cost: float
+    template_set: str = "default"
+    policy_reason: str = ""
+
+class BuildRunResponse(BaseModel):
+    id: uuid.UUID
+    tenant: str
+    project_id: str
+    pricing_snapshot_id: str
+    budget_cap: float
+    estimated_cost: float
+    status: str
+    template_set: str
+    policy_reason: str
+    created_at: str
+    updated_at: str
+
+@router.post("/build-runs", response_model=BuildRunResponse, tags=["build"])
+def create_build_run(payload: BuildRunCreate, session: Session = Depends(get_session)):
+    br = BuildRun(
+        tenant=payload.tenant,
+        project_id=payload.project_id,
+        pricing_snapshot_id=payload.pricing_snapshot_id,
+        budget_cap=payload.budget_cap,
+        estimated_cost=payload.estimated_cost,
+        template_set=payload.template_set,
+        policy_reason=payload.policy_reason,
+    )
+    session.add(br)
+    session.commit()
+    session.refresh(br)
+    return BuildRunResponse(
+        id=br.id,
+        tenant=br.tenant,
+        project_id=br.project_id,
+        pricing_snapshot_id=br.pricing_snapshot_id,
+        budget_cap=br.budget_cap,
+        estimated_cost=br.estimated_cost,
+        status=br.status,
+        template_set=br.template_set,
+        policy_reason=br.policy_reason,
+        created_at=br.created_at.isoformat(),
+        updated_at=br.updated_at.isoformat(),
+    )
+
+@router.get("/build-runs/{build_run_id}", response_model=BuildRunResponse, tags=["build"])
+def get_build_run(build_run_id: str, session: Session = Depends(get_session)):
+    try:
+        bid = uuid.UUID(build_run_id)
+    except Exception:
+        raise HTTPException(status_code=400, detail="Invalid build_run_id")
+    stmt = select(BuildRun).where(BuildRun.id == bid)
+    br = session.exec(stmt).first()
+    if not br:
+        raise HTTPException(status_code=404, detail="BuildRun not found")
+    return BuildRunResponse(
+        id=br.id,
+        tenant=br.tenant,
+        project_id=br.project_id,
+        pricing_snapshot_id=br.pricing_snapshot_id,
+        budget_cap=br.budget_cap,
+        estimated_cost=br.estimated_cost,
+        status=br.status,
+        template_set=br.template_set,
+        policy_reason=br.policy_reason,
+        created_at=br.created_at.isoformat(),
+        updated_at=br.updated_at.isoformat(),
+    )
+
+
+class BuildPrecheckRequest(BaseModel):
+    tenant: str
+    project_id: str
+    gpu_model: str | None = None
+    region: str | None = None
+    hours_planned: float
+    quantity: int = 1
+    budget_cap: float
+    payment_approved: bool = False
+    required_feature: str | None = None
+    current_agents: int = 0
+
+
+class BuildPrecheckResponse(BaseModel):
+    within_budget: bool
+    estimated_cost: float
+    currency: str | None = None
+    policy_decision: dict | None = None
+    require_payment: bool = False
+    recommended_action: str | None = None
+
+
+@router.post("/build/precheck", response_model=BuildPrecheckResponse, tags=["build"])
+async def build_precheck(payload: BuildPrecheckRequest) -> BuildPrecheckResponse:
+    from ..core.config import settings
+
+    params = {
+        "gpu_model": payload.gpu_model,
+        "region": payload.region,
+        "hours_planned": payload.hours_planned,
+        "quantity": payload.quantity,
+        "budget_cap": payload.budget_cap,
+        "payment_approved": payload.payment_approved,
+        "required_feature": payload.required_feature,
+        "current_agents": payload.current_agents,
+    }
+    # Remove None values
+    params = {k: v for k, v in params.items() if v is not None}
+
+    url = settings.pricing_service_url.rstrip("/") + "/v1/pricing/evaluate-budget/with-policy"
+    async with httpx.AsyncClient(timeout=5.0) as client:
+        r = await client.post(url, params=params)
+    if r.status_code != 200:
+        raise HTTPException(status_code=502, detail=f"Pricing precheck failed: {r.text}")
+    data = r.json()
+
+    require_payment = False
+    recommended = None
+    # If budget exceeded or policy says not allowed, recommend payment or reduce plan
+    decision = data.get("policy_decision") or {}
+    if not data.get("within_budget", False):
+        require_payment = True
+        recommended = "increase budget or reduce hours"
+    elif decision and not decision.get("allow_build", True):
+        # If policy blocks build, recommend payment if payment_approved missing or feature disabled
+        reason = decision.get("reason")
+        if reason in ("payment_or_feature_required",):
+            require_payment = not payload.payment_approved
+            recommended = "complete payment or enable required feature"
+        elif reason == "max_agents_exceeded":
+            recommended = "reduce concurrent agents or upgrade plan"
+
+    return BuildPrecheckResponse(
+        within_budget=bool(data.get("within_budget", False)),
+        estimated_cost=float(data.get("estimated_cost", 0.0)),
+        currency=data.get("currency"),
+        policy_decision=decision or None,
+        require_payment=require_payment,
+        recommended_action=recommended,
+    )
 # Planner endpoints – generate, refine, retrieve, delete plans
 from .planner import router as planner_router
 router.include_router(planner_router)

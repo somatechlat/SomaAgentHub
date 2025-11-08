@@ -54,6 +54,12 @@ class Settings(BaseSettings):
         alias="SOMALLM_PROVIDER_HEALTH_URL",
     )
 
+    # Pricing service base URL for budget/policy prechecks
+    pricing_service_url: AnyUrl = Field(
+        default=os.getenv("PRICING_SERVICE_URL", "http://pricing-service:10026"),
+        alias="PRICING_SERVICE_URL",
+    )
+
     # Volcano scheduler integration (optional)
     enable_volcano_scheduler: bool = Field(default=False, alias="ENABLE_VOLCANO_SCHEDULER")
     volcano_namespace: str = Field(default="soma-agent-hub", alias="VOLCANO_NAMESPACE")

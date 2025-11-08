@@ -47,3 +47,61 @@ data:
       input.tenant_id != ""
       input.tenant_id == input.jwt_tenant_id
     }
+  policies.rego: |
+    package somagent.policies
+
+    default allow_budget = false
+    allow_budget {
+      input.estimated_cost <= input.budget_cap
+    }
+
+    default max_agents_ok = true
+    # If plan limit exists, enforce it; otherwise ok
+    max_agents_ok {
+      not input.plan.max_agents_per_user
+    }
+    max_agents_ok {
+      input.plan.max_agents_per_user
+      input.current_agents + (input.requested_agents_default) <= input.plan.max_agents_per_user
+    }
+
+    # requested_agents_default is quantity or 1
+    requested_agents_default := v {
+      some v
+      v := input.requested_agents
+    } else := 1
+
+    default feature_enabled = true
+    feature_enabled {
+      not input.required_feature
+    }
+    feature_enabled {
+      input.required_feature
+      input.plan.features[_] == input.required_feature
+    }
+
+    default allow_build = false
+    allow_build {
+      allow_budget
+      any_of([input.payment_approved == true, feature_enabled])
+      max_agents_ok
+    }
+
+    # Reasoning helper
+    default reason = ""
+    reason = "budget_exceeded" { not allow_budget }
+    reason = "payment_or_feature_required" { allow_budget; not any_of([input.payment_approved == true, feature_enabled]) }
+    reason = "max_agents_exceeded" { allow_budget; any_of([input.payment_approved == true, feature_enabled]); not max_agents_ok }
+
+    decision := {
+      "allow_build": allow_build,
+      "allow_budget": allow_budget,
+      "max_agents_ok": max_agents_ok,
+      "feature_enabled": feature_enabled,
+      "reason": reason,
+    }
+
+    any_of(arr) {
+      some i
+      arr[i]
+    }

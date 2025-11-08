@@ -1,5 +1,7 @@
-from typing import List
+from typing import List, Tuple
 from datetime import datetime, timezone
+import time
+from .config import get_settings
 from .models import PricingOffer
 
 # Placeholder provider data; will be replaced by real adapters.
@@ -50,10 +52,19 @@ _SAMPLE = [
     },
 ]
 
+_CACHE: Tuple[float, List[PricingOffer]] | None = None
+
 
 def fetch_live_offers() -> List[PricingOffer]:
+    global _CACHE
+    now = time.time()
+    ttl = get_settings().cache_ttl_seconds
+    if _CACHE and (now - _CACHE[0]) < ttl:
+        return _CACHE[1]
+
     offers: List[PricingOffer] = []
     for raw in _SAMPLE:
         raw["price_per_minute"] = raw["price_per_hour"] / 60.0
         offers.append(PricingOffer(**raw))
+    _CACHE = (now, offers)
     return offers
