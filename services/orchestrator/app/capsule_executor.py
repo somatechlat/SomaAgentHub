@@ -3,7 +3,7 @@
 This module provides a richer implementation for the ``execute_capsule``
 activity used by the ``capsule-run-workflow``.  The original stub executed a
 single Docker container based on ``payload.params['image']`` and returned a
-string.  The roadmap (see `docs/ROADMAP-2.5.md`) requires a *worker* that can:
+string.  The canonical roadmap (see `docs/ROADMAP.md`) requires a *worker* that can:
 
 1. Resolve a capsule manifest (a YAML document describing one or more steps).
 2. Execute each step in its own Docker container.

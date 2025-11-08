@@ -53,8 +53,7 @@ This creates a Kind cluster, builds all images, generates an optional mTLS secre
 
 ## Documentation
 - **DEPLOYMENT.md** – Full step‑by‑step deployment guide.
-- **Sprint Roadmap** – Detailed sprint‑by‑sprint plan for removing stubs and delivering real functionality. See `docs/sprint-roadmap.md`.
-- **Roadmap (Canonical Index)** – See `docs/roadmap-somagenthub.md` for links to the current sprint roadmap and production plan.
+- **Roadmap** – Single canonical source with sprint plan and production phases: `docs/ROADMAP.md`.
 - **CONTRIBUTING.md** – Development workflow, testing, and PR process.
 - **docs/helm-values.md** – Complete Helm values reference.
 - **docs/ci-cd.md** – CI pipeline overview.

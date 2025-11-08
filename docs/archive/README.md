@@ -25,7 +25,7 @@ These documents detail the original 5-phase implementation roadmap for SomaAgent
 | File | Purpose | Status |
 |------|---------|--------|
 | **ROADMAP-2.5-COMPLETE.md** | Executive summary of complete implementation (30,000+ words) | ✅ Reference |
-| **ROADMAP-2.5.md** | Original roadmap planning document | 📦 Historical |
+| (Removed) ROADMAP-2.5.md | File removed; canonical content lives in `../ROADMAP.md` | 📦 Historical |
 
 ---
 

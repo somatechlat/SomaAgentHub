@@ -229,6 +229,6 @@ Successful responses confirm the compose topology matches this architecture desc
 - **[Deployment Guide](deployment.md)**: For instructions on how to deploy this architecture.
 - **[Monitoring Guide](monitoring.md)**: For details on how to observe system health.
 - **[Development Manual](../development-manual/index.md)**: For information on how to contribute to these services.
-- **[ROADMAP-2.5](../ROADMAP-2.5.md)**: Strategic plan for Istio service mesh, policy plane, and observability enhancements referenced in this architecture.
+- Legacy roadmap (replaced by **[ROADMAP](../ROADMAP.md)**): See canonical plan for service mesh, policy plane, and observability enhancements.
 
 <!-- markdownlint-restore -->

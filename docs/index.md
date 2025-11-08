@@ -112,6 +112,7 @@ Get up to speed quickly on SomaAgentHub's architecture, development practices, a
 ## 📖 Reference Materials
 
 ### Essential References
+- **[Roadmap](ROADMAP.md)** - Canonical strategic and sprint plan
 - **[Style Guide](style-guide.md)** - Documentation standards and conventions
 - **[Glossary](glossary.md)** - Key terms and definitions
 - **[Changelog](changelog.md)** - Version history and release notes

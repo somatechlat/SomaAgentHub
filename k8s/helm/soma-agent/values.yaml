@@ -96,6 +96,11 @@ secrets:
   generateDevSecrets: false
   identityJwt: ""
   gatewayJwt: ""
+  # Billing provider secrets (leave empty in prod and create Secret manually)
+  stripeSecretKey: ""
+  stripeWebhookSecret: ""
+  paypalClientId: ""
+  paypalClientSecret: ""
 
 # Kafka (Bitnami) configuration – KRaft mode
 defaultKafka:
@@ -170,6 +175,22 @@ services:
     enabled: false
   billing-service:
     enabled: false
+    envFromSecret: "soma-secrets"
+    env:
+      - name: BILLING_PROVIDER
+        value: "stripe"
+      - name: STRIPE_SECRET_KEY_SECRET_NAME
+        value: "stripe-secret" # Kubernetes Secret containing STRIPE_SECRET_KEY
+      - name: STRIPE_WEBHOOK_SECRET_SECRET_NAME
+        value: "stripe-webhook-secret" # Secret with STRIPE_WEBHOOK_SECRET
+      - name: BILLING_STRIPE_AUTO_INVOICE
+        value: "true"
+      - name: PAYPAL_ENABLED
+        value: "false" # Set to true when PayPal is integrated
+      - name: BILLING_CURRENCY
+        value: "usd"
+      - name: BILLING_USAGE_AGG_INTERVAL_SECONDS
+        value: "300"
 
 # Ingress configuration (currently disabled)
 ingress:
