@@ -526,3 +526,12 @@ class GitHubAdapter:
             "repo_name": repo_name,
             "url": repo["html_url"],
         }
+
+    # Protocol compliance method
+    def health_check(self) -> dict[str, Any]:
+        # Lightweight check: attempt to fetch current user
+        try:
+            user = self._request("GET", "user")
+            return {"login": user.get("login"), "scopes": self.headers.get("X-OAuth-Scopes")}
+        except Exception as e:  # pragma: no cover - best effort
+            return {"error": str(e)}

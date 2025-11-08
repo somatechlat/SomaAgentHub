@@ -80,6 +80,7 @@ else:
             user: str = "default",
             password: str = "",
             database: str = "somaagent",
+            **kwargs: Any,
         ):
             self.host = host
             self.port = port
@@ -87,7 +88,7 @@ else:
             self.password = password
             self.database = database
 
-        def execute(self, query: str, params: list[Any] | None = None):
+        def execute(self, query: str, params: Any = None, **kwargs: Any):
             """Return mock results based on the query string.
 
             The tests use a limited set of queries; we match them with simple
@@ -112,6 +113,9 @@ else:
             if "count(*)" in q:
                 return [(1,)]
             if q.startswith("select"):
+                # Support with_column_types flag
+                if kwargs.get("with_column_types"):
+                    return ([], [])
                 return []
             return None
 

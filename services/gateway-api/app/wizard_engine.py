@@ -13,6 +13,7 @@ from typing import Any
 import requests
 import yaml
 from pydantic import BaseModel, Field
+from services.common.contracts.pricing import BudgetPrecheckDecision
 
 logger = logging.getLogger(__name__)
 
@@ -591,11 +592,12 @@ class WizardEngine:
                 pc_resp = requests.post(precheck_url, params=pre_params, timeout=10)
                 if pc_resp.status_code == 200:
                     pc_data = pc_resp.json()
-                    if not pc_data.get("within_budget", True):
+                    decision = BudgetPrecheckDecision.model_validate(pc_data)
+                    if not decision.within_budget:
                         return {
                             "status": "blocked",
-                            "reason": "budget_exceeded",
-                            "details": pc_data,
+                            "reason": decision.reason or "budget_exceeded",
+                            "details": decision.model_dump(),
                         }
                 # Continue on non-200 or missing fields (soft-fail)
             except Exception:

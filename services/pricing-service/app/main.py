@@ -15,6 +15,8 @@ from .clickhouse import get_client
 from .config import get_settings
 from .models import LivePricingResponse, LivePricingSummary, PricingOffer
 from .refresh import start_refresh_loop, stop_refresh_loop
+from services.common.config.base_settings import BaseServiceSettings, load_settings
+from services.common.fastapi.bootstrap import create_app
 
 logger = logging.getLogger(__name__)
 
@@ -41,7 +43,21 @@ async def lifespan(app: FastAPI):
         pass
 
 
-app = FastAPI(title="Pricing Service", version="0.1.0", lifespan=lifespan)
+class PricingServiceSettings(BaseServiceSettings):
+    pricing_refresh_enabled: bool = True
+    opa_enabled: bool = True
+
+
+settings = load_settings(PricingServiceSettings)
+
+app = create_app(
+    "pricing-service",
+    settings,
+    version="0.1.0",
+)
+
+# Attach lifespan context (FastAPI supports overriding via router attribute)
+app.router.lifespan_context = lifespan
 
 REQS = Counter("pricing_requests_total", "Requests to pricing endpoints", ["endpoint"])
 BUDGET_DECISIONS = Counter(
@@ -352,7 +368,7 @@ def evaluate_budget_with_policy(
     within = estimated_cost <= budget_cap
 
     # Construct OPA input
-    opa_input = {
+    opa_input: dict = {
         "estimated_cost": estimated_cost,
         "budget_cap": budget_cap,
         "payment_approved": payment_approved,

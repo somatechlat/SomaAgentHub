@@ -39,7 +39,7 @@ def fetch_live_offers() -> list[PricingOffer]:
                 offers.append(offer)
         except Exception:  # noqa: BLE001
             try:
-                name = adapter.name()  # type: ignore[attr-defined]
+                name = adapter.name()
             except Exception:  # noqa: BLE001
                 name = adapter.__class__.__name__
             ADAPTER_FAILS.labels(adapter=name).inc()

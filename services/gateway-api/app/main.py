@@ -13,7 +13,7 @@ from fastapi.responses import Response
 from prometheus_client import CONTENT_TYPE_LATEST, generate_latest
 from pydantic import BaseModel
 
-from services.common.observability import setup_observability
+from services.common.fastapi.bootstrap import create_app
 from services.common.spiffe_auth import init_spiffe
 
 from .api.routes import router as api_router
@@ -29,46 +29,125 @@ settings = get_sah_settings()
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Startup: nothing required currently
+    # Startup: initialize SPIFFE early so SVID is ready for downstream calls
+    spiffe_identity = init_spiffe(settings.service_name or "sah")
+    if spiffe_identity:
+        logger.info(
+            "SPIFFE identity loaded", extra={"spiffe_id": spiffe_identity.spiffe_id}
+        )
+    else:
+        logger.info(
+            "SPIFFE identity not initialized; falling back to non-mTLS workload identity"
+        )
+
     yield
     # Shutdown: ensure Redis client closes cleanly
     await close_redis_client()
 
 
-app = FastAPI(
-    title="SomaAgentHub",
+def _attach_routes(app: FastAPI) -> None:
+    app.add_middleware(ContextMiddleware)
+    app.include_router(api_router)
+
+    @app.get("/healthz", tags=["system"])
+    async def healthz() -> dict[str, Any]:
+        kafka_ok, auth_ok, redis_ok = await asyncio.gather(
+            _check_kafka(),
+            _check_auth(),
+            _check_redis(),
+        )
+        status = kafka_ok and auth_ok and redis_ok
+        return {
+            "status": "ok" if status else "degraded",
+            "checks": {
+                "kafka": kafka_ok,
+                "auth": auth_ok,
+                "redis": redis_ok,
+            },
+        }
+
+    @app.get("/health", tags=["system"])
+    async def health() -> dict[str, Any]:
+        return await healthz()
+
+    @app.get("/ready", tags=["system"])
+    async def ready() -> dict[str, Any]:
+        health = await healthz()
+        return {"status": health["status"], "details": health["checks"]}
+
+    @app.get("/metrics", tags=["system"])
+    def metrics() -> Response:
+        return Response(generate_latest(), media_type=CONTENT_TYPE_LATEST)
+
+    @app.get("/")
+    def root() -> dict[str, str]:
+        return {"message": "SomaAgentHub Service"}
+
+    @app.get("/v1/wizards", tags=["wizard"])
+    def list_wizards() -> dict[str, Any]:
+        return {"wizards": wizard_engine.list_wizards()}
+
+    class WizardStartRequest(BaseModel):
+        wizard_id: str
+        user_id: str = "demo-user"
+        metadata: dict[str, Any] | None = None
+
+    class WizardAnswerRequest(BaseModel):
+        value: Any
+
+    @app.post("/v1/wizards/start", tags=["wizard"])
+    def start_wizard(
+        request: WizardStartRequest,
+    ) -> dict[str, Any]:  # pragma: no cover - interacts with external services
+        try:
+            return wizard_engine.start_wizard(
+                wizard_id=request.wizard_id,
+                user_id=request.user_id,
+                metadata=request.metadata,
+            )
+        except ValueError as exc:  # pragma: no cover - input validation
+            raise HTTPException(status_code=404, detail=str(exc))
+        except Exception as exc:  # pragma: no cover - unexpected failure
+            raise HTTPException(status_code=500, detail=str(exc))
+
+    @app.post("/v1/wizards/{session_id}/answer", tags=["wizard"])
+    def submit_wizard_answer(
+        session_id: str, answer: WizardAnswerRequest
+    ) -> dict[str, Any]:
+        try:
+            return wizard_engine.submit_answer(
+                session_id=session_id, answer={"value": answer.value}
+            )
+        except ValueError as exc:
+            raise HTTPException(status_code=404, detail=str(exc))
+        except Exception as exc:
+            raise HTTPException(status_code=500, detail=str(exc))
+
+    @app.get("/v1/wizards/{session_id}", tags=["wizard"])
+    def get_wizard_session(session_id: str) -> dict[str, Any]:
+        session = wizard_engine.get_session(session_id)
+        if not session:
+            raise HTTPException(status_code=404, detail=f"Session '{session_id}' not found")
+        return session
+
+    @app.post("/v1/wizards/{session_id}/approve", tags=["wizard"])
+    def approve_wizard_execution(session_id: str) -> dict[str, Any]:
+        try:
+            return wizard_engine.approve_execution(session_id)
+        except ValueError as exc:
+            raise HTTPException(status_code=400, detail=str(exc))
+        except Exception as exc:
+            raise HTTPException(status_code=500, detail=str(exc))
+
+
+app = create_app(
+    service_name=settings.service_name or "sah",
+    settings=settings,  # type: ignore[arg-type]
+    routes_factory=_attach_routes,
     version=settings.service_version,
-    description="Public entrypoint for UI, CLI, and integrations.",
+    instrumentation=True,
     lifespan=lifespan,
 )
-
-app.add_middleware(ContextMiddleware)
-
-
-class WizardStartRequest(BaseModel):
-    wizard_id: str
-    user_id: str = "demo-user"
-    metadata: dict[str, Any] | None = None
-
-
-class WizardAnswerRequest(BaseModel):
-    value: Any
-
-
-setup_observability(
-    settings.service_name or "sah", app, service_version=settings.service_version
-)
-
-# Attempt SPIFFE initialization early to ensure SVID material is available for downstream calls.
-spiffe_identity = init_spiffe(settings.service_name or "sah")
-if spiffe_identity:
-    logger.info(
-        "SPIFFE identity loaded", extra={"spiffe_id": spiffe_identity.spiffe_id}
-    )
-else:
-    logger.info(
-        "SPIFFE identity not initialized; falling back to non-mTLS workload identity"
-    )
 
 
 async def _check_kafka() -> bool:
@@ -106,118 +185,4 @@ async def _check_redis() -> bool:
     return await client.health_check()
 
 
-@app.get("/healthz", tags=["system"])
-async def healthz() -> dict[str, Any]:
-    kafka_ok, auth_ok, redis_ok = await asyncio.gather(
-        _check_kafka(),
-        _check_auth(),
-        _check_redis(),
-    )
-    status = kafka_ok and auth_ok and redis_ok
-    return {
-        "status": "ok" if status else "degraded",
-        "checks": {
-            "kafka": kafka_ok,
-            "auth": auth_ok,
-            "redis": redis_ok,
-        },
-    }
 
-
-# Provide a legacy /health endpoint for compatibility with services that expect it.
-@app.get("/health", tags=["system"])
-async def health() -> dict[str, Any]:
-    """Alias for :func:`healthz` to maintain backward compatibility.
-
-    Some services (e.g., orchestrator) historically exposed ``/health`` while the
-    newer convention uses ``/healthz``. Exposing both endpoints avoids 404s in
-    environments where the older path is still referenced.
-    """
-    return await healthz()
-
-
-@app.get("/ready", tags=["system"])
-async def ready() -> dict[str, Any]:
-    """Readiness check - verify all critical dependencies are accessible.
-
-    This includes:
-    - Database migrations: For Postgres-backed state
-    - Cache availability: For Redis
-    - Message queue: For async job processing
-    """
-    health = await healthz()
-
-    # TODO: Add database migration checks
-    # Example: Check if all pending migrations have been applied
-    # db = get_db_session()
-    # pending_migrations = await db.check_pending_migrations()
-    # if pending_migrations:
-    #     return {"status": "not_ready", "error": f"Pending migrations: {pending_migrations}"}
-
-    return {"status": health["status"], "details": health["checks"]}
-
-
-@app.get("/metrics", tags=["system"])
-def metrics() -> Response:
-    return Response(generate_latest(), media_type=CONTENT_TYPE_LATEST)
-
-
-@app.get("/")
-def root() -> dict[str, str]:
-    return {"message": "SomaAgentHub Service"}
-
-
-app.include_router(api_router)
-
-
-@app.get("/v1/wizards", tags=["wizard"])
-def list_wizards() -> dict[str, Any]:
-    return {"wizards": wizard_engine.list_wizards()}
-
-
-@app.post("/v1/wizards/start", tags=["wizard"])
-def start_wizard(
-    request: WizardStartRequest,
-) -> dict[str, Any]:  # pragma: no cover - interacts with external services
-    try:
-        return wizard_engine.start_wizard(
-            wizard_id=request.wizard_id,
-            user_id=request.user_id,
-            metadata=request.metadata,
-        )
-    except ValueError as exc:  # pragma: no cover - input validation
-        raise HTTPException(status_code=404, detail=str(exc))
-    except Exception as exc:  # pragma: no cover - unexpected failure
-        raise HTTPException(status_code=500, detail=str(exc))
-
-
-@app.post("/v1/wizards/{session_id}/answer", tags=["wizard"])
-def submit_wizard_answer(
-    session_id: str, answer: WizardAnswerRequest
-) -> dict[str, Any]:
-    try:
-        return wizard_engine.submit_answer(
-            session_id=session_id, answer={"value": answer.value}
-        )
-    except ValueError as exc:
-        raise HTTPException(status_code=404, detail=str(exc))
-    except Exception as exc:
-        raise HTTPException(status_code=500, detail=str(exc))
-
-
-@app.get("/v1/wizards/{session_id}", tags=["wizard"])
-def get_wizard_session(session_id: str) -> dict[str, Any]:
-    session = wizard_engine.get_session(session_id)
-    if not session:
-        raise HTTPException(status_code=404, detail=f"Session '{session_id}' not found")
-    return session
-
-
-@app.post("/v1/wizards/{session_id}/approve", tags=["wizard"])
-def approve_wizard_execution(session_id: str) -> dict[str, Any]:
-    try:
-        return wizard_engine.approve_execution(session_id)
-    except ValueError as exc:
-        raise HTTPException(status_code=400, detail=str(exc))
-    except Exception as exc:
-        raise HTTPException(status_code=500, detail=str(exc))

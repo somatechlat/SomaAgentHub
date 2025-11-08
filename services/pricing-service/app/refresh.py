@@ -81,3 +81,11 @@ def start_refresh_loop():
 def stop_refresh_loop():
     global _running
     _running = False
+    ch.execute(
+        """
+        INSERT INTO pricing_offers_live (
+            id,provider,gpu_model,vram_gb,cpu_cores,ram_gb,storage_gb,region,zone,availability,spot,currency,price_per_hour,price_per_minute,tags,frameworks,billing_increment_min,min_rent_hours,provision_latency_s,deprovision_latency_s,last_seen_at,source,confidence
+        ) VALUES
+        """,
+        rows,
+    )

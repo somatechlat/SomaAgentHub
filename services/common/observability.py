@@ -11,11 +11,6 @@ import os
 
 from opentelemetry import metrics, trace
 from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import OTLPSpanExporter
-
-try:
-    from opentelemetry.exporter.prometheus import PrometheusMetricReader
-except ImportError:  # pragma: no cover - optional dependency
-    PrometheusMetricReader = None  # type: ignore[assignment]
 from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
 from opentelemetry.sdk.metrics import MeterProvider
 from opentelemetry.sdk.resources import Resource
@@ -69,14 +64,16 @@ class OpenTelemetryConfig:
     def setup_metrics(self) -> None:
         readers = []
         if self.enable_prometheus:
-            if PrometheusMetricReader is None:
-                logger.warning(
-                    "Prometheus exporter not installed; metrics endpoint will be disabled."
-                )
-            else:
+            try:
+                from opentelemetry.exporter.prometheus import PrometheusMetricReader
+
                 readers.append(PrometheusMetricReader())
                 logger.info(
                     f"Prometheus metrics reader enabled on port {self.prometheus_port}"
+                )
+            except Exception:  # pragma: no cover - optional dependency missing
+                logger.warning(
+                    "Prometheus exporter not installed; metrics endpoint will be disabled."
                 )
         meter_provider = MeterProvider(resource=self.resource, metric_readers=readers)
         metrics.set_meter_provider(meter_provider)
@@ -107,9 +104,9 @@ def setup_observability(
     service_name: str,
     app=None,
     service_version: str = "0.1.0",
-    environment: str | None = None,
+    environment: str = "development",
 ) -> OpenTelemetryConfig:
-    env = environment or os.getenv("ENVIRONMENT", "development")
+    env: str = environment or os.getenv("ENVIRONMENT", "development")
     # Enable OTLP by default in development, allow override via env var
     enable_otlp = (
         os.getenv("ENABLE_OTLP", "true" if env == "development" else "false").lower()

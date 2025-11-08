@@ -12,14 +12,14 @@ import importlib
 import logging
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any
+from typing import Any, Protocol, runtime_checkable
 
 logger = logging.getLogger(__name__)
 
 
 @dataclass
 class ToolCapability:
-    """A single tool capability."""
+    """A single tool capability specification used for discovery."""
 
     name: str
     description: str
@@ -38,6 +38,25 @@ class ToolInfo:
     version: str
     requires_auth: bool
     auth_type: str  # api_token, oauth, basic_auth
+
+@runtime_checkable
+class ToolAdapter(Protocol):
+    """Protocol defining minimal contract each adapter must satisfy.
+
+    Adapters are intentionally lightweight. Additional optional methods (e.g.,
+    `health_check`) may be implemented and are feature-detected.
+    """
+
+    def __init__(self, *args, **kwargs) -> None:  # pragma: no cover - structural
+        ...
+
+    def __repr__(self) -> str:  # pragma: no cover - structural
+        ...
+
+    # Capability dispatch methods will be resolved dynamically; protocol enforces health.
+    def health_check(self) -> Any:  # noqa: D401 - simple contract
+        """Return adapter health details or raise if unhealthy."""
+        ...
 
 
 class ToolRegistry:
@@ -289,7 +308,7 @@ class ToolRegistry:
 
     def get_adapter(
         self, tool_name: str, credentials: dict[str, str] | None = None
-    ) -> Any:
+    ) -> ToolAdapter:
         """
         Get initialized adapter instance.
 
@@ -323,6 +342,13 @@ class ToolRegistry:
             adapter = adapter_class(**credentials)
         else:
             adapter = adapter_class()
+
+        # Structural Protocol compliance check (runtime) – raises if incompatible
+        if not isinstance(adapter, ToolAdapter):  # type: ignore[arg-type]
+            # Provide a descriptive error for developers extending adapters.
+            raise TypeError(
+                f"Adapter '{tool_name}' does not satisfy ToolAdapter Protocol"
+            )
 
         # Cache
         self.loaded_adapters[cache_key] = adapter

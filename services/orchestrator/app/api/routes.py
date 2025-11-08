@@ -10,12 +10,23 @@ from uuid import uuid4
 import httpx
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from pydantic import BaseModel, Field
-from sqlmodel import Session, select
+from services.common.contracts.orchestrator import (
+    SessionStartRequest as ContractSessionStartRequest,
+    SessionStartResponse as ContractSessionStartResponse,
+    MultiAgentStartRequest as ContractMultiAgentStartRequest,
+    MultiAgentStartResponse as ContractMultiAgentStartResponse,
+    AgentDirective as ContractAgentDirective,
+)
+from sqlmodel import Session
 from temporalio import client as temporal_client
 from temporalio.client import RPCError, RPCStatusCode
 
 from services.orchestrator.app.database import get_session
 from services.orchestrator.app.repository.models import BuildRun
+from services.orchestrator.app.repository.sql_build_run_repository import (
+    SQLBuildRunRepository,
+)
+from services.orchestrator.app.repository.interfaces import BuildRunRepository
 
 from ..core.config import settings
 from ..workflows.capsule import CapsuleRunInput
@@ -57,8 +68,14 @@ class BuildRunResponse(BaseModel):
     updated_at: str
 
 
+def get_build_run_repo(session: Session = Depends(get_session)) -> BuildRunRepository:
+    return SQLBuildRunRepository(session)
+
+
 @router.post("/build-runs", response_model=BuildRunResponse, tags=["build"])
-def create_build_run(payload: BuildRunCreate, session: Session = Depends(get_session)):
+def create_build_run(
+    payload: BuildRunCreate, repo: BuildRunRepository = Depends(get_build_run_repo)
+):
     br = BuildRun(
         tenant=payload.tenant,
         project_id=payload.project_id,
@@ -68,9 +85,7 @@ def create_build_run(payload: BuildRunCreate, session: Session = Depends(get_ses
         template_set=payload.template_set,
         policy_reason=payload.policy_reason,
     )
-    session.add(br)
-    session.commit()
-    session.refresh(br)
+    br = repo.create(br)
     return BuildRunResponse(
         id=br.id,
         tenant=br.tenant,
@@ -86,16 +101,13 @@ def create_build_run(payload: BuildRunCreate, session: Session = Depends(get_ses
     )
 
 
-@router.get(
-    "/build-runs/{build_run_id}", response_model=BuildRunResponse, tags=["build"]
-)
-def get_build_run(build_run_id: str, session: Session = Depends(get_session)):
+@router.get("/build-runs/{build_run_id}", response_model=BuildRunResponse, tags=["build"])
+def get_build_run(build_run_id: str, repo: BuildRunRepository = Depends(get_build_run_repo)):
     try:
         bid = uuid.UUID(build_run_id)
     except Exception:
         raise HTTPException(status_code=400, detail="Invalid build_run_id")
-    stmt = select(BuildRun).where(BuildRun.id == bid)
-    br = session.exec(stmt).first()
+    br = repo.get(bid)
     if not br:
         raise HTTPException(status_code=404, detail="BuildRun not found")
     return BuildRunResponse(
@@ -196,23 +208,8 @@ from .planner import router as planner_router  # noqa: E402
 router.include_router(planner_router)
 
 
-class SessionStartRequest(BaseModel):
-    tenant: str = Field(..., description="Tenant identifier")
-    user: str = Field(..., description="User starting the session")
-    prompt: str = Field(..., description="Conversation seed prompt")
-    model: str = Field(
-        default="somagent-demo", description="Requested model identifier"
-    )
-    metadata: dict[str, Any] = Field(
-        default_factory=dict, description="Additional session metadata"
-    )
-
-
-class SessionStartResponse(BaseModel):
-    workflow_id: str
-    run_id: str | None = None
-    session_id: str
-    task_queue: str
+SessionStartRequest = ContractSessionStartRequest
+SessionStartResponse = ContractSessionStartResponse
 
 
 class SessionStatusResponse(BaseModel):
@@ -223,27 +220,11 @@ class SessionStatusResponse(BaseModel):
     result: dict[str, Any] | None = None
 
 
-class AgentDirectiveModel(BaseModel):
-    agent_id: str
-    goal: str
-    prompt: str
-    capabilities: list[str] = Field(default_factory=list)
-    metadata: dict[str, Any] = Field(default_factory=dict)
+AgentDirectiveModel = ContractAgentDirective
 
 
-class MultiAgentStartRequest(BaseModel):
-    tenant: str
-    initiator: str
-    directives: list[AgentDirectiveModel]
-    notification_channel: str | None = None
-    metadata: dict[str, Any] = Field(default_factory=dict)
-
-
-class MultiAgentStartResponse(BaseModel):
-    workflow_id: str
-    run_id: str | None = None
-    orchestration_id: str
-    task_queue: str
+MultiAgentStartRequest = ContractMultiAgentStartRequest
+MultiAgentStartResponse = ContractMultiAgentStartResponse
 
 
 class CapsuleRunRequest(BaseModel):
