@@ -2,7 +2,9 @@ import uuid
 from sqlmodel import SQLModel, create_engine, Session
 
 from services.orchestrator.app.repository.models import BuildRun
-from services.orchestrator.app.repository.sql_build_run_repository import SQLBuildRunRepository
+from services.orchestrator.app.repository.sql_build_run_repository import (
+    SQLBuildRunRepository,
+)
 
 
 def _setup_db():

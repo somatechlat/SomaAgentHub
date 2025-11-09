@@ -18,9 +18,7 @@ def test_create_snapshot_create_only(monkeypatch):
     store = {}
 
     class FakeCH:
-        def execute(
-            self, query, params=None, with_column_types=False, types_check=False
-        ):  # noqa: D401
+        def execute(self, query, params=None, with_column_types=False, types_check=False):  # noqa: D401
             nonlocal store
             q = " ".join(query.split()).lower()
             if q.startswith("insert into pricing_snapshots"):

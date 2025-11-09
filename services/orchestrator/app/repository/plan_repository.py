@@ -77,9 +77,7 @@ class PlanRepository:
     async def upsert_provisioning_task(self, task: ProvisioningTaskRecord) -> None:
         raise NotImplementedError
 
-    async def list_provisioning_tasks(
-        self, plan_id: str
-    ) -> list[ProvisioningTaskRecord]:
+    async def list_provisioning_tasks(self, plan_id: str) -> list[ProvisioningTaskRecord]:
         raise NotImplementedError
 
     async def delete_plan(self, plan_id: str) -> None:

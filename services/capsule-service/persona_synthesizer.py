@@ -113,16 +113,8 @@ class PersonaSynthesizer:
         formal_indicators = ["please", "thank you", "kindly", "would you"]
         casual_indicators = ["hey", "yeah", "cool", "awesome"]
 
-        formal_count = sum(
-            msg.lower().count(word)
-            for msg in all_messages
-            for word in formal_indicators
-        )
-        casual_count = sum(
-            msg.lower().count(word)
-            for msg in all_messages
-            for word in casual_indicators
-        )
+        formal_count = sum(msg.lower().count(word) for msg in all_messages for word in formal_indicators)
+        casual_count = sum(msg.lower().count(word) for msg in all_messages for word in casual_indicators)
 
         if formal_count > casual_count * 1.5:
             formality = "formal"
@@ -189,9 +181,7 @@ class PersonaSynthesizer:
 
         # Framework preferences
         frameworks = ["react", "vue", "angular", "django", "flask", "fastapi"]
-        mentioned_frameworks = [
-            fw for fw in frameworks if any(fw in msg for msg in all_messages)
-        ]
+        mentioned_frameworks = [fw for fw in frameworks if any(fw in msg for msg in all_messages)]
 
         if mentioned_frameworks:
             traits.append(
@@ -212,12 +202,7 @@ class PersonaSynthesizer:
 
         traits = []
         all_messages = " ".join(
-            [
-                msg["content"]
-                for conv in self.conversations
-                for msg in conv["messages"]
-                if msg.get("role") == "user"
-            ]
+            [msg["content"] for conv in self.conversations for msg in conv["messages"] if msg.get("role") == "user"]
         ).lower()
 
         # Testing preferences
@@ -283,9 +268,7 @@ class PersonaSynthesizer:
                             vocabulary[word] = vocabulary.get(word, 0) + 1
 
         # Keep top 100 most common
-        sorted_vocab = sorted(vocabulary.items(), key=lambda x: x[1], reverse=True)[
-            :100
-        ]
+        sorted_vocab = sorted(vocabulary.items(), key=lambda x: x[1], reverse=True)[:100]
 
         return dict(sorted_vocab)
 
@@ -300,24 +283,16 @@ class PersonaSynthesizer:
 
             # Find user-assistant pairs
             for i in range(len(messages) - 1):
-                if (
-                    messages[i].get("role") == "user"
-                    and messages[i + 1].get("role") == "assistant"
-                ):
-
+                if messages[i].get("role") == "user" and messages[i + 1].get("role") == "assistant":
                     user_msg = messages[i]["content"]
                     assistant_msg = messages[i + 1]["content"]
 
                     # Extract pattern type
                     if "?" in user_msg:
                         pattern_type = "question"
-                    elif any(
-                        word in user_msg.lower() for word in ["create", "build", "make"]
-                    ):
+                    elif any(word in user_msg.lower() for word in ["create", "build", "make"]):
                         pattern_type = "creation_request"
-                    elif any(
-                        word in user_msg.lower() for word in ["fix", "debug", "error"]
-                    ):
+                    elif any(word in user_msg.lower() for word in ["fix", "debug", "error"]):
                         pattern_type = "troubleshooting"
                     else:
                         pattern_type = "general"
@@ -327,9 +302,7 @@ class PersonaSynthesizer:
                             "type": pattern_type,
                             "user_intent": user_msg[:100],  # Truncate for storage
                             "response_length": len(assistant_msg.split()),
-                            "response_style": (
-                                "code" if "```" in assistant_msg else "text"
-                            ),
+                            "response_style": ("code" if "```" in assistant_msg else "text"),
                         }
                     )
 
@@ -342,9 +315,7 @@ class PersonaSynthesizer:
         rules = []
 
         # Rule: Prefer specific tools based on mentions
-        all_text = " ".join(
-            [msg["content"] for conv in self.conversations for msg in conv["messages"]]
-        ).lower()
+        all_text = " ".join([msg["content"] for conv in self.conversations for msg in conv["messages"]]).lower()
 
         if "github" in all_text and all_text.count("github") > 3:
             rules.append(
@@ -402,9 +373,7 @@ class PersonaSynthesizer:
             decision_rules=decision_rules,
             metadata={
                 "conversation_count": len(self.conversations),
-                "total_messages": sum(
-                    len(conv["messages"]) for conv in self.conversations
-                ),
+                "total_messages": sum(len(conv["messages"]) for conv in self.conversations),
             },
         )
 
@@ -452,9 +421,7 @@ if __name__ == "__main__":
     )
 
     # Synthesize persona
-    persona = synthesizer.synthesize_persona(
-        name="senior_python_developer", version="1.0.0"
-    )
+    persona = synthesizer.synthesize_persona(name="senior_python_developer", version="1.0.0")
 
     # Save package
     synthesizer.save_package(persona, "personas/senior_python_developer.json")

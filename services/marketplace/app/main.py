@@ -38,9 +38,7 @@ class CapsulePublishRequest(BaseModel):
     name: str = Field(..., description="Capsule name")
     description: str = Field(..., description="Capsule description")
     author: str = Field(..., description="Author username")
-    category: str = Field(
-        ..., description="Category (e.g., 'data-analysis', 'automation')"
-    )
+    category: str = Field(..., description="Category (e.g., 'data-analysis', 'automation')")
     tags: list[str] = Field(default_factory=list, description="Search tags")
     source_url: str = Field(..., description="S3 URL to capsule artifact")
     version: str = Field(default="1.0.0", description="Version string")
@@ -204,19 +202,14 @@ async def list_capsules(
         # Filter capsules that have any of the specified tags
         query = query.filter(Capsule.tags.overlap(tag_list))
 
-    capsules = (
-        query.order_by(Capsule.created_at.desc()).offset(offset).limit(limit).all()
-    )
+    capsules = query.order_by(Capsule.created_at.desc()).offset(offset).limit(limit).all()
 
     # Build responses with aggregated stats
     results = []
     for capsule in capsules:
         # Get download count
         download_count = (
-            db.query(func.count(CapsuleDownload.id))
-            .filter(CapsuleDownload.capsule_id == capsule.id)
-            .scalar()
-            or 0
+            db.query(func.count(CapsuleDownload.id)).filter(CapsuleDownload.capsule_id == capsule.id).scalar() or 0
         )
 
         # Get rating stats
@@ -277,10 +270,7 @@ async def get_capsule(
 
     # Get download count
     download_count = (
-        db.query(func.count(CapsuleDownload.id))
-        .filter(CapsuleDownload.capsule_id == capsule.id)
-        .scalar()
-        or 0
+        db.query(func.count(CapsuleDownload.id)).filter(CapsuleDownload.capsule_id == capsule.id).scalar() or 0
     )
 
     # Get rating stats
@@ -358,10 +348,7 @@ async def update_capsule(
 
     # Get stats for response
     download_count = (
-        db.query(func.count(CapsuleDownload.id))
-        .filter(CapsuleDownload.capsule_id == capsule.id)
-        .scalar()
-        or 0
+        db.query(func.count(CapsuleDownload.id)).filter(CapsuleDownload.capsule_id == capsule.id).scalar() or 0
     )
 
     rating_stats = (
@@ -415,9 +402,7 @@ async def delete_capsule(
     return None
 
 
-@app.post(
-    "/v1/capsules/{capsule_id}/ratings", response_model=RatingResponse, status_code=201
-)
+@app.post("/v1/capsules/{capsule_id}/ratings", response_model=RatingResponse, status_code=201)
 async def rate_capsule(
     capsule_id: str,
     request: CapsuleRatingRequest,
@@ -506,12 +491,7 @@ async def record_download(
     db.commit()
 
     # Get total download count
-    count = (
-        db.query(func.count(CapsuleDownload.id))
-        .filter(CapsuleDownload.capsule_id == capsule_id)
-        .scalar()
-        or 0
-    )
+    count = db.query(func.count(CapsuleDownload.id)).filter(CapsuleDownload.capsule_id == capsule_id).scalar() or 0
 
     return {"capsule_id": capsule_id, "downloads": count}
 
@@ -550,10 +530,7 @@ async def search_capsules(
     results = []
     for capsule in capsules:
         download_count = (
-            db.query(func.count(CapsuleDownload.id))
-            .filter(CapsuleDownload.capsule_id == capsule.id)
-            .scalar()
-            or 0
+            db.query(func.count(CapsuleDownload.id)).filter(CapsuleDownload.capsule_id == capsule.id).scalar() or 0
         )
 
         rating_stats = (

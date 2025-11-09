@@ -202,8 +202,7 @@ class Saga:
         for i, pair in enumerate(reversed(self.executed), 1):
             try:
                 workflow.logger.info(
-                    f"[Saga:{self.saga_id}] Compensating {pair.forward} "
-                    f"({i}/{len(self.executed)})",
+                    f"[Saga:{self.saga_id}] Compensating {pair.forward} ({i}/{len(self.executed)})",
                     extra={
                         "forward_activity": pair.forward,
                         "compensation_activity": pair.backward.__name__,

@@ -26,9 +26,7 @@ class SandboxRunner:
     def __init__(self, base_path: str) -> None:
         self.base_path = base_path
 
-    async def run(
-        self, adapter: dict, action: str, arguments: dict[str, Any]
-    ) -> SandboxResult:
+    async def run(self, adapter: dict, action: str, arguments: dict[str, Any]) -> SandboxResult:
         start = time.perf_counter()
         await asyncio.sleep(0)  # Yield control; replace with real sandbox call later.
         job_id = str(uuid.uuid4())

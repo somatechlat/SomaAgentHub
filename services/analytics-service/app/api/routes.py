@@ -63,9 +63,7 @@ def _calculate_benchmark_score(metrics: dict[str, float]) -> float:
 
     throughput_component = 0.0
     if throughput and throughput > 0:
-        throughput_component = min(
-            throughput / settings.benchmark_throughput_target_rps, 2.0
-        )
+        throughput_component = min(throughput / settings.benchmark_throughput_target_rps, 2.0)
 
     error_component = 1.0
     if error_rate is not None:
@@ -160,44 +158,31 @@ def benchmark_scoreboard(
     tenant_id: str | None = None,
 ) -> BenchmarkScoreboardResponse:
     entries = [
-        BenchmarkScoreboardEntry(**record)
-        for record in store.benchmark_scoreboard(suite=suite, tenant_id=tenant_id)
+        BenchmarkScoreboardEntry(**record) for record in store.benchmark_scoreboard(suite=suite, tenant_id=tenant_id)
     ]
     return BenchmarkScoreboardResponse(scoreboard=entries)
 
 
-@router.get(
-    "/dashboards/agent-one-sight", response_model=AgentOneSightDashboardResponse
-)
+@router.get("/dashboards/agent-one-sight", response_model=AgentOneSightDashboardResponse)
 def agent_one_sight_dashboard(
     tenant_id: str | None = None,
     capsule_window_hours: int | None = None,
     benchmark_suite: str | None = None,
     notification_limit: int = 10,
 ) -> AgentOneSightDashboardResponse:
-    capsule_data = capsule_dashboard(
-        tenant_id=tenant_id, window_hours=capsule_window_hours
-    )
+    capsule_data = capsule_dashboard(tenant_id=tenant_id, window_hours=capsule_window_hours)
     anomaly_records = detect_anomalies().anomalies
     if tenant_id:
-        anomaly_records = [
-            record for record in anomaly_records if record.tenant_id == tenant_id
-        ]
+        anomaly_records = [record for record in anomaly_records if record.tenant_id == tenant_id]
 
     benchmarks = [
         BenchmarkScoreboardEntry(**entry)
-        for entry in store.benchmark_scoreboard(
-            suite=benchmark_suite, tenant_id=tenant_id
-        )
+        for entry in store.benchmark_scoreboard(suite=benchmark_suite, tenant_id=tenant_id)
     ]
 
     ledger = billing_ledger(tenant_id=tenant_id)
 
-    notifications_raw = (
-        store.notifications[-notification_limit:]
-        if notification_limit > 0
-        else store.notifications
-    )
+    notifications_raw = store.notifications[-notification_limit:] if notification_limit > 0 else store.notifications
     notifications = (
         [NotificationLog(**entry) for entry in notifications_raw[-notification_limit:]]
         if notification_limit > 0
@@ -239,9 +224,7 @@ def record_capsule_run(payload: CapsuleRunRequest) -> dict[str, str]:
     )
     store.record_run(run)
     if not payload.success:
-        store.log_notification(
-            payload.tenant_id, f"Capsule {payload.capsule_id} reported a failure event"
-        )
+        store.log_notification(payload.tenant_id, f"Capsule {payload.capsule_id} reported a failure event")
     return {"status": "accepted"}
 
 
@@ -265,9 +248,7 @@ def capsule_dashboard(
     aggregates: list[CapsuleRunAggregate] = []
     for (tenant_id, capsule_id), items in grouped.items():
         total_runs = len(items)
-        success_rate = (
-            sum(1 for item in items if item.success) / total_runs if total_runs else 0.0
-        )
+        success_rate = sum(1 for item in items if item.success) / total_runs if total_runs else 0.0
         avg_tokens = statistics.fmean(item.tokens for item in items)
         avg_revisions = statistics.fmean(item.revisions for item in items)
         avg_duration = statistics.fmean(item.duration_seconds for item in items)
@@ -342,15 +323,11 @@ def run_persona_regression(
         status="completed",
         note=note,
     )
-    store.log_notification(
-        payload.tenant_id, f"Persona {payload.persona_id} regression completed"
-    )
+    store.log_notification(payload.tenant_id, f"Persona {payload.persona_id} regression completed")
     return PersonaRegressionResponse(**regression.__dict__)
 
 
-@router.post(
-    "/persona-regressions/transition", response_model=PersonaRegressionResponse
-)
+@router.post("/persona-regressions/transition", response_model=PersonaRegressionResponse)
 def transition_persona_regression(
     payload: PersonaRegressionTransitionRequest,
 ) -> PersonaRegressionResponse:
@@ -383,16 +360,12 @@ def transition_persona_regression(
 
 @router.get("/persona-regressions", response_model=list[PersonaRegressionResponse])
 def list_regressions() -> list[PersonaRegressionResponse]:
-    return [
-        PersonaRegressionResponse(**reg.__dict__) for reg in store.list_regressions()
-    ]
+    return [PersonaRegressionResponse(**reg.__dict__) for reg in store.list_regressions()]
 
 
 @router.get("/persona-regressions/due", response_model=list[PersonaRegressionResponse])
 def due_regressions() -> list[PersonaRegressionResponse]:
-    return [
-        PersonaRegressionResponse(**reg.__dict__) for reg in store.pending_regressions()
-    ]
+    return [PersonaRegressionResponse(**reg.__dict__) for reg in store.pending_regressions()]
 
 
 @router.post(
@@ -528,9 +501,7 @@ def billing_ledger(tenant_id: str | None = None) -> BillingLedgerResponse:
                 last_recorded_at=record["last_recorded_at"],
             )
         )
-    entries.sort(
-        key=lambda entry: (entry.tenant_id, entry.capsule_id or "", entry.service)
-    )
+    entries.sort(key=lambda entry: (entry.tenant_id, entry.capsule_id or "", entry.service))
     return BillingLedgerResponse(entries=entries)
 
 
@@ -569,9 +540,7 @@ def record_disaster_drill(
 def list_disaster_drills() -> list[DisasterRecoveryDrillResponse]:
     """List recorded disaster recovery drills."""
 
-    return [
-        DisasterRecoveryDrillResponse(**drill.__dict__) for drill in store.list_drills()
-    ]
+    return [DisasterRecoveryDrillResponse(**drill.__dict__) for drill in store.list_drills()]
 
 
 @router.get("/drills/disaster/summary")

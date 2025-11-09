@@ -39,6 +39,7 @@ class ToolInfo:
     requires_auth: bool
     auth_type: str  # api_token, oauth, basic_auth
 
+
 @runtime_checkable
 class ToolAdapter(Protocol):
     """Protocol defining minimal contract each adapter must satisfy.
@@ -128,9 +129,7 @@ class ToolRegistry:
                         {"summary": "str"},
                         "issue_key",
                     ),
-                    ToolCapability(
-                        "create_sprint", "Create sprint", {"name": "str"}, "sprint_id"
-                    ),
+                    ToolCapability("create_sprint", "Create sprint", {"name": "str"}, "sprint_id"),
                 ],
                 version="1.0.0",
                 requires_auth=True,
@@ -145,9 +144,7 @@ class ToolRegistry:
                 adapter_class="adapters.github_adapter.GitHubAdapter",
                 category="code_repository",
                 capabilities=[
-                    ToolCapability(
-                        "create_repository", "Create repo", {"name": "str"}, "repo_url"
-                    ),
+                    ToolCapability("create_repository", "Create repo", {"name": "str"}, "repo_url"),
                     ToolCapability(
                         "create_pull_request",
                         "Create PR",
@@ -174,9 +171,7 @@ class ToolRegistry:
                 adapter_class="adapters.notion_adapter.NotionAdapter",
                 category="documentation",
                 capabilities=[
-                    ToolCapability(
-                        "create_page", "Create page", {"title": "str"}, "page_id"
-                    ),
+                    ToolCapability("create_page", "Create page", {"title": "str"}, "page_id"),
                     ToolCapability(
                         "create_database",
                         "Create database",
@@ -269,9 +264,7 @@ class ToolRegistry:
                         {"name": "str", "image": "str"},
                         "deployment",
                     ),
-                    ToolCapability(
-                        "create_service", "Create service", {"name": "str"}, "service"
-                    ),
+                    ToolCapability("create_service", "Create service", {"name": "str"}, "service"),
                 ],
                 version="1.0.0",
                 requires_auth=True,
@@ -306,9 +299,7 @@ class ToolRegistry:
         self.tools[tool_info.name] = tool_info
         logger.debug(f"Registered tool: {tool_info.name}")
 
-    def get_adapter(
-        self, tool_name: str, credentials: dict[str, str] | None = None
-    ) -> ToolAdapter:
+    def get_adapter(self, tool_name: str, credentials: dict[str, str] | None = None) -> ToolAdapter:
         """
         Get initialized adapter instance.
 
@@ -346,9 +337,7 @@ class ToolRegistry:
         # Structural Protocol compliance check (runtime) – raises if incompatible
         if not isinstance(adapter, ToolAdapter):  # type: ignore[arg-type]
             # Provide a descriptive error for developers extending adapters.
-            raise TypeError(
-                f"Adapter '{tool_name}' does not satisfy ToolAdapter Protocol"
-            )
+            raise TypeError(f"Adapter '{tool_name}' does not satisfy ToolAdapter Protocol")
 
         # Cache
         self.loaded_adapters[cache_key] = adapter
@@ -412,9 +401,7 @@ class ToolRegistry:
 
         return result
 
-    def health_check(
-        self, tool_name: str, credentials: dict[str, str] | None = None
-    ) -> dict[str, Any]:
+    def health_check(self, tool_name: str, credentials: dict[str, str] | None = None) -> dict[str, Any]:
         """
         Check tool health/connectivity.
 

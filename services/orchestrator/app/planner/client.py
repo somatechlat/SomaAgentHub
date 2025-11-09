@@ -29,9 +29,7 @@ class PlannerClient:
     def __init__(self, config: PlannerClientConfig) -> None:
         self._config = config
 
-    async def complete(
-        self, prompt: str, *, metadata: dict[str, Any] | None = None
-    ) -> str:
+    async def complete(self, prompt: str, *, metadata: dict[str, Any] | None = None) -> str:
         """Execute a single‑shot completion request against the local SLM service.
 
         The SLM service is exposed via HTTP on the ``slm-service`` pod. We call its
@@ -65,9 +63,7 @@ class PlannerClient:
         # service does not require it in the URL; we use the configured port.
         slm_url = f"http://slm-service:{self._config.model}/v1/infer/sync"
 
-        async with httpx.AsyncClient(
-            timeout=self._config.request_timeout_seconds
-        ) as client:
+        async with httpx.AsyncClient(timeout=self._config.request_timeout_seconds) as client:
             response = await client.post(slm_url, json=request_body)
             response.raise_for_status()
             payload = response.json()

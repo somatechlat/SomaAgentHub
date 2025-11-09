@@ -88,9 +88,7 @@ class FineTuningPipeline:
 
         return None
 
-    def prepare_training_data(
-        self, conversations: list[dict[str, Any]], output_file: str
-    ) -> str:
+    def prepare_training_data(self, conversations: list[dict[str, Any]], output_file: str) -> str:
         """
         Prepare training data in provider format.
 
@@ -106,10 +104,7 @@ class FineTuningPipeline:
             with open(output_file, "w") as f:
                 for conv in conversations:
                     training_example = {
-                        "messages": [
-                            {"role": msg["role"], "content": msg["content"]}
-                            for msg in conv["messages"]
-                        ]
+                        "messages": [{"role": msg["role"], "content": msg["content"]} for msg in conv["messages"]]
                     }
                     f.write(json.dumps(training_example) + "\n")
 
@@ -118,14 +113,8 @@ class FineTuningPipeline:
             with open(output_file, "w") as f:
                 for conv in conversations:
                     # Extract user prompt and assistant response
-                    user_msgs = [
-                        m["content"] for m in conv["messages"] if m["role"] == "user"
-                    ]
-                    assistant_msgs = [
-                        m["content"]
-                        for m in conv["messages"]
-                        if m["role"] == "assistant"
-                    ]
+                    user_msgs = [m["content"] for m in conv["messages"] if m["role"] == "user"]
+                    assistant_msgs = [m["content"] for m in conv["messages"] if m["role"] == "assistant"]
 
                     if user_msgs and assistant_msgs:
                         training_example = {
@@ -170,9 +159,7 @@ class FineTuningPipeline:
                 hyperparameters={
                     "n_epochs": hyperparameters.get("epochs", 3),
                     "batch_size": hyperparameters.get("batch_size", 32),
-                    "learning_rate_multiplier": hyperparameters.get(
-                        "learning_rate", 0.1
-                    ),
+                    "learning_rate_multiplier": hyperparameters.get("learning_rate", 0.1),
                 },
             )
 
@@ -240,9 +227,7 @@ class FineTuningPipeline:
                 hyperparameters={},
                 status=status_map.get(job.status, FineTuningStatus.CREATED),
                 created_at=datetime.fromtimestamp(job.created_at),
-                completed_at=(
-                    datetime.fromtimestamp(job.finished_at) if job.finished_at else None
-                ),
+                completed_at=(datetime.fromtimestamp(job.finished_at) if job.finished_at else None),
                 fine_tuned_model=job.fine_tuned_model,
                 error=job.error.get("message") if job.error else None,
             )

@@ -7,9 +7,7 @@ from httpx import Response
 
 # Add service path then dynamically load gateway main to avoid package shadowing
 BASE = os.path.dirname(os.path.dirname(__file__))
-gateway_main = SourceFileLoader(
-    "gateway_app_main", os.path.join(BASE, "app", "main.py")
-).load_module()
+gateway_main = SourceFileLoader("gateway_app_main", os.path.join(BASE, "app", "main.py")).load_module()
 app = gateway_main.app  # noqa: E402
 
 client = TestClient(app)

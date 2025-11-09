@@ -117,9 +117,9 @@ def test_end_to_end_flow(identity_client, gateway_client, policy_client):
     }
     headers = {"Authorization": f"Bearer {token}"}
     # Ensure gateway is pointed at a real orchestrator via env var
-    assert os.getenv(
-        "SOMAGENT_GATEWAY_ORCHESTRATOR_URL"
-    ), "Set SOMAGENT_GATEWAY_ORCHESTRATOR_URL to real Orchestrator URL"
+    assert os.getenv("SOMAGENT_GATEWAY_ORCHESTRATOR_URL"), (
+        "Set SOMAGENT_GATEWAY_ORCHESTRATOR_URL to real Orchestrator URL"
+    )
     resp = gateway_client.post("/v1/sessions", json=session_payload, headers=headers)
     assert resp.status_code == 201
     session_id = resp.json()["session_id"]

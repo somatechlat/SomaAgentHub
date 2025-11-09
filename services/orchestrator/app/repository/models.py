@@ -64,8 +64,6 @@ class BuildRun(SQLModel, table=True):
 # import. It has been removed.
 
 
-
-
 @dataclass
 class PlanRecord:
     """Top-level plan metadata."""

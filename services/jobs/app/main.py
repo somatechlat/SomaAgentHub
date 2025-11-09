@@ -18,9 +18,7 @@ JOBS_REQUESTS = Counter("jobs_requests_total", "Total requests to Jobs service")
 
 class JobCreate(BaseModel):
     task: str = Field(..., description="Name of the task to run")
-    payload: dict = Field(
-        default_factory=dict, description="Arbitrary payload for the job"
-    )
+    payload: dict = Field(default_factory=dict, description="Arbitrary payload for the job")
 
 
 class JobStatus(BaseModel):
@@ -65,9 +63,7 @@ async def _run_job(job_id: str, task: str, payload: dict):
 
         await redis_client.publish(
             f"jobs:{job_id}",
-            json.dumps(
-                {"status": JOB_STORE[job_id].status, "result": JOB_STORE[job_id].result}
-            ),
+            json.dumps({"status": JOB_STORE[job_id].status, "result": JOB_STORE[job_id].result}),
         )
 
 

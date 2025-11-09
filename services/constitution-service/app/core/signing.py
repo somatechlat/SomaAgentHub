@@ -31,17 +31,11 @@ class ManifestSigningError(RuntimeError):
 class ManifestSigner:
     """Thin wrapper around Ed25519 signing for persona manifests."""
 
-    def __init__(
-        self, private_key: bytes, *, public_key: bytes | None = None
-    ) -> None:
+    def __init__(self, private_key: bytes, *, public_key: bytes | None = None) -> None:
         if SigningKey is None:
-            raise ManifestSigningError(
-                "PyNaCl is required for signing manifests. Install with `pip install pynacl`."
-            )
+            raise ManifestSigningError("PyNaCl is required for signing manifests. Install with `pip install pynacl`.")
         self._signing_key = SigningKey(private_key)
-        self._verify_key = VerifyKey(
-            public_key or self._signing_key.verify_key.encode()
-        )
+        self._verify_key = VerifyKey(public_key or self._signing_key.verify_key.encode())
 
     @property
     def public_key(self) -> bytes:

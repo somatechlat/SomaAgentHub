@@ -18,9 +18,7 @@ class CapsuleLoader:
 
     def load_all(self) -> list[dict]:
         capsules = []
-        for path in sorted(self.base_path.glob("*.yml")) + sorted(
-            self.base_path.glob("*.yaml")
-        ):
+        for path in sorted(self.base_path.glob("*.yml")) + sorted(self.base_path.glob("*.yaml")):
             capsule = self._load_file(path)
             if capsule:
                 capsules.append(capsule)

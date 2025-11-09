@@ -37,9 +37,7 @@ class FigmaAdapter:
     def _request(self, method: str, endpoint: str, **kwargs) -> Any:
         """Make API request."""
         url = f"{self.base_url}/{endpoint}"
-        response = requests.request(
-            method, url, headers=self.headers, timeout=30, **kwargs
-        )
+        response = requests.request(method, url, headers=self.headers, timeout=30, **kwargs)
         response.raise_for_status()
         return response.json() if response.content else {}
 
@@ -215,9 +213,7 @@ class FigmaAdapter:
     # UTILITIES
     # ============================================================================
 
-    def export_design_system(
-        self, file_key: str, export_path: str = "."
-    ) -> dict[str, Any]:
+    def export_design_system(self, file_key: str, export_path: str = ".") -> dict[str, Any]:
         """
         Export complete design system including components and styles.
 
@@ -238,9 +234,7 @@ class FigmaAdapter:
         # Export component images
         images = {}
         if component_ids:
-            images = self.get_file_images(
-                file_key, component_ids, scale=2.0, format="png"
-            )
+            images = self.get_file_images(file_key, component_ids, scale=2.0, format="png")
 
         logger.info(f"Exported {len(component_ids)} components from {file_key}")
 
@@ -278,9 +272,7 @@ class FigmaAdapter:
 
         return comments
 
-    def analyze_design_changes(
-        self, file_key: str, version_count: int = 5
-    ) -> dict[str, Any]:
+    def analyze_design_changes(self, file_key: str, version_count: int = 5) -> dict[str, Any]:
         """
         Analyze recent design changes from version history.
 
@@ -296,9 +288,7 @@ class FigmaAdapter:
         analysis = {
             "total_versions": len(versions),
             "recent_versions": versions,
-            "contributors": list(
-                set(v.get("user", {}).get("handle", "Unknown") for v in versions)
-            ),
+            "contributors": list(set(v.get("user", {}).get("handle", "Unknown") for v in versions)),
             "timeline": [
                 {
                     "id": v.get("id"),

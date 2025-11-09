@@ -36,9 +36,7 @@ class PersonaExportRequest(BaseModel):
 
     tenant: str
     initiated_by: str = Field(..., description="User or system triggering the export")
-    destination_path: Path = Field(
-        ..., description="Local filesystem path for the manifest artifact"
-    )
+    destination_path: Path = Field(..., description="Local filesystem path for the manifest artifact")
     metadata: PersonaMetadata
     model_box: ModelBoxReference
     memory: MemorySnapshotReference
@@ -81,16 +79,12 @@ class PersonaExporterDependencies:
 class PersonaExporter:
     """Coordinates persona capsule exports and manifest generation."""
 
-    def __init__(
-        self, dependencies: PersonaExporterDependencies | None = None
-    ) -> None:
+    def __init__(self, dependencies: PersonaExporterDependencies | None = None) -> None:
         self._deps = dependencies or PersonaExporterDependencies()
         if self._deps.signing_client is None:
             self._deps.signing_client = build_signing_client()
 
-    async def export_persona(
-        self, request: PersonaExportRequest
-    ) -> PersonaExportResult:
+    async def export_persona(self, request: PersonaExportRequest) -> PersonaExportResult:
         """Primary entrypoint to export a persona manifest and supporting artifacts."""
 
         started_at = datetime.now(UTC)
@@ -149,9 +143,7 @@ class PersonaExporter:
         manifest.signature = signature
         return manifest
 
-    async def _dispatch_async_tasks(
-        self, request: PersonaExportRequest, manifest_path: Path
-    ) -> None:
+    async def _dispatch_async_tasks(self, request: PersonaExportRequest, manifest_path: Path) -> None:
         """Hook for future async tasks (artifact uploads, memory exports, etc.)."""
 
         tasks: list[asyncio.Task[Any]] = []

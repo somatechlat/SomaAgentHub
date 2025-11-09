@@ -56,9 +56,7 @@ class UsageTracker:
             clickhouse_port: ClickHouse native protocol port
             database: Database name
         """
-        self.client = Client(
-            host=clickhouse_host, port=clickhouse_port, database=database
-        )
+        self.client = Client(host=clickhouse_host, port=clickhouse_port, database=database)
         self._ensure_table()
 
     def _ensure_table(self) -> None:
@@ -257,9 +255,7 @@ class UsageTracker:
         except Exception as e:
             logger.error(f"Failed to write usage record: {e}")
 
-    def get_usage_summary(
-        self, user_id: str, start_date: datetime, end_date: datetime
-    ) -> dict:
+    def get_usage_summary(self, user_id: str, start_date: datetime, end_date: datetime) -> dict:
         """
         Get usage summary for a user and date range.
 
@@ -284,9 +280,7 @@ class UsageTracker:
         ORDER BY total_cost DESC
         """
 
-        result = self.client.execute(
-            query, {"user_id": user_id, "start_date": start_date, "end_date": end_date}
-        )
+        result = self.client.execute(query, {"user_id": user_id, "start_date": start_date, "end_date": end_date})
 
         summary = {
             "user_id": user_id,
@@ -310,9 +304,7 @@ class UsageTracker:
         summary["total_cost"] = float(summary["total_cost"])
         return summary
 
-    def create_invoice(
-        self, user_id: str, billing_period_start: datetime, billing_period_end: datetime
-    ) -> str | None:
+    def create_invoice(self, user_id: str, billing_period_start: datetime, billing_period_end: datetime) -> str | None:
         """
         Create Stripe invoice for a billing period.
 
@@ -326,9 +318,7 @@ class UsageTracker:
         """
         try:
             # Get usage summary
-            summary = self.get_usage_summary(
-                user_id, billing_period_start, billing_period_end
-            )
+            summary = self.get_usage_summary(user_id, billing_period_start, billing_period_end)
 
             if summary["total_cost"] == 0:
                 logger.info(f"No usage to bill for {user_id}")
@@ -359,9 +349,7 @@ class UsageTracker:
             # Finalize and send
             stripe.Invoice.finalize_invoice(invoice.id)
 
-            logger.info(
-                f"Created invoice {invoice.id} for {user_id}: ${summary['total_cost']:.2f}"
-            )
+            logger.info(f"Created invoice {invoice.id} for {user_id}: ${summary['total_cost']:.2f}")
             return invoice.id
 
         except Exception as e:
@@ -385,9 +373,7 @@ class UsageTracker:
             if customers.data:
                 return customers.data[0].id
 
-            customer = stripe.Customer.create(
-                email=f"{user_id}@example.com", metadata={"user_id": user_id}
-            )
+            customer = stripe.Customer.create(email=f"{user_id}@example.com", metadata={"user_id": user_id})
             return customer.id
         except Exception as e:
             logger.error(f"Failed to get/create Stripe customer: {e}")
@@ -433,9 +419,7 @@ def track_usage(user_id: str, resource_type: str, **kwargs) -> None:
             kwargs.get("metadata"),
         )
     elif resource_type == "api_calls":
-        tracker.track_api_calls(
-            user_id, kwargs["endpoint"], kwargs.get("count", 1), kwargs.get("metadata")
-        )
+        tracker.track_api_calls(user_id, kwargs["endpoint"], kwargs.get("count", 1), kwargs.get("metadata"))
     elif resource_type == "storage":
         tracker.track_storage(
             user_id,

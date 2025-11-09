@@ -46,9 +46,7 @@ class RedisClient:
             decode_responses: Auto-decode bytes to strings
         """
         if redis is None:
-            raise RuntimeError(
-                "redis library not installed. Run: pip install redis[asyncio]"
-            )
+            raise RuntimeError("redis library not installed. Run: pip install redis[asyncio]")
 
         self.url = url
         self._pool = redis.ConnectionPool.from_url(

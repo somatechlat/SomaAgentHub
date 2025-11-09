@@ -12,9 +12,7 @@ from common.config.runtime import runtime_default
 from common.config.settings import Settings as SharedSettings
 
 
-def load_secret(
-    env_var: str, file_env: str | None = None, default: str | None = None
-) -> str:
+def load_secret(env_var: str, file_env: str | None = None, default: str | None = None) -> str:
     """Load a secret from environment variable or mounted file."""
 
     value = os.getenv(env_var)
@@ -110,9 +108,7 @@ class IdentitySettings(SharedSettings):
         ),
     )
     clickhouse_host_raw: str | None = Field(
-        default=runtime_default(
-            "clickhouse", "clickhouse.soma-infra.svc.cluster.local"
-        ),
+        default=runtime_default("clickhouse", "clickhouse.soma-infra.svc.cluster.local"),
         validation_alias=AliasChoices(
             "SOMASTACK_CLICKHOUSE_HOST",
             "SOMASTACK_IDENTITY_CLICKHOUSE_HOST",

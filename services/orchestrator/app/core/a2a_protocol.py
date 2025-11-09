@@ -55,9 +55,7 @@ class AgentRegistryBackend(Protocol):
     async def load_agents(self) -> Iterable[AgentCard]:  # pragma: no cover - interface
         ...
 
-    async def persist_agents(
-        self, agents: Iterable[AgentCard]
-    ) -> None:  # pragma: no cover - interface
+    async def persist_agents(self, agents: Iterable[AgentCard]) -> None:  # pragma: no cover - interface
         ...
 
 
@@ -108,9 +106,7 @@ class AgentRegistry:
         """Return all agents that expose the given capability."""
 
         await self._ensure_loaded()
-        return [
-            card for card in self._agents.values() if capability in card.capabilities
-        ]
+        return [card for card in self._agents.values() if capability in card.capabilities]
 
     async def list_agents(self) -> list[AgentCard]:
         """Return all registered agents."""
@@ -155,9 +151,7 @@ class ConfigMapAgentRegistryBackend:
         try:
             from kubernetes import client, config
         except ImportError as exc:
-            raise RuntimeError(
-                "kubernetes python client is required for ConfigMapAgentRegistryBackend"
-            ) from exc
+            raise RuntimeError("kubernetes python client is required for ConfigMapAgentRegistryBackend") from exc
         # Load in‑cluster config; fallback to default kubeconfig for local dev.
         try:
             config.load_incluster_config()
@@ -168,9 +162,7 @@ class ConfigMapAgentRegistryBackend:
     async def load_agents(self) -> Iterable[AgentCard]:
         await self._ensure_client()
         try:
-            cm = self._client.read_namespaced_config_map(
-                self._configmap_name, self._namespace
-            )
+            cm = self._client.read_namespaced_config_map(self._configmap_name, self._namespace)
             data = cm.data or {}
             raw = data.get("agents", "[]")
             payload = json.loads(raw)
@@ -188,9 +180,7 @@ class ConfigMapAgentRegistryBackend:
         }
         try:
             # Try to replace; if it does not exist we create it.
-            self._client.replace_namespaced_config_map(
-                self._configmap_name, self._namespace, body
-            )
+            self._client.replace_namespaced_config_map(self._configmap_name, self._namespace, body)
         except Exception:
             # Create on failure (e.g., NotFound)
             self._client.create_namespaced_config_map(self._namespace, body)

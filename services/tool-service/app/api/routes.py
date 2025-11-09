@@ -101,9 +101,7 @@ async def execute_adapter(
 
     adapter = get_adapter(adapter_id, settings)
     if adapter is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="Adapter not found"
-        )
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Adapter not found")
     if adapter.get("status") != "available":
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
@@ -111,9 +109,7 @@ async def execute_adapter(
         )
 
     if not verify_release_signature(adapter, settings.release_signing_secret):
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST, detail="Adapter signature invalid"
-        )
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Adapter signature invalid")
 
     rate_key = f"{tenant_id}:{adapter_id}"
     start = time.perf_counter()
@@ -132,9 +128,7 @@ async def execute_adapter(
     if user_id:
         execution_metadata["requested_by"] = user_id
 
-    result = await _sandbox_runner.run(
-        adapter, request.action, request.arguments | execution_metadata
-    )
+    result = await _sandbox_runner.run(adapter, request.action, request.arguments | execution_metadata)
     duration_seconds = time.perf_counter() - start
     record_execution(adapter_id, tenant_id, result.status, duration_seconds)
 
@@ -144,9 +138,7 @@ async def execute_adapter(
         if isinstance(raw_tokens, (int, float)):
             tokens = int(raw_tokens)
 
-    await _emit_billing_event(
-        adapter, tenant_id, request.action, duration_seconds, tokens
-    )
+    await _emit_billing_event(adapter, tenant_id, request.action, duration_seconds, tokens)
 
     return AdapterExecuteResponse(
         job_id=result.job_id,
@@ -169,9 +161,7 @@ def provision_resources(
     settings: Settings = Depends(get_settings),
 ) -> ProvisionResponse:
     if not request.actions:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST, detail="actions required"
-        )
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="actions required")
 
     results: list[ProvisionResult] = []
     for action in request.actions:

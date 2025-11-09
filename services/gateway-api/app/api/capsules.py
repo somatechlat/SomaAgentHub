@@ -59,9 +59,7 @@ async def start_capsule_run(
 
     async with AsyncClient(timeout=15.0) as client:
         try:
-            resp = await client.post(
-                f"{settings.orchestrator_url}/v1/capsule/run", json=forward
-            )
+            resp = await client.post(f"{settings.orchestrator_url}/v1/capsule/run", json=forward)
         except HTTPError as exc:  # noqa: BLE001
             raise HTTPException(
                 status_code=status.HTTP_502_BAD_GATEWAY,

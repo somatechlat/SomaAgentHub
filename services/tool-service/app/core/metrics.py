@@ -24,15 +24,11 @@ TOOL_RATE_LIMIT_HITS = Counter(
 )
 
 
-def record_execution(
-    adapter_id: str, tenant_id: str, status: str, duration_seconds: float
-) -> None:
+def record_execution(adapter_id: str, tenant_id: str, status: str, duration_seconds: float) -> None:
     """Record execution counters and histograms."""
 
     TOOL_EXECUTIONS.labels(adapter=adapter_id, tenant=tenant_id, status=status).inc()
-    TOOL_EXECUTION_LATENCY.labels(adapter=adapter_id, tenant=tenant_id).observe(
-        max(duration_seconds, 0.0)
-    )
+    TOOL_EXECUTION_LATENCY.labels(adapter=adapter_id, tenant=tenant_id).observe(max(duration_seconds, 0.0))
 
 
 def record_rate_limit(adapter_id: str, tenant_id: str) -> None:

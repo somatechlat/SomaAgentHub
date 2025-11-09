@@ -10,16 +10,12 @@ ROOT = Path(__file__).resolve().parents[4]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-volcano_module = importlib.import_module(
-    "services.orchestrator.app.workflows.volcano_launcher"
-)
+volcano_module = importlib.import_module("services.orchestrator.app.workflows.volcano_launcher")
 VolcanoJobLauncher = volcano_module.VolcanoJobLauncher
 VolcanoJobSpec = volcano_module.VolcanoJobSpec
 
 _activities_path = ROOT / "services" / "orchestrator" / "workflows" / "activities.py"
-_spec = importlib.util.spec_from_file_location(
-    "services.orchestrator.workflows.activities", _activities_path
-)
+_spec = importlib.util.spec_from_file_location("services.orchestrator.workflows.activities", _activities_path)
 if _spec is None or _spec.loader is None:  # pragma: no cover - defensive
     raise RuntimeError("Unable to load activities module for testing")
 activities = importlib.util.module_from_spec(_spec)

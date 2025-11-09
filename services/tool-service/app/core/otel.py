@@ -15,9 +15,7 @@ from opentelemetry.sdk.trace.export import BatchSpanProcessor
 _CONFIGURED = False
 
 
-def configure_otel(
-    app: FastAPI, service_name: str, endpoint: str | None = None
-) -> None:
+def configure_otel(app: FastAPI, service_name: str, endpoint: str | None = None) -> None:
     global _CONFIGURED
     FastAPIInstrumentor.instrument_app(app)
     if _CONFIGURED:

@@ -1,0 +1,38 @@
+apiVersion: v2
+name: orchestrator
+description: SomaAgentHub Orchestrator Service - Production deployment with observability, security, and resilience
+
+type: application
+version: 1.0.0
+appVersion: "0.1.0"
+
+keywords:
+  - orchestrator
+  - ai-agents
+  - microservices
+  - kubernetes
+  - fastapi
+
+home: https://github.com/somatechlat/somaAgentHub
+sources:
+  - https://github.com/somatechlat/somaAgentHub/services/orchestrator
+
+maintainers:
+  - name: SomaTech Team
+    email: tech@somatech.lat
+
+dependencies:
+  - name: postgresql
+    version: 15.5.x
+    repository: https://charts.bitnami.com/bitnami
+    condition: postgresql.enabled
+    
+  - name: redis
+    version: 18.x.x
+    repository: https://charts.bitnami.com/bitnami
+    condition: redis.enabled
+    
+  - name: kafka
+    version: 26.x.x
+    repository: https://charts.bitnami.com/bitnami
+    condition: kafka.enabled

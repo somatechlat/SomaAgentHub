@@ -165,9 +165,7 @@ class ModelRouter:
             "llama-3-8b",
         ]
 
-    def select_model(
-        self, prompt: str, requirements: dict[str, Any] | None = None
-    ) -> str:
+    def select_model(self, prompt: str, requirements: dict[str, Any] | None = None) -> str:
         """
         Select the best model for a request.
 
@@ -248,9 +246,7 @@ class ModelRouter:
 
         return min(complexity, 1.0)
 
-    def _filter_candidates(
-        self, requirements: dict[str, Any]
-    ) -> dict[str, ModelConfig]:
+    def _filter_candidates(self, requirements: dict[str, Any]) -> dict[str, ModelConfig]:
         """
         Filter models by requirements.
 
@@ -271,10 +267,7 @@ class ModelRouter:
                 continue
 
             # Function calling requirement
-            if (
-                requirements.get("requires_functions")
-                and not config.supports_function_calling
-            ):
+            if requirements.get("requires_functions") and not config.supports_function_calling:
                 continue
 
             # Quality tier requirement
@@ -293,9 +286,7 @@ class ModelRouter:
 
         return candidates
 
-    def _score_model(
-        self, config: ModelConfig, complexity: float, requirements: dict[str, Any]
-    ) -> float:
+    def _score_model(self, config: ModelConfig, complexity: float, requirements: dict[str, Any]) -> float:
         """
         Score a model for the task.
 
@@ -331,8 +322,7 @@ class ModelRouter:
         max_cost = requirements.get("max_cost", 1.0)  # Default $1
         estimated_tokens = int(len(requirements.get("prompt", "")) * 0.3 + 1000)
         estimated_cost = float(
-            (config.input_price * estimated_tokens / 1_000_000)
-            + (config.output_price * estimated_tokens / 1_000_000)
+            (config.input_price * estimated_tokens / 1_000_000) + (config.output_price * estimated_tokens / 1_000_000)
         )
 
         if estimated_cost <= max_cost:
@@ -377,9 +367,7 @@ class ModelRouter:
         # Not in chain, use first fallback
         return self.fallback_chain[0]
 
-    def estimate_cost(
-        self, model_id: str, input_tokens: int, output_tokens: int
-    ) -> Decimal:
+    def estimate_cost(self, model_id: str, input_tokens: int, output_tokens: int) -> Decimal:
         """
         Estimate cost for a request.
 

@@ -227,9 +227,7 @@ async def execute_capsule(task_config: dict[str, Any]) -> dict[str, Any]:
 
 
 @activity.defn
-async def bundle_artifacts(
-    workspace_id: str, storage_url: str, task_results: list[dict[str, Any]]
-) -> list[str]:
+async def bundle_artifacts(workspace_id: str, storage_url: str, task_results: list[dict[str, Any]]) -> list[str]:
     """
     Bundle and upload artifacts to storage.
 
@@ -284,9 +282,7 @@ async def bundle_artifacts(
             s3_key = f"{prefix}/{workspace_id}/{artifact_name}"
 
             # Upload to S3
-            s3_client.upload_fileobj(
-                bits, bucket, s3_key, ExtraArgs={"ServerSideEncryption": "AES256"}
-            )
+            s3_client.upload_fileobj(bits, bucket, s3_key, ExtraArgs={"ServerSideEncryption": "AES256"})
 
             url = f"s3://{bucket}/{s3_key}"
             uploaded_urls.append(url)
@@ -373,9 +369,7 @@ async def cleanup_workspace(workspace_id: str) -> None:
 # Helper functions for workspace metadata storage (using Redis)
 
 
-async def _store_workspace_metadata(
-    workspace_id: str, metadata: dict[str, Any]
-) -> None:
+async def _store_workspace_metadata(workspace_id: str, metadata: dict[str, Any]) -> None:
     """Store workspace metadata in Redis."""
     import os
 

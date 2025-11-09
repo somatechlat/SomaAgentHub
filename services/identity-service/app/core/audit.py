@@ -24,9 +24,7 @@ class AuditLogger:
     def __init__(self, settings: IdentitySettings) -> None:
         clickhouse = settings.clickhouse
         if not clickhouse.host or clickhouse.port is None:
-            raise ValueError(
-                "ClickHouse host and port must be configured for audit logging"
-            )
+            raise ValueError("ClickHouse host and port must be configured for audit logging")
 
         self._logger = SharedAuditLogger(
             clickhouse_host=clickhouse.host,

@@ -30,9 +30,7 @@ class VaultSecret:
 class VaultClient:
     """Client for HashiCorp Vault operations."""
 
-    def __init__(
-        self, vault_addr: str | None = None, vault_namespace: str | None = None
-    ):
+    def __init__(self, vault_addr: str | None = None, vault_namespace: str | None = None):
         """
         Initialize Vault client.
 
@@ -41,9 +39,7 @@ class VaultClient:
             vault_namespace: Vault namespace (default: env VAULT_NAMESPACE)
         """
         self.vault_addr = vault_addr or os.getenv("VAULT_ADDR", "http://vault:8200")
-        self.vault_namespace = vault_namespace or os.getenv(
-            "VAULT_NAMESPACE", "somaagent"
-        )
+        self.vault_namespace = vault_namespace or os.getenv("VAULT_NAMESPACE", "somaagent")
 
         self.client = hvac.Client(url=self.vault_addr, namespace=self.vault_namespace)
         self._authenticated = False
@@ -112,9 +108,7 @@ class VaultClient:
             raise RuntimeError("Not authenticated to Vault")
 
         try:
-            response = self.client.secrets.kv.v2.read_secret_version(
-                path=path, mount_point=mount_point
-            )
+            response = self.client.secrets.kv.v2.read_secret_version(path=path, mount_point=mount_point)
 
             data = response["data"]["data"]
             metadata = response["data"]["metadata"]
@@ -122,17 +116,13 @@ class VaultClient:
             return VaultSecret(
                 data=data,
                 version=metadata["version"],
-                created_time=datetime.fromisoformat(
-                    metadata["created_time"].replace("Z", "+00:00")
-                ),
+                created_time=datetime.fromisoformat(metadata["created_time"].replace("Z", "+00:00")),
             )
         except Exception as e:
             logger.error(f"Failed to read secret {path}: {e}")
             raise
 
-    def write_secret(
-        self, path: str, data: dict[str, Any], mount_point: str = "secret"
-    ) -> int:
+    def write_secret(self, path: str, data: dict[str, Any], mount_point: str = "secret") -> int:
         """
         Write secret to Vault KV v2 engine.
 
@@ -171,17 +161,13 @@ class VaultClient:
             raise RuntimeError("Not authenticated to Vault")
 
         try:
-            self.client.secrets.kv.v2.delete_latest_version_of_secret(
-                path=path, mount_point=mount_point
-            )
+            self.client.secrets.kv.v2.delete_latest_version_of_secret(path=path, mount_point=mount_point)
             logger.info(f"Deleted secret {path}")
         except Exception as e:
             logger.error(f"Failed to delete secret {path}: {e}")
             raise
 
-    def get_database_credentials(
-        self, db_role: str, mount_point: str = "database"
-    ) -> VaultSecret:
+    def get_database_credentials(self, db_role: str, mount_point: str = "database") -> VaultSecret:
         """
         Get dynamic database credentials from Vault.
 
@@ -196,9 +182,7 @@ class VaultClient:
             raise RuntimeError("Not authenticated to Vault")
 
         try:
-            response = self.client.secrets.database.generate_credentials(
-                name=db_role, mount_point=mount_point
-            )
+            response = self.client.secrets.database.generate_credentials(name=db_role, mount_point=mount_point)
 
             return VaultSecret(
                 data={
@@ -229,9 +213,7 @@ class VaultClient:
             raise RuntimeError("Not authenticated to Vault")
 
         try:
-            response = self.client.sys.renew_lease(
-                lease_id=lease_id, increment=increment
-            )
+            response = self.client.sys.renew_lease(lease_id=lease_id, increment=increment)
             logger.info(f"Renewed lease {lease_id}")
             return response["lease_duration"]
         except Exception as e:
@@ -290,9 +272,7 @@ def init_vault(role: str, auth_method: str = "kubernetes") -> VaultClient:
         identity = auth.identity
         if not identity:
             raise RuntimeError("SPIFFE identity not initialized")
-        client.authenticate_with_spiffe(
-            identity.spiffe_id, identity.cert_path, identity.key_path
-        )
+        client.authenticate_with_spiffe(identity.spiffe_id, identity.cert_path, identity.key_path)
     else:
         raise ValueError(f"Unknown auth method: {auth_method}")
 

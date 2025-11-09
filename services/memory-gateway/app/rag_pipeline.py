@@ -64,9 +64,7 @@ class RAGPipeline:
         query_embedding = self.embedding_service.embed_text(query)
 
         # Search vector store
-        documents = self.vector_store.search(
-            query_embedding=query_embedding, top_k=top_k, filters=filters
-        )
+        documents = self.vector_store.search(query_embedding=query_embedding, top_k=top_k, filters=filters)
 
         # Filter by score
         documents = [doc for doc in documents if doc.score >= min_score]
@@ -105,15 +103,11 @@ class RAGPipeline:
         for i, doc in enumerate(documents, 1):
             # Add document with metadata
             metadata_str = ", ".join(
-                f"{k}: {v}"
-                for k, v in doc.metadata.items()
-                if k in ["source", "timestamp", "author"]
+                f"{k}: {v}" for k, v in doc.metadata.items() if k in ["source", "timestamp", "author"]
             )
 
             context_parts.append(
-                f"\n## Document {i} (relevance: {doc.score:.2f})\n"
-                f"Metadata: {metadata_str}\n\n"
-                f"{doc.content}\n"
+                f"\n## Document {i} (relevance: {doc.score:.2f})\nMetadata: {metadata_str}\n\n{doc.content}\n"
             )
 
         return "\n".join(context_parts)
@@ -151,9 +145,7 @@ class RAGPipeline:
             Augmented prompt with context
         """
         # Retrieve context
-        rag_context = self.retrieve_context(
-            query=user_prompt, top_k=top_k, filters=filters
-        )
+        rag_context = self.retrieve_context(query=user_prompt, top_k=top_k, filters=filters)
 
         if not rag_context.documents:
             # No relevant context, return original prompt
@@ -164,9 +156,7 @@ class RAGPipeline:
         if rag_context.total_tokens > max_context_tokens:
             # Truncate to max_context_tokens
             max_chars = max_context_tokens * 4
-            formatted_context = (
-                formatted_context[:max_chars] + "\n\n[Context truncated...]"
-            )
+            formatted_context = formatted_context[:max_chars] + "\n\n[Context truncated...]"
 
         # Build augmented prompt
         augmented_prompt = f"""{formatted_context}
@@ -215,11 +205,7 @@ Please answer the user's query using the information provided in the retrieved c
 
             # Create vector document
             doc_id = doc.get("id") or self._generate_id(content)
-            vector_docs.append(
-                VectorDocument(
-                    id=doc_id, content=content, embedding=embedding, metadata=metadata
-                )
-            )
+            vector_docs.append(VectorDocument(id=doc_id, content=content, embedding=embedding, metadata=metadata))
 
         # Batch upsert
         if vector_docs:
@@ -242,9 +228,7 @@ Please answer the user's query using the information provided in the retrieved c
 
         return hashlib.sha256(content.encode()).hexdigest()[:16]
 
-    def search_conversations(
-        self, query: str, user_id: str, top_k: int = 5
-    ) -> list[VectorDocument]:
+    def search_conversations(self, query: str, user_id: str, top_k: int = 5) -> list[VectorDocument]:
         """
         Search user's conversation history.
 
@@ -279,9 +263,7 @@ def get_rag_pipeline() -> RAGPipeline:
     return _rag_pipeline
 
 
-def augment_with_context(
-    prompt: str, top_k: int = 3, user_id: str | None = None
-) -> str:
+def augment_with_context(prompt: str, top_k: int = 3, user_id: str | None = None) -> str:
     """
     Convenience function to augment prompt with RAG context.
 

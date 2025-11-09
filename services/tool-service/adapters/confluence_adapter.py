@@ -37,9 +37,7 @@ class ConfluenceAdapter:
     def _request(self, method: str, endpoint: str, **kwargs) -> Any:
         """Make API request."""
         url = f"{self.base_url}/{endpoint}"
-        response = requests.request(
-            method, url, auth=self.auth, headers=self.headers, timeout=30, **kwargs
-        )
+        response = requests.request(method, url, auth=self.auth, headers=self.headers, timeout=30, **kwargs)
         response.raise_for_status()
         return response.json() if response.content else {}
 
@@ -57,9 +55,7 @@ class ConfluenceAdapter:
         """Create a new space."""
         data = {"key": key, "name": name, "type": type}
         if description:
-            data["description"] = {
-                "plain": {"value": description, "representation": "plain"}
-            }
+            data["description"] = {"plain": {"value": description, "representation": "plain"}}
 
         space = self._request("POST", "space", json=data)
         logger.info(f"Created space: {space['key']}")
@@ -83,9 +79,7 @@ class ConfluenceAdapter:
     # PAGES
     # ============================================================================
 
-    def create_page(
-        self, space_key: str, title: str, body: str, parent_id: str | None = None
-    ) -> dict[str, Any]:
+    def create_page(self, space_key: str, title: str, body: str, parent_id: str | None = None) -> dict[str, Any]:
         """Create a new page."""
         data = {
             "type": "page",
@@ -101,16 +95,12 @@ class ConfluenceAdapter:
         logger.info(f"Created page: {page['title']}")
         return page
 
-    def get_page(
-        self, page_id: str, expand: str | None = "body.storage,version"
-    ) -> dict[str, Any]:
+    def get_page(self, page_id: str, expand: str | None = "body.storage,version") -> dict[str, Any]:
         """Get page by ID."""
         params = {"expand": expand} if expand else {}
         return self._request("GET", f"content/{page_id}", params=params)
 
-    def update_page(
-        self, page_id: str, title: str, body: str, version_number: int
-    ) -> dict[str, Any]:
+    def update_page(self, page_id: str, title: str, body: str, version_number: int) -> dict[str, Any]:
         """Update an existing page."""
         data = {
             "version": {"number": version_number + 1},
@@ -145,9 +135,7 @@ class ConfluenceAdapter:
     # ATTACHMENTS
     # ============================================================================
 
-    def upload_attachment(
-        self, page_id: str, file_path: str, comment: str | None = None
-    ) -> dict[str, Any]:
+    def upload_attachment(self, page_id: str, file_path: str, comment: str | None = None) -> dict[str, Any]:
         """Upload an attachment to a page."""
         with open(file_path, "rb") as f:
             files = {"file": f}
@@ -233,9 +221,7 @@ class ConfluenceAdapter:
         """
         # Create space
         space_key = project_name.upper().replace(" ", "").replace("-", "")[:10]
-        space = self.create_space(
-            key=space_key, name=f"{project_name} Documentation", description=description
-        )
+        space = self.create_space(key=space_key, name=f"{project_name} Documentation", description=description)
 
         # Create home page
         home_page = self.create_page(
@@ -256,9 +242,7 @@ class ConfluenceAdapter:
                 )
                 created_pages.append(page)
 
-        logger.info(
-            f"Created documentation space '{space_key}' with {len(created_pages)} pages"
-        )
+        logger.info(f"Created documentation space '{space_key}' with {len(created_pages)} pages")
 
         return {"space": space, "pages": created_pages}
 

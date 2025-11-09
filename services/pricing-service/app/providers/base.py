@@ -10,7 +10,6 @@ class ProviderAdapter(Protocol):
 
 
 def _now():
-
     return datetime.now(UTC)
 
 

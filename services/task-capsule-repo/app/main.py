@@ -31,9 +31,7 @@ def root():
 # Task capsule endpoints
 @app.get("/v1/capsules", tags=["capsules"])
 def list_capsules():
-    return {
-        "capsules": [{"id": "demo-capsule", "version": "1.0.0", "status": "active"}]
-    }
+    return {"capsules": [{"id": "demo-capsule", "version": "1.0.0", "status": "active"}]}
 
 
 @app.post("/v1/capsules", tags=["capsules"])

@@ -68,9 +68,7 @@ class SPIFFEAuthenticator:
         )
 
         missing = [
-            path
-            for path in (identity.cert_path, identity.key_path, identity.bundle_path)
-            if not Path(path).exists()
+            path for path in (identity.cert_path, identity.key_path, identity.bundle_path) if not Path(path).exists()
         ]
         if missing:
             raise FileNotFoundError("Missing SPIFFE materials: " + ", ".join(missing))
@@ -104,9 +102,7 @@ class SPIFFEAuthenticator:
         """
         cert, key, bundle = self.get_tls_credentials()
 
-        return grpc.ssl_channel_credentials(
-            root_certificates=bundle, private_key=key, certificate_chain=cert
-        )
+        return grpc.ssl_channel_credentials(root_certificates=bundle, private_key=key, certificate_chain=cert)
 
     def verify_peer(self, peer_spiffe_id: str) -> bool:
         """
@@ -172,9 +168,7 @@ def init_spiffe(service_name: str, *, optional: bool = True) -> SPIFFEIdentity |
     try:
         identity = auth.fetch_identity(service_name)
     except FileNotFoundError as exc:
-        logger.warning(
-            "SPIFFE identity material not found for %s: %s", service_name, exc
-        )
+        logger.warning("SPIFFE identity material not found for %s: %s", service_name, exc)
         if optional:
             return None
         raise

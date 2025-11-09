@@ -24,9 +24,7 @@ class AgentConfig:
             name = str(payload["name"]).strip()
             model = str(payload.get("model", "gpt-4o-mini")).strip()
         except KeyError as exc:  # pragma: no cover - validated in tests
-            raise ValueError(
-                f"agent config missing required field: {exc.args[0]}"
-            ) from exc
+            raise ValueError(f"agent config missing required field: {exc.args[0]}") from exc
 
         if not name:
             raise ValueError("agent name cannot be empty")
@@ -129,9 +127,7 @@ async def run_autogen_group_chat(payload: dict[str, Any]) -> dict[str, Any]:
 
     agent_configs = [AgentConfig.from_dict(agent) for agent in agents]
 
-    AssistantAgent, GroupChat, GroupChatManager, UserProxyAgent = (
-        _get_autogen_components()
-    )
+    AssistantAgent, GroupChat, GroupChatManager, UserProxyAgent = _get_autogen_components()
 
     # Instantiate AutoGen agents using supplied configuration.
     autogen_agents: list[AssistantAgent] = []
@@ -153,9 +149,7 @@ async def run_autogen_group_chat(payload: dict[str, Any]) -> dict[str, Any]:
         max_consecutive_auto_reply=0,
     )
 
-    groupchat = GroupChat(
-        agents=[user_proxy, *autogen_agents], messages=[], max_round=max_rounds
-    )
+    groupchat = GroupChat(agents=[user_proxy, *autogen_agents], messages=[], max_round=max_rounds)
     manager = GroupChatManager(groupchat=groupchat)
 
     try:

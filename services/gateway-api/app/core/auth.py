@@ -72,9 +72,7 @@ async def _verify_token(token: str) -> Mapping[str, Any]:
     return resp.json()
 
 
-async def get_current_user(
-    authorization: str = Header(..., description="Bearer <JWT token>")
-) -> Mapping[str, Any]:
+async def get_current_user(authorization: str = Header(..., description="Bearer <JWT token>")) -> Mapping[str, Any]:
     """FastAPI dependency that returns the verified user claims.
 
     The ``Authorization`` header must contain a ``Bearer`` token.  The token is

@@ -27,9 +27,7 @@ async def get_bus() -> NotificationBus:
     return bus
 
 
-@router.post(
-    "", response_model=EnqueueNotificationResponse, status_code=status.HTTP_202_ACCEPTED
-)
+@router.post("", response_model=EnqueueNotificationResponse, status_code=status.HTTP_202_ACCEPTED)
 async def enqueue_notification(
     payload: NotificationPayload,
     bus: NotificationBus = Depends(get_bus),

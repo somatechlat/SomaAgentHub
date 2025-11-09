@@ -8,9 +8,7 @@ import json
 from typing import Any
 
 
-def make_slm_request_message(
-    session_id: str, role: str, prompt: str, metadata: dict[str, Any]
-) -> dict[str, Any]:
+def make_slm_request_message(session_id: str, role: str, prompt: str, metadata: dict[str, Any]) -> dict[str, Any]:
     """Return a JSON-serializable dict representing the slm.requests message."""
     msg = {
         "version": "v1",
@@ -40,9 +38,7 @@ class Producer:
             else:
                 from aiokafka import AIOKafkaProducer
 
-                self._producer = AIOKafkaProducer(
-                    bootstrap_servers=bootstrap.split(",")
-                )
+                self._producer = AIOKafkaProducer(bootstrap_servers=bootstrap.split(","))
             # start the producer – callers must await ``await producer.start()`` before sending
         else:
             self._producer = aiokafka_producer
@@ -58,9 +54,7 @@ class Producer:
         if self._producer and hasattr(self._producer, "stop"):
             await self._producer.stop()
 
-    async def send(
-        self, session_id: str, role: str, prompt: str, metadata: dict[str, Any]
-    ):
+    async def send(self, session_id: str, role: str, prompt: str, metadata: dict[str, Any]):
         msg = make_slm_request_message(session_id, role, prompt, metadata)
         payload = json.dumps(msg).encode("utf-8")
         # If no real producer is configured (test mode), simply return the payload.

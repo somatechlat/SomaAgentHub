@@ -80,9 +80,7 @@ async def transcribe_audio(
         audio_data = await audio.read()
 
         # Save to temp file (Whisper API requires file)
-        with tempfile.NamedTemporaryFile(
-            suffix=f".{audio.filename.split('.')[-1]}", delete=False
-        ) as temp_file:
+        with tempfile.NamedTemporaryFile(suffix=f".{audio.filename.split('.')[-1]}", delete=False) as temp_file:
             temp_file.write(audio_data)
             temp_path = temp_file.name
 
@@ -113,9 +111,7 @@ async def transcribe_audio(
 
 
 @app.post("/transcribe-stream", response_model=TranscriptionResponse)
-async def transcribe_stream(
-    audio: UploadFile = File(...), language: str | None = None
-):
+async def transcribe_stream(audio: UploadFile = File(...), language: str | None = None):
     """
     Real-time transcription with streaming support.
     (Simplified version - full streaming requires WebSocket)
@@ -149,9 +145,7 @@ async def text_to_speech(request: TTSRequest):
         # Stream audio
         audio_stream = io.BytesIO(response.content)
 
-        logger.info(
-            f"Generated speech: {len(request.text)} characters, voice={request.voice}"
-        )
+        logger.info(f"Generated speech: {len(request.text)} characters, voice={request.voice}")
 
         return StreamingResponse(
             audio_stream,
@@ -203,9 +197,7 @@ async def text_to_speech_stream(request: TTSRequest):
 
 
 @app.post("/parse-voice-command")
-async def parse_voice_command(
-    audio: UploadFile = File(...), context: str | None = None
-):
+async def parse_voice_command(audio: UploadFile = File(...), context: str | None = None):
     """
     Parse voice command into structured intent.
 
@@ -268,9 +260,7 @@ Return JSON.
 
 
 @app.post("/voice-to-project")
-async def voice_to_project(
-    audio: UploadFile = File(..., description="Voice description of project to create")
-):
+async def voice_to_project(audio: UploadFile = File(..., description="Voice description of project to create")):
     """
     Complete voice-to-project workflow.
 
@@ -278,9 +268,7 @@ async def voice_to_project(
     """
     try:
         # Transcribe
-        transcription = await transcribe_audio(
-            audio, prompt="User describing a software project to create"
-        )
+        transcription = await transcribe_audio(audio, prompt="User describing a software project to create")
 
         # Parse project requirements with GPT-4
         project_prompt = f"""
@@ -315,9 +303,7 @@ Return JSON.
 
         project_spec_text = response.choices[0].message.content
         if "```json" in project_spec_text:
-            project_spec_text = (
-                project_spec_text.split("```json")[1].split("```")[0].strip()
-            )
+            project_spec_text = project_spec_text.split("```json")[1].split("```")[0].strip()
 
         project_spec = json.loads(project_spec_text)
 
@@ -331,9 +317,7 @@ Return JSON.
 
     except Exception as e:
         logger.error(f"Voice-to-project failed: {e}")
-        raise HTTPException(
-            status_code=500, detail=f"Voice-to-project failed: {str(e)}"
-        )
+        raise HTTPException(status_code=500, detail=f"Voice-to-project failed: {str(e)}")
 
 
 @app.get("/voices")

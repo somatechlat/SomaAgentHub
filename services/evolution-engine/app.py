@@ -99,9 +99,7 @@ def analyze_telemetry(capsule_id: str, time_window_days: int = 30) -> CapsuleMet
     """Analyze telemetry data for a capsule."""
     # Get telemetry from time window
     cutoff = datetime.now(UTC) - timedelta(days=time_window_days)
-    recent_telemetry = [
-        t for t in telemetry_store.get(capsule_id, []) if t.timestamp >= cutoff
-    ]
+    recent_telemetry = [t for t in telemetry_store.get(capsule_id, []) if t.timestamp >= cutoff]
 
     if not recent_telemetry:
         return CapsuleMetrics(
@@ -140,11 +138,7 @@ def analyze_telemetry(capsule_id: str, time_window_days: int = 30) -> CapsuleMet
         )
 
     # Extract usage contexts
-    contexts = list(
-        set(
-            json.dumps(t.context, sort_keys=True) for t in recent_telemetry if t.context
-        )
-    )
+    contexts = list(set(json.dumps(t.context, sort_keys=True) for t in recent_telemetry if t.context))
 
     return CapsuleMetrics(
         capsule_id=capsule_id,
@@ -233,9 +227,7 @@ Return as JSON array of suggestions.
                 )
             )
 
-        logger.info(
-            f"Generated {len(suggestions)} improvement suggestions for {metrics.capsule_id}"
-        )
+        logger.info(f"Generated {len(suggestions)} improvement suggestions for {metrics.capsule_id}")
         return suggestions
 
     except Exception as e:
@@ -317,9 +309,7 @@ def generate_fallback_suggestions(
 def record_telemetry(telemetry: ExecutionTelemetry):
     """Record execution telemetry for a capsule."""
     telemetry_store[telemetry.capsule_id].append(telemetry)
-    logger.info(
-        f"Recorded telemetry for {telemetry.capsule_id}: success={telemetry.success}"
-    )
+    logger.info(f"Recorded telemetry for {telemetry.capsule_id}: success={telemetry.success}")
 
     return {"message": "Telemetry recorded", "capsule_id": telemetry.capsule_id}
 

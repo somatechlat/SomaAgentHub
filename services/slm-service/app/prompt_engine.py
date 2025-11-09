@@ -203,9 +203,7 @@ class PromptEngine:
             logger.error(f"Template rendering failed: {e}")
             raise ValueError(f"Failed to render template {template_id}: {e}")
 
-    def render_with_fallback(
-        self, template_id: str, variables: dict[str, Any], fallback: str = None
-    ) -> str:
+    def render_with_fallback(self, template_id: str, variables: dict[str, Any], fallback: str = None) -> str:
         """
         Render template with fallback on error.
 
@@ -240,9 +238,7 @@ class PromptEngine:
 
         return sorted(templates, key=lambda t: t.name)
 
-    def create_chain(
-        self, templates: list[str], variables: dict[str, Any]
-    ) -> list[dict[str, str]]:
+    def create_chain(self, templates: list[str], variables: dict[str, Any]) -> list[dict[str, str]]:
         """
         Create a prompt chain (system + user messages).
 

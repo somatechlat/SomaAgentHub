@@ -54,10 +54,7 @@ class CircuitBreakerOpenError(Exception):
     def __init__(self, service_name: str, opened_at: datetime):
         self.service_name = service_name
         self.opened_at = opened_at
-        super().__init__(
-            f"Circuit breaker OPEN for {service_name} "
-            f"(opened at {opened_at.isoformat()})"
-        )
+        super().__init__(f"Circuit breaker OPEN for {service_name} (opened at {opened_at.isoformat()})")
 
 
 class CircuitBreaker:
@@ -166,8 +163,7 @@ class CircuitBreaker:
         self.metrics.last_success_time = datetime.now(UTC)
 
         activity.logger.debug(
-            f"[CircuitBreaker:{self.name}] Success "
-            f"(consecutive: {self.metrics.consecutive_successes})",
+            f"[CircuitBreaker:{self.name}] Success (consecutive: {self.metrics.consecutive_successes})",
         )
 
         # State transitions on success
@@ -189,16 +185,14 @@ class CircuitBreaker:
         self.metrics.last_failure_time = datetime.now(UTC)
 
         activity.logger.warning(
-            f"[CircuitBreaker:{self.name}] Failure: {error} "
-            f"(consecutive: {self.metrics.consecutive_failures})",
+            f"[CircuitBreaker:{self.name}] Failure: {error} (consecutive: {self.metrics.consecutive_failures})",
         )
 
         # State transitions on failure
         if self.state == CircuitState.HALF_OPEN:
             # Any failure in half-open → back to open
             activity.logger.warning(
-                f"[CircuitBreaker:{self.name}] Re-opening circuit "
-                f"(failure in HALF_OPEN state)",
+                f"[CircuitBreaker:{self.name}] Re-opening circuit (failure in HALF_OPEN state)",
             )
             self._transition_to(CircuitState.OPEN)
             self.opened_at = datetime.now(UTC)
@@ -237,8 +231,7 @@ class CircuitBreaker:
         )
 
         activity.logger.info(
-            f"[CircuitBreaker:{self.name}] State transition: "
-            f"{old_state.value} → {new_state.value}",
+            f"[CircuitBreaker:{self.name}] State transition: {old_state.value} → {new_state.value}",
         )
 
     def get_status(self) -> dict[str, Any]:
@@ -255,21 +248,15 @@ class CircuitBreaker:
                 "total_successes": self.metrics.total_successes,
                 "total_failures": self.metrics.total_failures,
                 "success_rate": (
-                    self.metrics.total_successes / self.metrics.total_calls
-                    if self.metrics.total_calls > 0
-                    else 0
+                    self.metrics.total_successes / self.metrics.total_calls if self.metrics.total_calls > 0 else 0
                 ),
                 "consecutive_failures": self.metrics.consecutive_failures,
                 "consecutive_successes": self.metrics.consecutive_successes,
                 "last_failure": (
-                    self.metrics.last_failure_time.isoformat()
-                    if self.metrics.last_failure_time
-                    else None
+                    self.metrics.last_failure_time.isoformat() if self.metrics.last_failure_time else None
                 ),
                 "last_success": (
-                    self.metrics.last_success_time.isoformat()
-                    if self.metrics.last_success_time
-                    else None
+                    self.metrics.last_success_time.isoformat() if self.metrics.last_success_time else None
                 ),
             },
             "state_history": self.metrics.state_transitions[-10:],  # Last 10

@@ -14,8 +14,15 @@ from services.common.fastapi.bootstrap import create_app
 from services.common.spiffe_auth import init_spiffe
 
 from .api.routes import router as orchestrator_router
+from .api.mao import router as mao_router
+from .api.planner import router as planner_router
+from .api.health import router as health_router
 from .core.config import settings
-from .database import init_db
+from .database import init_db, check_database_health
+from .startup.outbox_publisher_startup import setup_outbox_publisher
+from .services.observability import setup_observability
+from .services.rate_limiter import RateLimitMiddleware, rate_limiter
+from .services.security import security_manager
 
 logger = logging.getLogger(__name__)
 
@@ -25,9 +32,7 @@ def build_app() -> FastAPI:
     async def lifespan(app: FastAPI):
         spiffe_identity = init_spiffe(settings.service_name)
         if spiffe_identity:
-            logger.info(
-                "SPIFFE identity loaded", extra={"spiffe_id": spiffe_identity.spiffe_id}
-            )
+            logger.info("SPIFFE identity loaded", extra={"spiffe_id": spiffe_identity.spiffe_id})
         else:
             logger.info("SPIFFE identity not initialized; continuing without workload SVID")
 
@@ -57,10 +62,7 @@ def build_app() -> FastAPI:
         @app.get("/ready", tags=["system"])
         async def ready() -> dict[str, str]:
             # Basic readiness check: temporal client present
-            if (
-                settings.temporal_enabled
-                and getattr(app.state, "temporal_client", None) is None
-            ):
+            if settings.temporal_enabled and getattr(app.state, "temporal_client", None) is None:
                 return {"status": "starting"}
             return {"status": "ready"}
 
@@ -72,7 +74,23 @@ def build_app() -> FastAPI:
         async def root():
             return {"message": "SomaGent Orchestrator Service"}
 
+        # Initialize security middleware
+        security_manager.setup_security_middleware(app)
+        security_manager.setup_cors_middleware(app)
+        security_manager.setup_trusted_hosts(app)
+        
+        # Initialize rate limiting
+        app.add_middleware(RateLimitMiddleware, rate_limiter_instance=rate_limiter)
+        
+        # Initialize observability
+        setup_observability(app)
+        
+        # Setup routes
         app.include_router(orchestrator_router)
+        app.include_router(mao_router)
+        app.include_router(planner_router)
+        app.include_router(health_router)
+        setup_outbox_publisher(app)
 
     app = create_app(
         service_name=settings.service_name or "orchestrator",

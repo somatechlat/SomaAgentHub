@@ -163,9 +163,7 @@ class MarketingCampaignWorkflow:
             "progress_percentage": self.progress_percentage,
             "current_phase": self.current_phase,
             "started_at": self.started_at.isoformat() if self.started_at else None,
-            "elapsed_seconds": (
-                (workflow.now() - self.started_at).seconds if self.started_at else 0
-            ),
+            "elapsed_seconds": ((workflow.now() - self.started_at).seconds if self.started_at else 0),
             "content_updates": len(self.content_updates),
             "approval_received": self.approval_received,
         }

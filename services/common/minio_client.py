@@ -40,9 +40,7 @@ class MinIOClient:
             region: S3 region name
         """
         if Minio is None:
-            raise ImportError(
-                "minio package not installed. Install with: pip install minio"
-            )
+            raise ImportError("minio package not installed. Install with: pip install minio")
 
         self.endpoint = endpoint
         self.region = region
@@ -97,9 +95,7 @@ class MinIOClient:
             )
             return result.etag
         except S3Error as exc:
-            raise RuntimeError(
-                f"Failed to upload {file_path} to {bucket_name}/{object_name}: {exc}"
-            ) from exc
+            raise RuntimeError(f"Failed to upload {file_path} to {bucket_name}/{object_name}: {exc}") from exc
 
     def upload_bytes(
         self,
@@ -132,9 +128,7 @@ class MinIOClient:
             )
             return result.etag
         except S3Error as exc:
-            raise RuntimeError(
-                f"Failed to upload bytes to {bucket_name}/{object_name}: {exc}"
-            ) from exc
+            raise RuntimeError(f"Failed to upload bytes to {bucket_name}/{object_name}: {exc}") from exc
 
     def download_file(
         self,
@@ -156,9 +150,7 @@ class MinIOClient:
                 file_path=file_path,
             )
         except S3Error as exc:
-            raise RuntimeError(
-                f"Failed to download {bucket_name}/{object_name}: {exc}"
-            ) from exc
+            raise RuntimeError(f"Failed to download {bucket_name}/{object_name}: {exc}") from exc
 
     def download_bytes(
         self,
@@ -184,9 +176,7 @@ class MinIOClient:
             response.release_conn()
             return data
         except S3Error as exc:
-            raise RuntimeError(
-                f"Failed to download {bucket_name}/{object_name}: {exc}"
-            ) from exc
+            raise RuntimeError(f"Failed to download {bucket_name}/{object_name}: {exc}") from exc
 
     def delete_object(
         self,
@@ -205,9 +195,7 @@ class MinIOClient:
                 object_name=object_name,
             )
         except S3Error as exc:
-            raise RuntimeError(
-                f"Failed to delete {bucket_name}/{object_name}: {exc}"
-            ) from exc
+            raise RuntimeError(f"Failed to delete {bucket_name}/{object_name}: {exc}") from exc
 
     def delete_objects(
         self,
@@ -230,9 +218,7 @@ class MinIOClient:
             if error_list:
                 raise RuntimeError(f"Failed to delete some objects: {error_list}")
         except S3Error as exc:
-            raise RuntimeError(
-                f"Failed to delete objects from {bucket_name}: {exc}"
-            ) from exc
+            raise RuntimeError(f"Failed to delete objects from {bucket_name}: {exc}") from exc
 
     def list_objects(
         self,
@@ -258,9 +244,7 @@ class MinIOClient:
             )
             return [obj.object_name for obj in objects]
         except S3Error as exc:
-            raise RuntimeError(
-                f"Failed to list objects in {bucket_name}: {exc}"
-            ) from exc
+            raise RuntimeError(f"Failed to list objects in {bucket_name}: {exc}") from exc
 
     def get_object_metadata(
         self,
@@ -289,9 +273,7 @@ class MinIOClient:
                 "metadata": stat.metadata,
             }
         except S3Error as exc:
-            raise RuntimeError(
-                f"Failed to get metadata for {bucket_name}/{object_name}: {exc}"
-            ) from exc
+            raise RuntimeError(f"Failed to get metadata for {bucket_name}/{object_name}: {exc}") from exc
 
     def generate_presigned_url(
         self,
@@ -319,9 +301,7 @@ class MinIOClient:
             )
             return url
         except S3Error as exc:
-            raise RuntimeError(
-                f"Failed to generate presigned URL for {bucket_name}/{object_name}: {exc}"
-            ) from exc
+            raise RuntimeError(f"Failed to generate presigned URL for {bucket_name}/{object_name}: {exc}") from exc
 
     def health_check(self) -> bool:
         """Check if MinIO is accessible.

@@ -10,9 +10,7 @@ from fastapi import Request
 
 from ..models.context import RequestContext
 
-_request_context_var: contextvars.ContextVar[RequestContext] = contextvars.ContextVar(
-    "request_context"
-)
+_request_context_var: contextvars.ContextVar[RequestContext] = contextvars.ContextVar("request_context")
 
 
 def build_request_context(
@@ -29,12 +27,8 @@ def build_request_context(
         capabilities = [capabilities_raw]
     else:
         capabilities = list(capabilities_raw)
-    client_type = request.headers.get(
-        defaults["client_type_header"], defaults["default_client_type"]
-    )
-    deployment_mode = request.headers.get(
-        defaults["deployment_mode_header"], defaults["default_deployment_mode"]
-    )
+    client_type = request.headers.get(defaults["client_type_header"], defaults["default_client_type"])
+    deployment_mode = request.headers.get(defaults["deployment_mode_header"], defaults["default_deployment_mode"])
     request_id = request.headers.get("X-Request-ID", str(uuid.uuid4()))
     return RequestContext(
         tenant_id=tenant_id,

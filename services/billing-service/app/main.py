@@ -71,9 +71,7 @@ class PaymentIntentRequest(BaseModel):
     user_id: str = Field(..., description="ID of user initiating build")
     amount_cents: int = Field(..., ge=1, description="Approved amount in cents")
     currency: str = Field("usd", description="3 letter currency code")
-    description: str | None = Field(
-        None, description="Human description for invoice line"
-    )
+    description: str | None = Field(None, description="Human description for invoice line")
 
 
 class PaymentIntentResponse(BaseModel):
@@ -99,9 +97,7 @@ def create_payment_intent(payload: PaymentIntentRequest):
             description=payload.description or f"Build approval for {payload.user_id}",
             metadata={"user_id": payload.user_id},
         )
-        logger.info(
-            f"Created payment intent {intent.id} for {payload.user_id} amount={payload.amount_cents}"
-        )
+        logger.info(f"Created payment intent {intent.id} for {payload.user_id} amount={payload.amount_cents}")
         return PaymentIntentResponse(
             intent_id=intent.id,
             client_secret=intent.client_secret,
@@ -133,9 +129,7 @@ async def stripe_webhook(request: Request, stripe_signature: str | None = Header
     event = None
     if STRIPE_WEBHOOK_SECRET and stripe_signature:
         try:
-            event = stripe.Webhook.construct_event(
-                raw_body.decode(), stripe_signature, STRIPE_WEBHOOK_SECRET
-            )
+            event = stripe.Webhook.construct_event(raw_body.decode(), stripe_signature, STRIPE_WEBHOOK_SECRET)
         except Exception as e:
             logger.warning(f"Webhook signature verification failed: {e}")
             raise HTTPException(status_code=400, detail="Invalid signature")
@@ -145,11 +139,7 @@ async def stripe_webhook(request: Request, stripe_signature: str | None = Header
         except Exception:
             event = None
 
-    event_type = (
-        event.get("type")
-        if isinstance(event, dict)
-        else getattr(event, "type", "unknown")
-    )
+    event_type = event.get("type") if isinstance(event, dict) else getattr(event, "type", "unknown")
     logger.info(f"Stripe webhook received type={event_type}")
     # TODO: Update BuildRun or user entitlement based on event_type (payment_intent.succeeded, charge.refunded, etc.)
     return {"received": True, "type": event_type}

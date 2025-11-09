@@ -55,9 +55,7 @@ class IntakeResponseModel(BaseModel):
 
 
 @router.post("/{plan_id}/intake", response_model=IntakeResponseModel)
-async def progress_intake(
-    plan_id: str, payload: IntakeRequestModel
-) -> IntakeResponseModel:
+async def progress_intake(plan_id: str, payload: IntakeRequestModel) -> IntakeResponseModel:
     """Advance the wizard/manual intake flow for a plan."""
 
     raise HTTPException(
@@ -80,9 +78,7 @@ class ApprovalResponseModel(BaseModel):
 
 
 @router.post("/{plan_id}/approve", response_model=ApprovalResponseModel)
-async def approve_plan(
-    plan_id: str, payload: ApprovalRequestModel
-) -> ApprovalResponseModel:
+async def approve_plan(plan_id: str, payload: ApprovalRequestModel) -> ApprovalResponseModel:
     """Approve the plan and trigger the Temporal execution workflow."""
 
     raise HTTPException(

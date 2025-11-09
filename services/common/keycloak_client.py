@@ -161,8 +161,7 @@ def get_keycloak_client() -> KeycloakClient:
 
     if not server_url or not realm or not client_id:
         raise RuntimeError(
-            "Keycloak configuration incomplete. Required: KEYCLOAK_SERVER_URL, "
-            "KEYCLOAK_REALM, KEYCLOAK_CLIENT_ID"
+            "Keycloak configuration incomplete. Required: KEYCLOAK_SERVER_URL, KEYCLOAK_REALM, KEYCLOAK_CLIENT_ID"
         )
 
     return KeycloakClient(

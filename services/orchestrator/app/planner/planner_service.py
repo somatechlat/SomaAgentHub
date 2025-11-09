@@ -3,10 +3,13 @@
 from __future__ import annotations
 
 import json
+import uuid
 from dataclasses import dataclass
+from datetime import datetime, timezone
 from typing import Any
 
 from ..repository.plan_repository import PlanRepository
+from ..repository.outbox import OutboxEventRepository
 from .client import PlannerClient
 from .schemas import PlannerContext, PlannerRequest, ProjectPlan
 
@@ -21,6 +24,7 @@ class PlannerService:
         self,
         request: PlannerRequest,
         context: PlannerContext,
+        session: AsyncSession = None,
     ) -> ProjectPlan:
         """Produce a structured project plan.
 
@@ -28,6 +32,11 @@ class PlannerService:
         objects, sends it to the ``PlannerClient`` (which talks to the local SLM
         service), parses the JSON response into a ``ProjectPlan`` model, and stores
         the result via ``PlanRepository``.
+
+        Args:
+            request: The planning request
+            context: Context for planning
+            session: Database session for event emission (optional)
         """
 
         # 1️⃣ Build a simple prompt – in a real system this would be a Jinja2
@@ -57,6 +66,14 @@ class PlannerService:
         # 5️⃣ Persist the plan (store the full payload for auditability)
         repo = PlanRepository()
         await repo.create_plan(plan.model_dump())
+
+        # 6️⃣ Emit plan created event using outbox pattern if session provided
+        if session:
+            from ..services.event_emission import EventEmissionService
+
+            event_service = EventEmissionService(session)
+            await event_service.emit_plan_created_event(plan=plan, session_id=request.session_id)
+
         return plan
 
     async def refine_plan(
@@ -88,3 +105,20 @@ class PlannerService:
         await repo.delete_plan(plan.plan_id)  # simple replace strategy
         await repo.create_plan(new_plan.model_dump())
         return new_plan
+
+    async def _emit_plan_created_event(self, plan: ProjectPlan) -> None:
+        """Emit plan created event using outbox pattern."""
+        from ..repository.outbox_event_repository import OutboxEventRepository
+
+        event_data = {
+            "plan_id": plan.plan_id,
+            "tenant": plan.tenant,
+            "objective": plan.objective,
+            "agent_ids": [m.agent_id for m in plan.modules],
+            "modules_count": len(plan.modules),
+            "created_at": datetime.now(timezone.utc).isoformat(),
+        }
+
+        # Create outbox event - will be processed by background worker
+        # The session will be injected via dependency injection in real usage
+        # This is a simplified version for demonstration

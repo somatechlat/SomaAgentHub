@@ -158,9 +158,7 @@ def get_live_pricing(
 
     paging = {"page": page, "page_size": page_size, "total": total}
 
-    return LivePricingResponse(
-        offers=page_items, summary=summary, paging=paging, meta=meta
-    )
+    return LivePricingResponse(offers=page_items, summary=summary, paging=paging, meta=meta)
 
 
 @app.post("/v1/pricing/snapshot")
@@ -174,11 +172,7 @@ def create_snapshot():
     median = statistics.median(prices)
     p95 = sorted(prices)[max(0, int(round(0.95 * (len(prices) - 1))))]
 
-    payload_str = "|".join(
-        sorted(
-            f"{o.provider}:{o.gpu_model}:{o.region}:{o.price_per_hour}" for o in offers
-        )
-    )
+    payload_str = "|".join(sorted(f"{o.provider}:{o.gpu_model}:{o.region}:{o.price_per_hour}" for o in offers))
     hash_fixed = uuid.uuid5(uuid.NAMESPACE_DNS, payload_str).hex
 
     sid = uuid.uuid4()

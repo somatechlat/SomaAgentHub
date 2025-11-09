@@ -19,13 +19,9 @@ class IntakeManager:
     async def validate_answer(self, answer: IntakeAnswer) -> list[str]:
         """Validate an answer and return a list of error messages if invalid."""
 
-        raise NotImplementedError(
-            "IntakeManager.validate_answer requires implementation"
-        )
+        raise NotImplementedError("IntakeManager.validate_answer requires implementation")
 
     async def summarize_module(self, module: ModuleState) -> str:
         """Generate a human-readable summary for review before approval."""
 
-        raise NotImplementedError(
-            "IntakeManager.summarize_module requires implementation"
-        )
+        raise NotImplementedError("IntakeManager.summarize_module requires implementation")

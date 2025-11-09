@@ -18,9 +18,7 @@ import pytest
 from services.common.opa_client import OPAClient
 
 
-def make_mock_response(
-    json_data: dict[str, Any], status_code: int = 200
-) -> httpx.Response:
+def make_mock_response(json_data: dict[str, Any], status_code: int = 200) -> httpx.Response:
     """Utility to create an ``httpx.Response`` with JSON payload.
 
     ``httpx.MockTransport`` expects a ``Response`` object that can be returned
@@ -40,9 +38,7 @@ def test_evaluate_policy_success(monkeypatch):
     transport = httpx.MockTransport(handler)
     client = OPAClient(opa_url="http://mock-opa:8181")
     # Patch the internal ``httpx.AsyncClient`` to use our mock transport
-    monkeypatch.setattr(
-        httpx, "AsyncClient", lambda *a, **kw: httpx.AsyncClient(transport=transport)
-    )
+    monkeypatch.setattr(httpx, "AsyncClient", lambda *a, **kw: httpx.AsyncClient(transport=transport))
 
     result = pytest.run(asyncio=True)(client.evaluate_policy)(
         policy_path="somagent/authorization",
@@ -62,9 +58,7 @@ def test_check_authorization_admin_allowed(monkeypatch):
 
     transport = httpx.MockTransport(handler)
     client = OPAClient(opa_url="http://mock-opa:8181")
-    monkeypatch.setattr(
-        httpx, "AsyncClient", lambda *a, **kw: httpx.AsyncClient(transport=transport)
-    )
+    monkeypatch.setattr(httpx, "AsyncClient", lambda *a, **kw: httpx.AsyncClient(transport=transport))
 
     authorized = pytest.run(asyncio=True)(client.check_authorization)(
         tenant_id="demo",
@@ -79,19 +73,13 @@ def test_check_authorization_admin_allowed(monkeypatch):
 def test_health_check(monkeypatch):
     """Health check returns ``True`` on HTTP 200 and ``False`` otherwise."""
     # Successful health response
-    transport_ok = httpx.MockTransport(
-        lambda _: make_mock_response({}, status_code=200)
-    )
+    transport_ok = httpx.MockTransport(lambda _: make_mock_response({}, status_code=200))
     client_ok = OPAClient(opa_url="http://mock-opa:8181")
-    monkeypatch.setattr(
-        httpx, "AsyncClient", lambda *a, **kw: httpx.AsyncClient(transport=transport_ok)
-    )
+    monkeypatch.setattr(httpx, "AsyncClient", lambda *a, **kw: httpx.AsyncClient(transport=transport_ok))
     assert pytest.run(asyncio=True)(client_ok.health_check)() is True
 
     # Failed health response
-    transport_fail = httpx.MockTransport(
-        lambda _: make_mock_response({}, status_code=500)
-    )
+    transport_fail = httpx.MockTransport(lambda _: make_mock_response({}, status_code=500))
     client_fail = OPAClient(opa_url="http://mock-opa:8181")
     monkeypatch.setattr(
         httpx,

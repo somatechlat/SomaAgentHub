@@ -74,9 +74,7 @@ class PlaywrightAdapter:
             raise ValueError(f"Invalid browser type: {self.browser_type}")
 
         # Launch browser
-        self.browser = browser_launcher.launch(
-            headless=self.headless, slow_mo=self.slow_mo
-        )
+        self.browser = browser_launcher.launch(headless=self.headless, slow_mo=self.slow_mo)
 
         # Create context and page
         self.context = self.browser.new_context()
@@ -154,9 +152,7 @@ class PlaywrightAdapter:
         logger.info(f"Typing into {selector}")
         self.page.type(selector, text, delay=delay)
 
-    def select_option(
-        self, selector: str, value: str | None = None, label: str | None = None
-    ) -> None:
+    def select_option(self, selector: str, value: str | None = None, label: str | None = None) -> None:
         """
         Select dropdown option.
 
@@ -190,9 +186,7 @@ class PlaywrightAdapter:
 
     # Waiting
 
-    def wait_for_selector(
-        self, selector: str, state: str = "visible", timeout: int = 30000
-    ) -> None:
+    def wait_for_selector(self, selector: str, state: str = "visible", timeout: int = 30000) -> None:
         """
         Wait for element.
 
@@ -346,9 +340,7 @@ class PlaywrightAdapter:
 
         return self.evaluate(script)
 
-    def automate_workflow(
-        self, url: str, steps: list[dict[str, Any]]
-    ) -> dict[str, Any]:
+    def automate_workflow(self, url: str, steps: list[dict[str, Any]]) -> dict[str, Any]:
         """
         Execute automated workflow.
 
@@ -377,9 +369,7 @@ class PlaywrightAdapter:
                 self.wait_for_selector(step["selector"])
             elif action == "extract":
                 text = self.get_text(step["selector"])
-                results["steps"].append(
-                    {"step": i + 1, "action": "extract", "data": text}
-                )
+                results["steps"].append({"step": i + 1, "action": "extract", "data": text})
             elif action == "screenshot":
                 screenshot = self.screenshot()
                 results["screenshots"].append({"step": i + 1, "data": screenshot})

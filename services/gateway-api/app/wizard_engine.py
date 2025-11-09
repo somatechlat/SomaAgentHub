@@ -14,6 +14,13 @@ import requests
 import yaml
 from pydantic import BaseModel, Field
 from services.common.contracts.pricing import BudgetPrecheckDecision
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from gateway_api.app.services.event_service import GatewayEventService
+from common.events.publisher import EventPublisher
+from services.common.events.publisher import EventPublisher
+from services.common.events.models import OutboxEvent
+from services.orchestrator.app.repository.outbox import OutboxRepository
 
 logger = logging.getLogger(__name__)
 
@@ -96,9 +103,7 @@ class WizardEngine:
             for wiz_id, schema in self.wizard_schemas.items()
         ]
 
-    def start_wizard(
-        self, wizard_id: str, user_id: str, metadata: dict | None = None
-    ) -> dict[str, Any]:
+    def start_wizard(self, wizard_id: str, user_id: str, metadata: dict | None = None) -> dict[str, Any]:
         """Start a new wizard session."""
         if wizard_id not in self.wizard_schemas:
             raise ValueError(f"Wizard '{wizard_id}' not found")
@@ -204,9 +209,7 @@ class WizardEngine:
         return {
             "completed_steps": completed_steps,
             "total_steps": total_steps,
-            "percentage": (
-                int((completed_steps / total_steps) * 100) if total_steps > 0 else 0
-            ),
+            "percentage": (int((completed_steps / total_steps) * 100) if total_steps > 0 else 0),
         }
 
     def _complete_wizard(self, session: WizardSession) -> dict[str, Any]:
@@ -258,9 +261,7 @@ class WizardEngine:
             },
         }
 
-    def _build_execution_plan(
-        self, session: WizardSession, modules: list[dict]
-    ) -> dict[str, Any]:
+    def _build_execution_plan(self, session: WizardSession, modules: list[dict]) -> dict[str, Any]:
         """Build detailed execution plan from wizard answers."""
         schema = self.wizard_schemas[session.wizard_id]
 
@@ -280,8 +281,7 @@ class WizardEngine:
         enabled_modules = [
             module
             for module in raw_modules
-            if not module.get("condition")
-            or self._evaluate_condition(module["condition"], session.answers)
+            if not module.get("condition") or self._evaluate_condition(module["condition"], session.answers)
         ]
         enabled_ids = {module["id"] for module in enabled_modules}
 
@@ -291,9 +291,7 @@ class WizardEngine:
             processed["id"] = module["id"]
             processed["agent"] = module["agent"]
             processed["title"] = interpolate(module["title"])
-            processed["dependencies"] = [
-                dep for dep in module.get("dependencies", []) if dep in enabled_ids
-            ]
+            processed["dependencies"] = [dep for dep in module.get("dependencies", []) if dep in enabled_ids]
 
             # Interpolate task descriptions, params, and conditional logic
             processed_tasks = []
@@ -301,22 +299,15 @@ class WizardEngine:
                 logic_branches = task.get("logic")
                 if logic_branches:
                     for branch in logic_branches:
-                        if not self._evaluate_condition(
-                            branch.get("if", ""), session.answers
-                        ):
+                        if not self._evaluate_condition(branch.get("if", ""), session.answers):
                             continue
                         branch_action = branch.get("then")
                         branch_params = branch.get("params", {})
                         processed_tasks.append(
                             {
                                 "action": branch_action,
-                                "description": interpolate(
-                                    branch.get("description")
-                                    or f"Execute {branch_action}"
-                                ),
-                                "params": self._interpolate_value(
-                                    branch_params, session.answers, interpolate
-                                ),
+                                "description": interpolate(branch.get("description") or f"Execute {branch_action}"),
+                                "params": self._interpolate_value(branch_params, session.answers, interpolate),
                             }
                         )
                     continue
@@ -330,9 +321,7 @@ class WizardEngine:
                 # Interpolate params
                 params = task.get("params", {})
                 if params:
-                    processed_task["params"] = self._interpolate_value(
-                        params, session.answers, interpolate
-                    )
+                    processed_task["params"] = self._interpolate_value(params, session.answers, interpolate)
 
                 processed_tasks.append(processed_task)
 
@@ -359,19 +348,12 @@ class WizardEngine:
             return "true" if value else "false"
         return str(value)
 
-    def _interpolate_value(
-        self, value: Any, answers: dict[str, Any], interpolate
-    ) -> Any:
+    def _interpolate_value(self, value: Any, answers: dict[str, Any], interpolate) -> Any:
         """Recursively interpolate values containing answer placeholders."""
         if isinstance(value, dict):
-            return {
-                key: self._interpolate_value(val, answers, interpolate)
-                for key, val in value.items()
-            }
+            return {key: self._interpolate_value(val, answers, interpolate) for key, val in value.items()}
         if isinstance(value, list):
-            return [
-                self._interpolate_value(item, answers, interpolate) for item in value
-            ]
+            return [self._interpolate_value(item, answers, interpolate) for item in value]
         if isinstance(value, str):
             placeholder_match = re.fullmatch(r"\{([^{}]+)\}", value.strip())
             if placeholder_match:
@@ -413,9 +395,7 @@ class WizardEngine:
 
     @staticmethod
     def _strip_quotes(value: str) -> str:
-        if (value.startswith('"') and value.endswith('"')) or (
-            value.startswith("'") and value.endswith("'")
-        ):
+        if (value.startswith('"') and value.endswith('"')) or (value.startswith("'") and value.endswith("'")):
             return value[1:-1]
         return value
 
@@ -495,25 +475,17 @@ class WizardEngine:
         # Build a minimal multi-agent orchestration request from the execution plan
         schema = self.wizard_schemas.get(session.wizard_id)
         modules = schema.get("modules", []) if schema else []
-        plan = session.metadata.get("_execution_plan") or self._build_execution_plan(
-            session, modules
-        )
+        plan = session.metadata.get("_execution_plan") or self._build_execution_plan(session, modules)
         session.metadata["_execution_plan"] = plan
         directives: list[dict[str, Any]] = []
         for module in plan.get("modules", []):
             module_tasks = module.get("tasks", [])
             capability_names = {
-                (
-                    task.get("action", "").split(".")[0]
-                    if "." in task.get("action", "")
-                    else task.get("action", "")
-                )
+                (task.get("action", "").split(".")[0] if "." in task.get("action", "") else task.get("action", ""))
                 for task in module_tasks
                 if task.get("action")
             }
-            prompt_lines = [
-                f"{module.get('title', 'Execute module')} for campaign {plan.get('campaign_name', '')}"
-            ]
+            prompt_lines = [f"{module.get('title', 'Execute module')} for campaign {plan.get('campaign_name', '')}"]
             if module_tasks:
                 prompt_lines.append("Key tasks:")
                 prompt_lines.extend(
@@ -550,14 +522,11 @@ class WizardEngine:
 
         # Call the real orchestrator
         orchestrator_base = (
-            os.getenv("SOMAGENT_GATEWAY_ORCHESTRATOR_URL")
-            or os.getenv("ORCHESTRATOR_URL")
-            or "http://localhost:10001"
+            os.getenv("SOMAGENT_GATEWAY_ORCHESTRATOR_URL") or os.getenv("ORCHESTRATOR_URL") or "http://localhost:10001"
         )
         url = f"{orchestrator_base}/v1/mao/start"
         payload = {
-            "tenant": session.metadata.get("tenant")
-            or os.getenv("SOMAGENT_TENANT_ID", "demo"),
+            "tenant": session.metadata.get("tenant") or os.getenv("SOMAGENT_TENANT_ID", "demo"),
             "initiator": session.user_id,
             "directives": directives,
             "metadata": {
@@ -569,17 +538,11 @@ class WizardEngine:
         }
 
         # Optional cost gating: attempt precheck if cost params present in answers
-        budget_cap = session.answers.get("budget_cap") or session.metadata.get(
-            "budget_cap"
-        )
-        hours_planned = session.answers.get("hours") or session.answers.get(
-            "hours_planned"
-        )
+        budget_cap = session.answers.get("budget_cap") or session.metadata.get("budget_cap")
+        hours_planned = session.answers.get("hours") or session.answers.get("hours_planned")
         gpu_model = session.answers.get("gpu_model")
         if budget_cap and hours_planned:
-            pricing_service = os.getenv(
-                "PRICING_SERVICE_URL", "http://pricing-service:10026"
-            )
+            pricing_service = os.getenv("PRICING_SERVICE_URL", "http://pricing-service:10026")
             precheck_url = f"{pricing_service}/v1/pricing/evaluate-budget/with-policy"
             try:
                 pre_params = {
@@ -608,6 +571,60 @@ class WizardEngine:
             raise RuntimeError(f"Orchestrator error: {resp.text}")
 
         data = resp.json()
+
+        # Emit wizard approved event using outbox pattern
+        from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
+        from sqlalchemy.orm import sessionmaker
+        import asyncio
+
+        async def emit_wizard_approved_event():
+            event_data = {
+                "wizard_id": session.wizard_id,
+                "project_id": session.metadata.get("project_id", "default-project"),
+                "user_id": session.user_id,
+                "wizard_type": session.wizard_id,
+                "configuration": {
+                    "campaign_name": plan.get("campaign_name"),
+                    "session_id": session_id,
+                    "workflow_id": data.get("workflow_id"),
+                    "answers": session.answers,
+                    "metadata": session.metadata,
+                },
+                "timestamp": datetime.now(UTC).isoformat(),
+            }
+
+            # Create outbox event
+            outbox_event = OutboxEvent(
+                event_type="wizard.approved",
+                aggregate_id=session_id,
+                event_data=event_data,
+                created_at=datetime.now(UTC),
+            )
+
+            # Save to outbox
+            engine = create_async_engine(os.getenv("DATABASE_URL", "sqlite+aiosqlite:///gateway.db"))
+            async_session = sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
+
+            async with async_session() as db_session:
+                outbox_repo = OutboxRepository(session=db_session)
+                await outbox_repo.save_event(outbox_event)
+                await db_session.commit()
+
+            await engine.dispose()
+            logger.info(f"Wizard approved event persisted: {event_data}")
+
+        # Emit event asynchronously
+        try:
+            loop = asyncio.get_event_loop()
+            if loop.is_running():
+                # If we're in a running event loop, use create_task
+                loop.create_task(emit_wizard_approved_event())
+            else:
+                # Otherwise run it
+                asyncio.run(emit_wizard_approved_event())
+        except Exception as e:
+            logger.error(f"Failed to emit wizard approved event: {e}")
+
         return {
             "status": "approved",
             "session_id": session_id,
@@ -616,9 +633,7 @@ class WizardEngine:
             "workflow_id": data.get("workflow_id"),
             "orchestration_id": data.get("orchestration_id"),
             "task_queue": data.get("task_queue"),
-            "estimated_completion": (
-                datetime.now(UTC) + timedelta(hours=4)
-            ).isoformat(),
+            "estimated_completion": (datetime.now(UTC) + timedelta(hours=4)).isoformat(),
         }
 
 

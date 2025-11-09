@@ -9,15 +9,11 @@ from pydantic import BaseModel, Field
 
 
 class NotificationPayload(BaseModel):
-    tenant_id: str = Field(
-        ..., description="Tenant identifier receiving the notification"
-    )
+    tenant_id: str = Field(..., description="Tenant identifier receiving the notification")
     channel: str = Field(..., description="Logical channel or topic")
     message: str = Field(..., description="Notification body displayed to operators")
     severity: Literal["info", "warning", "error", "critical"] = "info"
-    metadata: dict[str, str] | None = Field(
-        default=None, description="Additional structured metadata"
-    )
+    metadata: dict[str, str] | None = Field(default=None, description="Additional structured metadata")
 
 
 class NotificationRecord(BaseModel):

@@ -1,0 +1,232 @@
+# Default values for orchestrator service
+# This is a YAML-formatted file.
+
+# Global configuration
+global:
+  imageRegistry: ""
+  imagePullSecrets: []
+  storageClass: ""
+
+# Image configuration
+image:
+  registry: ghcr.io
+  repository: somatechlat/orchestrator-service
+  tag: "latest"
+  pullPolicy: IfNotPresent
+
+# Replicas and scaling
+replicaCount: 3
+
+# Service configuration
+service:
+  type: ClusterIP
+  port: 80
+  targetPort: 8000
+  annotations: {}
+
+# Ingress configuration
+ingress:
+  enabled: true
+  className: "nginx"
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+  hosts:
+    - host: orchestrator.soma-agent-hub.com
+      paths:
+        - path: /
+          pathType: Prefix
+  tls:
+    - secretName: orchestrator-tls
+      hosts:
+        - orchestrator.soma-agent-hub.com
+
+# Resource limits and requests
+resources:
+  limits:
+    cpu: 1000m
+    memory: 1Gi
+  requests:
+    cpu: 500m
+    memory: 512Mi
+
+# Autoscaling
+autoscaling:
+  enabled: true
+  minReplicas: 3
+  maxReplicas: 20
+  targetCPUUtilizationPercentage: 70
+  targetMemoryUtilizationPercentage: 80
+
+# Environment variables
+env:
+  - name: SERVICE_NAME
+    value: orchestrator-service
+  - name: LOG_LEVEL
+    value: INFO
+  - name: OTEL_EXPORTER_OTLP_ENDPOINT
+    value: http://otel-collector:4317
+
+# Secrets and configmaps
+secrets:
+  database:
+    url: "postgresql+asyncpg://user:password@postgres:5432/orchestrator"
+  kafka:
+    bootstrap_servers: "kafka:9092"
+    sasl_username: ""
+    sasl_password: ""
+  redis:
+    url: "redis://redis:6379/0"
+
+# PostgreSQL configuration
+postgresql:
+  enabled: true
+  auth:
+    postgresPassword: "postgres"
+    database: "orchestrator"
+  primary:
+    resources:
+      limits:
+        cpu: 1000m
+        memory: 1Gi
+      requests:
+        cpu: 500m
+        memory: 512Mi
+
+# Redis configuration
+redis:
+  enabled: true
+  auth:
+    enabled: true
+    password: "redis-password"
+  master:
+    resources:
+      limits:
+        cpu: 500m
+        memory: 256Mi
+      requests:
+        cpu: 250m
+        memory: 128Mi
+
+# Kafka configuration
+kafka:
+  enabled: true
+  auth:
+    clientProtocol: sasl
+    interBrokerProtocol: sasl
+    sasl:
+      mechanisms: SCRAM-SHA-512
+      users:
+        - "orchestrator:orchestrator-password"
+  resources:
+    requests:
+      cpu: 1000m
+      memory: 1Gi
+    limits:
+      cpu: 2000m
+      memory: 2Gi
+
+# Service mesh configuration
+serviceMesh:
+  enabled: true
+  istio:
+    enabled: true
+    labels:
+      sidecar.istio.io/inject: "true"
+    annotations:
+      traffic.sidecar.istio.io/includeInboundPorts: "*"
+      traffic.sidecar.istio.io/excludeOutboundPorts: "53"
+
+# Security configuration
+security:
+  podSecurityContext:
+    fsGroup: 2000
+  containerSecurityContext:
+    runAsNonRoot: true
+    runAsUser: 1000
+    runAsGroup: 1000
+    readOnlyRootFilesystem: true
+    allowPrivilegeEscalation: false
+    capabilities:
+      drop:
+        - ALL
+
+# Health checks
+health:
+  livenessProbe:
+    httpGet:
+      path: /health/live
+      port: 8000
+    initialDelaySeconds: 30
+    periodSeconds: 10
+    timeoutSeconds: 5
+    failureThreshold: 3
+  
+  readinessProbe:
+    httpGet:
+      path: /health/ready
+      port: 8000
+    initialDelaySeconds: 5
+    periodSeconds: 5
+    timeoutSeconds: 3
+    failureThreshold: 3
+
+  startupProbe:
+    httpGet:
+      path: /health/startup
+      port: 8000
+    initialDelaySeconds: 10
+    periodSeconds: 5
+    timeoutSeconds: 3
+    failureThreshold: 30
+
+# Network policies
+networkPolicy:
+  enabled: true
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              name: soma-agent-hub
+  egress:
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              name: soma-agent-hub
+
+# Pod disruption budget
+podDisruptionBudget:
+  enabled: true
+  minAvailable: 2
+
+# Persistence
+persistence:
+  enabled: true
+  storageClass: "fast-ssd"
+  accessMode: ReadWriteOnce
+  size: 10Gi
+
+# Monitoring
+monitoring:
+  enabled: true
+  serviceMonitor:
+    enabled: true
+    namespace: monitoring
+    interval: 30s
+    path: /metrics
+
+# Alerting
+alerting:
+  enabled: true
+  rules:
+    - name: HighErrorRate
+      expr: rate(http_requests_total{status_code=~"5.."}[5m]) > 0.1
+      for: 5m
+      labels:
+        severity: warning
+    - name: CircuitBreakerOpen
+      expr: circuit_breaker_state_changes_total{state="open"} > 0
+      for: 1m
+      labels:
+        severity: critical

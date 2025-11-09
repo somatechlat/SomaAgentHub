@@ -46,9 +46,7 @@ def get_manifest_signer(request: Request) -> ManifestSigner:
 class ManifestSigningRequest(BaseModel):
     """Payload wrapper for persona manifest signing."""
 
-    manifest: dict[str, Any] = Field(
-        ..., description="Persona manifest payload to sign"
-    )
+    manifest: dict[str, Any] = Field(..., description="Persona manifest payload to sign")
 
 
 class ManifestSignatureResponse(BaseModel):
@@ -62,17 +60,13 @@ class ManifestSignatureResponse(BaseModel):
 
 
 @router.get("/constitution/{tenant}", response_model=ConstitutionBundle)
-async def get_constitution(
-    tenant: str, registry: ConstitutionRegistry = Depends(get_registry)
-) -> ConstitutionBundle:
+async def get_constitution(tenant: str, registry: ConstitutionRegistry = Depends(get_registry)) -> ConstitutionBundle:
     """Return the verified constitution bundle for *tenant*."""
 
     return registry.get_bundle(tenant)
 
 
-@router.post(
-    "/sign/persona-manifest", response_model=ManifestSignatureResponse, tags=["signing"]
-)
+@router.post("/sign/persona-manifest", response_model=ManifestSignatureResponse, tags=["signing"])
 async def sign_persona_manifest(
     payload: ManifestSigningRequest,
     signer: ManifestSigner = Depends(get_manifest_signer),
@@ -93,9 +87,7 @@ async def sign_persona_manifest(
 
 
 @router.get("/constitution/{tenant}/hash", response_model=HashResponse)
-async def get_constitution_hash(
-    tenant: str, registry: ConstitutionRegistry = Depends(get_registry)
-) -> HashResponse:
+async def get_constitution_hash(tenant: str, registry: ConstitutionRegistry = Depends(get_registry)) -> HashResponse:
     hash_value = registry.get_hash(tenant)
     bundle = registry.get_bundle(tenant)
     return HashResponse(hash=hash_value, version=bundle.version, tenant=tenant)
@@ -106,9 +98,7 @@ async def get_constitution_summary(
     registry: ConstitutionRegistry = Depends(get_registry),
 ) -> ConstitutionSummary:
     bundle = registry.bundle
-    return ConstitutionSummary(
-        version=bundle.version, issued_at=bundle.issued_at, hash=bundle.hash
-    )
+    return ConstitutionSummary(version=bundle.version, issued_at=bundle.issued_at, hash=bundle.hash)
 
 
 @router.post("/constitution/validate", response_model=ValidationResult)

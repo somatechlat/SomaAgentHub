@@ -11,9 +11,7 @@ STATIC_TOKEN = os.getenv("SOMAGENT_AIRFLOW_JWT") or os.getenv("SOMAGENT_BEARER_T
 
 def _build_token() -> str:
     if not STATIC_TOKEN:
-        raise RuntimeError(
-            "Missing bearer token. Set SOMAGENT_AIRFLOW_JWT (or SOMAGENT_BEARER_TOKEN)."
-        )
+        raise RuntimeError("Missing bearer token. Set SOMAGENT_AIRFLOW_JWT (or SOMAGENT_BEARER_TOKEN).")
     return STATIC_TOKEN
 
 

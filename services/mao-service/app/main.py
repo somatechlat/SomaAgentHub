@@ -30,20 +30,14 @@ from workflows.project_workflow import (
 class TaskRequest(BaseModel):
     """Request model for task definition."""
 
-    task_id: str | None = Field(
-        default_factory=lambda: f"task-{uuid.uuid4().hex[:8]}"
-    )
+    task_id: str | None = Field(default_factory=lambda: f"task-{uuid.uuid4().hex[:8]}")
     capsule_id: str = Field(..., description="ID of the capsule to execute")
     persona_id: str = Field(..., description="ID of the persona to use")
     description: str = Field(..., description="Task description")
-    dependencies: list[str] = Field(
-        default_factory=list, description="Task IDs this depends on"
-    )
+    dependencies: list[str] = Field(default_factory=list, description="Task IDs this depends on")
     timeout_seconds: int = Field(default=3600, description="Task timeout in seconds")
     retry_attempts: int = Field(default=3, description="Number of retry attempts")
-    metadata: dict[str, Any] | None = Field(
-        default=None, description="Additional metadata"
-    )
+    metadata: dict[str, Any] | None = Field(default=None, description="Additional metadata")
 
 
 class ProjectRequest(BaseModel):
@@ -55,21 +49,11 @@ class ProjectRequest(BaseModel):
         default=ExecutionMode.DAG,
         description="Execution mode: sequential, parallel, or dag",
     )
-    workspace_config: dict[str, Any] | None = Field(
-        default=None, description="VSCode workspace configuration"
-    )
-    git_repo_url: str | None = Field(
-        default=None, description="Git repository URL to clone"
-    )
-    artifact_storage: str = Field(
-        default="s3://somagent-artifacts", description="Storage location for artifacts"
-    )
-    notify_webhooks: list[str] | None = Field(
-        default=None, description="Webhook URLs for notifications"
-    )
-    max_parallel_tasks: int = Field(
-        default=5, description="Maximum parallel tasks in DAG mode"
-    )
+    workspace_config: dict[str, Any] | None = Field(default=None, description="VSCode workspace configuration")
+    git_repo_url: str | None = Field(default=None, description="Git repository URL to clone")
+    artifact_storage: str = Field(default="s3://somagent-artifacts", description="Storage location for artifacts")
+    notify_webhooks: list[str] | None = Field(default=None, description="Webhook URLs for notifications")
+    max_parallel_tasks: int = Field(default=5, description="Maximum parallel tasks in DAG mode")
 
 
 class ProjectResponse(BaseModel):
@@ -210,9 +194,7 @@ async def create_project(request: ProjectRequest):
         )
 
     except Exception as e:
-        raise HTTPException(
-            status_code=500, detail=f"Failed to create project: {str(e)}"
-        )
+        raise HTTPException(status_code=500, detail=f"Failed to create project: {str(e)}")
 
 
 @app.get("/v1/projects/{project_id}", response_model=ProjectStatusResponse)
@@ -268,9 +250,7 @@ async def cancel_project(project_id: str):
         }
 
     except Exception as e:
-        raise HTTPException(
-            status_code=500, detail=f"Failed to cancel project: {str(e)}"
-        )
+        raise HTTPException(status_code=500, detail=f"Failed to cancel project: {str(e)}")
 
 
 @app.get("/v1/projects/{project_id}/result")
@@ -288,7 +268,8 @@ async def get_project_result(project_id: str):
 
         # Wait for result (with timeout)
         result = await asyncio.wait_for(
-            handle.result(), timeout=60.0  # 1 minute timeout
+            handle.result(),
+            timeout=60.0,  # 1 minute timeout
         )
 
         return {
@@ -298,13 +279,9 @@ async def get_project_result(project_id: str):
         }
 
     except TimeoutError:
-        raise HTTPException(
-            status_code=408, detail="Timeout waiting for project result"
-        )
+        raise HTTPException(status_code=408, detail="Timeout waiting for project result")
     except Exception as e:
-        raise HTTPException(
-            status_code=500, detail=f"Failed to get project result: {str(e)}"
-        )
+        raise HTTPException(status_code=500, detail=f"Failed to get project result: {str(e)}")
 
 
 @app.get("/v1/projects")
@@ -317,20 +294,14 @@ async def list_projects(limit: int = 10, status: str | None = None):
     try:
         # List workflows
         workflows = []
-        async for workflow in temporal_client.list_workflows(
-            'WorkflowType="ProjectWorkflow"'
-        ):
+        async for workflow in temporal_client.list_workflows('WorkflowType="ProjectWorkflow"'):
             workflows.append(
                 {
                     "workflow_id": workflow.id,
                     "project_id": workflow.id.replace("workflow-", ""),
                     "status": workflow.status.name,
-                    "start_time": (
-                        workflow.start_time.isoformat() if workflow.start_time else None
-                    ),
-                    "close_time": (
-                        workflow.close_time.isoformat() if workflow.close_time else None
-                    ),
+                    "start_time": (workflow.start_time.isoformat() if workflow.start_time else None),
+                    "close_time": (workflow.close_time.isoformat() if workflow.close_time else None),
                 }
             )
 
@@ -343,9 +314,7 @@ async def list_projects(limit: int = 10, status: str | None = None):
         }
 
     except Exception as e:
-        raise HTTPException(
-            status_code=500, detail=f"Failed to list projects: {str(e)}"
-        )
+        raise HTTPException(status_code=500, detail=f"Failed to list projects: {str(e)}")
 
 
 # WebSocket endpoint for real-time updates

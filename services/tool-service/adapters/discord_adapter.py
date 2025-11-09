@@ -38,9 +38,7 @@ class DiscordAdapter:
     def _request(self, method: str, endpoint: str, **kwargs) -> Any:
         """Make API request."""
         url = f"{self.base_url}/{endpoint}"
-        response = requests.request(
-            method, url, headers=self.headers, timeout=30, **kwargs
-        )
+        response = requests.request(method, url, headers=self.headers, timeout=30, **kwargs)
         response.raise_for_status()
         return response.json() if response.content else {}
 
@@ -118,9 +116,7 @@ class DiscordAdapter:
         if embeds:
             data["embeds"] = embeds
 
-        return self._request(
-            "PATCH", f"channels/{channel_id}/messages/{message_id}", json=data
-        )
+        return self._request("PATCH", f"channels/{channel_id}/messages/{message_id}", json=data)
 
     def delete_message(self, channel_id: str, message_id: str):
         """Delete a message."""
@@ -180,9 +176,7 @@ class DiscordAdapter:
         fields: list[dict[str, Any]] | None = None,
     ) -> dict[str, Any]:
         """Send an embed message."""
-        embed = self.create_embed(
-            title=title, description=description, color=color, fields=fields
-        )
+        embed = self.create_embed(title=title, description=description, color=color, fields=fields)
         return self.send_message(channel_id=channel_id, embeds=[embed])
 
     # ============================================================================
@@ -220,15 +214,11 @@ class DiscordAdapter:
 
     def create_webhook(self, channel_id: str, name: str) -> dict[str, Any]:
         """Create a webhook for a channel."""
-        webhook = self._request(
-            "POST", f"channels/{channel_id}/webhooks", json={"name": name}
-        )
+        webhook = self._request("POST", f"channels/{channel_id}/webhooks", json={"name": name})
         logger.info(f"Created webhook: {webhook['name']}")
         return webhook
 
-    def execute_webhook(
-        self, webhook_id: str, webhook_token: str, content: str
-    ) -> dict[str, Any]:
+    def execute_webhook(self, webhook_id: str, webhook_token: str, content: str) -> dict[str, Any]:
         """Execute a webhook (send message)."""
         url = f"{self.base_url}/webhooks/{webhook_id}/{webhook_token}"
         response = requests.post(url, json={"content": content}, timeout=30)
@@ -272,13 +262,9 @@ class DiscordAdapter:
         """Get a guild member."""
         return self._request("GET", f"guilds/{guild_id}/members/{user_id}")
 
-    def list_guild_members(
-        self, guild_id: str, limit: int = 100
-    ) -> list[dict[str, Any]]:
+    def list_guild_members(self, guild_id: str, limit: int = 100) -> list[dict[str, Any]]:
         """List guild members."""
-        return self._request(
-            "GET", f"guilds/{guild_id}/members", params={"limit": limit}
-        )
+        return self._request("GET", f"guilds/{guild_id}/members", params={"limit": limit})
 
     # ============================================================================
     # UTILITY METHODS
@@ -300,7 +286,9 @@ class DiscordAdapter:
         """
         # Create category
         category = self.create_channel(
-            guild_id=guild_id, name=project_name, type=4  # Category
+            guild_id=guild_id,
+            name=project_name,
+            type=4,  # Category
         )
 
         # Default channels if not provided
@@ -318,9 +306,7 @@ class DiscordAdapter:
             )
             created_channels.append(channel)
 
-        logger.info(
-            f"Created project workspace for '{project_name}' with {len(created_channels)} channels"
-        )
+        logger.info(f"Created project workspace for '{project_name}' with {len(created_channels)} channels")
 
         return {"category": category, "channels": created_channels}
 

@@ -22,9 +22,7 @@ class PersonaOwner(BaseModel):
     """Represents a human or organization responsible for the persona."""
 
     name: str
-    contact: str | None = Field(
-        default=None, description="Email or URL for the persona maintainer"
-    )
+    contact: str | None = Field(default=None, description="Email or URL for the persona maintainer")
     organization: str | None = Field(default=None, description="Owning organization")
 
 
@@ -41,9 +39,7 @@ class ModelBoxReference(BaseModel):
 
     model_box_id: str = Field(..., description="Unique identifier in the SLM catalog")
     version: str = Field(..., description="Semantic version of the model box")
-    provider: str = Field(
-        ..., description="Provider or serving stack (e.g., openai, groq, vllm)"
-    )
+    provider: str = Field(..., description="Provider or serving stack (e.g., openai, groq, vllm)")
     default_mode: str = Field(
         "production",
         description="Preferred deployment mode for this persona (production, staging, etc.)",
@@ -67,12 +63,8 @@ class MemorySnapshotReference(BaseModel):
     """Pointer to the persisted SomaBrain memory bundle."""
 
     snapshot_id: str
-    storage_uri: str = Field(
-        ..., description="URI to the memory snapshot artifact (s3://, gs://, file://)"
-    )
-    embedding_model: str = Field(
-        ..., description="Embedding model used when producing the snapshot"
-    )
+    storage_uri: str = Field(..., description="URI to the memory snapshot artifact (s3://, gs://, file://)")
+    embedding_model: str = Field(..., description="Embedding model used when producing the snapshot")
     item_count: int = Field(..., ge=0, description="Total number of memory items")
     checksum: str = Field(..., description="SHA256 checksum for integrity validation")
 
@@ -81,9 +73,7 @@ class ToolAccessDescriptor(BaseModel):
     """Represents a tool capability required by the persona."""
 
     tool: str = Field(..., description="Tool adapter name (e.g., github, notion)")
-    required: bool = Field(
-        True, description="Whether the persona needs this tool to operate correctly"
-    )
+    required: bool = Field(True, description="Whether the persona needs this tool to operate correctly")
     access_scope: str = Field(
         "read",
         description="Scope expected (read, write, admin, custom policy identifier)",
@@ -116,12 +106,8 @@ class EvaluationScore(BaseModel):
 class GovernanceMetadata(BaseModel):
     """Governance and policy context for the persona export."""
 
-    constitution_sha: str = Field(
-        ..., description="SHA3-512 hash of the constitution governing the persona"
-    )
-    training_snapshot_id: str = Field(
-        ..., description="Identifier of the training mode session used for export"
-    )
+    constitution_sha: str = Field(..., description="SHA3-512 hash of the constitution governing the persona")
+    training_snapshot_id: str = Field(..., description="Identifier of the training mode session used for export")
     approvals: list[str] = Field(
         default_factory=list,
         description="List of user IDs or capability grants that approved publication",
@@ -165,9 +151,7 @@ class PersonaMetadata(BaseModel):
     )
     created_at: datetime = Field(default_factory=datetime.utcnow)
     updated_at: datetime = Field(default_factory=datetime.utcnow)
-    owners: list[PersonaOwner] = Field(
-        default_factory=list, description="Maintainers responsible for the persona"
-    )
+    owners: list[PersonaOwner] = Field(default_factory=list, description="Maintainers responsible for the persona")
 
 
 class ArtifactBundle(BaseModel):
@@ -190,19 +174,11 @@ class ArtifactBundle(BaseModel):
 class ManifestSignature(BaseModel):
     """Cryptographic signature binding the manifest to the constitution service."""
 
-    algorithm: str = Field(
-        ..., description="Signing algorithm identifier (e.g., ed25519)"
-    )
+    algorithm: str = Field(..., description="Signing algorithm identifier (e.g., ed25519)")
     signature: str = Field(..., description="Base64-encoded detached signature")
-    public_key: str = Field(
-        ..., description="Base64-encoded public key used for verification"
-    )
-    digest: str = Field(
-        ..., description="SHA3-256 digest of the canonical manifest payload"
-    )
-    signed_at: datetime = Field(
-        ..., description="Timestamp when the manifest was signed"
-    )
+    public_key: str = Field(..., description="Base64-encoded public key used for verification")
+    digest: str = Field(..., description="SHA3-256 digest of the canonical manifest payload")
+    signed_at: datetime = Field(..., description="Timestamp when the manifest was signed")
 
 
 class PersonaManifest(BaseModel):
@@ -275,9 +251,7 @@ def _load_data_from_bytes(data: bytes) -> dict[str, Any]:
         try:
             return json.loads(data.decode("utf-8"))
         except json.JSONDecodeError as exc:
-            raise ManifestValidationError(
-                "Manifest payload is not valid YAML or JSON"
-            ) from exc
+            raise ManifestValidationError("Manifest payload is not valid YAML or JSON") from exc
 
 
 def validate_persona_manifest(
@@ -304,9 +278,7 @@ def load_persona_manifest(source: str | Path | bytes) -> ManifestIO:
     return ManifestIO(manifest=manifest, raw=data, source_path=source_path)
 
 
-def dump_persona_manifest(
-    manifest: PersonaManifest, destination: str | Path
-) -> Path:
+def dump_persona_manifest(manifest: PersonaManifest, destination: str | Path) -> Path:
     """Serialise a persona manifest to YAML at the given destination path."""
 
     path = Path(destination)

@@ -21,16 +21,12 @@ class CapsuleSummary(BaseModel):
 
 
 class CapsuleSubmissionRequest(BaseModel):
-    capsule_id: str = Field(
-        ..., description="Unique capsule slug (e.g., plane_project_starter)"
-    )
+    capsule_id: str = Field(..., description="Unique capsule slug (e.g., plane_project_starter)")
     version: str = Field(..., description="Semantic version of the capsule package")
     owner: str = Field(..., description="Submitting tenant or partner identifier")
     summary: str | None = Field(None, description="Short human readable description")
     definition: dict[str, Any] = Field(..., description="Capsule manifest payload")
-    attestation_hash: str = Field(
-        ..., description="SHA-256 hash of the manifest payload"
-    )
+    attestation_hash: str = Field(..., description="SHA-256 hash of the manifest payload")
     attestation_signature: str | None = Field(
         None,
         description="Signature from the submitter proving integrity (optional during dev).",
@@ -95,9 +91,7 @@ class CapsuleInstallRequest(BaseModel):
     capsule_id: str
     version: str | None = None
     tenant_id: str
-    environment: str = Field(
-        "prod", description="Installation environment (prod, staging, etc.)"
-    )
+    environment: str = Field("prod", description="Installation environment (prod, staging, etc.)")
     installed_by: str
     notes: str | None = None
 

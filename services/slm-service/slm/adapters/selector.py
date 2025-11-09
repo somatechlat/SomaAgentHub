@@ -11,9 +11,7 @@ async def select_and_call(prompt: str, settings: dict) -> dict:
     """Try the primary provider, fall back to local adapter on error or timeout."""
     try:
         # enforce a short timeout for sprint-1
-        res = await asyncio.wait_for(
-            primary_adapter.call_primary_provider(prompt, settings), timeout=1.0
-        )
+        res = await asyncio.wait_for(primary_adapter.call_primary_provider(prompt, settings), timeout=1.0)
         emit_metric("provider.used", "primary", {"role": settings.get("role")})
         return res
     except Exception as e:

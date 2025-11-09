@@ -364,6 +364,22 @@ check: ## Run lint + type + focused tests with OTEL disabled
 quality: lint type
 	@echo "Quality gate completed (lint + type)."
 
+# ---------------------------------------------------------------------------
+# Mandatory formatting after each sprint
+# ---------------------------------------------------------------------------
+.PHONY: format format-check
+format:  ## Run black and ruff formatting (mandatory after each sprint)
+	@echo "Running mandatory formatting with black and ruff..."
+	@$(PY) -m black services/ tests/ --line-length 88
+	@$(PY) -m ruff format services/ tests/
+	@echo "Formatting complete!"
+
+format-check:  ## Check formatting without applying changes
+	@echo "Checking formatting compliance..."
+	@$(PY) -m black services/ tests/ --line-length 88 --check
+	@$(PY) -m ruff format services/ tests/ --check
+	@echo "All files properly formatted."
+
 # E2E test hits Gateway and polls Orchestrator
 # Optionally override E2E_GATEWAY_URL and E2E_ORCHESTRATOR_URL
 

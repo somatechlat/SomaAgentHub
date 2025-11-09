@@ -52,9 +52,7 @@ class OpenTelemetryConfig:
     def setup_tracing(self) -> None:
         provider = TracerProvider(resource=self.resource)
         if self.enable_otlp:
-            otlp_endpoint = os.getenv(
-                "OTEL_EXPORTER_OTLP_ENDPOINT", "http://otel-collector:4317"
-            )
+            otlp_endpoint = os.getenv("OTEL_EXPORTER_OTLP_ENDPOINT", "http://otel-collector:4317")
             exporter = OTLPSpanExporter(endpoint=otlp_endpoint, insecure=True)
             provider.add_span_processor(BatchSpanProcessor(exporter))
             logger.info(f"OTLP trace exporter enabled: {otlp_endpoint}")
@@ -68,13 +66,9 @@ class OpenTelemetryConfig:
                 from opentelemetry.exporter.prometheus import PrometheusMetricReader
 
                 readers.append(PrometheusMetricReader())
-                logger.info(
-                    f"Prometheus metrics reader enabled on port {self.prometheus_port}"
-                )
+                logger.info(f"Prometheus metrics reader enabled on port {self.prometheus_port}")
             except Exception:  # pragma: no cover - optional dependency missing
-                logger.warning(
-                    "Prometheus exporter not installed; metrics endpoint will be disabled."
-                )
+                logger.warning("Prometheus exporter not installed; metrics endpoint will be disabled.")
         meter_provider = MeterProvider(resource=self.resource, metric_readers=readers)
         metrics.set_meter_provider(meter_provider)
         logger.info(f"Metrics initialized for service: {self.service_name}")
@@ -108,10 +102,7 @@ def setup_observability(
 ) -> OpenTelemetryConfig:
     env: str = environment or os.getenv("ENVIRONMENT", "development")
     # Enable OTLP by default in development, allow override via env var
-    enable_otlp = (
-        os.getenv("ENABLE_OTLP", "true" if env == "development" else "false").lower()
-        == "true"
-    )
+    enable_otlp = os.getenv("ENABLE_OTLP", "true" if env == "development" else "false").lower() == "true"
     config = OpenTelemetryConfig(
         service_name=service_name,
         service_version=service_version,

@@ -76,9 +76,7 @@ class ContextMiddleware(BaseHTTPMiddleware):
         try:
             ctx = build_request_context(request, self._defaults, claims)
         except ValueError as exc:
-            return JSONResponse(
-                status_code=status.HTTP_400_BAD_REQUEST, content={"detail": str(exc)}
-            )
+            return JSONResponse(status_code=status.HTTP_400_BAD_REQUEST, content={"detail": str(exc)})
 
         if self._allowed_tenants and ctx.tenant_id not in self._allowed_tenants:
             return JSONResponse(

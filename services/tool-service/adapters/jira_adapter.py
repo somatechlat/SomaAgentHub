@@ -134,9 +134,7 @@ class JiraAdapter:
         data = {"fields": fields}
         self._request("PUT", f"issue/{issue_key}", json=data)
 
-    def transition_issue(
-        self, issue_key: str, transition_id: str, comment: str | None = None
-    ) -> None:
+    def transition_issue(self, issue_key: str, transition_id: str, comment: str | None = None) -> None:
         """
         Transition issue to new status.
 
@@ -195,9 +193,7 @@ class JiraAdapter:
 
     # Search & JQL
 
-    def search_issues(
-        self, jql: str, max_results: int = 50, fields: list[str] | None = None
-    ) -> dict[str, Any]:
+    def search_issues(self, jql: str, max_results: int = 50, fields: list[str] | None = None) -> dict[str, Any]:
         """
         Search issues using JQL.
 
@@ -293,9 +289,7 @@ class JiraAdapter:
         if goal:
             data["goal"] = goal
 
-        response = requests.post(
-            url, auth=self.auth, headers=self.headers, json=data, timeout=30
-        )
+        response = requests.post(url, auth=self.auth, headers=self.headers, json=data, timeout=30)
 
         response.raise_for_status()
         return response.json()
@@ -308,17 +302,13 @@ class JiraAdapter:
 
         data = {"issues": issues}
 
-        response = requests.post(
-            url, auth=self.auth, headers=self.headers, json=data, timeout=30
-        )
+        response = requests.post(url, auth=self.auth, headers=self.headers, json=data, timeout=30)
 
         response.raise_for_status()
 
     # Board Management
 
-    def create_board(
-        self, name: str, board_type: str = "scrum", filter_id: int | None = None
-    ) -> dict[str, Any]:
+    def create_board(self, name: str, board_type: str = "scrum", filter_id: int | None = None) -> dict[str, Any]:
         """
         Create board.
 
@@ -339,9 +329,7 @@ class JiraAdapter:
         if filter_id:
             data["filterId"] = filter_id
 
-        response = requests.post(
-            url, auth=self.auth, headers=self.headers, json=data, timeout=30
-        )
+        response = requests.post(url, auth=self.auth, headers=self.headers, json=data, timeout=30)
 
         response.raise_for_status()
         return response.json()
@@ -380,9 +368,7 @@ class JiraAdapter:
 
         return self._request("POST", "issue/bulk", json=data)
 
-    def create_epic(
-        self, project_key: str, summary: str, description: str | None = None
-    ) -> dict[str, Any]:
+    def create_epic(self, project_key: str, summary: str, description: str | None = None) -> dict[str, Any]:
         """Create epic."""
         return self.create_issue(
             project_key=project_key,

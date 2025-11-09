@@ -37,9 +37,7 @@ def test_consume_and_process():
     async def publish(topic, payload):
         published.append((topic, payload))
 
-    asyncio.get_event_loop().run_until_complete(
-        consume_and_process(get_message, publish)
-    )
+    asyncio.get_event_loop().run_until_complete(consume_and_process(get_message, publish))
     assert len(published) == 1
     topic, payload = published[0]
     assert topic == "slm.responses"

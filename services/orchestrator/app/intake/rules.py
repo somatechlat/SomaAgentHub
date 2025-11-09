@@ -15,20 +15,12 @@ def resolve_missing_dependencies(
     return missing
 
 
-def validate_dependency_closure(
-    selected_modules: list[str], dependency_map: dict[str, list[str]]
-) -> list[str]:
+def validate_dependency_closure(selected_modules: list[str], dependency_map: dict[str, list[str]]) -> list[str]:
     """Ensure all required dependencies are present when users select modules manually."""
 
     violations: list[str] = []
     for module_id in selected_modules:
-        missing = [
-            dep
-            for dep in dependency_map.get(module_id, [])
-            if dep not in selected_modules
-        ]
+        missing = [dep for dep in dependency_map.get(module_id, []) if dep not in selected_modules]
         if missing:
-            violations.append(
-                f"Module '{module_id}' missing dependencies: {', '.join(missing)}"
-            )
+            violations.append(f"Module '{module_id}' missing dependencies: {', '.join(missing)}")
     return violations

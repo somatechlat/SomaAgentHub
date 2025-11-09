@@ -279,17 +279,11 @@ async def check_policy(policy_name: str, input: dict[str, Any]) -> bool | None:
     rule = parts[-1]
     path = "/".join(parts[:-1]) if len(parts) > 1 else ""
     try:
-        result = await client.evaluate_policy(
-            policy_path=path, input_data=input, rule=rule
-        )
+        result = await client.evaluate_policy(policy_path=path, input_data=input, rule=rule)
         allowed = result.get("allowed")
         if isinstance(allowed, bool):
             return allowed
-        if (
-            isinstance(result, dict)
-            and "result" in result
-            and isinstance(result["result"], bool)
-        ):
+        if isinstance(result, dict) and "result" in result and isinstance(result["result"], bool):
             return bool(result["result"])
         return None
     except Exception:

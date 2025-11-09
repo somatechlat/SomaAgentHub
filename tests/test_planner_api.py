@@ -54,9 +54,7 @@ async def test_generate_plan_success(monkeypatch):
     """POST /v1/planner/generate returns a persisted ProjectPlan."""
     expected = dummy_plan()
 
-    async def fake_generate(
-        request: PlannerRequest, context: PlannerContext
-    ) -> ProjectPlan:
+    async def fake_generate(request: PlannerRequest, context: PlannerContext) -> ProjectPlan:
         return expected
 
     monkeypatch.setattr(_service, "generate_plan", fake_generate)
@@ -88,9 +86,7 @@ async def test_batch_generate_parallel(monkeypatch):
     """POST /v1/planner/batch/generate runs multiple generations concurrently."""
     plans = [dummy_plan(f"plan-{i}") for i in range(3)]
 
-    async def fake_generate(
-        request: PlannerRequest, context: PlannerContext
-    ) -> ProjectPlan:
+    async def fake_generate(request: PlannerRequest, context: PlannerContext) -> ProjectPlan:
         # Return the next plan from the list.
         return plans.pop(0)
 

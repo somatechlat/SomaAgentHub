@@ -92,9 +92,7 @@ class AdapterGenerator:
                 endpoint = EndpointInfo(
                     path=path,
                     method=method.upper(),
-                    operation_id=operation.get(
-                        "operationId", f"{method}_{path.replace('/', '_')}"
-                    ),
+                    operation_id=operation.get("operationId", f"{method}_{path.replace('/', '_')}"),
                     summary=operation.get("summary", ""),
                     description=operation.get("description", ""),
                     parameters=operation.get("parameters", []),
@@ -108,9 +106,7 @@ class AdapterGenerator:
         logger.info(f"Found {len(self.endpoints)} endpoints")
         return self.endpoints
 
-    def generate_adapter_code(
-        self, class_name: str, base_url: str | None = None
-    ) -> str:
+    def generate_adapter_code(self, class_name: str, base_url: str | None = None) -> str:
         """
         Generate Python adapter code from parsed spec.
 
@@ -133,9 +129,7 @@ class AdapterGenerator:
 
         # Imports
         code_parts.append('"""')
-        code_parts.append(
-            f"Auto-generated adapter for {self.spec_data.get('info', {}).get('title', 'API')}"
-        )
+        code_parts.append(f"Auto-generated adapter for {self.spec_data.get('info', {}).get('title', 'API')}")
         code_parts.append('"""')
         code_parts.append("")
         code_parts.append("import requests")
@@ -150,14 +144,12 @@ class AdapterGenerator:
         code_parts.append(f"class {class_name}:")
         code_parts.append('    """')
         info = self.spec_data.get("info", {})
-        code_parts.append(f'    {info.get("description", "API Adapter")}')
+        code_parts.append(f"    {info.get('description', 'API Adapter')}")
         code_parts.append('    """')
         code_parts.append("")
 
         # __init__ method
-        code_parts.append(
-            f'    def __init__(self, api_token: str, base_url: str = "{base_url}"):'
-        )
+        code_parts.append(f'    def __init__(self, api_token: str, base_url: str = "{base_url}"):')
         code_parts.append("        self.api_token = api_token")
         code_parts.append("        self.base_url = base_url")
         code_parts.append("        self.headers = {")
@@ -167,9 +159,7 @@ class AdapterGenerator:
         code_parts.append("")
 
         # _request helper
-        code_parts.append(
-            "    def _request(self, method: str, endpoint: str, **kwargs) -> Any:"
-        )
+        code_parts.append("    def _request(self, method: str, endpoint: str, **kwargs) -> Any:")
         code_parts.append('        """Make authenticated API request."""')
         code_parts.append('        url = f"{self.base_url}/{endpoint}"')
         code_parts.append("        response = requests.request(")
@@ -223,7 +213,7 @@ class AdapterGenerator:
         # Build method signature
         method_code = []
         method_code.append(f"    def {method_name}(")
-        method_code.append(f'        {", ".join(params)}')
+        method_code.append(f"        {', '.join(params)}")
         method_code.append("    ) -> Dict[str, Any]:")
 
         # Docstring
@@ -254,9 +244,7 @@ class AdapterGenerator:
                 param_name = param["name"]
                 if not param.get("required"):
                     method_code.append(f"        if {param_name} is not None:")
-                    method_code.append(
-                        f'            params["{param_name}"] = {param_name}'
-                    )
+                    method_code.append(f'            params["{param_name}"] = {param_name}')
                 else:
                     method_code.append(f'        params["{param_name}"] = {param_name}')
             kwargs_parts.append("params=params")
@@ -268,13 +256,9 @@ class AdapterGenerator:
         # Make request
         kwargs_str = ", ".join(kwargs_parts)
         if kwargs_str:
-            method_code.append(
-                f'        return self._request("{endpoint.method}", endpoint, {kwargs_str})'
-            )
+            method_code.append(f'        return self._request("{endpoint.method}", endpoint, {kwargs_str})')
         else:
-            method_code.append(
-                f'        return self._request("{endpoint.method}", endpoint)'
-            )
+            method_code.append(f'        return self._request("{endpoint.method}", endpoint)')
 
         return "\n".join(method_code)
 

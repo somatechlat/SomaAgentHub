@@ -97,9 +97,7 @@ class ABTestingFramework:
         # Validate traffic allocation
         total_allocation = sum(v.traffic_allocation for v in variants)
         if abs(total_allocation - 100.0) > 0.01:
-            raise ValueError(
-                f"Traffic allocation must sum to 100%, got {total_allocation}%"
-            )
+            raise ValueError(f"Traffic allocation must sum to 100%, got {total_allocation}%")
 
         experiment = ABExperiment(
             id=f"exp_{datetime.now(UTC).timestamp()}",
@@ -246,10 +244,7 @@ class ABTestingFramework:
             return
 
         # Check if all variants have enough samples
-        all_complete = all(
-            v.total_requests >= experiment.target_sample_size
-            for v in experiment.variants
-        )
+        all_complete = all(v.total_requests >= experiment.target_sample_size for v in experiment.variants)
 
         if all_complete:
             experiment.status = ExperimentStatus.COMPLETED
@@ -299,11 +294,7 @@ class ABTestingFramework:
                     "name": v.name,
                     "model": v.model,
                     "total_requests": v.total_requests,
-                    "success_rate": (
-                        v.successful_requests / v.total_requests
-                        if v.total_requests > 0
-                        else 0
-                    ),
+                    "success_rate": (v.successful_requests / v.total_requests if v.total_requests > 0 else 0),
                     "avg_latency": v.avg_latency,
                     "avg_cost": v.avg_cost,
                     "avg_rating": v.avg_rating,
@@ -311,17 +302,11 @@ class ABTestingFramework:
                 for v in experiment.variants
             ],
             "winner": winner,
-            "started_at": (
-                experiment.started_at.isoformat() if experiment.started_at else None
-            ),
-            "completed_at": (
-                experiment.completed_at.isoformat() if experiment.completed_at else None
-            ),
+            "started_at": (experiment.started_at.isoformat() if experiment.started_at else None),
+            "completed_at": (experiment.completed_at.isoformat() if experiment.completed_at else None),
         }
 
-    def _determine_winner(
-        self, experiment: ABExperiment, results: list[dict]
-    ) -> dict | None:
+    def _determine_winner(self, experiment: ABExperiment, results: list[dict]) -> dict | None:
         """Determine winning variant with statistical significance."""
         if not results or len(results) < 2:
             return None
@@ -336,18 +321,14 @@ class ABTestingFramework:
         sorted_results = sorted(
             results,
             key=lambda x: x[metric_key],
-            reverse=(
-                experiment.success_metric == "rating"
-            ),  # Higher is better for rating
+            reverse=(experiment.success_metric == "rating"),  # Higher is better for rating
         )
 
         winner = sorted_results[0]
         runner_up = sorted_results[1]
 
         # Calculate improvement
-        improvement = abs(
-            (winner[metric_key] - runner_up[metric_key]) / runner_up[metric_key] * 100
-        )
+        improvement = abs((winner[metric_key] - runner_up[metric_key]) / runner_up[metric_key] * 100)
 
         return {
             "variant_id": winner["variant_id"],

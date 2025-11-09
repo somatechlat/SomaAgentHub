@@ -96,13 +96,9 @@ def root():
 
 
 @app.post("/v1/infer/sync", response_model=InferSyncResponse, tags=["slm-service"])
-def infer_sync(
-    request: InferSyncRequest, generator=Depends(get_text_generator)
-) -> InferSyncResponse:
+def infer_sync(request: InferSyncRequest, generator=Depends(get_text_generator)) -> InferSyncResponse:
     start = perf_counter()
-    result = generator.generate(
-        request.prompt, max_tokens=request.max_tokens, temperature=request.temperature
-    )
+    result = generator.generate(request.prompt, max_tokens=request.max_tokens, temperature=request.temperature)
     duration = perf_counter() - start
     INFER_REQUESTS.labels(model=MODEL_NAME).inc()
     INFER_LATENCY.labels(model=MODEL_NAME).observe(duration)
@@ -116,9 +112,7 @@ def infer_sync(
 
 
 @app.post("/v1/embeddings", response_model=EmbeddingResponse, tags=["slm-service"])
-def create_embeddings(
-    request: EmbeddingRequest, model=Depends(get_embedding_model)
-) -> EmbeddingResponse:
+def create_embeddings(request: EmbeddingRequest, model=Depends(get_embedding_model)) -> EmbeddingResponse:
     start = perf_counter()
     vectors = model.embed(request.input)
     duration = perf_counter() - start
@@ -126,28 +120,18 @@ def create_embeddings(
     EMBED_LATENCY.labels(model=model.name).observe(duration)
     payload = [EmbeddingVector(embedding=[float(x) for x in vec]) for vec in vectors]
     vector_length = len(payload[0].embedding) if payload else 0
-    return EmbeddingResponse(
-        model=model.name, vectors=payload, vector_length=vector_length
-    )
+    return EmbeddingResponse(model=model.name, vectors=payload, vector_length=vector_length)
 
 
-@app.post(
-    "/v1/chat/completions", response_model=InferSyncResponse, tags=["slm-service"]
-)
-def chat_completion(
-    request: InferSyncRequest, generator=Depends(get_text_generator)
-) -> InferSyncResponse:
+@app.post("/v1/chat/completions", response_model=InferSyncResponse, tags=["slm-service"])
+def chat_completion(request: InferSyncRequest, generator=Depends(get_text_generator)) -> InferSyncResponse:
     """Backward-compatible endpoint that mirrors the sync inference capability."""
     return infer_sync(request, generator=generator)
 
 
 @app.get("/models", tags=["slm-service"])
 def list_models():
-    return {
-        "models": [
-            {"id": MODEL_NAME, "name": "SomaSuite Markov Text", "status": "ready"}
-        ]
-    }
+    return {"models": [{"id": MODEL_NAME, "name": "SomaSuite Markov Text", "status": "ready"}]}
 
 
 @app.post("/models/load", tags=["slm-service"])

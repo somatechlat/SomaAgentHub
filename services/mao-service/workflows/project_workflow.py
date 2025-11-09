@@ -104,10 +104,7 @@ class ProjectWorkflow:
     async def run(self, config: ProjectConfig) -> dict[str, Any]:
         """Execute the project workflow."""
 
-        workflow.logger.info(
-            f"Starting project workflow: {config.project_name} "
-            f"with {len(config.tasks)} tasks"
-        )
+        workflow.logger.info(f"Starting project workflow: {config.project_name} with {len(config.tasks)} tasks")
 
         try:
             # Step 1: Setup workspace
@@ -182,16 +179,8 @@ class ProjectWorkflow:
                 "task_results": self.task_results,
                 "artifacts": artifact_urls,
                 "total_tasks": len(config.tasks),
-                "successful_tasks": sum(
-                    1
-                    for r in self.task_results.values()
-                    if r.status == TaskStatus.COMPLETED
-                ),
-                "failed_tasks": sum(
-                    1
-                    for r in self.task_results.values()
-                    if r.status == TaskStatus.FAILED
-                ),
+                "successful_tasks": sum(1 for r in self.task_results.values() if r.status == TaskStatus.COMPLETED),
+                "failed_tasks": sum(1 for r in self.task_results.values() if r.status == TaskStatus.FAILED),
             }
 
         except Exception as e:
@@ -218,9 +207,7 @@ class ProjectWorkflow:
             self.task_results[task.task_id] = result
 
             if result.status == TaskStatus.FAILED:
-                workflow.logger.error(
-                    f"Task {task.task_id} failed, stopping sequential execution"
-                )
+                workflow.logger.error(f"Task {task.task_id} failed, stopping sequential execution")
                 break
 
     async def _execute_parallel(self, config: ProjectConfig) -> None:
@@ -233,9 +220,7 @@ class ProjectWorkflow:
             tasks = tasks[config.max_parallel_tasks :]
 
             # Execute batch in parallel
-            results = await workflow.asyncio.gather(
-                *[self._execute_task(task) for task in batch]
-            )
+            results = await workflow.asyncio.gather(*[self._execute_task(task) for task in batch])
 
             for task, result in zip(batch, results):
                 self.task_results[task.task_id] = result
@@ -247,27 +232,18 @@ class ProjectWorkflow:
 
         while remaining:
             # Find tasks whose dependencies are satisfied
-            ready_tasks = [
-                task
-                for task in remaining.values()
-                if all(dep in completed for dep in task.dependencies)
-            ]
+            ready_tasks = [task for task in remaining.values() if all(dep in completed for dep in task.dependencies)]
 
             if not ready_tasks:
                 # No tasks ready - check for circular dependencies
                 if remaining:
-                    raise ValueError(
-                        f"Circular dependency detected. Remaining tasks: "
-                        f"{list(remaining.keys())}"
-                    )
+                    raise ValueError(f"Circular dependency detected. Remaining tasks: {list(remaining.keys())}")
                 break
 
             # Execute ready tasks in parallel (up to max_parallel_tasks)
             batch = ready_tasks[: config.max_parallel_tasks]
 
-            results = await workflow.asyncio.gather(
-                *[self._execute_task(task) for task in batch]
-            )
+            results = await workflow.asyncio.gather(*[self._execute_task(task) for task in batch])
 
             for task, result in zip(batch, results):
                 self.task_results[task.task_id] = result
@@ -275,12 +251,8 @@ class ProjectWorkflow:
                 del remaining[task.task_id]
 
                 # Stop execution if critical task fails
-                if result.status == TaskStatus.FAILED and not task.metadata.get(
-                    "optional", False
-                ):
-                    workflow.logger.error(
-                        f"Critical task {task.task_id} failed, stopping execution"
-                    )
+                if result.status == TaskStatus.FAILED and not task.metadata.get("optional", False):
+                    workflow.logger.error(f"Critical task {task.task_id} failed, stopping execution")
                     return
 
     async def _execute_task(self, task: TaskDefinition) -> TaskResult:

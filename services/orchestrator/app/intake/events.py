@@ -11,6 +11,4 @@ class IntakeEventEmitter:
     async def emit(self, event_type: str, payload: dict[str, Any]) -> None:
         """Emit an intake event for auditing/analytics."""
 
-        raise NotImplementedError(
-            "IntakeEventEmitter.emit requires integration with the event bus"
-        )
+        raise NotImplementedError("IntakeEventEmitter.emit requires integration with the event bus")

@@ -13,9 +13,7 @@ collection_name = "recall"
 class RecallPayload(BaseModel):
     key: str = Field(..., description="Unique key for the recall entry")
     vector: list[float] = Field(..., description="Embedding vector (128‑dim)")
-    metadata: dict[str, Any] | None = Field(
-        default_factory=dict, description="Arbitrary provenance data"
-    )
+    metadata: dict[str, Any] | None = Field(default_factory=dict, description="Arbitrary provenance data")
 
 
 class RecallResponse(BaseModel):
@@ -33,9 +31,7 @@ async def store(payload: RecallPayload):
         "vector": payload.vector,
         "metadata": payload.metadata,
     }
-    return RecallResponse(
-        key=payload.key, vector=payload.vector, metadata=payload.metadata
-    )
+    return RecallResponse(key=payload.key, vector=payload.vector, metadata=payload.metadata)
 
 
 @app.get("/v1/recall/{key}", response_model=RecallResponse)

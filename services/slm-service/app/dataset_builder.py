@@ -129,9 +129,7 @@ class DatasetBuilder:
         else:
             return DataQuality.POOR
 
-    def filter_by_task_category(
-        self, examples: list[TrainingExample], categories: list[str]
-    ) -> list[TrainingExample]:
+    def filter_by_task_category(self, examples: list[TrainingExample], categories: list[str]) -> list[TrainingExample]:
         """
         Filter examples by task category.
 
@@ -193,9 +191,7 @@ class DatasetBuilder:
         logger.info(f"Balanced dataset to {len(balanced)} examples")
         return balanced
 
-    def split_train_validation(
-        self, examples: list[TrainingExample], validation_split: float = 0.1
-    ) -> tuple:
+    def split_train_validation(self, examples: list[TrainingExample], validation_split: float = 0.1) -> tuple:
         """
         Split dataset into training and validation.
 
@@ -220,9 +216,7 @@ class DatasetBuilder:
         logger.info(f"Split: {len(training)} training, {len(validation)} validation")
         return training, validation
 
-    def export_to_jsonl(
-        self, examples: list[TrainingExample], output_file: str, format: str = "openai"
-    ):
+    def export_to_jsonl(self, examples: list[TrainingExample], output_file: str, format: str = "openai"):
         """
         Export dataset to JSONL format.
 
@@ -249,14 +243,8 @@ class DatasetBuilder:
 
                 elif format == "anthropic":
                     # Anthropic prompt/completion format
-                    user_msgs = [
-                        m["content"] for m in example.messages if m["role"] == "user"
-                    ]
-                    assistant_msgs = [
-                        m["content"]
-                        for m in example.messages
-                        if m["role"] == "assistant"
-                    ]
+                    user_msgs = [m["content"] for m in example.messages if m["role"] == "user"]
+                    assistant_msgs = [m["content"] for m in example.messages if m["role"] == "assistant"]
 
                     training_example = {
                         "prompt": "\n\n".join(user_msgs),
@@ -348,9 +336,7 @@ class DatasetBuilder:
 
 
 # Example usage
-def build_training_dataset(
-    clickhouse_client, task_categories: list[str], output_file: str
-) -> int:
+def build_training_dataset(clickhouse_client, task_categories: list[str], output_file: str) -> int:
     """
     Build a training dataset from production data.
 
@@ -365,9 +351,7 @@ def build_training_dataset(
     builder = DatasetBuilder(clickhouse_client)
 
     # Collect high-quality examples
-    examples = builder.collect_high_quality_conversations(
-        min_rating=4.0, days_back=30, limit=5000
-    )
+    examples = builder.collect_high_quality_conversations(min_rating=4.0, days_back=30, limit=5000)
 
     # Filter by categories
     examples = builder.filter_by_task_category(examples, task_categories)
@@ -380,9 +364,7 @@ def build_training_dataset(
 
     # Export
     builder.export_to_jsonl(training, output_file, format="openai")
-    builder.export_to_jsonl(
-        validation, output_file.replace(".jsonl", "_val.jsonl"), format="openai"
-    )
+    builder.export_to_jsonl(validation, output_file.replace(".jsonl", "_val.jsonl"), format="openai")
 
     logger.info(f"Built dataset with {len(training)} training examples")
     return len(training)

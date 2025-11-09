@@ -43,15 +43,11 @@ class VolcanoJobSpec:
 class VolcanoJobLauncher:
     """Submit and monitor Volcano jobs via kubectl."""
 
-    def __init__(
-        self, namespace: str | None = None, kubectl_binary: str | None = None
-    ) -> None:
+    def __init__(self, namespace: str | None = None, kubectl_binary: str | None = None) -> None:
         self.namespace = namespace or settings.volcano_namespace
         self.kubectl = kubectl_binary or settings.kubectl_binary
         if shutil.which(self.kubectl) is None:
-            raise VolcanoLauncherError(
-                f"kubectl binary '{self.kubectl}' not found in PATH; cannot launch Volcano jobs"
-            )
+            raise VolcanoLauncherError(f"kubectl binary '{self.kubectl}' not found in PATH; cannot launch Volcano jobs")
 
     # ------------------------------------------------------------------
     # Public API
@@ -104,9 +100,7 @@ class VolcanoJobLauncher:
             check=False,
         )
         if queue_name:
-            self._kubectl(
-                ["delete", f"queue/{queue_name}", "--ignore-not-found"], check=False
-            )
+            self._kubectl(["delete", f"queue/{queue_name}", "--ignore-not-found"], check=False)
 
     # ------------------------------------------------------------------
     # Internal helpers
@@ -154,10 +148,7 @@ class VolcanoJobLauncher:
                             "name": "worker",
                             "image": spec.image,
                             "command": list(spec.command),
-                            "env": [
-                                {"name": key, "value": value}
-                                for key, value in spec.env.items()
-                            ],
+                            "env": [{"name": key, "value": value} for key, value in spec.env.items()],
                             "resources": {
                                 "requests": {"cpu": spec.cpu, "memory": spec.memory},
                                 "limits": {"cpu": spec.cpu, "memory": spec.memory},
@@ -271,9 +262,6 @@ def _slugify(value: str) -> str:
     """Return DNS-compatible job names."""
 
     sanitized = value.lower()
-    allowed = [
-        ch if ("a" <= ch <= "z") or ("0" <= ch <= "9") or ch == "-" else "-"
-        for ch in sanitized
-    ]
+    allowed = [ch if ("a" <= ch <= "z") or ("0" <= ch <= "9") or ch == "-" else "-" for ch in sanitized]
     slug = "".join(allowed).strip("-")
     return slug or "session-job"

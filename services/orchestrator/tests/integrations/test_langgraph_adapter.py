@@ -73,22 +73,15 @@ class DummyStateGraph:
     def add_edge(self, source: str, target: str) -> None:
         self.edges.setdefault(source, []).append(target)
 
-    def add_conditional_edges(
-        self, source: str, condition, mapping: dict[str, Any]
-    ) -> None:
-        mapping = {
-            key: (END_SENTINEL if value == LangGraphFixtures.END else value)
-            for key, value in mapping.items()
-        }
+    def add_conditional_edges(self, source: str, condition, mapping: dict[str, Any]) -> None:
+        mapping = {key: (END_SENTINEL if value == LangGraphFixtures.END else value) for key, value in mapping.items()}
         self.conditionals[source] = (condition, mapping)
 
     def set_entry_point(self, name: str) -> None:
         self.start = name
 
     def compile(self) -> DummyCompiledGraph:
-        return DummyCompiledGraph(
-            self.nodes, self.edges, self.conditionals, self.start or ""
-        )
+        return DummyCompiledGraph(self.nodes, self.edges, self.conditionals, self.start or "")
 
 
 class LangGraphFixtures:
@@ -124,9 +117,7 @@ def patch_langgraph(monkeypatch: pytest.MonkeyPatch) -> None:
         "_get_langgraph_components",
         lambda: (DummyStateGraph, LangGraphFixtures.END),
     )
-    monkeypatch.setattr(
-        langgraph_adapter, "activity", SimpleNamespace(logger=DummyLogger())
-    )
+    monkeypatch.setattr(langgraph_adapter, "activity", SimpleNamespace(logger=DummyLogger()))
 
 
 @pytest.mark.asyncio
@@ -169,17 +160,13 @@ async def test_langgraph_routing_requires_nodes() -> None:
 
 @pytest.mark.asyncio
 async def test_langgraph_routing_edge_validation() -> None:
-    module_name = LangGraphFixtures.install_handlers_module(
-        "tests.langgraph_handlers_alt"
-    )
+    module_name = LangGraphFixtures.install_handlers_module("tests.langgraph_handlers_alt")
 
     with pytest.raises(ValueError):
         await langgraph_adapter.run_langgraph_routing(
             {
                 "graph": {
-                    "nodes": [
-                        {"name": "classifier", "handler": f"{module_name}.classifier"}
-                    ],
+                    "nodes": [{"name": "classifier", "handler": f"{module_name}.classifier"}],
                     "edges": [{"from": "classifier"}],
                 },
                 "state": {"input": "hi"},

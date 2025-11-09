@@ -264,9 +264,7 @@ class GovernanceOverlay:
 
         return results
 
-    def _validate_rule(
-        self, rule: GovernanceRule, steps: list[dict[str, Any]]
-    ) -> list[dict[str, Any]]:
+    def _validate_rule(self, rule: GovernanceRule, steps: list[dict[str, Any]]) -> list[dict[str, Any]]:
         """Validate a single rule."""
         violations = []
 
@@ -283,9 +281,7 @@ class GovernanceOverlay:
 
         return violations
 
-    def _validate_encryption_at_rest(
-        self, steps: list[dict[str, Any]], rule: GovernanceRule
-    ) -> list[dict[str, Any]]:
+    def _validate_encryption_at_rest(self, steps: list[dict[str, Any]], rule: GovernanceRule) -> list[dict[str, Any]]:
         """Validate encryption at rest."""
         violations = []
 
@@ -329,9 +325,7 @@ class GovernanceOverlay:
 
         return violations
 
-    def _validate_audit_logging(
-        self, steps: list[dict[str, Any]], rule: GovernanceRule
-    ) -> list[dict[str, Any]]:
+    def _validate_audit_logging(self, steps: list[dict[str, Any]], rule: GovernanceRule) -> list[dict[str, Any]]:
         """Validate audit logging."""
         violations = []
 
@@ -355,16 +349,12 @@ class GovernanceOverlay:
 
         return violations
 
-    def _validate_https(
-        self, steps: list[dict[str, Any]], rule: GovernanceRule
-    ) -> list[dict[str, Any]]:
+    def _validate_https(self, steps: list[dict[str, Any]], rule: GovernanceRule) -> list[dict[str, Any]]:
         """Validate HTTPS usage."""
         # In practice, check service configurations
         return []
 
-    def apply_remediations(
-        self, execution_plan: dict[str, Any], violations: list[dict[str, Any]]
-    ) -> dict[str, Any]:
+    def apply_remediations(self, execution_plan: dict[str, Any], violations: list[dict[str, Any]]) -> dict[str, Any]:
         """
         Automatically apply remediations to execution plan.
 
@@ -425,7 +415,5 @@ if __name__ == "__main__":
 
     if not results["compliant"]:
         # Apply remediations
-        fixed_plan = healthcare_gov.apply_remediations(
-            execution_plan, results["violations"]
-        )
+        fixed_plan = healthcare_gov.apply_remediations(execution_plan, results["violations"])
         print("✅ Plan remediated for HIPAA compliance")

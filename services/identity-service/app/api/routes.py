@@ -76,18 +76,14 @@ async def _fetch_user(store: IdentityStore, user_id: str) -> UserRecord:
     if user is None:
         raise _not_found()
     if not user.active:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN, detail="User inactive"
-        )
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="User inactive")
     return user
 
 
 async def get_store(request: Request) -> IdentityStore:
     store = getattr(request.app.state, "identity_store", None)
     if store is None:
-        raise HTTPException(
-            status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail="Store unavailable"
-        )
+        raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail="Store unavailable")
     return store
 
 
@@ -118,35 +114,25 @@ async def list_users(store: IdentityStore = Depends(get_store)) -> list[UserReco
 
 
 @router.put("/users/{user_id}", response_model=UserRecord)
-async def upsert_user(
-    user_id: str, payload: UserRecord, store: IdentityStore = Depends(get_store)
-) -> UserRecord:
+async def upsert_user(user_id: str, payload: UserRecord, store: IdentityStore = Depends(get_store)) -> UserRecord:
     if payload.user_id != user_id:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST, detail="Body user_id mismatch"
-        )
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Body user_id mismatch")
     return await store.upsert_user(payload)
 
 
 @router.get("/users/{user_id}", response_model=UserRecord)
-async def get_user(
-    user_id: str, store: IdentityStore = Depends(get_store)
-) -> UserRecord:
+async def get_user(user_id: str, store: IdentityStore = Depends(get_store)) -> UserRecord:
     return await _fetch_user(store, user_id)
 
 
 @router.get("/users/{user_id}/capabilities", response_model=list[str])
-async def get_user_capabilities(
-    user_id: str, store: IdentityStore = Depends(get_store)
-) -> list[str]:
+async def get_user_capabilities(user_id: str, store: IdentityStore = Depends(get_store)) -> list[str]:
     user = await _fetch_user(store, user_id)
     return user.capabilities
 
 
 @router.post("/users/{user_id}/mfa/enroll", response_model=MFAEnrollResponse)
-async def enroll_mfa(
-    user_id: str, store: IdentityStore = Depends(get_store)
-) -> MFAEnrollResponse:
+async def enroll_mfa(user_id: str, store: IdentityStore = Depends(get_store)) -> MFAEnrollResponse:
     user = await _fetch_user(store, user_id)
     secret = secrets.token_hex(8)
     user.mfa_secret = secret
@@ -156,18 +142,12 @@ async def enroll_mfa(
 
 
 @router.post("/users/{user_id}/mfa/verify", response_model=UserRecord)
-async def verify_mfa(
-    user_id: str, payload: MFAVerifyRequest, store: IdentityStore = Depends(get_store)
-) -> UserRecord:
+async def verify_mfa(user_id: str, payload: MFAVerifyRequest, store: IdentityStore = Depends(get_store)) -> UserRecord:
     if payload.user_id != user_id:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST, detail="Mismatch user id"
-        )
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Mismatch user id")
     user = await _fetch_user(store, user_id)
     if not user.mfa_secret or payload.code != user.mfa_secret:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid MFA code"
-        )
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid MFA code")
     user.mfa_enabled = True
     await store.upsert_user(user)
     return user
@@ -182,13 +162,9 @@ async def issue_token(
 ) -> TokenResponse:
     user = await _fetch_user(store, payload.user_id)
     if not user.mfa_enabled:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN, detail="MFA not enabled"
-        )
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="MFA not enabled")
     if user.mfa_secret and payload.mfa_code != user.mfa_secret:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid MFA code"
-        )
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid MFA code")
 
     if payload.capabilities:
         missing = [cap for cap in payload.capabilities if cap not in user.capabilities]
@@ -246,58 +222,36 @@ async def verify_token(
     try:
         header = jwt.get_unverified_header(payload.token)
     except jwt.InvalidTokenError as exc:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid token header"
-        ) from exc
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid token header") from exc
 
     kid = header.get("kid")
     if not kid:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST, detail="Token missing kid"
-        )
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Token missing kid")
 
     signing_key = await key_manager.get_by_kid(kid)
     if signing_key is None:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED, detail="Unknown signing key"
-        )
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Unknown signing key")
 
     try:
-        claims = jwt.decode(
-            payload.token, signing_key.public_pem, algorithms=[JWT_ALGORITHM]
-        )
+        claims = jwt.decode(payload.token, signing_key.public_pem, algorithms=[JWT_ALGORITHM])
     except jwt.ExpiredSignatureError as exc:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED, detail="Token expired"
-        ) from exc
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Token expired") from exc
     except jwt.InvalidTokenError as exc:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token"
-        ) from exc
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token") from exc
 
     jti = claims.get("jti")
     if not jti:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST, detail="Token missing jti"
-        )
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Token missing jti")
 
     if claims.get("kid") and claims["kid"] != kid:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST, detail="Token kid mismatch"
-        )
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Token kid mismatch")
 
     stored = await store.get_token_claims(jti)
     if stored is None:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED, detail="Token revoked"
-        )
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Token revoked")
 
     if payload.required_capabilities:
-        missing = [
-            cap
-            for cap in payload.required_capabilities
-            if cap not in claims.get("capabilities", [])
-        ]
+        missing = [cap for cap in payload.required_capabilities if cap not in claims.get("capabilities", [])]
         if missing:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
@@ -338,21 +292,15 @@ async def revoke_token(
     try:
         header = jwt.get_unverified_header(payload.token)
     except jwt.InvalidTokenError as exc:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid token header"
-        ) from exc
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid token header") from exc
 
     kid = header.get("kid")
     if not kid:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST, detail="Token missing kid"
-        )
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Token missing kid")
 
     signing_key = await key_manager.get_by_kid(kid)
     if signing_key is None:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST, detail="Unknown signing key"
-        )
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Unknown signing key")
 
     try:
         claims = jwt.decode(
@@ -362,20 +310,14 @@ async def revoke_token(
             options={"verify_exp": False},
         )
     except jwt.InvalidTokenError as exc:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid token"
-        ) from exc
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid token") from exc
 
     jti = claims.get("jti")
     if not jti:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST, detail="Token missing jti"
-        )
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Token missing jti")
 
     if claims.get("kid") and claims["kid"] != kid:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST, detail="Token kid mismatch"
-        )
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Token kid mismatch")
 
     await store.revoke_token(jti)
     await audit_logger.emit(
@@ -393,9 +335,7 @@ async def revoke_token(
 
 
 @router.post("/training/start", response_model=TrainingLockStatus)
-async def start_training(
-    request: TrainingLockRequest, store: IdentityStore = Depends(get_store)
-) -> TrainingLockStatus:
+async def start_training(request: TrainingLockRequest, store: IdentityStore = Depends(get_store)) -> TrainingLockStatus:
     lock = TrainingLockStatus(
         tenant_id=request.tenant_id,
         locked=True,
@@ -407,9 +347,7 @@ async def start_training(
 
 
 @router.post("/training/stop", response_model=TrainingLockStatus)
-async def stop_training(
-    request: TrainingLockRequest, store: IdentityStore = Depends(get_store)
-) -> TrainingLockStatus:
+async def stop_training(request: TrainingLockRequest, store: IdentityStore = Depends(get_store)) -> TrainingLockStatus:
     lock = await store.get_training_lock(request.tenant_id)
     now = datetime.now(UTC)
     if lock is None:
@@ -428,9 +366,7 @@ async def stop_training(
 
 
 @router.get("/training/{tenant_id}", response_model=TrainingLockStatus)
-async def get_training_lock(
-    tenant_id: str, store: IdentityStore = Depends(get_store)
-) -> TrainingLockStatus:
+async def get_training_lock(tenant_id: str, store: IdentityStore = Depends(get_store)) -> TrainingLockStatus:
     lock = await store.get_training_lock(tenant_id)
     if lock is None:
         return TrainingLockStatus(tenant_id=tenant_id, locked=False)

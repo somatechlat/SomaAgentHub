@@ -41,18 +41,14 @@ class NotificationBus:
             logger.info("Kafka integration disabled via configuration")
             return
         if not self._settings.kafka_bootstrap_servers:
-            logger.warning(
-                "Kafka bootstrap servers not configured; running in in-memory mode"
-            )
+            logger.warning("Kafka bootstrap servers not configured; running in in-memory mode")
             return
         if AIOKafkaProducer is None:
             logger.error("aiokafka not installed; unable to initialise Kafka producer")
             return
 
         try:
-            self._producer = AIOKafkaProducer(
-                bootstrap_servers=self._settings.kafka_bootstrap_servers
-            )
+            self._producer = AIOKafkaProducer(bootstrap_servers=self._settings.kafka_bootstrap_servers)
             await self._producer.start()
             logger.info(
                 "Kafka producer connected",
@@ -102,9 +98,7 @@ class NotificationBus:
                     data = json.loads(message.value.decode("utf-8"))
                     record = NotificationRecord(**data)
                 except Exception:  # noqa: BLE001
-                    logger.warning(
-                        "Failed to decode notification message", exc_info=True
-                    )
+                    logger.warning("Failed to decode notification message", exc_info=True)
                     continue
                 async with self._lock:
                     self._cache.append(record)
@@ -142,9 +136,7 @@ class NotificationBus:
         except Exception as exc:  # noqa: BLE001
             logger.error("Failed to publish notification", exc_info=exc)
 
-    async def backlog(
-        self, limit: int = 50, tenant_id: str | None = None
-    ) -> list[NotificationRecord]:
+    async def backlog(self, limit: int = 50, tenant_id: str | None = None) -> list[NotificationRecord]:
         async with self._lock:
             records = list(self._cache)
         if tenant_id:

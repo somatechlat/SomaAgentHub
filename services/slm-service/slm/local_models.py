@@ -67,9 +67,7 @@ class MarkovTextGenerator:
         choices = list(counter.keys())
         return self.random.choices(choices, weights=probs, k=1)[0]
 
-    def generate(
-        self, prompt: str, max_tokens: int = 64, temperature: float = 0.8
-    ) -> GenerationResult:
+    def generate(self, prompt: str, max_tokens: int = 64, temperature: float = 0.8) -> GenerationResult:
         prompt_tokens = self._tokenize(prompt)
         if not prompt_tokens:
             prompt_tokens = self.tokens[: self.order]
@@ -80,9 +78,7 @@ class MarkovTextGenerator:
         )
         generated: list[str] = []
         for _ in range(max_tokens):
-            next_token = self._temperature_sample(
-                self.model.get(state, Counter()), temperature
-            )
+            next_token = self._temperature_sample(self.model.get(state, Counter()), temperature)
             generated.append(next_token)
             if len(state) == self.order:
                 state = tuple((*state[1:], next_token))

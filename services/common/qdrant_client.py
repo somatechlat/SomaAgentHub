@@ -55,9 +55,7 @@ except ImportError:  # pragma: no cover – exercised in test environment
         async def create_collection(self, collection_name: str, vectors_config):
             # vectors_config carries size and distance; we only need size.
             size = getattr(vectors_config, "size", 0)
-            self._collections[collection_name] = _InMemoryCollection(
-                collection_name, size
-            )
+            self._collections[collection_name] = _InMemoryCollection(collection_name, size)
 
         async def upsert(self, collection_name: str, points):
             coll = self._collections[collection_name]
@@ -144,9 +142,7 @@ class QdrantClient:
             timeout: Request timeout in seconds
         """
         if AsyncQdrantClient is None:
-            raise RuntimeError(
-                "qdrant-client not installed. Run: pip install qdrant-client"
-            )
+            raise RuntimeError("qdrant-client not installed. Run: pip install qdrant-client")
 
         self.url = url
         self.client = AsyncQdrantClient(
@@ -173,9 +169,7 @@ class QdrantClient:
             distance_metric = getattr(Distance, distance.upper()) if Distance else None
             # Build vectors_config compatible with real or dummy client
             if VectorParams:
-                vectors_config = VectorParams(
-                    size=vector_size, distance=distance_metric
-                )
+                vectors_config = VectorParams(size=vector_size, distance=distance_metric)
             else:
                 # Dummy object with size attribute for the stub client
                 class _DummyConfig:
@@ -183,9 +177,7 @@ class QdrantClient:
                         self.size = size
 
                 vectors_config = _DummyConfig(vector_size)
-            await self.client.create_collection(
-                collection_name=collection_name, vectors_config=vectors_config
-            )
+            await self.client.create_collection(collection_name=collection_name, vectors_config=vectors_config)
             return True
         except UnexpectedResponse as exc:
             raise RuntimeError(f"Qdrant collection creation failed: {exc}") from exc
@@ -199,10 +191,7 @@ class QdrantClient:
         try:
             if PointStruct:
                 point_structs = [
-                    PointStruct(
-                        id=p["id"], vector=p["vector"], payload=p.get("payload", {})
-                    )
-                    for p in points
+                    PointStruct(id=p["id"], vector=p["vector"], payload=p.get("payload", {})) for p in points
                 ]
             else:
                 # Simple objects with required attributes for dummy client
@@ -212,13 +201,8 @@ class QdrantClient:
                         self.vector = vector
                         self.payload = payload
 
-                point_structs = [
-                    _SimplePoint(p["id"], p["vector"], p.get("payload", {}))
-                    for p in points
-                ]
-            await self.client.upsert(
-                collection_name=collection_name, points=point_structs
-            )
+                point_structs = [_SimplePoint(p["id"], p["vector"], p.get("payload", {})) for p in points]
+            await self.client.upsert(collection_name=collection_name, points=point_structs)
             return True
         except UnexpectedResponse as exc:
             raise RuntimeError(f"Qdrant upsert failed: {exc}") from exc
@@ -244,8 +228,7 @@ class QdrantClient:
             query_filter = None
             if effective_filters:
                 conditions = [
-                    FieldCondition(key=key, match=MatchValue(value=value))
-                    for key, value in effective_filters.items()
+                    FieldCondition(key=key, match=MatchValue(value=value)) for key, value in effective_filters.items()
                 ]
                 query_filter = Filter(must=conditions)
             results = await self.client.search(
@@ -255,10 +238,7 @@ class QdrantClient:
                 score_threshold=score_threshold,
                 query_filter=query_filter,
             )
-            return [
-                {"id": str(r.id), "score": r.score, "payload": r.payload}
-                for r in results
-            ]
+            return [{"id": str(r.id), "score": r.score, "payload": r.payload} for r in results]
         except UnexpectedResponse as exc:
             raise RuntimeError(f"Qdrant search failed: {exc}") from exc
 

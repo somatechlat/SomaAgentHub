@@ -111,9 +111,7 @@ class OpenAIProvider:
             )
 
             usage = response.usage
-            cost = self._calculate_cost(
-                model, usage.prompt_tokens, usage.completion_tokens
-            )
+            cost = self._calculate_cost(model, usage.prompt_tokens, usage.completion_tokens)
 
             return {
                 "completion": response.choices[0].message.content,
@@ -210,22 +208,16 @@ class OpenAIProvider:
         except OpenAIError as exc:
             raise RuntimeError(f"OpenAI embedding error: {exc}") from exc
 
-    def _calculate_cost(
-        self, model: str, prompt_tokens: int, completion_tokens: int
-    ) -> float:
+    def _calculate_cost(self, model: str, prompt_tokens: int, completion_tokens: int) -> float:
         """Calculate cost in USD for a completion (internal helper)."""
         if model not in self.model_costs:
             # Default to gpt-4 pricing for unknown models
             costs = self.model_costs["gpt-4"]
         else:
             costs = self.model_costs[model]
-        return (
-            prompt_tokens * costs["prompt"] + completion_tokens * costs["completion"]
-        ) / 1_000_000
+        return (prompt_tokens * costs["prompt"] + completion_tokens * costs["completion"]) / 1_000_000
 
-    def calculate_cost(
-        self, model: str, prompt_tokens: int, completion_tokens: int
-    ) -> float:
+    def calculate_cost(self, model: str, prompt_tokens: int, completion_tokens: int) -> float:
         """Public method used by tests to compute token cost.
 
         Delegates to the internal ``_calculate_cost`` implementation.

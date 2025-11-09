@@ -39,9 +39,7 @@ class SlackAdapter:
         """Make authenticated API request."""
         url = f"{self.base_url}/{endpoint}"
 
-        response = requests.request(
-            method=method, url=url, headers=self.headers, timeout=30, **kwargs
-        )
+        response = requests.request(method=method, url=url, headers=self.headers, timeout=30, **kwargs)
 
         response.raise_for_status()
         data = response.json()
@@ -54,9 +52,7 @@ class SlackAdapter:
 
     # Channel Management
 
-    def create_channel(
-        self, name: str, is_private: bool = False, team_id: str | None = None
-    ) -> dict[str, Any]:
+    def create_channel(self, name: str, is_private: bool = False, team_id: str | None = None) -> dict[str, Any]:
         """
         Create a channel.
 
@@ -92,9 +88,7 @@ class SlackAdapter:
 
     def archive_channel(self, channel_id: str) -> dict[str, Any]:
         """Archive a channel."""
-        return self._request(
-            "POST", "conversations.archive", json={"channel": channel_id}
-        )
+        return self._request("POST", "conversations.archive", json={"channel": channel_id})
 
     def invite_to_channel(self, channel_id: str, users: list[str]) -> dict[str, Any]:
         """
@@ -167,9 +161,7 @@ class SlackAdapter:
 
     def delete_message(self, channel_id: str, ts: str) -> dict[str, Any]:
         """Delete a message."""
-        return self._request(
-            "POST", "chat.delete", json={"channel": channel_id, "ts": ts}
-        )
+        return self._request("POST", "chat.delete", json={"channel": channel_id, "ts": ts})
 
     def schedule_message(
         self,
@@ -199,9 +191,7 @@ class SlackAdapter:
 
         return self._request("POST", "chat.scheduleMessage", json=data)
 
-    def add_reaction(
-        self, channel_id: str, timestamp: str, name: str
-    ) -> dict[str, Any]:
+    def add_reaction(self, channel_id: str, timestamp: str, name: str) -> dict[str, Any]:
         """
         Add emoji reaction to message.
 
@@ -421,17 +411,11 @@ class SlackAdapter:
         ]
 
         # Legacy attachment for color bar
-        attachments = [
-            {"color": colors.get(level, "#36a64f"), "fallback": f"{title}: {message}"}
-        ]
+        attachments = [{"color": colors.get(level, "#36a64f"), "fallback": f"{title}: {message}"}]
 
-        return self.send_message(
-            channel_id=channel_id, blocks=blocks, attachments=attachments
-        )
+        return self.send_message(channel_id=channel_id, blocks=blocks, attachments=attachments)
 
-    def create_project_channel(
-        self, project_name: str, description: str, members: list[str]
-    ) -> dict[str, Any]:
+    def create_project_channel(self, project_name: str, description: str, members: list[str]) -> dict[str, Any]:
         """
         Create a project channel with standard setup.
 

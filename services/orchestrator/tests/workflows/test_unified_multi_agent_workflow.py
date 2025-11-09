@@ -22,17 +22,13 @@ from services.orchestrator.app.workflows.unified_multi_agent import (
 
 
 class DummyLogger:
-    def info(
-        self, *args: Any, **kwargs: Any
-    ) -> None:  # pragma: no cover - noiseless stub
+    def info(self, *args: Any, **kwargs: Any) -> None:  # pragma: no cover - noiseless stub
         pass
 
 
 @pytest.fixture(autouse=True)
 def patch_workflow_info(monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setattr(
-        temporal_workflow, "info", lambda: SimpleNamespace(workflow_id="wf-test")
-    )
+    monkeypatch.setattr(temporal_workflow, "info", lambda: SimpleNamespace(workflow_id="wf-test"))
     monkeypatch.setattr(temporal_workflow, "logger", DummyLogger())
 
 
@@ -174,9 +170,7 @@ async def test_unified_workflow_policy_rejected(
     monkeypatch.setattr(temporal_workflow, "execute_activity", fake_execute_activity)
 
     workflow_instance = UnifiedMultiAgentWorkflow()
-    result = await workflow_instance.run(
-        {"session_id": "sess-4", "tenant": "tenant-a", "user": "rory"}
-    )
+    result = await workflow_instance.run({"session_id": "sess-4", "tenant": "tenant-a", "user": "rory"})
 
     assert result["status"] == "rejected"
     assert result["reason"] == "policy_denied"

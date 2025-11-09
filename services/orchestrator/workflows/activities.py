@@ -44,9 +44,7 @@ def _coerce_positive_int(value: Any, field_name: str) -> int:
     try:
         coerced = int(value)
     except (TypeError, ValueError) as exc:  # pragma: no cover - defensive branch
-        raise ValueError(
-            f"{field_name} must be a positive integer (got {value!r})"
-        ) from exc
+        raise ValueError(f"{field_name} must be a positive integer (got {value!r})") from exc
     if coerced < 1:
         raise ValueError(f"{field_name} must be >= 1 (got {coerced})")
     return coerced
@@ -56,9 +54,7 @@ def _coerce_non_negative_int(value: Any, field_name: str) -> int:
     try:
         coerced = int(value)
     except (TypeError, ValueError) as exc:  # pragma: no cover - defensive branch
-        raise ValueError(
-            f"{field_name} must be a non-negative integer (got {value!r})"
-        ) from exc
+        raise ValueError(f"{field_name} must be a non-negative integer (got {value!r})") from exc
     if coerced < 0:
         raise ValueError(f"{field_name} must be >= 0 (got {coerced})")
     return coerced
@@ -114,16 +110,9 @@ async def launch_volcano_session_job(payload: dict[str, Any]) -> dict[str, Any]:
         return {"status": "disabled"}
 
     if default_session_spec is None or VolcanoJobLauncher is None:
-        raise RuntimeError(
-            "Volcano launcher not available. Ensure PyYAML/kubectl are installed in the worker image."
-        )
+        raise RuntimeError("Volcano launcher not available. Ensure PyYAML/kubectl are installed in the worker image.")
 
-    session_id: str = (
-        payload.get("session_id")
-        or payload.get("workflow_id")
-        or payload.get("job_name")
-        or "session"
-    )
+    session_id: str = payload.get("session_id") or payload.get("workflow_id") or payload.get("job_name") or "session"
     spec: VolcanoJobSpec = default_session_spec(session_id)
 
     if queue := payload.get("queue"):
@@ -144,13 +133,9 @@ async def launch_volcano_session_job(payload: dict[str, Any]) -> dict[str, Any]:
     if "min_member" in payload:
         spec.min_member = _coerce_positive_int(payload.get("min_member"), "min_member")
     if "parallelism" in payload:
-        spec.parallelism = _coerce_positive_int(
-            payload.get("parallelism"), "parallelism"
-        )
+        spec.parallelism = _coerce_positive_int(payload.get("parallelism"), "parallelism")
     if "completions" in payload:
-        spec.completions = _coerce_positive_int(
-            payload.get("completions"), "completions"
-        )
+        spec.completions = _coerce_positive_int(payload.get("completions"), "completions")
     if "ttl_seconds_after_finished" in payload:
         spec.ttl_seconds_after_finished = _coerce_non_negative_int(
             payload.get("ttl_seconds_after_finished"), "ttl_seconds_after_finished"
@@ -167,29 +152,21 @@ async def launch_volcano_session_job(payload: dict[str, Any]) -> dict[str, Any]:
     activity.logger.info("Submitted Volcano job %s", job_name)
 
     should_wait = payload.get("wait", True)
-    timeout_seconds = int(
-        payload.get("timeout_seconds", settings.volcano_job_timeout_seconds)
-    )
+    timeout_seconds = int(payload.get("timeout_seconds", settings.volcano_job_timeout_seconds))
     logs: str | None = None
 
     wait_error: Exception | None = None
     if should_wait:
         try:
-            await asyncio.to_thread(
-                launcher.wait_for_completion, job_name, timeout_seconds
-            )
+            await asyncio.to_thread(launcher.wait_for_completion, job_name, timeout_seconds)
         except VolcanoLauncherError as exc:  # type: ignore[misc]
             wait_error = exc
         try:
             logs = await asyncio.to_thread(launcher.fetch_logs, job_name)
         except VolcanoLauncherError as exc:  # type: ignore[misc]
-            activity.logger.warning(
-                "Failed to stream Volcano logs for %s: %s", job_name, exc
-            )
+            activity.logger.warning("Failed to stream Volcano logs for %s: %s", job_name, exc)
         if wait_error is not None:
-            raise RuntimeError(
-                f"Volcano job {job_name} failed to complete: {wait_error}"
-            ) from wait_error
+            raise RuntimeError(f"Volcano job {job_name} failed to complete: {wait_error}") from wait_error
 
     return {
         "status": "submitted",
@@ -200,9 +177,7 @@ async def launch_volcano_session_job(payload: dict[str, Any]) -> dict[str, Any]:
 
 
 @activity.defn
-async def decompose_project(
-    project_description: str, user_id: str
-) -> list[dict[str, Any]]:
+async def decompose_project(project_description: str, user_id: str) -> list[dict[str, Any]]:
     """
     Decompose project into executable tasks.
 
@@ -292,8 +267,7 @@ async def decompose_project(
                 "tasks": tasks,
                 "total_tasks": len(tasks),
                 "estimated_duration_minutes": sum(
-                    {"simple": 5, "medium": 15, "complex": 30}.get(t["complexity"], 10)
-                    for t in tasks
+                    {"simple": 5, "medium": 15, "complex": 30}.get(t["complexity"], 10) for t in tasks
                 ),
                 "decomposition_model": result["model"],
             }
@@ -324,8 +298,7 @@ async def create_task_plan(task_breakdown: dict[str, Any]) -> dict[str, Any]:
         ready_tasks = [
             t
             for t in tasks
-            if t["id"] not in completed_tasks
-            and all(dep in completed_tasks for dep in t.get("dependencies", []))
+            if t["id"] not in completed_tasks and all(dep in completed_tasks for dep in t.get("dependencies", []))
         ]
 
         if not ready_tasks:
@@ -426,9 +399,7 @@ async def execute_task(
             policy_result = policy_response.json()
 
             if not policy_result["allowed"]:
-                activity.logger.warning(
-                    f"Task blocked by policy: {policy_result['reasons']}"
-                )
+                activity.logger.warning(f"Task blocked by policy: {policy_result['reasons']}")
                 return {
                     "status": "blocked",
                     "reason": "policy_violation",
@@ -440,9 +411,9 @@ async def execute_task(
             task_prompt = f"""
             Execute this task:
 
-            Task: {task['name']}
-            Description: {task['description']}
-            Requirements: {', '.join(task['requirements'])}
+            Task: {task["name"]}
+            Description: {task["description"]}
+            Requirements: {", ".join(task["requirements"])}
 
             Provide the implementation or result.
             """
@@ -477,16 +448,12 @@ async def execute_task(
             return {
                 "status": "failed",
                 "error": str(e),
-                "duration_ms": int(
-                    (datetime.now(UTC) - start_time).total_seconds() * 1000
-                ),
+                "duration_ms": int((datetime.now(UTC) - start_time).total_seconds() * 1000),
             }
 
 
 @activity.defn
-async def review_output(
-    task_results: list[dict[str, Any]], project_description: str
-) -> dict[str, Any]:
+async def review_output(task_results: list[dict[str, Any]], project_description: str) -> dict[str, Any]:
     """
     Quality gate review of task outputs.
 
@@ -525,9 +492,7 @@ async def review_output(
 
 
 @activity.defn
-async def aggregate_results(
-    task_results: list[dict[str, Any]], review_result: dict[str, Any]
-) -> dict[str, Any]:
+async def aggregate_results(task_results: list[dict[str, Any]], review_result: dict[str, Any]) -> dict[str, Any]:
     """
     Aggregate task results into final project output.
 

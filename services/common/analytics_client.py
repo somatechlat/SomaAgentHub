@@ -82,9 +82,7 @@ class AnalyticsClient:
         except httpx.TimeoutException as exc:
             raise RuntimeError(f"Analytics query timed out: {metric_name}") from exc
         except httpx.HTTPStatusError as exc:
-            raise RuntimeError(
-                f"Analytics query failed: {exc.response.status_code}"
-            ) from exc
+            raise RuntimeError(f"Analytics query failed: {exc.response.status_code}") from exc
 
     async def get_token_usage(
         self,
@@ -185,9 +183,7 @@ class AnalyticsClient:
         except httpx.TimeoutException as exc:
             raise RuntimeError("Cost forecast timed out") from exc
         except httpx.HTTPStatusError as exc:
-            raise RuntimeError(
-                f"Cost forecast failed: {exc.response.status_code}"
-            ) from exc
+            raise RuntimeError(f"Cost forecast failed: {exc.response.status_code}") from exc
 
     async def get_model_recommendations(
         self,
@@ -227,9 +223,7 @@ class AnalyticsClient:
         except httpx.TimeoutException as exc:
             raise RuntimeError("Recommendations request timed out") from exc
         except httpx.HTTPStatusError as exc:
-            raise RuntimeError(
-                f"Recommendations request failed: {exc.response.status_code}"
-            ) from exc
+            raise RuntimeError(f"Recommendations request failed: {exc.response.status_code}") from exc
 
     async def health_check(self) -> bool:
         """Check if analytics service is accessible."""

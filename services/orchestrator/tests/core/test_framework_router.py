@@ -10,9 +10,7 @@ from services.orchestrator.app.core.framework_router import (
 
 def test_detect_pattern_explicit() -> None:
     router = FrameworkRouter()
-    assert (
-        router.detect_pattern({"pattern": "group_chat"}) == MultiAgentPattern.GROUP_CHAT
-    )
+    assert router.detect_pattern({"pattern": "group_chat"}) == MultiAgentPattern.GROUP_CHAT
 
     with pytest.raises(ValueError):
         router.detect_pattern({"pattern": "unknown"})
@@ -45,14 +43,8 @@ def test_detect_pattern_defaults_to_group_chat() -> None:
 def test_select_framework() -> None:
     router = FrameworkRouter()
     assert router.select_framework(MultiAgentPattern.GROUP_CHAT) == "autogen-group-chat"
-    assert (
-        router.select_framework(MultiAgentPattern.TASK_DELEGATION)
-        == "crewai-delegation"
-    )
-    assert (
-        router.select_framework(MultiAgentPattern.STATE_MACHINE_ROUTING)
-        == "langgraph-routing"
-    )
+    assert router.select_framework(MultiAgentPattern.TASK_DELEGATION) == "crewai-delegation"
+    assert router.select_framework(MultiAgentPattern.STATE_MACHINE_ROUTING) == "langgraph-routing"
 
 
 def test_route_end_to_end() -> None:

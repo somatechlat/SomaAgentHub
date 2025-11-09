@@ -31,19 +31,13 @@ class ManifestSigningClient:
     async def sign_manifest(self, manifest: PersonaManifest) -> ManifestSignature:
         payload = {"manifest": manifest.model_dump(mode="json", exclude_none=True)}
         try:
-            async with httpx.AsyncClient(
-                timeout=self._config.timeout_seconds
-            ) as client:
+            async with httpx.AsyncClient(timeout=self._config.timeout_seconds) as client:
                 response = await client.post(self._config.endpoint, json=payload)
                 response.raise_for_status()
         except httpx.HTTPStatusError as exc:  # pragma: no cover - httpx specifics
-            raise ManifestSigningFailure(
-                f"Manifest signing failed: {exc.response.text}"
-            ) from exc
+            raise ManifestSigningFailure(f"Manifest signing failed: {exc.response.text}") from exc
         except httpx.HTTPError as exc:  # pragma: no cover - network errors vary
-            raise ManifestSigningFailure(
-                f"Failed to contact manifest signing endpoint: {exc}"
-            ) from exc
+            raise ManifestSigningFailure(f"Failed to contact manifest signing endpoint: {exc}") from exc
 
         data = response.json()
         return ManifestSignature.model_validate(data)

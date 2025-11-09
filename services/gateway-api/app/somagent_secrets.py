@@ -3,9 +3,7 @@
 import os
 
 
-def load_secret(
-    env_var: str, file_env: str | None = None, default: str | None = None
-) -> str | None:
+def load_secret(env_var: str, file_env: str | None = None, default: str | None = None) -> str | None:
     """Load a secret from environment variable or file."""
     # Try environment variable first
     value = os.getenv(env_var)
