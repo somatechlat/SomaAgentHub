@@ -49,7 +49,11 @@ async def start_marketing_campaign_workflow(
 
     # Extract research parameters
     research_sources = answers.get("research_sources", ["notion"])
-    competitor_urls = answers.get("competitor_urls", "").split("\n") if answers.get("competitor_urls") else []
+    competitor_urls = (
+        answers.get("competitor_urls", "").split("\n")
+        if answers.get("competitor_urls")
+        else []
+    )
 
     # Extract content parameters
     tone = answers.get("tone", "professional")

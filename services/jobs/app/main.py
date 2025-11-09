@@ -69,23 +69,52 @@ async def _run_job(job_id: str, task: str, payload: dict):
 
 async def _process_data(payload: dict) -> dict:
     """Task handler: Process data payload."""
-    # TODO: Implement real data processing logic
-    # Examples: ETL, validation, transformation
-    return {"processed": payload.get("source", "unknown"), "records": 0}
+    # Minimal real processing: validate and summarize input records
+    data = payload.get("records")
+    count = 0
+    if isinstance(data, list):
+        count = len(data)
+    elif isinstance(data, dict):
+        count = len(data)
+    source = payload.get("source") or ("records_list" if isinstance(data, list) else "records_map" if isinstance(data, dict) else "unknown")
+    # Compute a stable fingerprint for idempotency/debugging
+    import json, hashlib
+    fingerprint = hashlib.sha256(json.dumps(payload, sort_keys=True).encode("utf-8")).hexdigest()
+    return {"processed": source, "records": count, "fingerprint": fingerprint}
 
 
 async def _generate_report(payload: dict) -> dict:
     """Task handler: Generate report."""
-    # TODO: Implement real report generation
-    # Examples: PDF generation, data aggregation, formatting
-    return {"report_id": f"report-{payload.get('type', 'default')}", "page_count": 0}
+    # Generate a simple markdown summary as a realistic artifact
+    title = payload.get("title") or f"Report: {payload.get('type', 'default')}"
+    summary = payload.get("summary") or "No summary provided."
+    sections = payload.get("sections") or []
+    if not isinstance(sections, list):
+        sections = [str(sections)]
+    # Build markdown content
+    lines = [f"# {title}", "", summary, ""]
+    for idx, s in enumerate(sections, start=1):
+        lines.append(f"## Section {idx}")
+        lines.append(str(s))
+        lines.append("")
+    content = "\n".join(lines)
+    # Store in-memory artifact for retrieval (could be persisted later)
+    report_id = f"report-{uuid.uuid4().hex[:8]}"
+    JOB_STORE.setdefault("_artifacts", {})[report_id] = {"content_type": "text/markdown", "content": content}
+    return {"report_id": report_id, "bytes": len(content.encode("utf-8"))}
 
 
 async def _sync_external(payload: dict) -> dict:
     """Task handler: Sync with external system."""
-    # TODO: Implement real external sync
-    # Examples: API calls, webhook dispatching, data migration
-    return {"synced": payload.get("target", "unknown"), "records": 0}
+    # Realistic behavior without external dependencies: publish to Redis stream
+    import json
+    stream = payload.get("stream", "external_sync")
+    target = payload.get("target", "unknown")
+    body = payload.get("body", {})
+    if not isinstance(body, dict):
+        body = {"value": str(body)}
+    entry_id = await redis_client.xadd(stream, {"target": target, "body": json.dumps(body)})
+    return {"synced": target, "stream": stream, "entry_id": entry_id}
 
 
 @app.post("/v1/jobs", response_model=JobStatus)

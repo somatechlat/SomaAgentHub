@@ -16,14 +16,14 @@ from pydantic import BaseModel, Field
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from services.common.contracts.orchestrator import OrchestrationStartedEvent
-from services.common.events.models import OutboxEvent
-from services.orchestrator.app.workflows.mao import (
+from app.repository.outbox import OutboxEvent
+from app.workflows.mao import (
     MAOStartInput,
     AgentDirective,
     MultiAgentWorkflow,
 )
-from services.orchestrator.app.repository.outbox import OutboxRepository
-from services.orchestrator.app.database import get_db_session
+from app.repository.outbox_event_repository import OutboxEventRepository
+from app.database import get_session
 
 router = APIRouter(prefix="/v1/mao", tags=["orchestration"])
 
@@ -33,10 +33,16 @@ class MAOStartRequest(BaseModel):
 
     tenant: str = Field(..., description="Tenant identifier")
     initiator: str = Field(..., description="User ID initiating the orchestration")
-    directives: List[Dict[str, Any]] = Field(..., description="List of agent directives")
+    directives: List[Dict[str, Any]] = Field(
+        ..., description="List of agent directives"
+    )
     notification_channel: str | None = Field(None, description="Notification channel")
-    metadata: Dict[str, Any] = Field(default_factory=dict, description="Additional metadata")
-    project_id: str = Field(..., description="Project ID associated with this orchestration")
+    metadata: Dict[str, Any] = Field(
+        default_factory=dict, description="Additional metadata"
+    )
+    project_id: str = Field(
+        ..., description="Project ID associated with this orchestration"
+    )
 
 
 class MAOStartResponse(BaseModel):
@@ -84,13 +90,18 @@ async def emit_orchestration_started_event(
         created_at=datetime.now(timezone.utc),
     )
 
-    outbox_repo = OutboxRepository(session=db_session)
-    await outbox_repo.save_event(outbox_event)
+    outbox_repo = OutboxEventRepository(session=db_session)
+    await outbox_repo.create_event(
+        event_type="orchestration.started",
+        topic="orchestration.events",
+        key=orchestration_id,
+        payload=event_data.dict(),
+    )
 
 
 @router.post("/start", response_model=MAOStartResponse)
 async def start_orchestration(
-    request: MAOStartRequest, db_session: AsyncSession = Depends(get_db_session)
+    request: MAOStartRequest, db_session: AsyncSession = Depends(get_session)
 ) -> MAOStartResponse:
     """
     Start a new multi-agent orchestration workflow.
@@ -170,7 +181,7 @@ async def start_orchestration(
 
 @router.get("/{orchestration_id}/status")
 async def get_orchestration_status(
-    orchestration_id: str, db_session: AsyncSession = Depends(get_db_session)
+    orchestration_id: str, db_session: AsyncSession = Depends(get_session)
 ) -> Dict[str, Any]:
     """Get current status of an orchestration."""
     # This would integrate with Temporal workflow queries
@@ -191,7 +202,7 @@ async def get_orchestration_status(
 
 @router.post("/{orchestration_id}/cancel")
 async def cancel_orchestration(
-    orchestration_id: str, db_session: AsyncSession = Depends(get_db_session)
+    orchestration_id: str, db_session: AsyncSession = Depends(get_session)
 ) -> Dict[str, str]:
     """Cancel a running orchestration."""
     # This would integrate with Temporal workflow cancellation

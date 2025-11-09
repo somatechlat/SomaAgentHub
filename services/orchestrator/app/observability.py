@@ -60,8 +60,17 @@ class OpenTelemetryConfig:
 
         # Add OTLP exporter if enabled (for Tempo in Sprint-6)
         if self.enable_otlp:
-            otlp_endpoint = os.getenv("OTEL_EXPORTER_OTLP_ENDPOINT", default_otlp_grpc_endpoint())
-            otlp_exporter = OTLPSpanExporter(endpoint=otlp_endpoint, insecure=True)
+            otlp_endpoint = os.getenv(
+                "OTEL_EXPORTER_OTLP_ENDPOINT", default_otlp_grpc_endpoint()
+            )
+            insecure = os.getenv("OTEL_INSECURE", "false").lower() == "true"
+            if insecure:
+                logger.warning(
+                    "OTLP trace exporter using insecure channel (OTEL_INSECURE=true); set OTEL_INSECURE=false for TLS"
+                )
+            else:
+                logger.info("OTLP trace exporter using secure channel")
+            otlp_exporter = OTLPSpanExporter(endpoint=otlp_endpoint, insecure=insecure)
             trace_provider.add_span_processor(BatchSpanProcessor(otlp_exporter))
             logger.info(f"OTLP trace exporter enabled: {otlp_endpoint}")
 
@@ -76,11 +85,15 @@ class OpenTelemetryConfig:
         if self.enable_prometheus:
             prometheus_reader = PrometheusMetricReader()
             readers.append(prometheus_reader)
-            logger.info(f"Prometheus metrics reader enabled on port {self.prometheus_port}")
+            logger.info(
+                f"Prometheus metrics reader enabled on port {self.prometheus_port}"
+            )
 
         # OTLP metrics exporter if enabled
         if self.enable_otlp:
-            otlp_endpoint = os.getenv("OTEL_EXPORTER_OTLP_ENDPOINT", default_otlp_grpc_endpoint())
+            otlp_endpoint = os.getenv(
+                "OTEL_EXPORTER_OTLP_ENDPOINT", default_otlp_grpc_endpoint()
+            )
             # Note: For metrics export, use PeriodicExportingMetricReader in a full setup
             # Leaving just a log line to indicate configuration for now
             logger.info(f"OTLP metrics exporter configured: {otlp_endpoint}")

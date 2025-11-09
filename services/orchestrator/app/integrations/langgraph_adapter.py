@@ -9,7 +9,9 @@ from typing import Any
 
 from temporalio import activity
 
-GraphCallable = Callable[[dict[str, Any]], dict[str, Any] | Awaitable[dict[str, Any] | None] | None]
+GraphCallable = Callable[
+    [dict[str, Any]], dict[str, Any] | Awaitable[dict[str, Any] | None] | None
+]
 ConditionCallable = Callable[[dict[str, Any]], str | Any]
 
 
@@ -28,13 +30,17 @@ def _get_langgraph_components():
 def _resolve_callable(path: str) -> GraphCallable:
     module_path, _, attr = path.rpartition(".")
     if not module_path or not attr:
-        raise ValueError(f"callable path '{path}' is invalid; expected 'module.function'")
+        raise ValueError(
+            f"callable path '{path}' is invalid; expected 'module.function'"
+        )
 
     module = importlib.import_module(module_path)
     try:
         return getattr(module, attr)
     except AttributeError as exc:  # pragma: no cover - defensive
-        raise ValueError(f"callable '{attr}' not found in module '{module_path}'") from exc
+        raise ValueError(
+            f"callable '{attr}' not found in module '{module_path}'"
+        ) from exc
 
 
 def _wrap_handler(name: str, handler: GraphCallable) -> GraphCallable:
@@ -126,7 +132,9 @@ async def run_langgraph_routing(payload: dict[str, Any]) -> dict[str, Any]:
             if default_target is None or default_target == "END":
                 mapping["__default__"] = END
             else:
-                mapping["__default__"] = END if default_target == "END" else default_target
+                mapping["__default__"] = (
+                    END if default_target == "END" else default_target
+                )
             workflow.add_conditional_edges(
                 source,
                 _wrap_condition(condition_callable),
@@ -154,7 +162,11 @@ async def run_langgraph_routing(payload: dict[str, Any]) -> dict[str, Any]:
         "LangGraph routing completed",
         extra={
             "tenant": tenant,
-            "final_node": (result_state.get("history", [{}])[-1].get("node") if result_state.get("history") else None),
+            "final_node": (
+                result_state.get("history", [{}])[-1].get("node")
+                if result_state.get("history")
+                else None
+            ),
         },
     )
 
@@ -164,5 +176,7 @@ async def run_langgraph_routing(payload: dict[str, Any]) -> dict[str, Any]:
         "tenant": tenant,
         "metadata": metadata or {},
         "history": result_state.get("history", []),
-        "state": {key: value for key, value in result_state.items() if key != "history"},
+        "state": {
+            key: value for key, value in result_state.items() if key != "history"
+        },
     }

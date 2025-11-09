@@ -107,7 +107,10 @@ class ToolServiceClient:
     """
 
     def __init__(self):
-        self.base_url = str(settings.tool_service_url or os.getenv("TOOL_SERVICE_URL", "http://tool-service:8080"))
+        self.base_url = str(
+            settings.tool_service_url
+            or os.getenv("TOOL_SERVICE_URL", "http://tool-service:8080")
+        )
         self.timeout = httpx.Timeout(60.0, connect=10.0)
 
     async def execute(
@@ -184,7 +187,8 @@ class SLMServiceClient:
 
     def __init__(self):
         self.base_url = str(
-            settings.somallm_provider_url or os.getenv("SOMALLM_PROVIDER_URL", "http://gateway-api:8080")
+            settings.somallm_provider_url
+            or os.getenv("SOMALLM_PROVIDER_URL", "http://gateway-api:8080")
         )
         self.timeout = httpx.Timeout(120.0, connect=10.0)
 
@@ -474,7 +478,10 @@ async def content_creation_activity(input: dict[str, Any]) -> dict[str, Any]:
 
     # Step 2: Build content generation prompt
     research_summary = "\n".join(
-        [f"- {finding.get('data', {}).get('summary', 'N/A')}" for finding in content_input.research_findings[:5]]
+        [
+            f"- {finding.get('data', {}).get('summary', 'N/A')}"
+            for finding in content_input.research_findings[:5]
+        ]
     )
 
     prompt = f"""
@@ -586,7 +593,11 @@ async def design_assets_activity(input: dict[str, Any]) -> dict[str, Any]:
                 {
                     "component_name": "email_banner",
                     "variables": {
-                        "headline": (design_input.content_headlines[0] if design_input.content_headlines else ""),
+                        "headline": (
+                            design_input.content_headlines[0]
+                            if design_input.content_headlines
+                            else ""
+                        ),
                         "campaign_name": design_input.campaign_name,
                     },
                     "export_format": "png",
@@ -602,7 +613,11 @@ async def design_assets_activity(input: dict[str, Any]) -> dict[str, Any]:
                 {
                     "component_name": "social_post_image",
                     "variables": {
-                        "headline": (design_input.content_headlines[0] if design_input.content_headlines else ""),
+                        "headline": (
+                            design_input.content_headlines[0]
+                            if design_input.content_headlines
+                            else ""
+                        ),
                     },
                     "export_format": "png",
                 },
@@ -638,7 +653,11 @@ async def design_assets_activity(input: dict[str, Any]) -> dict[str, Any]:
         else:
             assets.append(
                 {
-                    "type": (design_input.channels[i] if i < len(design_input.channels) else "unknown"),
+                    "type": (
+                        design_input.channels[i]
+                        if i < len(design_input.channels)
+                        else "unknown"
+                    ),
                     "url": result.get("file_url", ""),
                     "format": result.get("format", "png"),
                 }
@@ -788,10 +807,18 @@ async def distribute_campaign_activity(input: dict[str, Any]) -> dict[str, Any]:
                 "sendgrid",  # Assumes SendGrid adapter exists
                 "send_campaign",
                 {
-                    "subject": dist_input.content.get("content_pieces", {}).get("email_subject", ""),
-                    "html_content": dist_input.content.get("content_pieces", {}).get("email_body", ""),
+                    "subject": dist_input.content.get("content_pieces", {}).get(
+                        "email_subject", ""
+                    ),
+                    "html_content": dist_input.content.get("content_pieces", {}).get(
+                        "email_body", ""
+                    ),
                     "to_list": "marketing_subscribers",  # Segment from config
-                    "schedule_time": (dist_input.schedule_time.isoformat() if dist_input.schedule_time else None),
+                    "schedule_time": (
+                        dist_input.schedule_time.isoformat()
+                        if dist_input.schedule_time
+                        else None
+                    ),
                 },
             )
             distribution_results["email"] = {
@@ -809,14 +836,20 @@ async def distribute_campaign_activity(input: dict[str, Any]) -> dict[str, Any]:
                 "buffer",  # Assumes Buffer adapter exists
                 "schedule_post",
                 {
-                    "text": dist_input.content.get("content_pieces", {}).get("social_post", ""),
+                    "text": dist_input.content.get("content_pieces", {}).get(
+                        "social_post", ""
+                    ),
                     "platforms": ["linkedin", "twitter"],
                     "media_urls": [
                         asset["url"]
                         for asset in dist_input.design_assets.get("assets", [])
                         if asset.get("type") == "social"
                     ],
-                    "schedule_time": (dist_input.schedule_time.isoformat() if dist_input.schedule_time else None),
+                    "schedule_time": (
+                        dist_input.schedule_time.isoformat()
+                        if dist_input.schedule_time
+                        else None
+                    ),
                 },
             )
             distribution_results["social"] = {
@@ -859,7 +892,9 @@ date: {datetime.now(UTC).isoformat()}
         "Distribution completed",
         extra={
             "published_channels": [
-                ch for ch, res in distribution_results.items() if res.get("status") not in ["failed"]
+                ch
+                for ch, res in distribution_results.items()
+                if res.get("status") not in ["failed"]
             ],
         },
     )

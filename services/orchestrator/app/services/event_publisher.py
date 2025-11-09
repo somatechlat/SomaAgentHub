@@ -87,7 +87,9 @@ class OutboxEventPublisherService:
                 repo = OutboxEventRepository(session)
 
                 # Get pending events
-                events = await repo.get_pending_events(limit=self.batch_size, max_retries=self.max_retries)
+                events = await repo.get_pending_events(
+                    limit=self.batch_size, max_retries=self.max_retries
+                )
 
                 if not events:
                     return  # No events to process
@@ -101,7 +103,9 @@ class OutboxEventPublisherService:
                         if success:
                             await repo.mark_as_processed(event.id)
                         else:
-                            await repo.mark_as_failed(event.id, "Failed to publish to Kafka")
+                            await repo.mark_as_failed(
+                                event.id, "Failed to publish to Kafka"
+                            )
 
                     except Exception as e:
                         logger.exception(f"Failed to process event {event.id}: {e}")

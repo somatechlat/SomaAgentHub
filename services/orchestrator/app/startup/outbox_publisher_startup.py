@@ -6,11 +6,12 @@ Integrates background event publishing into the FastAPI lifecycle.
 
 import asyncio
 import logging
+import os
 from typing import Optional
 
 from fastapi import FastAPI
 
-from ..database import get_session_factory
+from ..database import AsyncSessionLocal as get_session_factory
 from ..services.outbox_publisher import create_outbox_publisher_service
 
 logger = logging.getLogger(__name__)
@@ -31,7 +32,7 @@ class OutboxPublisherStartup:
     async def start_publisher(self) -> None:
         """Start the outbox publisher service on startup."""
         try:
-            kafka_servers = "localhost:9092"  # TODO: Get from settings
+            kafka_servers = os.getenv("KAFKA_BOOTSTRAP_SERVERS", "localhost:9092")
             session_factory = get_session_factory()
 
             self.publisher_service = await create_outbox_publisher_service(
@@ -40,7 +41,9 @@ class OutboxPublisherStartup:
             )
 
             await self.publisher_service.start()
-            logger.info("Outbox publisher service started successfully")
+            logger.info(
+                f"Outbox publisher service started successfully (bootstrap={kafka_servers})"
+            )
 
         except Exception as e:
             logger.error(f"Failed to start outbox publisher service: {e}")

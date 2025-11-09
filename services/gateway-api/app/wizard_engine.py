@@ -544,27 +544,31 @@ class WizardEngine:
         if budget_cap and hours_planned:
             pricing_service = os.getenv("PRICING_SERVICE_URL", "http://pricing-service:10026")
             precheck_url = f"{pricing_service}/v1/pricing/evaluate-budget/with-policy"
+            pre_params = {
+                "budget_cap": budget_cap,
+                "hours_planned": hours_planned,
+                "quantity": 1,
+            }
+            if gpu_model:
+                pre_params["gpu_model"] = gpu_model
             try:
-                pre_params = {
-                    "budget_cap": budget_cap,
-                    "hours_planned": hours_planned,
-                    "quantity": 1,
-                }
-                if gpu_model:
-                    pre_params["gpu_model"] = gpu_model
                 pc_resp = requests.post(precheck_url, params=pre_params, timeout=10)
-                if pc_resp.status_code == 200:
-                    pc_data = pc_resp.json()
-                    decision = BudgetPrecheckDecision.model_validate(pc_data)
-                    if not decision.within_budget:
-                        return {
-                            "status": "blocked",
-                            "reason": decision.reason or "budget_exceeded",
-                            "details": decision.model_dump(),
-                        }
-                # Continue on non-200 or missing fields (soft-fail)
-            except Exception:
-                pass
+            except Exception as exc:
+                logger.error("Pricing precheck request failed: %s", exc)
+                raise RuntimeError("Pricing precheck failed; cannot approve execution") from exc
+
+            if pc_resp.status_code != 200:
+                logger.error("Pricing precheck non-200 response: %s - %s", pc_resp.status_code, pc_resp.text)
+                raise RuntimeError("Pricing precheck unavailable; cannot approve execution")
+
+            pc_data = pc_resp.json()
+            decision = BudgetPrecheckDecision.model_validate(pc_data)
+            if not decision.within_budget:
+                return {
+                    "status": "blocked",
+                    "reason": decision.reason or "budget_exceeded",
+                    "details": decision.model_dump(),
+                }
 
         resp = requests.post(url, json=payload, timeout=15)
         if resp.status_code >= 400:

@@ -42,13 +42,17 @@ try:
     _redis_client = get_redis_client()
     _use_redis = True
 except Exception as exc:
-    logger.warning("[REDIS_WARNING] Redis client unavailable, using in-memory locks: %s", exc)
+    logger.warning(
+        "[REDIS_WARNING] Redis client unavailable, using in-memory locks: %s", exc
+    )
     _redis_client = None
     _use_redis = False
     _training_locks: dict[str, dict] = {}
 
 
-async def _emit_training_audit(tenant: str, action: str, user: str, details: dict) -> None:
+async def _emit_training_audit(
+    tenant: str, action: str, user: str, details: dict
+) -> None:
     """Emit training audit event to Kafka."""
     try:
         from services.common.kafka_client import get_kafka_client
@@ -182,7 +186,9 @@ async def disable_training_mode(req: TrainingLockRequest) -> TrainingLockRespons
             )
         previous_lock = existing
     else:
-        if req.tenant not in _training_locks or not _training_locks[req.tenant].get("enabled"):
+        if req.tenant not in _training_locks or not _training_locks[req.tenant].get(
+            "enabled"
+        ):
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail="Training mode is not enabled for this tenant",

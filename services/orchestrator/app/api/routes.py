@@ -9,6 +9,8 @@ from uuid import uuid4
 
 import httpx
 from fastapi import APIRouter, Depends, HTTPException, Request, status
+import logging
+from prometheus_client import Counter
 from pydantic import BaseModel, Field
 from services.common.contracts.orchestrator import (
     SessionStartRequest as ContractSessionStartRequest,
@@ -21,12 +23,12 @@ from sqlmodel import Session
 from temporalio import client as temporal_client
 from temporalio.client import RPCError, RPCStatusCode
 
-from services.orchestrator.app.database import get_session
-from services.orchestrator.app.repository.models import BuildRun
-from services.orchestrator.app.repository.sql_build_run_repository import (
+from app.database import get_session
+from app.repository.models import BuildRun
+from app.repository.sql_build_run_repository import (
     SQLBuildRunRepository,
 )
-from services.orchestrator.app.repository.interfaces import BuildRunRepository
+from app.repository.interfaces import BuildRunRepository
 
 from ..core.config import settings
 from ..workflows.capsule import CapsuleRunInput
@@ -42,6 +44,13 @@ router = APIRouter(prefix="/v1", tags=["orchestrator"])
 router.include_router(conversation_router)
 router.include_router(projects_router)
 router.include_router(training_router)
+
+# Metrics
+POLICY_FALLBACK_EVENTS = Counter(
+    "policy_fallback_events_total",
+    "Number of policy fallback events (OPA unavailable or error)",
+    ["route", "reason"],
+)
 
 
 class BuildRunCreate(BaseModel):
@@ -73,7 +82,9 @@ def get_build_run_repo(session: Session = Depends(get_session)) -> BuildRunRepos
 
 
 @router.post("/build-runs", response_model=BuildRunResponse, tags=["build"])
-def create_build_run(payload: BuildRunCreate, repo: BuildRunRepository = Depends(get_build_run_repo)):
+def create_build_run(
+    payload: BuildRunCreate, repo: BuildRunRepository = Depends(get_build_run_repo)
+):
     br = BuildRun(
         tenant=payload.tenant,
         project_id=payload.project_id,
@@ -99,8 +110,12 @@ def create_build_run(payload: BuildRunCreate, repo: BuildRunRepository = Depends
     )
 
 
-@router.get("/build-runs/{build_run_id}", response_model=BuildRunResponse, tags=["build"])
-def get_build_run(build_run_id: str, repo: BuildRunRepository = Depends(get_build_run_repo)):
+@router.get(
+    "/build-runs/{build_run_id}", response_model=BuildRunResponse, tags=["build"]
+)
+def get_build_run(
+    build_run_id: str, repo: BuildRunRepository = Depends(get_build_run_repo)
+):
     try:
         bid = uuid.UUID(build_run_id)
     except Exception:
@@ -162,11 +177,16 @@ async def build_precheck(payload: BuildPrecheckRequest) -> BuildPrecheckResponse
     # Remove None values
     params = {k: v for k, v in params.items() if v is not None}
 
-    url = settings.pricing_service_url.rstrip("/") + "/v1/pricing/evaluate-budget/with-policy"
+    url = (
+        settings.pricing_service_url.rstrip("/")
+        + "/v1/pricing/evaluate-budget/with-policy"
+    )
     async with httpx.AsyncClient(timeout=5.0) as client:
         r = await client.post(url, params=params)
     if r.status_code != 200:
-        raise HTTPException(status_code=502, detail=f"Pricing precheck failed: {r.text}")
+        raise HTTPException(
+            status_code=502, detail=f"Pricing precheck failed: {r.text}"
+        )
     data = r.json()
 
     require_payment = False
@@ -225,8 +245,12 @@ class CapsuleRunRequest(BaseModel):
     user: str
     capsule_id: str = Field(..., description="Capsule identifier, e.g. org/name")
     version: str = Field(default="latest", description="Capsule version/tag")
-    params: dict[str, Any] = Field(default_factory=dict, description="Input parameters for the capsule run")
-    metadata: dict[str, Any] = Field(default_factory=dict, description="Arbitrary metadata for audit/tracing")
+    params: dict[str, Any] = Field(
+        default_factory=dict, description="Input parameters for the capsule run"
+    )
+    metadata: dict[str, Any] = Field(
+        default_factory=dict, description="Arbitrary metadata for audit/tracing"
+    )
 
 
 class CapsuleRunResponse(BaseModel):
@@ -361,7 +385,9 @@ async def get_session_status(
         try:
             result_obj = await handle.result()
             result = _normalize_result(result_obj)
-        except Exception as exc:  # pragma: no cover - Temporal result retrieval edge cases
+        except (
+            Exception
+        ) as exc:  # pragma: no cover - Temporal result retrieval edge cases
             result = {"error": str(exc)}
 
     # ``desc`` may be a simple namespace without an ``id`` attribute (as in the
@@ -384,11 +410,14 @@ async def get_session_status(
 async def start_multi_agent(
     payload: MultiAgentStartRequest,
     client: temporal_client.Client = Depends(get_temporal_client),
+    session=Depends(get_session),
 ) -> MultiAgentStartResponse:
     orchestration_id = payload.metadata.get("orchestration_id") or f"mao-{uuid4()}"
     workflow_id = f"mao-{orchestration_id}"
 
-    directives = [AgentDirective(**directive.model_dump()) for directive in payload.directives]
+    directives = [
+        AgentDirective(**directive.model_dump()) for directive in payload.directives
+    ]
 
     handle = await client.start_workflow(
         "multi-agent-orchestration-workflow",
@@ -404,20 +433,23 @@ async def start_multi_agent(
         task_queue=settings.temporal_task_queue,
     )
 
-    # Import event service
-    from services.orchestrator.app.services.event_service import (
-        OrchestratorEventService,
-    )
+    # Real event emission using outbox + publisher
+    logger = logging.getLogger("orchestrator.events")
+    from app.services.event_service import OrchestratorEventService
+    from services.common.events.publisher import get_publisher
 
-    # Emit orchestration started event
-    event_service = OrchestratorEventService(
-        session=None,  # Will be handled via dependency injection
-        event_publisher=None,  # Will be handled via dependency injection
-    )
-
-    # TODO: Fix dependency injection for async session
-    # For now, we'll emit the event directly
-    logger.info(f"Would emit orchestration started event for: {orchestration_id}")
+    publisher = get_publisher("orchestrator")
+    event_service = OrchestratorEventService(session=session, event_publisher=publisher)
+    try:
+        await event_service.emit_orchestration_started(
+            workflow_id=handle.id,
+            tenant=payload.tenant,
+            initiator=payload.initiator,
+            directives=[d.model_dump() for d in payload.directives],
+            metadata=payload.metadata,
+        )
+    except Exception as exc:
+        logger.error("Failed emitting orchestration.started event: %s", exc)
 
     run_id = getattr(handle, "run_id", None)
     if not run_id:
@@ -483,11 +515,19 @@ async def start_capsule_run(
             },
         )
         if allowed is False:
-            raise HTTPException(status_code=403, detail="Not allowed to execute capsule")
-    except Exception:
-        # If OPA is unavailable or the policy is missing we fall back to allow –
-        # this mirrors the behaviour of other endpoints where OPA is optional.
-        pass
+            raise HTTPException(
+                status_code=403, detail="Not allowed to execute capsule"
+            )
+        # Treat None/unknown as deny unless explicitly allowed by config
+        if allowed is None and not settings.allow_on_opa_error:
+            raise HTTPException(status_code=503, detail="Policy evaluation unavailable")
+        if allowed is None and settings.allow_on_opa_error:
+            POLICY_FALLBACK_EVENTS.labels(route="capsule.run", reason="opa_none").inc()
+    except Exception as exc:
+        if settings.allow_on_opa_error:
+            POLICY_FALLBACK_EVENTS.labels(route="capsule.run", reason="opa_exception").inc()
+        else:
+            raise HTTPException(status_code=503, detail="Policy engine unavailable") from exc
 
     handle = await client.start_workflow(
         "capsule-run-workflow",
@@ -504,7 +544,9 @@ async def start_capsule_run(
         task_queue=settings.temporal_task_queue,
     )
 
-    rid = getattr(handle, "run_id", None) or getattr(handle, "first_execution_run_id", None)
+    rid = getattr(handle, "run_id", None) or getattr(
+        handle, "first_execution_run_id", None
+    )
 
     return CapsuleRunResponse(
         workflow_id=handle.id,

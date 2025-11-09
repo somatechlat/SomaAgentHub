@@ -53,9 +53,14 @@ class OpenTelemetryConfig:
         provider = TracerProvider(resource=self.resource)
         if self.enable_otlp:
             otlp_endpoint = os.getenv("OTEL_EXPORTER_OTLP_ENDPOINT", "http://otel-collector:4317")
-            exporter = OTLPSpanExporter(endpoint=otlp_endpoint, insecure=True)
+            insecure_flag = os.getenv("OTEL_INSECURE", "false").lower() == "true"
+            exporter = OTLPSpanExporter(endpoint=otlp_endpoint, insecure=insecure_flag)
             provider.add_span_processor(BatchSpanProcessor(exporter))
-            logger.info(f"OTLP trace exporter enabled: {otlp_endpoint}")
+            if insecure_flag:
+                logger.warning(
+                    "OTLP exporter using insecure transport (OTEL_INSECURE=true). Not recommended outside development."
+                )
+            logger.info(f"OTLP trace exporter enabled: {otlp_endpoint} insecure={insecure_flag}")
         trace.set_tracer_provider(provider)
         logger.info(f"Tracing initialized for service: {self.service_name}")
 

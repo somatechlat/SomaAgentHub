@@ -17,7 +17,7 @@ import time
 from typing import Dict, Optional, Tuple
 from dataclasses import dataclass
 
-import aioredis
+import redis.asyncio as redis
 from fastapi import HTTPException, status
 from prometheus_client import Counter, Histogram
 
@@ -42,6 +42,7 @@ rate_limiter_wait_time = Histogram(
 @dataclass
 class RateLimitConfig:
     """Configuration for rate limiting."""
+
     requests_per_minute: int = 60
     requests_per_hour: int = 1000
     burst_capacity: int = 10
@@ -59,7 +60,7 @@ class RateLimiter:
 
     async def initialize(self):
         """Initialize Redis connection."""
-        self.redis = await aioredis.from_url(self.redis_url)
+        self.redis = redis.from_url(self.redis_url)
 
     async def close(self):
         """Close Redis connection."""
@@ -75,19 +76,16 @@ class RateLimiter:
         return f"rate_limit:{endpoint}:{client_id}"
 
     async def check_rate_limit(
-        self, 
-        client_id: str, 
-        endpoint: str = "default",
-        increment: bool = True
+        self, client_id: str, endpoint: str = "default", increment: bool = True
     ) -> Tuple[bool, int]:
         """
         Check if request is within rate limits.
-        
+
         Returns:
             Tuple of (is_allowed, retry_after_seconds)
         """
         config = self.configs.get(endpoint, RateLimitConfig())
-        
+
         if not self.redis:
             await self.initialize()
 
@@ -97,24 +95,24 @@ class RateLimiter:
 
         # Use Redis pipeline for atomic operations
         pipe = self.redis.pipeline()
-        
+
         # Remove old entries
         pipe.zremrangebyscore(key, 0, window_start)
-        
+
         # Count current requests in window
         pipe.zcard(key)
-        
+
         if increment:
             # Add current request
             pipe.zadd(key, {str(now): now})
             pipe.expire(key, config.window_size)
-        
+
         results = await pipe.execute()
         current_requests = results[1]
 
         is_allowed = current_requests < config.requests_per_minute
         retry_after = 0
-        
+
         if not is_allowed:
             # Calculate when next request will be allowed
             oldest_requests = await self.redis.zrange(key, 0, 0, withscores=True)
@@ -126,37 +124,37 @@ class RateLimiter:
         rate_limiter_requests.labels(
             client_id=client_id,
             endpoint=endpoint,
-            status="allowed" if is_allowed else "denied"
+            status="allowed" if is_allowed else "denied",
         ).inc()
 
         return is_allowed, retry_after
 
-    async def wait_for_rate_limit(
-        self, 
-        client_id: str, 
-        endpoint: str = "default"
-    ):
+    async def wait_for_rate_limit(self, client_id: str, endpoint: str = "default"):
         """
         Wait until rate limit allows the request.
         Raises HTTPException if limit exceeded.
         """
         is_allowed, retry_after = await self.check_rate_limit(client_id, endpoint)
-        
+
         if not is_allowed:
             raise HTTPException(
                 status_code=status.HTTP_429_TOO_MANY_REQUESTS,
                 detail=f"Rate limit exceeded. Try again in {retry_after} seconds.",
-                headers={"Retry-After": str(retry_after)}
+                headers={"Retry-After": str(retry_after)},
             )
 
-    async def get_rate_limit_info(self, client_id: str, endpoint: str = "default") -> Dict[str, any]:
+    async def get_rate_limit_info(
+        self, client_id: str, endpoint: str = "default"
+    ) -> Dict[str, any]:
         """Get current rate limit status."""
         config = self.configs.get(endpoint, RateLimitConfig())
-        is_allowed, retry_after = await self.check_rate_limit(client_id, endpoint, increment=False)
-        
+        is_allowed, retry_after = await self.check_rate_limit(
+            client_id, endpoint, increment=False
+        )
+
         key = self._get_client_key(client_id, endpoint)
         current_count = await self.redis.zcard(key)
-        
+
         return {
             "allowed": is_allowed,
             "current_requests": current_count,
@@ -176,19 +174,17 @@ class AdvancedRateLimiter(RateLimiter):
     """Advanced rate limiter with multiple algorithms."""
 
     async def token_bucket_check(
-        self, 
-        client_id: str, 
-        endpoint: str = "default"
+        self, client_id: str, endpoint: str = "default"
     ) -> Tuple[bool, int]:
         """Token bucket algorithm implementation."""
         config = self.configs.get(endpoint, RateLimitConfig())
         key = f"token_bucket:{endpoint}:{client_id}"
-        
+
         pipe = self.redis.pipeline()
         pipe.get(f"{key}:tokens")
         pipe.get(f"{key}:last_refill")
         pipe.ttl(f"{key}:tokens")
-        
+
         results = await pipe.execute()
         tokens = int(results[0] or config.burst_capacity)
         last_refill = float(results[1] or time.time())
@@ -197,9 +193,9 @@ class AdvancedRateLimiter(RateLimiter):
         now = time.time()
         time_elapsed = now - last_refill
         tokens_to_add = int(time_elapsed * (config.requests_per_minute / 60))
-        
+
         new_tokens = min(tokens + tokens_to_add, config.burst_capacity)
-        
+
         if new_tokens > 0:
             new_tokens -= 1
             is_allowed = True
@@ -221,23 +217,22 @@ rate_limiter = RateLimiter()
 advanced_rate_limiter = AdvancedRateLimiter()
 
 # Pre-configured rate limits
-rate_limiter.add_config("api/v1/orchestrate", RateLimitConfig(
-    requests_per_minute=100,
-    requests_per_hour=1000,
-    burst_capacity=20
-))
+rate_limiter.add_config(
+    "api/v1/orchestrate",
+    RateLimitConfig(requests_per_minute=100, requests_per_hour=1000, burst_capacity=20),
+)
 
-rate_limiter.add_config("api/v1/health", RateLimitConfig(
-    requests_per_minute=1000,
-    requests_per_hour=10000,
-    burst_capacity=50
-))
+rate_limiter.add_config(
+    "api/v1/health",
+    RateLimitConfig(
+        requests_per_minute=1000, requests_per_hour=10000, burst_capacity=50
+    ),
+)
 
-rate_limiter.add_config("api/v1/metrics", RateLimitConfig(
-    requests_per_minute=500,
-    requests_per_hour=5000,
-    burst_capacity=10
-))
+rate_limiter.add_config(
+    "api/v1/metrics",
+    RateLimitConfig(requests_per_minute=500, requests_per_hour=5000, burst_capacity=10),
+)
 
 
 # Rate limiting middleware
@@ -253,14 +248,14 @@ class RateLimitMiddleware:
         client_ip = request.client.host if request.client else "unknown"
         user_agent = request.headers.get("user-agent", "unknown")
         client_id = hashlib.md5(f"{client_ip}:{user_agent}".encode()).hexdigest()
-        
+
         # Use endpoint path as rate limit key
         endpoint = request.url.path
-        
+
         try:
             await self.rate_limiter.wait_for_rate_limit(client_id, endpoint)
             response = await call_next(request)
-            
+
             # Add rate limit headers
             rate_info = await self.rate_limiter.get_rate_limit_info(client_id, endpoint)
             response.headers["X-RateLimit-Limit"] = str(rate_info["limit"])
@@ -268,9 +263,9 @@ class RateLimitMiddleware:
                 max(0, rate_info["limit"] - rate_info["current_requests"])
             )
             response.headers["X-RateLimit-Reset"] = str(rate_info["reset_time"])
-            
+
             return response
-            
+
         except HTTPException as e:
             # Add rate limit headers even on failure
             rate_info = await self.rate_limiter.get_rate_limit_info(client_id, endpoint)
@@ -280,6 +275,6 @@ class RateLimitMiddleware:
                     max(0, rate_info["limit"] - rate_info["current_requests"])
                 ),
                 "X-RateLimit-Reset": str(rate_info["reset_time"]),
-                **e.headers
+                **e.headers,
             }
             raise

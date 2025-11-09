@@ -62,15 +62,19 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next):
         """Add security headers to all responses."""
         response = await call_next(request)
-        
+
         # Security headers
         response.headers["X-Content-Type-Options"] = "nosniff"
         response.headers["X-Frame-Options"] = "DENY"
         response.headers["X-XSS-Protection"] = "1; mode=block"
-        response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
+        response.headers["Strict-Transport-Security"] = (
+            "max-age=31536000; includeSubDomains"
+        )
         response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
-        response.headers["Permissions-Policy"] = "geolocation=(), microphone=(), camera=()"
-        
+        response.headers["Permissions-Policy"] = (
+            "geolocation=(), microphone=(), camera=()"
+        )
+
         # Content Security Policy
         csp_directives = [
             "default-src 'self'",
@@ -84,7 +88,7 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
             "frame-src 'none'",
         ]
         response.headers["Content-Security-Policy"] = "; ".join(csp_directives)
-        
+
         return response
 
 
@@ -104,14 +108,14 @@ class RequestSizeMiddleware(BaseHTTPMiddleware):
                 if size > self.max_size_bytes:
                     raise HTTPException(
                         status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
-                        detail=f"Request too large. Maximum size is {self.max_size_bytes // (1024*1024)}MB"
+                        detail=f"Request too large. Maximum size is {self.max_size_bytes // (1024*1024)}MB",
                     )
             except ValueError:
                 raise HTTPException(
                     status_code=status.HTTP_400_BAD_REQUEST,
-                    detail="Invalid Content-Length header"
+                    detail="Invalid Content-Length header",
                 )
-        
+
         return await call_next(request)
 
 
@@ -126,17 +130,17 @@ class InputValidationMiddleware(BaseHTTPMiddleware):
                 if not self._is_safe_input(key) or not self._is_safe_input(str(value)):
                     raise HTTPException(
                         status_code=status.HTTP_400_BAD_REQUEST,
-                        detail=f"Invalid query parameter: {key}"
+                        detail=f"Invalid query parameter: {key}",
                     )
-        
+
         # Validate path parameters
         for key, value in request.path_params.items():
             if not self._is_safe_path_param(str(value)):
                 raise HTTPException(
                     status_code=status.HTTP_400_BAD_REQUEST,
-                    detail=f"Invalid path parameter: {key}"
+                    detail=f"Invalid path parameter: {key}",
                 )
-        
+
         return await call_next(request)
 
     def _is_safe_input(self, value: str) -> bool:
@@ -154,11 +158,11 @@ class InputValidationMiddleware(BaseHTTPMiddleware):
             r"(\bOR\b|\bAND\b)\s*['\"]?.*['\"]?\s*EXISTS\s*\([\"]?.*[\"]?\)",
             r"(\bOR\b|\bAND\b)\s*['\"]?.*['\"]?\s*NOT\s*EXISTS\s*\([\"]?.*[\"]?\)",
         ]
-        
+
         for pattern in dangerous_patterns:
             if re.search(pattern, value, re.IGNORECASE):
                 return False
-        
+
         return True
 
     def _is_safe_path_param(self, value: str) -> bool:
@@ -185,30 +189,34 @@ class SecurityValidationModels:
 
     class APIKeyRequest(BaseModel):
         api_key: str = Field(..., min_length=32, max_length=64)
-        
-        @validator('api_key')
+
+        @validator("api_key")
         def validate_api_key(cls, v):
-            if not re.match(r'^[a-zA-Z0-9_-]+$', v):
-                raise ValueError('API key contains invalid characters')
+            if not re.match(r"^[a-zA-Z0-9_-]+$", v):
+                raise ValueError("API key contains invalid characters")
             return v
 
     class UserId(BaseModel):
-        user_id: str = Field(..., min_length=1, max_length=100, regex=r'^[a-zA-Z0-9_-]+$')
+        user_id: str = Field(
+            ..., min_length=1, max_length=100, pattern=r"^[a-zA-Z0-9_-]+$"
+        )
 
     class SessionId(BaseModel):
-        session_id: str = Field(..., min_length=32, max_length=64, regex=r'^[a-zA-Z0-9_-]+$')
+        session_id: str = Field(
+            ..., min_length=1, max_length=100, pattern=r"^[a-zA-Z0-9_-]+$"
+        )
 
     class SafeString(BaseModel):
         value: str = Field(..., max_length=1000)
-        
-        @validator('value')
+
+        @validator("value")
         def sanitize_string(cls, v):
             # Remove null bytes and control characters
-            v = re.sub(r'[\x00-\x1f\x7f-\x9f]', '', v)
+            v = re.sub(r"[\x00-\x1f\x7f-\x9f]", "", v)
             # Remove potential XSS vectors
-            v = re.sub(r'<script[^>]*>.*?</script>', '', v, flags=re.IGNORECASE)
-            v = re.sub(r'javascript:', '', v, flags=re.IGNORECASE)
-            v = re.sub(r'on\w+=', '', v, flags=re.IGNORECASE)
+            v = re.sub(r"<script[^>]*>.*?</script>", "", v, flags=re.IGNORECASE)
+            v = re.sub(r"javascript:", "", v, flags=re.IGNORECASE)
+            v = re.sub(r"on\w+=", "", v, flags=re.IGNORECASE)
             return v.strip()
 
 
@@ -232,32 +240,36 @@ class SecurityManager:
 
     def setup_trusted_hosts(self, app):
         """Setup trusted hosts middleware."""
-        app.add_middleware(TrustedHostMiddleware, allowed_hosts=self.config.allowed_domains)
+        app.add_middleware(
+            TrustedHostMiddleware, allowed_hosts=self.config.allowed_domains
+        )
 
     def setup_security_middleware(self, app):
         """Setup all security middleware."""
         app.add_middleware(SecurityHeadersMiddleware)
-        app.add_middleware(RequestSizeMiddleware, max_size_mb=self.config.max_request_size)
+        app.add_middleware(
+            RequestSizeMiddleware, max_size_mb=self.config.max_request_size
+        )
         app.add_middleware(InputValidationMiddleware)
 
     def validate_url(self, url: str) -> bool:
         """Validate URL against security policies."""
         try:
             parsed = urlparse(url)
-            
+
             # Check scheme
             if parsed.scheme not in ["http", "https"]:
                 return False
-            
+
             # Check for localhost or private IPs
             hostname = parsed.hostname
             if hostname in ["localhost", "127.0.0.1", "0.0.0.0"]:
                 return False
-            
+
             # Check for dangerous ports
             if parsed.port and parsed.port not in [80, 443, 8080, 8443]:
                 return False
-            
+
             # Check for dangerous patterns
             dangerous_patterns = [
                 r"file://",
@@ -270,42 +282,44 @@ class SecurityManager:
                 r"config",
                 r"password",
             ]
-            
+
             for pattern in dangerous_patterns:
                 if re.search(pattern, url, re.IGNORECASE):
                     return False
-            
+
             return True
-            
+
         except Exception:
             return False
 
     def sanitize_filename(self, filename: str) -> str:
         """Sanitize filename to prevent directory traversal."""
         # Remove path separators and dangerous characters
-        safe_filename = re.sub(r'[\/:*?"<>|]', '_', filename)
-        safe_filename = re.sub(r'\.+', '.', safe_filename)
-        safe_filename = safe_filename.strip('.')
-        
+        safe_filename = re.sub(r'[\/:*?"<>|]', "_", filename)
+        safe_filename = re.sub(r"\.+", ".", safe_filename)
+        safe_filename = safe_filename.strip(".")
+
         # Ensure filename is not empty and not too long
         if not safe_filename or len(safe_filename) > 255:
             safe_filename = "safe_filename" + str(hash(filename))[:8]
-        
+
         return safe_filename
 
     def validate_api_key(self, api_key: str) -> bool:
         """Validate API key format."""
-        return bool(re.match(r'^[a-zA-Z0-9_-]{32,64}$', api_key))
+        return bool(re.match(r"^[a-zA-Z0-9_-]{32,64}$", api_key))
 
     def validate_email(self, email: str) -> bool:
         """Validate email format."""
-        email_pattern = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
+        email_pattern = r"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$"
         return bool(re.match(email_pattern, email))
 
     def validate_phone(self, phone: str) -> bool:
         """Validate phone number format."""
-        phone_pattern = r'^\+?[\d\s\-\(\)]+$'
-        return bool(re.match(phone_pattern, phone)) and len(re.sub(r'\D', '', phone)) >= 10
+        phone_pattern = r"^\+?[\d\s\-\(\)]+$"
+        return (
+            bool(re.match(phone_pattern, phone)) and len(re.sub(r"\D", "", phone)) >= 10
+        )
 
 
 # Global security manager
@@ -315,6 +329,7 @@ security_manager = SecurityManager()
 # Security decorators
 def secure_endpoint(max_length: int = 1000):
     """Decorator for secure endpoint validation."""
+
     def decorator(func):
         async def wrapper(*args, **kwargs):
             # Validate all string inputs
@@ -323,16 +338,18 @@ def secure_endpoint(max_length: int = 1000):
                     if len(value) > max_length:
                         raise HTTPException(
                             status_code=status.HTTP_400_BAD_REQUEST,
-                            detail=f"Parameter {key} exceeds maximum length of {max_length}"
+                            detail=f"Parameter {key} exceeds maximum length of {max_length}",
                         )
-                    
+
                     # Additional security validation
                     if not security_manager._is_safe_input(value):
                         raise HTTPException(
                             status_code=status.HTTP_400_BAD_REQUEST,
-                            detail=f"Parameter {key} contains invalid characters"
+                            detail=f"Parameter {key} contains invalid characters",
                         )
-            
+
             return await func(*args, **kwargs)
+
         return wrapper
+
     return decorator

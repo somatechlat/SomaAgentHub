@@ -58,7 +58,9 @@ _executor_counter = _executor_meter.create_counter(
 _executor_tracer = get_tracer("capsule_executor")
 
 
-def _upload_artifact(client: ObjectStoreClient, tenant: str, capsule: str, version: str, local_path: Path) -> str:
+def _upload_artifact(
+    client: ObjectStoreClient, tenant: str, capsule: str, version: str, local_path: Path
+) -> str:
     """Upload a file to the object store and return a presigned URL.
 
     The key layout mirrors the one used by the memory‑gateway when storing
@@ -137,7 +139,9 @@ async def execute_capsule(payload: CapsuleRunInput) -> dict[str, Any]:
       object store.
     """
     # Record that we started a run.
-    _executor_counter.add(1, {"capsule": payload.capsule_id, "version": payload.version})
+    _executor_counter.add(
+        1, {"capsule": payload.capsule_id, "version": payload.version}
+    )
 
     # -------------------------------------------------------------------
     # Helper to create the object‑store client – we lazily initialise it only
@@ -215,7 +219,9 @@ async def execute_capsule(payload: CapsuleRunInput) -> dict[str, Any]:
             elif isinstance(cmd, list):
                 docker_cmd.extend(cmd)
             else:
-                raise ValueError("payload.params.command must be a string or list of strings")
+                raise ValueError(
+                    "payload.params.command must be a string or list of strings"
+                )
 
         activity.logger.info(
             "Running Docker command for capsule (legacy mode)",

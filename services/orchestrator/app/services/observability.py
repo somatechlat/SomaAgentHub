@@ -74,14 +74,17 @@ external_service_duration = Histogram(
     ["service_name", "endpoint", "status", "service"],
 )
 
+
 # OpenTelemetry setup
 def setup_opentelemetry(service_name: str, service_version: str) -> None:
     """Initialize OpenTelemetry with OTLP exporter."""
-    resource = Resource.create(attributes={
-        "service.name": service_name,
-        "service.version": service_version,
-        "service.namespace": "soma-agent-hub",
-    })
+    resource = Resource.create(
+        attributes={
+            "service.name": service_name,
+            "service.version": service_version,
+            "service.namespace": "soma-agent-hub",
+        }
+    )
 
     provider = TracerProvider(resource=resource)
     trace.set_tracer_provider(provider)
@@ -121,7 +124,29 @@ class StructuredJSONFormatter(logging.Formatter):
 
         # Add extra fields from record
         for key, value in record.__dict__.items():
-            if key not in ["name", "msg", "args", "levelname", "levelno", "pathname", "filename", "module", "lineno", "funcName", "created", "msecs", "relativeCreated", "thread", "threadName", "processName", "process", "message", "exc_info", "exc_text", "stack_info"]:
+            if key not in [
+                "name",
+                "msg",
+                "args",
+                "levelname",
+                "levelno",
+                "pathname",
+                "filename",
+                "module",
+                "lineno",
+                "funcName",
+                "created",
+                "msecs",
+                "relativeCreated",
+                "thread",
+                "threadName",
+                "processName",
+                "process",
+                "message",
+                "exc_info",
+                "exc_text",
+                "stack_info",
+            ]:
                 log_data[key] = str(value)
 
         return json.dumps(log_data)
@@ -143,7 +168,7 @@ class ObservabilityMiddleware(BaseHTTPMiddleware):
         # Extract user context from headers
         user_id = request.headers.get("X-User-ID", "")
         session_id = request.headers.get("X-Session-ID", "")
-        
+
         if user_id:
             user_id_var.set(user_id)
         if session_id:
@@ -153,7 +178,7 @@ class ObservabilityMiddleware(BaseHTTPMiddleware):
         active_connections.labels(service=self.service_name).inc()
 
         start_time = time.time()
-        
+
         # Log incoming request
         logger.info(
             "HTTP request started",
@@ -202,7 +227,7 @@ class ObservabilityMiddleware(BaseHTTPMiddleware):
 
         except Exception as e:
             duration = time.time() - start_time
-            
+
             # Record error metrics
             http_requests_total.labels(
                 method=request.method,
@@ -231,7 +256,9 @@ class BusinessMetrics:
     """Helper class for business-level metrics."""
 
     @staticmethod
-    def record_event(event_type: str, status: str, metadata: Optional[Dict[str, Any]] = None):
+    def record_event(
+        event_type: str, status: str, metadata: Optional[Dict[str, Any]] = None
+    ):
         """Record a business event."""
         business_metric_total.labels(
             event_type=event_type,
@@ -279,14 +306,14 @@ class Tracer:
     def span(self, name: str, attributes: Optional[Dict[str, Any]] = None):
         """Create a span with context."""
         current_span = trace.get_current_span()
-        
+
         # Add context attributes
         span_attributes = {
             "correlation.id": correlation_id_var.get(),
             "user.id": user_id_var.get(),
             "session.id": session_id_var.get(),
         }
-        
+
         if attributes:
             span_attributes.update(attributes)
 
@@ -296,7 +323,7 @@ class Tracer:
 def setup_logging():
     """Setup structured JSON logging."""
     log_level = os.getenv("LOG_LEVEL", "INFO").upper()
-    
+
     # Configure root logger
     root_logger = logging.getLogger()
     root_logger.setLevel(log_level)
@@ -318,12 +345,11 @@ def setup_logging():
 
 def setup_observability(app):
     """Complete observability setup for FastAPI app."""
-    from ..main import app as main_app
-    
+    main_app = app
+
     # Setup OpenTelemetry
     tracer = setup_opentelemetry(
-        service_name="orchestrator-service",
-        service_version="0.1.0"
+        service_name="orchestrator-service", service_version="0.1.0"
     )
 
     # Setup logging
@@ -336,7 +362,8 @@ def setup_observability(app):
     FastAPIInstrumentor.instrument_app(main_app)
 
     # Instrument SQLAlchemy
-    from .database import async_engine
+    from ..database import async_engine
+
     SQLAlchemyInstrumentor().instrument(engine=async_engine.sync_engine)
 
     logger.info("Observability stack initialized successfully")

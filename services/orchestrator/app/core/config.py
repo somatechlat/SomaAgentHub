@@ -22,14 +22,22 @@ class Settings(BaseSettings):
     # Accept TEMPORAL_HOST (preferred) with fallback to legacy TEMPORAL_TARGET_HOST
     temporal_target_host: str = Field(default="localhost:10009", alias="TEMPORAL_HOST")
     temporal_namespace: str = Field(default="default", alias="TEMPORAL_NAMESPACE")
-    temporal_task_queue: str = Field(default="somagent.session.workflows", alias="TEMPORAL_TASK_QUEUE")
+    temporal_task_queue: str = Field(
+        default="somagent.session.workflows", alias="TEMPORAL_TASK_QUEUE"
+    )
     temporal_enabled: bool = Field(default=False, alias="TEMPORAL_ENABLED")
 
     # Kafka configuration
-    kafka_bootstrap_servers: str | None = Field(default=None, alias="KAFKA_BOOTSTRAP_SERVERS")
-    kafka_client_id: str = Field(default="orchestrator-service", alias="KAFKA_CLIENT_ID")
+    kafka_bootstrap_servers: str | None = Field(
+        default=None, alias="KAFKA_BOOTSTRAP_SERVERS"
+    )
+    kafka_client_id: str = Field(
+        default="orchestrator-service", alias="KAFKA_CLIENT_ID"
+    )
     kafka_topic_prefix: str = Field(default="orchestration", alias="KAFKA_TOPIC_PREFIX")
-    kafka_security_protocol: str = Field(default="PLAINTEXT", alias="KAFKA_SECURITY_PROTOCOL")
+    kafka_security_protocol: str = Field(
+        default="PLAINTEXT", alias="KAFKA_SECURITY_PROTOCOL"
+    )
     kafka_sasl_mechanism: str | None = Field(default=None, alias="KAFKA_SASL_MECHANISM")
     kafka_sasl_username: str | None = Field(default=None, alias="KAFKA_SASL_USERNAME")
     kafka_sasl_password: str | None = Field(default=None, alias="KAFKA_SASL_PASSWORD")
@@ -37,7 +45,9 @@ class Settings(BaseSettings):
     kafka_ssl_certfile: str | None = Field(default=None, alias="KAFKA_SSL_CERTFILE")
     kafka_ssl_keyfile: str | None = Field(default=None, alias="KAFKA_SSL_KEYFILE")
     kafka_producer_linger_ms: int = Field(default=10, alias="KAFKA_PRODUCER_LINGER_MS")
-    kafka_producer_batch_size: int = Field(default=16384, alias="KAFKA_PRODUCER_BATCH_SIZE")
+    kafka_producer_batch_size: int = Field(
+        default=16384, alias="KAFKA_PRODUCER_BATCH_SIZE"
+    )
 
     # Database configuration
     database_url: str = Field(
@@ -50,19 +60,36 @@ class Settings(BaseSettings):
     database_pool_recycle: int = Field(default=3600, alias="DATABASE_POOL_RECYCLE")
     database_echo: bool = Field(default=False, alias="DATABASE_ECHO")
 
+    # Redis configuration
+    redis_url: str = Field(
+        default="redis://redis:6379/0",
+        alias="REDIS_URL",
+    )
+
     # Policy & identity services (real HTTP endpoints)
     policy_engine_url: AnyUrl = Field(
-        default=os.getenv("POLICY_ENGINE_URL", "http://policy-engine:10020") + "/v1/evaluate",
+        default=os.getenv("POLICY_ENGINE_URL", "http://policy-engine:10020")
+        + "/v1/evaluate",
         alias="POLICY_ENGINE_URL",
     )
+    # Explicit control for handling OPA errors. Default is secure (deny on error).
+    allow_on_opa_error: bool = Field(
+        default=False,
+        alias="ALLOW_ON_OPA_ERROR",
+    )
     identity_service_url: AnyUrl = Field(
-        default=os.getenv("IDENTITY_TOKEN_ISSUE_URL", "http://identity-service:10002/v1/tokens/issue"),
+        default=os.getenv(
+            "IDENTITY_TOKEN_ISSUE_URL", "http://identity-service:10002/v1/tokens/issue"
+        ),
         alias="IDENTITY_SERVICE_URL",
     )
 
     # Notification service used to broadcast orchestration milestones
     notification_service_url: AnyUrl | None = Field(
-        default=os.getenv("NOTIFICATION_SERVICE_URL", "http://notification-service:10026") + "/v1/notifications",
+        default=os.getenv(
+            "NOTIFICATION_SERVICE_URL", "http://notification-service:10026"
+        )
+        + "/v1/notifications",
         alias="NOTIFICATION_SERVICE_URL",
     )
 
@@ -84,18 +111,29 @@ class Settings(BaseSettings):
     )
 
     # Volcano scheduler integration (optional)
-    enable_volcano_scheduler: bool = Field(default=False, alias="ENABLE_VOLCANO_SCHEDULER")
+    enable_volcano_scheduler: bool = Field(
+        default=False, alias="ENABLE_VOLCANO_SCHEDULER"
+    )
     volcano_namespace: str = Field(default="soma-agent-hub", alias="VOLCANO_NAMESPACE")
-    volcano_default_queue: str = Field(default="interactive", alias="VOLCANO_DEFAULT_QUEUE")
-    volcano_session_image: str = Field(default="python:3.11-slim", alias="VOLCANO_SESSION_IMAGE")
+    volcano_default_queue: str = Field(
+        default="interactive", alias="VOLCANO_DEFAULT_QUEUE"
+    )
+    volcano_session_image: str = Field(
+        default="python:3.11-slim", alias="VOLCANO_SESSION_IMAGE"
+    )
     volcano_session_cpu: str = Field(default="500m", alias="VOLCANO_SESSION_CPU")
     volcano_session_memory: str = Field(default="512Mi", alias="VOLCANO_SESSION_MEMORY")
-    volcano_job_timeout_seconds: int = Field(default=300, alias="VOLCANO_JOB_TIMEOUT_SECONDS")
+    volcano_job_timeout_seconds: int = Field(
+        default=300, alias="VOLCANO_JOB_TIMEOUT_SECONDS"
+    )
     kubectl_binary: str = Field(default="kubectl", alias="KUBECTL_BINARY")
 
     # Constitution service manifest signing
     constitution_service_url: AnyUrl = Field(
-        default=os.getenv("CONSTITUTION_SERVICE_URL", "http://constitution-service:10024") + "/v1",
+        default=os.getenv(
+            "CONSTITUTION_SERVICE_URL", "http://constitution-service:10024"
+        )
+        + "/v1",
         alias="CONSTITUTION_SERVICE_URL",
     )
     manifest_signing_enabled: bool = Field(
@@ -112,7 +150,9 @@ class Settings(BaseSettings):
     ray_namespace: str = Field(default="somagent", alias="RAY_NAMESPACE")
 
     # OpenTelemetry exporter (optional)
-    otlp_endpoint: AnyUrl | None = Field(default=None, alias="OTEL_EXPORTER_OTLP_ENDPOINT")
+    otlp_endpoint: AnyUrl | None = Field(
+        default=None, alias="OTEL_EXPORTER_OTLP_ENDPOINT"
+    )
 
     # Capsule repository – where manifest YAML files are stored. The orchestrator
     # fetches a manifest when a capsule run does not provide an explicit
@@ -122,6 +162,9 @@ class Settings(BaseSettings):
         default=os.getenv("CAPSULE_REPO_URL", "http://capsule-repo:8002/v1/capsules"),
         alias="CAPSULE_REPO_URL",
     )
+
+    # Logging configuration
+    log_level: str = Field(default="INFO", alias="LOG_LEVEL")
 
     model_config = {
         "env_file": ".env",

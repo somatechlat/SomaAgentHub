@@ -57,32 +57,211 @@ class PlanRepository:
             return result.first()
 
     async def list_modules(self, plan_id: str) -> list[PlanModuleRecord]:
-        raise NotImplementedError
+        plan = await self.get_plan(plan_id)
+        if not plan:
+            return []
+        modules = (plan.payload or {}).get("modules", [])
+        records: list[PlanModuleRecord] = []
+        for m in modules:
+            records.append(
+                PlanModuleRecord(
+                    plan_id=plan_id,
+                    module_id=m.get("module_id") or m.get("id") or "",
+                    status=m.get("status", "draft"),
+                    dependencies=list(m.get("dependencies", [])),
+                    answers=dict(m.get("answers", {})),
+                )
+            )
+        return records
 
     async def upsert_module(self, module: PlanModuleRecord) -> None:
-        raise NotImplementedError
+        async with get_async_session() as session:
+            stmt = select(Plan).where(Plan.plan_id == module.plan_id)
+            result = await session.exec(stmt)
+            plan = result.first()
+            if not plan:
+                return
+            payload = dict(plan.payload or {})
+            modules = list(payload.get("modules", []))
+            updated = False
+            for idx, m in enumerate(modules):
+                mid = m.get("module_id") or m.get("id")
+                if mid == module.module_id:
+                    modules[idx] = {
+                        **m,
+                        "module_id": module.module_id,
+                        "status": module.status,
+                        "dependencies": module.dependencies,
+                        "answers": module.answers,
+                    }
+                    updated = True
+                    break
+            if not updated:
+                modules.append(
+                    {
+                        "module_id": module.module_id,
+                        "status": module.status,
+                        "dependencies": module.dependencies,
+                        "answers": module.answers,
+                    }
+                )
+            payload["modules"] = modules
+            plan.payload = payload
+            await session.commit()
+            await session.refresh(plan)
 
     async def append_event(self, event: PlanEvent) -> None:
-        raise NotImplementedError
+        async with get_async_session() as session:
+            stmt = select(Plan).where(Plan.plan_id == event.plan_id)
+            result = await session.exec(stmt)
+            plan = result.first()
+            if not plan:
+                return
+            payload = dict(plan.payload or {})
+            events = list(payload.get("events", []))
+            events.append(
+                {
+                    "event_type": event.event_type,
+                    "payload": event.payload,
+                    "created_at": event.created_at.isoformat(),
+                }
+            )
+            payload["events"] = events
+            plan.payload = payload
+            await session.commit()
+            await session.refresh(plan)
 
     async def list_events(self, plan_id: str) -> list[PlanEvent]:
-        raise NotImplementedError
+        plan = await self.get_plan(plan_id)
+        if not plan:
+            return []
+        events_raw = (plan.payload or {}).get("events", [])
+        out: list[PlanEvent] = []
+        for e in events_raw:
+            out.append(
+                PlanEvent(
+                    plan_id=plan_id,
+                    event_type=e.get("event_type", "unknown"),
+                    payload=e.get("payload") or {},
+                )
+            )
+        return out
 
     async def upsert_tool_binding(self, binding: ToolBindingRecord) -> None:
-        raise NotImplementedError
+        async with get_async_session() as session:
+            stmt = select(Plan).where(Plan.plan_id == binding.plan_id)
+            result = await session.exec(stmt)
+            plan = result.first()
+            if not plan:
+                return
+            payload = dict(plan.payload or {})
+            bindings = list(payload.get("tool_bindings", []))
+            updated = False
+            for i, tb in enumerate(bindings):
+                if tb.get("capability") == binding.capability:
+                    bindings[i] = {
+                        **tb,
+                        "capability": binding.capability,
+                        "tool_name": binding.tool_name,
+                        "status": binding.status,
+                        "metadata": binding.metadata,
+                    }
+                    updated = True
+                    break
+            if not updated:
+                bindings.append(
+                    {
+                        "capability": binding.capability,
+                        "tool_name": binding.tool_name,
+                        "status": binding.status,
+                        "metadata": binding.metadata,
+                    }
+                )
+            payload["tool_bindings"] = bindings
+            plan.payload = payload
+            await session.commit()
+            await session.refresh(plan)
 
     async def list_tool_bindings(self, plan_id: str) -> list[ToolBindingRecord]:
-        raise NotImplementedError
+        plan = await self.get_plan(plan_id)
+        if not plan:
+            return []
+        raw = (plan.payload or {}).get("tool_bindings", [])
+        out: list[ToolBindingRecord] = []
+        for tb in raw:
+            out.append(
+                ToolBindingRecord(
+                    plan_id=plan_id,
+                    capability=tb.get("capability", ""),
+                    tool_name=tb.get("tool_name", ""),
+                    status=tb.get("status", "unknown"),
+                    metadata=tb.get("metadata") or {},
+                )
+            )
+        return out
 
     async def upsert_provisioning_task(self, task: ProvisioningTaskRecord) -> None:
-        raise NotImplementedError
+        async with get_async_session() as session:
+            stmt = select(Plan).where(Plan.plan_id == task.plan_id)
+            result = await session.exec(stmt)
+            plan = result.first()
+            if not plan:
+                return
+            payload = dict(plan.payload or {})
+            tasks = list(payload.get("provisioning_tasks", []))
+            updated = False
+            for i, t in enumerate(tasks):
+                if t.get("task_id") == task.task_id:
+                    tasks[i] = {
+                        **t,
+                        "task_id": task.task_id,
+                        "capsule_id": task.capsule_id,
+                        "status": task.status,
+                        "metadata": task.metadata,
+                        "last_updated_at": task.last_updated_at.isoformat(),
+                    }
+                    updated = True
+                    break
+            if not updated:
+                tasks.append(
+                    {
+                        "task_id": task.task_id,
+                        "capsule_id": task.capsule_id,
+                        "status": task.status,
+                        "metadata": task.metadata,
+                        "last_updated_at": task.last_updated_at.isoformat(),
+                    }
+                )
+            payload["provisioning_tasks"] = tasks
+            plan.payload = payload
+            await session.commit()
+            await session.refresh(plan)
 
-    async def list_provisioning_tasks(self, plan_id: str) -> list[ProvisioningTaskRecord]:
-        raise NotImplementedError
+    async def list_provisioning_tasks(
+        self, plan_id: str
+    ) -> list[ProvisioningTaskRecord]:
+        plan = await self.get_plan(plan_id)
+        if not plan:
+            return []
+        raw = (plan.payload or {}).get("provisioning_tasks", [])
+        out: list[ProvisioningTaskRecord] = []
+        for t in raw:
+            out.append(
+                ProvisioningTaskRecord(
+                    plan_id=plan_id,
+                    task_id=t.get("task_id", ""),
+                    capsule_id=t.get("capsule_id", ""),
+                    status=t.get("status", "unknown"),
+                    metadata=t.get("metadata") or {},
+                )
+            )
+        return out
 
     async def delete_plan(self, plan_id: str) -> None:
         async with get_async_session() as session:
-            plan = await session.get(Plan, plan_id)
+            statement = select(Plan).where(Plan.plan_id == plan_id)
+            result = await session.exec(statement)
+            plan = result.first()
             if plan:
                 await session.delete(plan)
                 await session.commit()

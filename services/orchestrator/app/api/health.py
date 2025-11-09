@@ -51,11 +51,12 @@ async def readiness_check() -> Dict[str, Any]:
     # Check Kafka (if configured)
     if settings.kafka_bootstrap_servers:
         try:
+
             @KAFKA_CIRCUIT_BREAKER
             async def _check_kafka() -> bool:
                 kafka_config = KafkaClientConfig()
                 return True
-            
+
             await _check_kafka()
             checks["kafka"] = {"healthy": True, "message": "Kafka configuration valid"}
         except Exception as e:
@@ -66,7 +67,9 @@ async def readiness_check() -> Dict[str, Any]:
 
     if not all_healthy:
         health_status["status"] = "not_ready"
-        raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=health_status)
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=health_status
+        )
 
     health_status["checks"] = checks
     health_status["circuit_breakers"] = circuit_breaker_manager.get_all_states()

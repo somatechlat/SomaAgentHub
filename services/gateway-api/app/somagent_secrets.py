@@ -1,11 +1,22 @@
-"""Simple replacement for somagent_secrets module."""
+"""Secrets loader with explicit error handling (no silent bypass)."""
 
+import logging
 import os
 
 
-def load_secret(env_var: str, file_env: str | None = None, default: str | None = None) -> str | None:
-    """Load a secret from environment variable or file."""
-    # Try environment variable first
+logger = logging.getLogger("gateway.secrets")
+
+
+def load_secret(
+    env_var: str, file_env: str | None = None, default: str | None = None
+) -> str | None:
+    """Load a secret from environment variable or file.
+
+    - Returns the env var if set.
+    - If a file env is provided and points to a readable file, returns its trimmed content.
+    - On file errors, logs and returns the provided default (or None if unspecified).
+    """
+    # Prefer environment variable first
     value = os.getenv(env_var)
     if value:
         return value
@@ -17,8 +28,10 @@ def load_secret(env_var: str, file_env: str | None = None, default: str | None =
             try:
                 with open(file_path) as f:
                     return f.read().strip()
-            except Exception:
-                pass
+            except Exception as exc:
+                logger.error("Failed to read secret file %s: %s", file_path, exc)
 
-    # Return default
-    return default
+    # Fall back to default (explicit), otherwise None
+    if default is not None:
+        return default
+    return None

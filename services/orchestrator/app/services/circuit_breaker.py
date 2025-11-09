@@ -38,6 +38,7 @@ circuit_breaker_duration = Histogram(
 
 class CircuitState(Enum):
     """Circuit breaker states."""
+
     CLOSED = "closed"
     OPEN = "open"
     HALF_OPEN = "half_open"
@@ -46,6 +47,7 @@ class CircuitState(Enum):
 @dataclass
 class CircuitBreakerConfig:
     """Configuration for circuit breaker."""
+
     failure_threshold: int = 5
     recovery_timeout: int = 60
     expected_exception: type[Exception] = Exception
@@ -65,36 +67,46 @@ class CircuitBreaker:
         self.last_failure_time: Optional[float] = None
         self._lock = asyncio.Lock()
 
-    async def __call__(self, func: Callable[..., Awaitable[Any]], *args: Any, **kwargs: Any) -> Any:
+    async def __call__(
+        self, func: Callable[..., Awaitable[Any]], *args: Any, **kwargs: Any
+    ) -> Any:
         """Execute function with circuit breaker protection."""
         async with self._lock:
             if self.state == CircuitState.OPEN:
                 if self._should_attempt_reset():
                     self.state = CircuitState.HALF_OPEN
                     self.success_count = 0
-                    circuit_breaker_state.labels(service=self.config.name, state="half_open").inc()
-                    logger.info(f"Circuit breaker {self.config.name} entering HALF_OPEN state")
+                    circuit_breaker_state.labels(
+                        service=self.config.name, state="half_open"
+                    ).inc()
+                    logger.info(
+                        f"Circuit breaker {self.config.name} entering HALF_OPEN state"
+                    )
                 else:
                     if self.config.fallback_function:
                         return await self._execute_fallback(*args, **kwargs)
-                    raise ServiceUnavailableError(f"Circuit breaker {self.config.name} is OPEN")
+                    raise ServiceUnavailableError(
+                        f"Circuit breaker {self.config.name} is OPEN"
+                    )
 
         # Execute the actual function
         start_time = time.time()
         try:
             result = await func(*args, **kwargs)
             await self._on_success()
-            circuit_breaker_duration.labels(service=self.config.name, status="success").observe(
-                time.time() - start_time
-            )
+            circuit_breaker_duration.labels(
+                service=self.config.name, status="success"
+            ).observe(time.time() - start_time)
             return result
 
         except self.config.expected_exception as e:
             await self._on_failure()
-            circuit_breaker_failures.labels(service=self.config.name, type=type(e).__name__).inc()
-            circuit_breaker_duration.labels(service=self.config.name, status="failure").observe(
-                time.time() - start_time
-            )
+            circuit_breaker_failures.labels(
+                service=self.config.name, type=type(e).__name__
+            ).inc()
+            circuit_breaker_duration.labels(
+                service=self.config.name, status="failure"
+            ).observe(time.time() - start_time)
 
             if self.config.fallback_function:
                 return await self._execute_fallback(*args, **kwargs)
@@ -109,12 +121,14 @@ class CircuitBreaker:
     async def _on_success(self) -> None:
         """Handle successful execution."""
         self.failure_count = 0
-        
+
         if self.state == CircuitState.HALF_OPEN:
             self.success_count += 1
             if self.success_count >= self.config.success_threshold:
                 self.state = CircuitState.CLOSED
-                circuit_breaker_state.labels(service=self.config.name, state="closed").inc()
+                circuit_breaker_state.labels(
+                    service=self.config.name, state="closed"
+                ).inc()
                 logger.info(f"Circuit breaker {self.config.name} reset to CLOSED")
         elif self.state == CircuitState.CLOSED:
             pass  # Normal operation
@@ -152,6 +166,7 @@ class CircuitBreaker:
 
 class ServiceUnavailableError(Exception):
     """Raised when circuit breaker is open."""
+
     pass
 
 
@@ -179,7 +194,10 @@ EXTERNAL_SERVICE_CIRCUIT_BREAKER = CircuitBreaker(
         name="external_service",
         failure_threshold=3,
         recovery_timeout=45,
-        fallback_function=lambda: {"healthy": False, "message": "External service unavailable"},
+        fallback_function=lambda: {
+            "healthy": False,
+            "message": "External service unavailable",
+        },
     )
 )
 

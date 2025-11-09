@@ -61,7 +61,14 @@ class OpenTelemetryConfig:
         # Add OTLP exporter if enabled (for Tempo in Sprint-6)
         if self.enable_otlp:
             otlp_endpoint = os.getenv("OTEL_EXPORTER_OTLP_ENDPOINT", default_otlp_grpc_endpoint())
-            otlp_exporter = OTLPSpanExporter(endpoint=otlp_endpoint, insecure=True)
+            insecure = os.getenv("OTEL_INSECURE", "false").lower() == "true"
+            if insecure:
+                logger.warning(
+                    "OTLP trace exporter using insecure channel (OTEL_INSECURE=true); set OTEL_INSECURE=false for TLS"
+                )
+            else:
+                logger.info("OTLP trace exporter using secure channel")
+            otlp_exporter = OTLPSpanExporter(endpoint=otlp_endpoint, insecure=insecure)
             trace_provider.add_span_processor(BatchSpanProcessor(otlp_exporter))
             logger.info(f"OTLP trace exporter enabled: {otlp_endpoint}")
 

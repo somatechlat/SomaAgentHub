@@ -37,13 +37,17 @@ class OutboxEvent(Base):
     event_data = Column(JSON, nullable=False)
 
     # When the event was created
-    created_at = Column(DateTime(timezone=True), nullable=False, server_default=func.now(), index=True)
+    created_at = Column(
+        DateTime(timezone=True), nullable=False, server_default=func.now(), index=True
+    )
 
     # When the event was processed (null if not yet processed)
     processed_at = Column(DateTime(timezone=True), nullable=True)
 
     # Processing status for tracking
-    processing_status = Column(String(50), nullable=False, default="pending", index=True)
+    processing_status = Column(
+        String(50), nullable=False, default="pending", index=True
+    )
 
     # Retry count for failed publications
     retry_count = Column(String(10), nullable=False, default="0")
@@ -61,7 +65,9 @@ class OutboxEvent(Base):
             "event_type": self.event_type,
             "event_data": self.event_data,
             "created_at": self.created_at.isoformat() if self.created_at else None,
-            "processed_at": (self.processed_at.isoformat() if self.processed_at else None),
+            "processed_at": (
+                self.processed_at.isoformat() if self.processed_at else None
+            ),
             "processing_status": self.processing_status,
             "retry_count": int(self.retry_count),
             "last_error": self.last_error,

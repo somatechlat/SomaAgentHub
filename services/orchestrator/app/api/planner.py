@@ -67,8 +67,12 @@ class BatchGeneratePayload(BaseModel):
     requests: list[GeneratePlanPayload]
 
 
-@router.post("/generate", response_model=ProjectPlan, status_code=status.HTTP_201_CREATED)
-async def generate_plan(payload: GeneratePlanPayload, session: AsyncSession = Depends(get_session)) -> ProjectPlan:
+@router.post(
+    "/generate", response_model=ProjectPlan, status_code=status.HTTP_201_CREATED
+)
+async def generate_plan(
+    payload: GeneratePlanPayload, session: AsyncSession = Depends(get_session)
+) -> ProjectPlan:
     """Generate a new project plan.
 
     Delegates to `PlannerService.generate_plan` and returns the persisted
@@ -95,7 +99,9 @@ async def generate_plan(payload: GeneratePlanPayload, session: AsyncSession = De
                 event_service = EventEmissionService(session)
 
                 # Generate plan with event emission
-                plan = await _service.generate_plan(payload.request, payload.context, session=session)
+                plan = await _service.generate_plan(
+                    payload.request, payload.context, session=session
+                )
 
                 # Emit plan creation event
                 await event_service.emit_plan_created_event(
@@ -131,7 +137,10 @@ async def batch_generate(payload: BatchGeneratePayload) -> list[ProjectPlan]:
     with planner_latency_seconds.labels(endpoint="batch_generate").time():
         with _tracer.start_as_current_span("batch_generate_plan_endpoint") as span:
             try:
-                coros = [_service.generate_plan(req.request, req.context) for req in payload.requests]
+                coros = [
+                    _service.generate_plan(req.request, req.context)
+                    for req in payload.requests
+                ]
                 results = await asyncio.gather(*coros, return_exceptions=False)
                 span.set_attribute("batch.size", len(payload.requests))
                 return results
@@ -285,7 +294,9 @@ async def batch_refine(payload: BatchRefinePayload) -> list[ProjectPlan]:
         context={},
     )
     if not authorized:
-        raise HTTPException(status_code=403, detail="Unauthorized to batch refine plans")
+        raise HTTPException(
+            status_code=403, detail="Unauthorized to batch refine plans"
+        )
 
     planner_batch_refine_requests.labels(method="batch").inc(len(payload.requests))
     with planner_latency_seconds.labels(endpoint="batch_refine").time():
@@ -294,11 +305,15 @@ async def batch_refine(payload: BatchRefinePayload) -> list[ProjectPlan]:
             # Fetch existing plan
             existing = await _repo.get_plan(req.plan_id)
             if existing is None:
-                raise HTTPException(status_code=404, detail=f"Plan {req.plan_id} not found")
+                raise HTTPException(
+                    status_code=404, detail=f"Plan {req.plan_id} not found"
+                )
             try:
                 current_plan = ProjectPlan.parse_obj(existing.payload)
             except Exception as exc:
-                raise HTTPException(status_code=500, detail="Corrupted plan data") from exc
+                raise HTTPException(
+                    status_code=500, detail="Corrupted plan data"
+                ) from exc
             refined = await _service.refine_plan(
                 current_plan,
                 req.updates,

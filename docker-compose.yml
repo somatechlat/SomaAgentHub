@@ -16,7 +16,7 @@ services:
       - "${GATEWAY_API_PORT:-10000}:10000"
     environment:
       - SOMAGENT_GATEWAY_REDIS_URL=redis://redis:6379/0
-      - SOMAGENT_GATEWAY_ORCHESTRATOR_URL=http://orchestrator:10001
+      - SOMAGENT_GATEWAY_ORCHESTRATOR_URL=http://orchestrator:8000
       - IDENTITY_SERVICE_URL=http://identity-service:10002
       - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4317
     depends_on:
@@ -41,18 +41,19 @@ services:
     container_name: somaagenthub_orchestrator
     restart: unless-stopped
     ports:
-      - "${ORCHESTRATOR_PORT:-10001}:10001"
+      - "${ORCHESTRATOR_PORT:-10001}:8000"
     environment:
       - TEMPORAL_HOST=temporal-server:7233
       - TEMPORAL_NAMESPACE=${TEMPORAL_NAMESPACE:-default}
       - TEMPORAL_TASK_QUEUE=${TEMPORAL_TASK_QUEUE:-somagent.session.workflows}
       - TEMPORAL_ENABLED=${TEMPORAL_ENABLED:-true}
+      - DATABASE_URL=postgresql+asyncpg://${APP_POSTGRES_USER:-somaagent}:${APP_POSTGRES_PASSWORD:-somaagent}@app-postgres:5432/${APP_POSTGRES_DB:-somaagent}
       - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4317
     depends_on:
       temporal-server:
         condition: service_healthy
     healthcheck:
-      test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://127.0.0.1:10001/ready', timeout=3)\""]
+      test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/ready', timeout=3)\""]
       interval: 10s
       timeout: 5s
       retries: 6
@@ -107,6 +108,23 @@ services:
     networks:
       - somaagenthub-network
 
+  constitution-service:
+    build:
+      context: .
+      dockerfile: services/constitution-service/Dockerfile
+    container_name: somaagenthub_constitution-service
+    restart: unless-stopped
+    command: ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "10024"]
+    ports:
+      - "${CONSTITUTION_SERVICE_PORT:-10024}:10024"
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://127.0.0.1:10024/health', timeout=3)\""]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+    networks:
+      - somaagenthub-network
+
   # Memory Gateway (optional but now enabled by default)
   memory-gateway:
     build:
@@ -127,6 +145,24 @@ services:
     depends_on:
       redis:
         condition: service_healthy
+    networks:
+      - somaagenthub-network
+
+  slm-service:
+    build:
+      context: .
+      dockerfile: services/slm-service/Dockerfile
+    container_name: somaagenthub_slm-service
+    restart: unless-stopped
+    environment:
+      - PORT=10022
+    ports:
+      - "${SLM_SERVICE_PORT:-10022}:10022"
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://127.0.0.1:10022/health', timeout=3)\""]
+      interval: 10s
+      timeout: 5s
+      retries: 6
     networks:
       - somaagenthub-network
 
@@ -310,6 +346,112 @@ services:
         condition: service_healthy
     healthcheck:
       test: ["CMD-SHELL", "curl -f http://127.0.0.1:3000/api/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+    networks:
+      - somaagenthub-network
+
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:0.96.0
+    container_name: somaagenthub_otel_collector
+    restart: unless-stopped
+    command: ["--config=/etc/otel-collector-config.yaml"]
+    ports:
+      - "${OTEL_COLLECTOR_OTLP_PORT:-10015}:4317"  # OTLP gRPC
+      - "${OTEL_COLLECTOR_OTLP_HTTP_PORT:-10016}:4318"  # OTLP HTTP
+    volumes:
+      - ./infra/observability/otel-collector-config.yaml:/etc/otel-collector-config.yaml:ro
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:4318 || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 6
+    networks:
+      - somaagenthub-network
+
+  pricing-service:
+    build:
+      context: .
+      dockerfile: services/pricing-service/Dockerfile
+    container_name: somaagenthub_pricing-service
+    restart: unless-stopped
+    ports:
+      - "${PRICING_SERVICE_PORT:-10026}:10026"
+    environment:
+      - CLICKHOUSE_HOST=clickhouse
+      - CLICKHOUSE_HTTP_PORT=8123
+      - CLICKHOUSE_USER=${CLICKHOUSE_USER:-default}
+      - CLICKHOUSE_PASSWORD=${CLICKHOUSE_PASSWORD:-}
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4317
+    depends_on:
+      clickhouse:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://127.0.0.1:10026/health', timeout=3)\""]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+    networks:
+      - somaagenthub-network
+
+  tempo:
+    image: grafana/tempo:2.5.0
+    container_name: somaagenthub_tempo
+    restart: unless-stopped
+    command: ["-config.file=/etc/tempo.yaml"]
+    volumes:
+      - ./infra/observability/tempo.yaml:/etc/tempo.yaml:ro
+    ports:
+      - "${TEMPO_HTTP_PORT:-10012}:3200"
+      - "${TEMPO_OTLP_GRPC_PORT:-10014}:4317"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:3200/metrics || exit 1"]
+    networks:
+      - somaagenthub-network
+
+  loki:
+    image: grafana/loki:2.9.6
+    container_name: somaagenthub_loki
+    restart: unless-stopped
+    command: ["-config.file=/etc/loki/local-config.yaml"]
+    ports:
+      - "${LOKI_HTTP_PORT:-10013}:3100"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:3100/ready || exit 1"]
+    networks:
+      - somaagenthub-network
+
+  notification-service:
+    build:
+      context: .
+      dockerfile: services/notification-service/Dockerfile
+    container_name: somaagenthub_notification-service
+    restart: unless-stopped
+    environment:
+      - SOMAGENT_NOTIFICATION_USE_KAFKA=false
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4317
+    ports:
+      - "${NOTIFICATION_SERVICE_PORT:-10027}:10026"
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://127.0.0.1:10026/health', timeout=3)\""]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+    networks:
+      - somaagenthub-network
+
+  capsule-repo:
+    build:
+      context: .
+      dockerfile: services/task-capsule-repo/Dockerfile
+    container_name: somaagenthub_capsule-repo
+    restart: unless-stopped
+    command: ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8002"]
+    ports:
+      - "${CAPSULE_REPO_PORT:-10023}:8002"
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://127.0.0.1:8002/health', timeout=3)\""]
       interval: 10s
       timeout: 5s
       retries: 6

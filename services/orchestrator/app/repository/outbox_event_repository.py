@@ -57,7 +57,33 @@ class OutboxEventRepository:
         await self.session.flush()
         return event
 
-    async def get_pending_events(self, limit: int = 100, max_retries: int = 3) -> List[OutboxEvent]:
+    async def save_event(
+        self,
+        event_type: str,
+        event_data: dict,
+        topic: str | None = None,
+        key: str | None = None,
+    ) -> OutboxEvent:
+        """Persist an event using conventional defaults.
+
+        This helper aligns with the existing event_service which expects a
+        ``save_event`` method. It wraps ``create_event`` providing a stable
+        topic namespace and uses the workflow identifier (if present) as the
+        partition key for ordering.
+        """
+        workflow_id = event_data.get("workflow_id")
+        resolved_key = key or workflow_id
+        resolved_topic = topic or "orchestrator.events"
+        return await self.create_event(
+            event_type=event_type,
+            topic=resolved_topic,
+            key=resolved_key,
+            payload=event_data,
+        )
+
+    async def get_pending_events(
+        self, limit: int = 100, max_retries: int = 3
+    ) -> List[OutboxEvent]:
         """Get pending events for processing.
 
         Args:
@@ -68,7 +94,10 @@ class OutboxEventRepository:
             List of pending OutboxEvent instances
         """
         stmt = (
-            select(OutboxEvent).where(OutboxEvent.processed_at.is_(None)).order_by(OutboxEvent.created_at).limit(limit)
+            select(OutboxEvent)
+            .where(OutboxEvent.processed_at.is_(None))
+            .order_by(OutboxEvent.created_at)
+            .limit(limit)
         )
 
         result = await self.session.execute(stmt)
@@ -93,7 +122,11 @@ class OutboxEventRepository:
         Args:
             event_id: The event UUID
         """
-        stmt = update(OutboxEvent).where(OutboxEvent.id == event_id).values(processed_at=datetime.now(timezone.utc))
+        stmt = (
+            update(OutboxEvent)
+            .where(OutboxEvent.id == event_id)
+            .values(processed_at=datetime.now(timezone.utc))
+        )
         await self.session.execute(stmt)
 
     async def mark_as_failed(self, event_id: uuid.UUID, error: str) -> None:
@@ -121,7 +154,9 @@ class OutboxEventRepository:
         )
         await self.session.execute(stmt)
 
-    async def get_events_by_type(self, event_type: str, limit: int = 100) -> List[OutboxEvent]:
+    async def get_events_by_type(
+        self, event_type: str, limit: int = 100
+    ) -> List[OutboxEvent]:
         """Get events by type.
 
         Args:
@@ -141,7 +176,9 @@ class OutboxEventRepository:
         result = await self.session.execute(stmt)
         return result.scalars().all()
 
-    async def get_events_by_topic(self, topic: str, limit: int = 100) -> List[OutboxEvent]:
+    async def get_events_by_topic(
+        self, topic: str, limit: int = 100
+    ) -> List[OutboxEvent]:
         """Get events by topic.
 
         Args:
@@ -152,7 +189,10 @@ class OutboxEventRepository:
             List of OutboxEvent instances
         """
         stmt = (
-            select(OutboxEvent).where(OutboxEvent.topic == topic).order_by(OutboxEvent.created_at.desc()).limit(limit)
+            select(OutboxEvent)
+            .where(OutboxEvent.topic == topic)
+            .order_by(OutboxEvent.created_at.desc())
+            .limit(limit)
         )
 
         result = await self.session.execute(stmt)
@@ -168,7 +208,12 @@ class OutboxEventRepository:
         Returns:
             List of OutboxEvent instances
         """
-        stmt = select(OutboxEvent).where(OutboxEvent.key == key).order_by(OutboxEvent.created_at.desc()).limit(limit)
+        stmt = (
+            select(OutboxEvent)
+            .where(OutboxEvent.key == key)
+            .order_by(OutboxEvent.created_at.desc())
+            .limit(limit)
+        )
 
         result = await self.session.execute(stmt)
         return result.scalars().all()

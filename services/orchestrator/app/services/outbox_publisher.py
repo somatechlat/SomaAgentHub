@@ -74,7 +74,9 @@ class OutboxPublisherService:
             for event in events:
                 await self._publish_event(repo, event)
 
-    async def _publish_event(self, repo: OutboxEventRepository, event: OutboxEvent) -> None:
+    async def _publish_event(
+        self, repo: OutboxEventRepository, event: OutboxEvent
+    ) -> None:
         """Publish a single event to Kafka."""
         try:
             message = {
@@ -84,7 +86,9 @@ class OutboxPublisherService:
                 "event_id": str(event.id),
             }
 
-            logger.debug(f"Publishing event {event.id} to topic {event.topic}: {message}")
+            logger.debug(
+                f"Publishing event {event.id} to topic {event.topic}: {message}"
+            )
 
             await self.producer.send_event(
                 topic=event.topic,
@@ -103,15 +107,21 @@ class OutboxPublisherService:
             await self._handle_publishing_error(repo, event, str(e))
             await session.commit()
 
-    async def _handle_publishing_error(self, repo: OutboxEventRepository, event: OutboxEvent, error: str) -> None:
+    async def _handle_publishing_error(
+        self, repo: OutboxEventRepository, event: OutboxEvent, error: str
+    ) -> None:
         """Handle publishing errors and update retry count."""
         current_retry = int(event.retry_count) if event.retry_count else 0
 
         if current_retry >= self.max_retries:
-            logger.error(f"Event {event.id} failed permanently after {self.max_retries} retries")
+            logger.error(
+                f"Event {event.id} failed permanently after {self.max_retries} retries"
+            )
             await repo.mark_as_failed(event.id, error)
         else:
-            logger.warning(f"Event {event.id} failed, retry {current_retry + 1}/{self.max_retries}")
+            logger.warning(
+                f"Event {event.id} failed, retry {current_retry + 1}/{self.max_retries}"
+            )
             # Update retry count but keep pending for next attempt
             stmt = (
                 update(OutboxEvent)

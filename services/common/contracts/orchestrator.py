@@ -41,3 +41,13 @@ class SessionStartResponse(BaseModel):
     run_id: str | None = None
     session_id: str
     task_queue: str
+
+
+class OrchestrationStartedEvent(BaseModel):
+    """Event emitted when a multi-agent orchestration is started."""
+    mao_id: str
+    project_id: str
+    workflow_type: str
+    agent_ids: list[str]
+    input_data: dict[str, Any]
+    timestamp: str

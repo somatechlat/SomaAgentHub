@@ -54,7 +54,14 @@ async_engine = create_async_engine(
     pool_timeout=settings.database_pool_timeout,
     pool_recycle=settings.database_pool_recycle,
 )
-AsyncSessionLocal = async_sessionmaker(bind=async_engine, class_=AsyncSession, expire_on_commit=False)
+AsyncSessionLocal = async_sessionmaker(
+    bind=async_engine, class_=AsyncSession, expire_on_commit=False
+)
+
+# Alias for backward compatibility
+def get_session_factory():
+    """Return the async session factory for service initialization."""
+    return AsyncSessionLocal
 
 
 async def init_db() -> None:
@@ -67,13 +74,13 @@ async def init_db() -> None:
 
 async def check_database_health() -> bool:
     """Check database connectivity for health checks with circuit breaker."""
-    
+
     @DATABASE_CIRCUIT_BREAKER
     async def _check_db() -> bool:
         async with async_engine.connect() as conn:
             await conn.execute("SELECT 1")
             return True
-    
+
     try:
         return await _check_db()
     except Exception as e:

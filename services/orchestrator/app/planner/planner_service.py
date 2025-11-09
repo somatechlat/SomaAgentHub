@@ -9,7 +9,7 @@ from datetime import datetime, timezone
 from typing import Any
 
 from ..repository.plan_repository import PlanRepository
-from ..repository.outbox import OutboxEventRepository
+from ..repository.outbox_event_repository import OutboxEventRepository
 from .client import PlannerClient
 from .schemas import PlannerContext, PlannerRequest, ProjectPlan
 
@@ -72,7 +72,9 @@ class PlannerService:
             from ..services.event_emission import EventEmissionService
 
             event_service = EventEmissionService(session)
-            await event_service.emit_plan_created_event(plan=plan, session_id=request.session_id)
+            await event_service.emit_plan_created_event(
+                plan=plan, session_id=request.session_id
+            )
 
         return plan
 
