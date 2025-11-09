@@ -45,10 +45,10 @@ spec:
         # Real service discovery
         - name: POLICY_ENGINE_URL
           value: "http://policy-engine:10020"
-        - name: SOMALLM_PROVIDER_URL
-          value: "http://slm-service:1001"
-        - name: SOMALLM_PROVIDER_HEALTH_URL
-          value: "http://slm-service:1001/health"
+        - name: LLM_HUB_URL
+          value: "http://llm-hub:10022"
+        - name: LLM_HUB_HEALTH_URL
+          value: "http://llm-hub:10022/health"
         - name: GATEWAY_API_URL
           value: "http://gateway-api:10000"
         - name: IDENTITY_SERVICE_URL

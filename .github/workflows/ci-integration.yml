@@ -108,4 +108,4 @@ jobs:
         run: |
           kubectl -n soma-agent-hub get svc
           kubectl -n soma-agent-hub run curl --restart=Never --image=curlimages/curl:8.10.1 --rm -i -- \
-            sh -c 'curl -sf http://gateway-api:8080/health && curl -sf http://identity-service:8000/health && curl -sf http://orchestrator:1004/health && curl -sf http://slm-service:1001/health'
+            sh -c 'curl -sf http://gateway-api:8080/health && curl -sf http://identity-service:8000/health && curl -sf http://orchestrator:1004/health'

@@ -186,7 +186,7 @@ async def test_analytics_client():
         if healthy:
             # Test metrics query
             result = await analytics_client.query_metrics(
-                metric_name="slm.tokens",
+                metric_name="llm_hub.tokens",
                 tenant_id="test-tenant",
                 time_range_days=7,
                 aggregation="sum",

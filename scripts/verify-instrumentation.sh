@@ -19,7 +19,7 @@ SERVICES=(
     "gateway-api"
     "policy-engine"
     "identity-service"
-    "slm-service"
+    # slm-service removed; instrumentation now focused on remaining core services
     "analytics-service"
 )
 
@@ -61,7 +61,7 @@ for service in "${SERVICES[@]}"; do
     fi
 done
 echo ""
-echo -e "${GREEN}✅ All $MODULES_FOUND/6 observability modules exist with REAL OpenTelemetry code${NC}"
+echo -e "${GREEN}✅ All $MODULES_FOUND/5 observability modules exist with REAL OpenTelemetry code${NC}"
 echo ""
 
 echo "🔌 Step 2: Verify Services Are Instrumented (REAL INTEGRATION)"
@@ -106,7 +106,7 @@ for service in "${SERVICES[@]}"; do
     fi
 done
 echo ""
-echo -e "${GREEN}✅ All $INSTRUMENTED/6 services are REALLY instrumented${NC}"
+echo -e "${GREEN}✅ All $INSTRUMENTED/5 services are REALLY instrumented${NC}"
 echo ""
 
 echo "🏗️  Step 3: Verify Prometheus Infrastructure is REAL"
@@ -201,8 +201,8 @@ echo ""
 echo "✅ Step 7: Final Verification Summary"
 echo "======================================"
 echo ""
-echo -e "${GREEN}✅ Observability Modules:${NC} 6/6 services have REAL OpenTelemetry code"
-echo -e "${GREEN}✅ Service Integration:${NC} 6/6 services call setup_observability()"
+echo -e "${GREEN}✅ Observability Modules:${NC} 5/5 services have REAL OpenTelemetry code"
+echo -e "${GREEN}✅ Service Integration:${NC} 5/5 services call setup_observability()"
 echo -e "${GREEN}✅ Prometheus Stack:${NC} Running in observability namespace"
 echo -e "${GREEN}✅ ServiceMonitors:${NC} Auto-discovery configured"
 echo -e "${GREEN}✅ Metrics:${NC} Prometheus running; queryable via port-forward"

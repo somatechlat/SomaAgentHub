@@ -35,7 +35,9 @@ async def dashboard_health(
 ) -> dict[str, Any]:
     settings = get_sah_settings()
     extra = settings.model_extra or {}
-    slm_health_url = str(extra.get("SLM_HEALTH_URL") or os.getenv("SLM_HEALTH_URL", "http://slm-service:10022/health"))
+    llm_health_url = str(
+        extra.get("LLM_HUB_HEALTH_URL") or os.getenv("LLM_HUB_HEALTH_URL", "http://llm-hub:10022/health")
+    )
     # Use the configured MEMORY_GATEWAY_PORT (default 10021) to build the metrics URL
     default_port = os.getenv("MEMORY_GATEWAY_PORT", "10021")
     somabrain_metrics_url = str(
@@ -55,15 +57,15 @@ async def dashboard_health(
         redis_host = "redis:6379"
 
     try:
-        somallm_health = await fetch_json(slm_health_url)
+        llm_hub_health = await fetch_json(llm_health_url)
     except HTTPException as exc:
-        somallm_health = {"status": "error", "detail": exc.detail}
+        llm_hub_health = {"status": "error", "detail": exc.detail}
 
     data = {
         "tenant": ctx.tenant_id,
         "deployment_mode": ctx.deployment_mode,
         "services": {
-            "slm_service": somallm_health,
+            "llm_hub": llm_hub_health,
             "somabrain": somabrain_metrics_url,
             "kafka": kafka_endpoint,
             "postgres": postgres_host,

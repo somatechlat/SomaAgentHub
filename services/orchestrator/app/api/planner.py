@@ -30,7 +30,7 @@ from ..services.event_emission import EventEmissionService
 router = APIRouter(prefix="/v1/planner", tags=["planner"])
 
 # Helper – create a singleton service instance. In a real deployment you would
-# inject configuration from `settings`; for now we use the default SLM port.
+# inject configuration from `settings`; uses the centralized LLM Hub endpoint.
 _client = PlannerClient(PlannerClientConfig(model="10022"))
 _service = PlannerService(client=_client)
 _repo = PlanRepository()

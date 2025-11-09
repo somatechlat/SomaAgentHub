@@ -93,15 +93,14 @@ class Settings(BaseSettings):
         alias="NOTIFICATION_SERVICE_URL",
     )
 
-    # SLM service (formerly SomaLLM provider)
-    # Default to in-cluster DNS for slm-service on port 1001
-    somallm_provider_url: AnyUrl = Field(
-        default=os.getenv("SLM_SERVICE_URL", "http://slm-service:10022"),
-        alias="SOMALLM_PROVIDER_URL",
+    # Central LLM Hub provider URL (replaces legacy slm-service)
+    llm_hub_url: AnyUrl = Field(
+        default=os.getenv("LLM_HUB_URL", "http://llm-hub:10022"),
+        alias="LLM_HUB_URL",
     )
-    somallm_provider_health_url: AnyUrl = Field(
-        default=os.getenv("SLM_HEALTH_URL", "http://slm-service:10022/health"),
-        alias="SOMALLM_PROVIDER_HEALTH_URL",
+    llm_hub_health_url: AnyUrl = Field(
+        default=os.getenv("LLM_HUB_HEALTH_URL", "http://llm-hub:10022/health"),
+        alias="LLM_HUB_HEALTH_URL",
     )
 
     # Pricing service base URL for budget/policy prechecks
@@ -174,14 +173,6 @@ class Settings(BaseSettings):
     }
 
     def model_post_init(self, __context) -> None:
-        # Support legacy SLM environment variables for backwards compatibility.
-        legacy_base = os.getenv("SLM_SERVICE_URL")
-        legacy_health = os.getenv("SLM_HEALTH_URL")
-        if legacy_base and not os.getenv("SOMALLM_PROVIDER_URL"):
-            object.__setattr__(self, "somallm_provider_url", legacy_base)
-        if legacy_health and not os.getenv("SOMALLM_PROVIDER_HEALTH_URL"):
-            object.__setattr__(self, "somallm_provider_health_url", legacy_health)
-
         # Backward compatibility for Temporal host env var name
         legacy_temporal = os.getenv("TEMPORAL_TARGET_HOST")
         if legacy_temporal and not os.getenv("TEMPORAL_HOST"):

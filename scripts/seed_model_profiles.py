@@ -37,7 +37,7 @@ def validate_schema(data: dict):
 
 def convert_to_seed(data: dict) -> dict:
     return {
-        "metadata": {"source": "docs/slm_profiles.yaml"},
+        "metadata": {"source": "docs/llm_hub_profiles.yaml"},
         "profiles": data.get("profiles", []),
     }
 
@@ -78,7 +78,7 @@ async def upsert_postgres(seed: dict):
 
 def main(argv):
     parser = argparse.ArgumentParser()
-    parser.add_argument("--yaml", default="docs/slm_profiles.yaml", help="source YAML")
+    parser.add_argument("--yaml", default="docs/llm_hub_profiles.yaml", help="source YAML")
     parser.add_argument("--write-json", help="path to write JSON seed file")
     parser.add_argument(
         "--dry-run", action="store_true", help="validate and print summary"

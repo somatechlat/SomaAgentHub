@@ -14,6 +14,7 @@ from workflows import (
     AgentTaskWorkflow,
     KAMACHIQProjectWorkflow,
     aggregate_results,
+    copy_templates,
     create_task_plan,
     decompose_project,
     execute_task,
@@ -64,13 +65,14 @@ async def run_worker(
             execute_task,
             review_output,
             aggregate_results,
+            copy_templates,
         ],
     )
 
     logger.info("✅ Temporal worker started")
     logger.info("   - KAMACHIQProjectWorkflow: Autonomous project execution")
     logger.info("   - AgentTaskWorkflow: Individual agent task execution")
-    logger.info("   - 6 activities registered")
+    logger.info("   - 7 activities registered")
 
     # Run worker execution loop
     # ---------------------------------------------------------------------

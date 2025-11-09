@@ -46,8 +46,8 @@ spec:
           value: "http://orchestrator:10001"
         - name: IDENTITY_SERVICE_URL
           value: "http://identity-service:10002"
-        - name: SOMALLM_PROVIDER_URL
-          value: "http://slm-service:1001"
+        - name: LLM_HUB_URL
+          value: "http://llm-hub:10022"
         
         # Real observability
         - name: OTEL_EXPORTER_OTLP_ENDPOINT

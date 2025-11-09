@@ -91,7 +91,7 @@ def _normalize_env(env_mapping: Mapping[Any, Any]) -> dict[str, str]:
 
 # Real service endpoints (configured via environment)
 POLICY_ENGINE_URL = _ensure_endpoint(str(settings.policy_engine_url), "/v1/evaluate")
-SOMALLM_PROVIDER_URL = str(settings.somallm_provider_url)
+LLM_HUB_URL = str(settings.llm_hub_url)
 GATEWAY_API_URL = os.getenv(
     "GATEWAY_API_URL",
     runtime_default(
@@ -181,7 +181,7 @@ async def decompose_project(project_description: str, user_id: str) -> list[dict
     """
     Decompose project into executable tasks.
 
-    Calls the SLM service (formerly SomaLLMProvider) to analyze the project description
+    Calls the LLM Hub to analyze the project description
     and generate a task breakdown.
 
     Args:
@@ -209,14 +209,14 @@ async def decompose_project(project_description: str, user_id: str) -> list[dict
     Output as structured JSON.
     """
 
-    # HTTP call to SLM service
+    # HTTP call to LLM Hub
     async with httpx.AsyncClient(
         timeout=httpx.Timeout(10.0, connect=5.0),
         limits=httpx.Limits(max_connections=200, max_keepalive_connections=50),
     ) as client:
         try:
             response = await client.post(
-                f"{SOMALLM_PROVIDER_URL}/v1/infer/sync",
+                f"{LLM_HUB_URL}/v1/infer/sync",
                 json={
                     "prompt": decomposition_prompt,
                     "max_tokens": 200,
@@ -227,7 +227,7 @@ async def decompose_project(project_description: str, user_id: str) -> list[dict
             response.raise_for_status()
 
             result = response.json()
-            activity.logger.info(f"SLM decomposition completed: {result['model']}")
+            activity.logger.info(f"LLM decomposition completed: {result['model']}")
 
             # Parse the completion into structured tasks
             # In production, this would use proper JSON parsing
@@ -361,7 +361,7 @@ async def execute_task(
     """
     Execute a single task with policy checks.
 
-    Runs the task using the SLM service (formerly SomaLLMProvider) after policy validation.
+    Runs the task using the LLM Hub after policy validation.
 
     Args:
         task: Task specification with id, description, type
@@ -407,7 +407,7 @@ async def execute_task(
                     "duration_ms": 0,
                 }
 
-            # Step 2: Execute task logic (SLM service call)
+            # Step 2: Execute task logic (LLM Hub call)
             task_prompt = f"""
             Execute this task:
 
@@ -419,7 +419,7 @@ async def execute_task(
             """
 
             llm_response = await client.post(
-                f"{SOMALLM_PROVIDER_URL}/v1/infer/sync",
+                f"{LLM_HUB_URL}/v1/infer/sync",
                 json={
                     "prompt": task_prompt,
                     "max_tokens": 150,
@@ -515,4 +515,48 @@ async def aggregate_results(task_results: list[dict[str, Any]], review_result: d
         "quality_score": review_result["score"],
         "completion_status": review_result["status"],
         "aggregated_at": datetime.now(UTC).isoformat(),
+    }
+
+
+@activity.defn
+async def copy_templates(app_name: str, image: str, service_port: int = 8000) -> dict[str, Any]:
+    """Render static template sets for an application.
+
+    Copies ``fastapi`` + ``helm/generated-app`` + ``react`` + monitoring & ci templates
+    into a workflow-local artefacts directory under ``/tmp/taxi-builder/<workflow-id>``.
+    In a production deployment this base path would be a shared PVC.
+    """
+    workflow_id = activity.info().workflow_id
+    base_dir = Path(os.getenv("TAXI_BUILDER_OUTPUT_ROOT", "/tmp/taxi-builder")) / workflow_id
+    base_dir.mkdir(parents=True, exist_ok=True)
+
+    from ..app.static_templates.engine import (
+        render_template_set,
+        build_default_tokens,
+    )
+
+    tokens = build_default_tokens(app_name=app_name, image=image, service_port=service_port)
+
+    template_sets = ["fastapi", "helm/generated-app", "react", "ci", "monitoring"]
+    rendered: list[dict[str, Any]] = []
+    for ts in template_sets:
+        try:
+            result = render_template_set(ts, base_dir, tokens, zip_output=False)
+            rendered.append({
+                "template_set": ts,
+                "files_rendered": result.files_rendered,
+                "output_dir": str(result.output_dir),
+            })
+        except Exception as exc:
+            # Fail fast: bubble up to workflow for retry
+            raise RuntimeError(f"Template rendering failed for {ts}: {exc}") from exc
+
+    return {
+        "status": "rendered",
+        "workflow_id": workflow_id,
+        "app_name": app_name,
+        "image": image,
+        "service_port": service_port,
+        "artefact_root": str(base_dir),
+        "sets": rendered,
     }

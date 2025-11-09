@@ -39,7 +39,7 @@ class ModelCapability(BaseModel):
 class ModelBoxReference(BaseModel):
     """Reference to the model box powering the persona."""
 
-    model_box_id: str = Field(..., description="Unique identifier in the SLM catalog")
+    model_box_id: str = Field(..., description="Unique identifier in the LLM Hub catalog")
     version: str = Field(..., description="Semantic version of the model box")
     provider: str = Field(
         ..., description="Provider or serving stack (e.g., openai, groq, vllm)"

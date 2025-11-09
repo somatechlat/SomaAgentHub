@@ -19,13 +19,13 @@ spec:
                 name: jobs
                 port:
                   number: {{ (index .Values.services "jobs").port }}
-          - path: /somallm-provider(/|$)(.*)
+          - path: /llm-hub(/|$)(.*)
             pathType: Prefix
             backend:
               service:
-                name: somallm-provider
+                name: llm-hub
                 port:
-                  number: {{ (index .Values.services "somallm-provider").port }}
+                  number: {{ (index .Values.services "llm-hub").port }}
           - path: /policy(/|$)(.*)
             pathType: Prefix
             backend:

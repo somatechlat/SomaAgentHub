@@ -17,13 +17,13 @@ if ! command -v syft &> /dev/null; then
 fi
 
 SERVICES=(
-    "orchestrator"
-    "gateway-api"
-    "policy-engine"
-    "identity-service"
-    "slm-service"
-    "analytics-service"
-    "constitution-service"
+    orchestrator
+    gateway-api
+    policy-engine
+    identity-service
+    # slm-service removed; centralized llm-hub not yet SBOM-scanned here
+    analytics-service
+)
     "billing-service"
     "recall-service"
     "settings-service"

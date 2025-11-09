@@ -1,6 +1,6 @@
 {
   "metadata": {
-    "source": "docs/slm_profiles.yaml"
+    "source": "docs/llm_hub_profiles.yaml"
   },
   "profiles": [
     {

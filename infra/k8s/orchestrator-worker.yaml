@@ -36,10 +36,10 @@ spec:
           value: "http://policy-engine:10020"
         - name: IDENTITY_SERVICE_URL
           value: "http://identity-service:10002"
-        - name: SOMALLM_PROVIDER_URL
-          value: "http://slm-service:1001"
-        - name: SOMALLM_PROVIDER_HEALTH_URL
-          value: "http://slm-service:1001/health"
+        - name: LLM_HUB_URL
+          value: "http://llm-hub:10022"
+        - name: LLM_HUB_HEALTH_URL
+          value: "http://llm-hub:10022/health"
         resources:
           requests:
             cpu: "250m"

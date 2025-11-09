@@ -18,7 +18,7 @@ from .workflows.session import (
     emit_audit_event,
     evaluate_policy,
     issue_identity_token,
-    run_slm_completion,
+    run_llm_completion,
 )
 
 logger = logging.getLogger("orchestrator.worker")
@@ -46,7 +46,7 @@ async def _run_worker() -> None:
             evaluate_policy,
             issue_identity_token,
             emit_audit_event,
-            run_slm_completion,
+            run_llm_completion,
             dispatch_notification,
             execute_capsule,
         ],

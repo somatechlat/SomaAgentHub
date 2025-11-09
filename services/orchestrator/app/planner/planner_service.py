@@ -29,8 +29,8 @@ class PlannerService:
         """Produce a structured project plan.
 
         The implementation builds a Jinja prompt using the ``request`` and ``context``
-        objects, sends it to the ``PlannerClient`` (which talks to the local SLM
-        service), parses the JSON response into a ``ProjectPlan`` model, and stores
+        objects, sends it to the ``PlannerClient`` (which talks to the centralized LLM Hub),
+        parses the JSON response into a ``ProjectPlan`` model, and stores
         the result via ``PlanRepository``.
 
         Args:
@@ -54,7 +54,7 @@ class PlannerService:
         # 2️⃣ Call the LLM via PlannerClient
         raw_response = await self.client.complete(prompt)
 
-        # 3️⃣ The SLM returns a plain string – we expect it to be JSON.
+        # 3️⃣ The LLM returns a plain string – we expect it to be JSON.
         try:
             plan_dict = json.loads(raw_response)
         except json.JSONDecodeError as exc:

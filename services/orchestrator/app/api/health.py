@@ -121,7 +121,7 @@ async def dependency_health() -> Dict[str, Any]:
     external_services = {
         "temporal": settings.temporal_target_host,
         "kafka": settings.kafka_bootstrap_servers,
-        "slm_service": settings.somallm_provider_url,
+        "llm_hub": settings.llm_hub_url,
         "pricing_service": settings.pricing_service_url,
         "policy_engine": str(settings.policy_engine_url),
         "constitution_service": str(settings.constitution_service_url),

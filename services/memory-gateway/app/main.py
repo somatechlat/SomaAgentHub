@@ -113,7 +113,7 @@ async def remember(payload: RememberRequest):
     # Ensure we can modify the module‑level flag when falling back to in‑memory storage
     global _use_qdrant
     if _use_qdrant:
-        # Generate embedding via SLM service (fallback to zero vector on any error)
+        # Generate embedding via LLM Hub (fallback to zero vector on any error)
         import json
         import os
 
@@ -121,7 +121,7 @@ async def remember(payload: RememberRequest):
 
         text_to_embed = json.dumps(payload.value) if not isinstance(payload.value, str) else payload.value
         try:
-            slm_url = os.getenv("SOMALLM_PROVIDER_URL") or os.getenv("SLM_SERVICE_URL", "http://localhost:10022")
+            slm_url = os.getenv("LLM_HUB_URL") or "http://localhost:10022"
             async with httpx.AsyncClient(timeout=10.0) as client:
                 response = await client.post(
                     f"{slm_url}/v1/embeddings",
@@ -132,7 +132,7 @@ async def remember(payload: RememberRequest):
                 vector = data["vectors"][0]["embedding"]
         except Exception as exc:
             logger.warning(
-                "[SOMALLM_WARNING] Embedding generation failed, using zero vector: %s",
+                "[LLM_HUB_WARNING] Embedding generation failed, using zero vector: %s",
                 exc,
             )
             vector = [0.0] * 768
@@ -328,20 +328,20 @@ async def list_memories() -> list[str]:
 @app.post("/v1/rag/retrieve", response_model=RAGResponse)
 async def rag(request: RAGRequest):
     if _use_qdrant:
-        # Generate query embedding via SLM service
+        # Generate query embedding via LLM Hub
         import os
 
         import httpx
 
         try:
-            slm_url = os.getenv("SOMALLM_PROVIDER_URL") or os.getenv("SLM_SERVICE_URL", "http://localhost:10022")
+            slm_url = os.getenv("LLM_HUB_URL") or "http://localhost:10022"
             async with httpx.AsyncClient(timeout=10.0) as client:
                 response = await client.post(f"{slm_url}/v1/embeddings", json={"input": [request.query]})
                 response.raise_for_status()
                 data = response.json()
                 query_vector = data["vectors"][0]["embedding"]
         except Exception as exc:
-            logger.warning("[SOMALLM_WARNING] Query embedding failed, using zero vector: %s", exc)
+            logger.warning("[LLM_HUB_WARNING] Query embedding failed, using zero vector: %s", exc)
             query_vector = [0.0] * 768  # Fallback to zero vector
 
         results = await _qdrant_client.search(
@@ -363,7 +363,7 @@ async def rag(request: RAGRequest):
         # In production, this should use a configured fallback (e.g., ES, database search)
         raise HTTPException(
             status_code=503,
-            detail="Vector store (Qdrant) unavailable. Configure SLM_SERVICE_URL and Qdrant to enable RAG.",
+            detail="Vector store (Qdrant) unavailable. Configure LLM_HUB_URL and Qdrant to enable RAG.",
         )
 
 

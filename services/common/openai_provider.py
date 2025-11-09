@@ -1,4 +1,4 @@
-"""OpenAI provider implementation for SLM service.
+"""OpenAI provider implementation used by the platform and LLM Hub.
 
 Real integration with OpenAI API - no mocks or stubs.
 """

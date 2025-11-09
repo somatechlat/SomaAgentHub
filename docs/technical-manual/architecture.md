@@ -70,7 +70,7 @@ SomaAgentHub operates as a layered system, separating concerns from public-facin
                             │
 ┌───────────────────────────▼─────────────────────────────┐
 │                      SERVICE LAYER                      │
-│ (Policy, Memory, Identity, Tools, SLM, and other services)│
+│ (Policy, Memory, Identity, Tools, LLM Hub, and other services)│
 └───────────────────────────┬─────────────────────────────┘
                             │
 ┌───────────────────────────▼─────────────────────────────┐
@@ -98,7 +98,7 @@ The docker-compose stack delivers the core runtime needed for local development 
 | **ClickHouse** | 8123 | Serves analytical queries and event ingestion for reporting workloads. |
 | **MinIO** | 9000 (API) / 9001 (Console) | Supplies S3-compatible object storage for binary artifacts and dataset snapshots. |
 
-Additional services (for example `policy-engine`, `memory-gateway`, `slm-service`, `tool-service`, and `analytics-service`) live under `services/` and are deployed as needed per environment. Each directory contains its own README with detailed responsibilities and configuration.
+Additional services (for example `policy-engine`, `memory-gateway`, `llm-hub`, `tool-service`, and `analytics-service`) live under `services/` and are deployed as needed per environment. Each directory contains its own README with detailed responsibilities and configuration.
 
 ### Local Docker Stack (docker-compose)
 
@@ -144,7 +144,7 @@ Documented digests ensure reproducible builds and satisfy the "official OSS only
 3. **Routing**: The Gateway forwards to the **Orchestrator** `POST /v1/sessions/start` (port 10001).
 4. **Policy Check (when deployed)**: The Orchestrator calls the **Policy Engine** to evaluate governance rules before executing stateful actions.
 5. **Memory Retrieval (when deployed)**: The Orchestrator queries the **Memory Gateway** for context (optional; default container port 8000).
-6. **LLM Interaction**: The Orchestrator uses the **SLM Service** to generate model outputs.
+6. **LLM Interaction**: The Orchestrator uses the centralized **LLM Hub** to generate model outputs.
 7. **Response & Memory Update**: Results are persisted and/or sent to the **Memory Gateway** as needed.
 8. **Final Response**: The Gateway returns the created session metadata; clients poll Orchestrator `GET /v1/sessions/{workflow_id}` for status.
 

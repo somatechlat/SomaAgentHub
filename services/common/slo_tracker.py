@@ -63,22 +63,22 @@ SERVICE_SLOS: list[SLO] = [
         window="24h",
         description="Gateway API error rate below 0.1%",
     ),
-    # SLM Service
+    # LLM Hub
     SLO(
-        name="slm_availability",
-        service="slm-service",
+        name="llm_hub_availability",
+        service="llm-hub",
         metric="availability",
-        target=99.5,  # 99.5% uptime
+        target=99.9,  # 99.9% uptime
         window="30d",
-        description="SLM service availability over 30 days",
+        description="LLM Hub availability over 30 days",
     ),
     SLO(
-        name="slm_latency_p99",
-        service="slm-service",
+        name="llm_hub_latency_p99",
+        service="llm-hub",
         metric="latency_p99",
-        target=2000.0,  # 2s p99 latency
+        target=1000.0,  # 1s p99 latency target
         window="24h",
-        description="SLM service p99 latency under 2s",
+        description="LLM Hub p99 latency under 1s",
     ),
     # Memory Gateway
     SLO(

@@ -42,7 +42,7 @@ class AnalyticsClient:
         """Query historical metrics from ClickHouse.
 
         Args:
-            metric_name: Metric to query (e.g., "slm.tokens", "slm.cost")
+            metric_name: Metric to query (e.g., "llm_hub.tokens", "llm_hub.cost")
             tenant_id: Filter by tenant (optional)
             time_range_days: Number of days to look back
             aggregation: Aggregation function (avg, sum, count, max, min)
@@ -105,7 +105,7 @@ class AnalyticsClient:
             filters["model"] = model
 
         result = await self.query_metrics(
-            metric_name="slm.tokens",
+            metric_name="llm_hub.tokens",
             tenant_id=tenant_id,
             time_range_days=days,
             aggregation="sum",
@@ -129,7 +129,7 @@ class AnalyticsClient:
                 - daily_trend: Cost by day
         """
         result = await self.query_metrics(
-            metric_name="slm.cost",
+            metric_name="llm_hub.cost",
             tenant_id=tenant_id,
             time_range_days=days,
             aggregation="sum",

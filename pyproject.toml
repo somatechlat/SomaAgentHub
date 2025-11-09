@@ -12,7 +12,7 @@ ignore = ["E501"]
 "scripts/**/*.py" = ["T201", "W293"]
 "services/**/tests/**/*.py" = ["T201"]
 "services/kamachiq-service/**/*.py" = ["T201"]
-"services/slm-service/tests/**/*.py" = ["T201"]
+"services/llm-hub/tests/**/*.py" = ["T201"]
 "services/self-provisioning/app.py" = ["W293"]
 
 [tool.mypy]

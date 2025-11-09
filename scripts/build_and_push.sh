@@ -17,7 +17,7 @@ SERVICES=(
     "policy-engine"
     "settings-service"
     "task-capsule-repo"
-    "slm-service"
+    # slm-service removed; centralized llm-hub handles model operations
     "gateway-api"
     "identity-service"
     "constitution-service"
@@ -45,14 +45,7 @@ build_service() {
         "somaagent/soma-${service}:latest"
     )
 
-    if [ "$service" = "slm-service" ]; then
-        image_tags+=(
-            "${REGISTRY}/soma-somallm-provider:${TAG}"
-            "${REGISTRY}/soma-somallm-provider:latest"
-            "somaagent/soma-somallm-provider:${TAG}"
-            "somaagent/soma-somallm-provider:latest"
-        )
-    fi
+    # Legacy alias handling for removed slm-service eliminated
     
     # Create Dockerfile if it doesn't exist
     if [ ! -f "${service_dir}/Dockerfile" ]; then

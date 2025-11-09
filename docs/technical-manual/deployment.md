@@ -819,7 +819,7 @@ gateway-api:
 ### Scaling
 The platform can be scaled horizontally by adjusting the `replicaCount` for each service.
 
--   **Stateless Services**: `gateway-api`, `policy-engine`, `slm-service` can be scaled freely.
+-   **Stateless Services**: `gateway-api`, `policy-engine`, `llm-hub` can be scaled freely.
 -   **Stateful Services**: `orchestrator` (via Temporal workers), `memory-gateway` require careful scaling.
 -   **Databases**: Scale PostgreSQL, Redis, and Qdrant according to their specific documentation.
 

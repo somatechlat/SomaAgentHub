@@ -62,7 +62,7 @@ Temporal-backed workflow coordination.
 ### 3. Memory Gateway API (optional, default container port `8000`)
 Vector/KV memory access when enabled.
 
-- **`POST /v1/remember`**: Store a value by key (embeds and indexes when Qdrant/SLM available).
+- **`POST /v1/remember`**: Store a value by key (embeds via LLM Hub and indexes when Qdrant is available).
 - **`GET /v1/recall/{key}`**: Retrieve a value by key.
 - **`POST /v1/rag/retrieve`**: Semantic retrieval using embeddings when configured.
 

@@ -57,11 +57,11 @@ EXPERIMENTS: list[ChaosExperiment] = [
         ],
     ),
     ChaosExperiment(
-        name="slm_service_failure",
+        name="llm_hub_failure",
         type=ExperimentType.POD_FAILURE,
-        target_service="slm-service",
+        target_service="llm-hub",
         duration="3m",
-        description="Kill SLM service pod to test model routing fallback",
+        description="Kill LLM Hub pod to test provider routing fallback",
         params={"mode": "one"},
         validation_queries=[
             "rate(model_requests_total[1m]) > 0",
@@ -100,13 +100,13 @@ EXPERIMENTS: list[ChaosExperiment] = [
         validation_queries=['rate(http_requests_total{service="gateway-api",code="200"}[1m]) > 10'],
     ),
     ChaosExperiment(
-        name="slm_memory_stress",
+        name="llm_hub_memory_stress",
         type=ExperimentType.STRESS_MEMORY,
-        target_service="slm-service",
+        target_service="llm-hub",
         duration="5m",
-        description="Fill 70% of SLM service memory",
+        description="Fill 70% of LLM Hub memory",
         params={"size": "70%"},
-        validation_queries=['container_memory_usage_bytes{pod=~"slm-service.*"} < container_spec_memory_limit_bytes'],
+        validation_queries=['container_memory_usage_bytes{pod=~"llm-hub.*"} < container_spec_memory_limit_bytes'],
     ),
     # I/O chaos
     ChaosExperiment(

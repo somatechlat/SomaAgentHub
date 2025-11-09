@@ -338,7 +338,7 @@ class MarketingCampaignWorkflow:
 
         Sequential steps:
         1. Retrieve brand voice from Memory Gateway
-        2. Generate content with SLM
+        2. Generate content via LLM Hub
         3. Store content in Memory Gateway
 
         Duration: 5-10 minutes

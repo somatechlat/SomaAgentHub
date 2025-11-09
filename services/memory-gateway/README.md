@@ -15,7 +15,7 @@ The Memory Gateway centralizes long-term context for agents. It supports semanti
 ## ⚡ Capabilities
 
 - **Remember/Recall API** – Store arbitrary JSON payloads by key and fetch them later.
-- **Vector Storage** – When Qdrant is available, vectors are generated via the SomaLanguage Model (SLM) provider and stored for semantic search.
+- **Vector Storage** – When Qdrant is available, vectors are generated via the centralized LLM Hub and stored for semantic search.
 - **RAG Retrieval** – Retrieves top matches for a query and composes a summary response.
 - **Metrics** – Counts requests via Prometheus counter `somabrain_requests_total`.
 
@@ -26,7 +26,7 @@ The Memory Gateway centralizes long-term context for agents. It supports semanti
 ```
 Agents / Orchestrator → Memory Gateway → Qdrant (vector DB)
                                     ↘ Redis (fallback with in-memory dict)
-                                    ↘ SomaLanguage Model (SLM) Provider
+                                    ↘ LLM Hub Provider
 ```
 
 Key modules:
@@ -48,13 +48,13 @@ uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 ```
 This mode uses the in-memory store and is suitable for basic development.
 
-### Full Mode (Qdrant + SomaLanguage Model)
+### Full Mode (Qdrant + LLM Hub)
 1. Start Qdrant (`docker run -p 6333:6333 qdrant/qdrant`).
-2. Ensure the SomaLanguage Model provider is reachable (`SOMALLM_PROVIDER_URL`).
+2. Ensure the LLM Hub is reachable (`LLM_HUB_URL`).
 3. Run the service:
    ```bash
    export QDRANT_URL="http://localhost:6333"
-   export SOMALLM_PROVIDER_URL="http://localhost:8003"
+  export LLM_HUB_URL="http://localhost:8003"
    uvicorn app.main:app --host 0.0.0.0 --port 8000
    ```
 
@@ -65,11 +65,10 @@ This mode uses the in-memory store and is suitable for basic development.
 | Variable | Description | Default |
 | --- | --- | --- |
 | `QDRANT_URL` | Base URL for Qdrant service | Derived from shared config |
-| `SOMALLM_PROVIDER_URL` | Embedding provider endpoint (SomaLanguage Model) | `http://somallm-provider:1001` |
-| `SLM_SERVICE_URL` | Alternate embedding endpoint (legacy variable name) | `http://localhost:8003` |
+| `LLM_HUB_URL` | Embedding provider endpoint (LLM Hub) | `http://llm-hub:10022` |
 | `OTEL_EXPORTER_OTLP_ENDPOINT` | Optional telemetry endpoint | unset |
 
-> **Note:** Environment variables retain the historical `SOMALLM_*` prefix even though the service is branded as the SomaLanguage Model (SLM) provider.
+> **Note:** Legacy `SOMALLM_*` / `SLM_*` variables have been removed; use `LLM_HUB_URL` exclusively.
 
 If Qdrant is unavailable the service logs a warning and falls back to in-memory storage.
 

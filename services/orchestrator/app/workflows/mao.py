@@ -13,11 +13,11 @@ from ..core.config import settings
 from .session import (
     IdentityTokenRequest,
     PolicyEvaluationContext,
-    SlmRequest,
+    HubInferenceRequest,
     emit_audit_event,
     evaluate_policy,
     issue_identity_token,
-    run_slm_completion,
+    run_llm_completion,
 )
 
 
@@ -45,7 +45,7 @@ class AgentExecutionResult:
     agent_id: str
     goal: str
     status: str
-    slm_response: dict[str, Any]
+    llm_response: dict[str, Any]
     token: dict[str, Any] | None
     started_at: datetime
     completed_at: datetime
@@ -184,9 +184,9 @@ class MultiAgentWorkflow:
                 start_to_close_timeout=timedelta(seconds=20),
             )
 
-            slm_response = await workflow.execute_activity(
-                run_slm_completion,
-                SlmRequest(
+            llm_response = await workflow.execute_activity(
+                run_llm_completion,
+                HubInferenceRequest(
                     session_id=f"{payload.orchestration_id}:{directive.agent_id}",
                     prompt=directive.prompt,
                     model=directive.metadata.get("model", "somagent-demo"),
@@ -201,7 +201,7 @@ class MultiAgentWorkflow:
                 agent_id=directive.agent_id,
                 goal=directive.goal,
                 status="completed",
-                slm_response=slm_response,
+                llm_response=llm_response,
                 token=token,
                 started_at=started_at,
                 completed_at=completed_at,

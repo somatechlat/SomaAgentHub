@@ -114,7 +114,7 @@ async def conversation_step(
         },
     )
 
-    # TODO: Call SLM service via queue/sync endpoint
+    # TODO: Call LLM Hub via queue/sync endpoint
     response_text = f"Echo: {req.prompt[:50]}..."
 
     elapsed = time.perf_counter() - start_time

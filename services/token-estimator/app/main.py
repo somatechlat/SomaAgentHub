@@ -1,6 +1,6 @@
 """Token Estimator Service - Sprint-4: Experience & Ecosystem
 
-Provides baseline demand forecasts per provider using historical slm.metrics data.
+Provides baseline demand forecasts per provider using historical llm_hub.metrics data.
 """
 
 from __future__ import annotations
@@ -60,10 +60,10 @@ class ForecastResponse(BaseModel):
 
 @app.post("/v1/forecast", response_model=ForecastResponse)
 async def get_forecast(req: ForecastRequest) -> ForecastResponse:
-    """Generate token usage forecast using historical slm.metrics."""
+    """Generate token usage forecast using historical llm_hub.metrics."""
     start_time = time.perf_counter()
 
-    # Query analytics-service for historical slm.metrics data
+    # Query analytics-service for historical llm_hub.metrics data
     try:
         from services.common.analytics_client import get_analytics_client
 

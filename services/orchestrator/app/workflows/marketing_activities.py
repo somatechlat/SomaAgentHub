@@ -3,7 +3,7 @@ Marketing Campaign Activities - Production Implementation.
 
 Real integrations with:
 - Tool Service (GitHub, Slack, Notion, Figma, etc.)
-- SLM Service (content generation)
+- LLM Hub (content generation)
 - Memory Gateway (brand voice, storage)
 - Notification Service (alerts)
 
@@ -178,17 +178,17 @@ class ToolServiceClient:
 
 
 # ============================================================================
-# SLM SERVICE CLIENT
+# LLM HUB CLIENT
 # ============================================================================
 
 
-class SLMServiceClient:
-    """Client for SLM Service (content generation)."""
+class LLMHubClient:
+    """Client for LLM Hub (content generation)."""
 
     def __init__(self):
         self.base_url = str(
-            settings.somallm_provider_url
-            or os.getenv("SOMALLM_PROVIDER_URL", "http://gateway-api:8080")
+            settings.llm_hub_url
+            or os.getenv("LLM_HUB_URL", "http://llm-hub:10022")
         )
         self.timeout = httpx.Timeout(120.0, connect=10.0)
 
@@ -200,7 +200,7 @@ class SLMServiceClient:
         temperature: float = 0.7,
     ) -> dict[str, Any]:
         """
-        Generate content using SLM service.
+        Generate content using the centralized LLM Hub.
 
         Args:
             prompt: Input prompt
@@ -215,12 +215,12 @@ class SLMServiceClient:
                 "usage": {"total_tokens": 150}
             }
         """
-        circuit_breaker = get_circuit_breaker("slm-service")
+        circuit_breaker = get_circuit_breaker("llm-hub")
 
-        async def _call_slm():
+        async def _call_llm_hub():
             async with httpx.AsyncClient(timeout=self.timeout) as client:
                 activity.logger.info(
-                    f"Calling SLM service: {model}",
+                    f"Calling LLM Hub: {model}",
                     extra={"model": model, "prompt_length": len(prompt)},
                 )
 
@@ -238,7 +238,7 @@ class SLMServiceClient:
                 result = response.json()
 
                 activity.logger.info(
-                    "SLM generation complete",
+                    "LLM Hub generation complete",
                     extra={
                         "model": result.get("model"),
                         "tokens": result.get("usage", {}).get("total_tokens"),
@@ -247,7 +247,7 @@ class SLMServiceClient:
 
                 return result
 
-        return await circuit_breaker.call(_call_slm)
+        return await circuit_breaker.call(_call_llm_hub)
 
 
 # ============================================================================
@@ -445,11 +445,11 @@ async def research_phase_activity(input: dict[str, Any]) -> dict[str, Any]:
 @activity.defn
 async def content_creation_activity(input: dict[str, Any]) -> dict[str, Any]:
     """
-    Phase 2: Content generation using SLM.
+    Phase 2: Content generation using LLM Hub.
 
     Real integrations:
     - Memory Gateway: Retrieve brand voice
-    - SLM Service: Generate content
+    - LLM Hub: Generate content
     - Memory Gateway: Store generated content
 
     NO MOCKS - Production ready!
@@ -461,7 +461,7 @@ async def content_creation_activity(input: dict[str, Any]) -> dict[str, Any]:
         extra={"channels": content_input.channels, "tone": content_input.tone},
     )
 
-    slm_client = SLMServiceClient()
+    llm_client = LLMHubClient()
     memory_client = MemoryGatewayClient()
 
     # Step 1: Retrieve brand voice if provided
@@ -509,15 +509,15 @@ Generate:
 Format as JSON with keys: headline, tagline, email_subject, email_body, social_post, blog_outline
 """
 
-    # Step 3: Generate content with SLM
-    slm_result = await slm_client.chat_completion(
+    # Step 3: Generate content via LLM Hub
+    llm_result = await llm_client.chat_completion(
         prompt=prompt,
         model="somagent-demo",
         max_tokens=1500,
         temperature=0.7,
     )
 
-    content_text = slm_result["completion"]
+    content_text = llm_result["completion"]
 
     # Step 4: Parse content (try JSON, fallback to structured text)
     try:
@@ -551,15 +551,15 @@ Format as JSON with keys: headline, tagline, email_subject, email_body, social_p
         "Content creation completed",
         extra={
             "content_pieces": len(content_pieces),
-            "tokens_used": slm_result.get("usage", {}).get("total_tokens"),
+            "tokens_used": llm_result.get("usage", {}).get("total_tokens"),
         },
     )
 
     return {
         "content_pieces": content_pieces,
         "headlines": [content_pieces.get("headline", "")],
-        "model_used": slm_result.get("model"),
-        "tokens_used": slm_result.get("usage", {}).get("total_tokens"),
+        "model_used": llm_result.get("model"),
+        "tokens_used": llm_result.get("usage", {}).get("total_tokens"),
     }
 
 

@@ -159,7 +159,7 @@ Each service expects a port defined here. The key name matches the service name 
 | `identity-service` | 10002 |
 | `policy-engine` | 10003 |
 | `memory-gateway` | 10004 |
-| `slm-service` | 10005 |
+| `llm-hub` | 10005 |
 | `tool-service` | 10006 |
 | `analytics-service` | 10007 |
 | `settings-service` | 10008 |

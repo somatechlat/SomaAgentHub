@@ -89,18 +89,12 @@ def kafka_container():
 
 
 @pytest.fixture(scope="session", autouse=True)
-def start_slm_worker(kafka_container, redis_container):
-    """Run the real SLM async worker using the real Kafka broker."""
-    from slm.worker import start_worker
+def start_llm_hub_stub(kafka_container, redis_container):
+    """LLM Hub has replaced the legacy SLM worker; no background worker required here.
 
-    loop = asyncio.get_event_loop()
-    task = loop.create_task(start_worker())
+    This fixture remains to preserve test structure but performs no action.
+    """
     yield
-    task.cancel()
-    try:
-        loop.run_until_complete(task)
-    except Exception:
-        pass
 
 
 def test_end_to_end_flow(identity_client, gateway_client, policy_client):
@@ -138,37 +132,7 @@ def test_end_to_end_flow(identity_client, gateway_client, policy_client):
     eval_data = eval_resp.json()
     assert eval_data["allowed"] is True
 
-    # 4. Send an SLM request using the producer (mocked) and verify a response.
-    from services.slm_service.slm.producer import Producer
-
-    prod = Producer()
-    # Send a real request to Kafka; the background worker will process it.
-    asyncio.run(prod.send(session_id, "assistant", "test prompt", {}))
-
-    # Consume the response from the real Kafka topic to verify.
-    from aiokafka import AIOKafkaConsumer
-
-    consumer = AIOKafkaConsumer(
-        "slm.responses",
-        bootstrap_servers=os.getenv("KAFKA_BOOTSTRAP_SERVERS").split(","),
-        group_id="test_consumer",
-        auto_offset_reset="earliest",
-    )
-
-    async def _consume_one():
-        await consumer.start()
-        try:
-            async for msg in consumer:
-                return msg.value
-        finally:
-            await consumer.stop()
-
-    response_bytes = asyncio.run(_consume_one())
-    assert response_bytes is not None
-    import json
-
-    resp_obj = json.loads(response_bytes)
-    assert resp_obj["session_id"] == session_id
+    # 4. Legacy SLM Kafka flow removed; LLM Hub integration tested elsewhere.
 
     # 5. Verify the policy engine health‑check works.
     health = policy_client.get("/v1/health/redis")

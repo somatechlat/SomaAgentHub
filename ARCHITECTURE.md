@@ -13,7 +13,7 @@ This document captures the current architectural state, pain points, and the Pha
 - billing-service: Payment intent + usage summary
 - analytics-service: Benchmark & capsule run telemetry aggregation
 - policy-engine: Evaluation harness + OPA integration
-- slm-service: Model/adapter layer for language operations
+- llm-hub: Centralized multi-provider LLM gateway (replaces legacy slm-service)
 - mao-service: Multi-agent orchestration helpers
 - capsule-service: Persona/capsule synthesis utilities
 - self-provisioning: Terraform + K8s environment bootstrap (future automation)

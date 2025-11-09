@@ -15,12 +15,20 @@ Deliver a production‑grade autonomous agent hub capable of:
 |-------|-----------|---------------|
 | P1 Foundations | Unified Helm chart, stable services, health & metrics | All baseline services deploy clean, probes + Prometheus OK |
 | P2 Live Pricing & Billing Gate | Accurate cost estimate + payment intent before workflow start | `/v1/pricing/live`, Stripe intent, OPA budget policies |
-| P3 Agent Runtime & Build Artifacts | Real agent spawning + static template expansion | Agent‑Spawner service + static templates repo + BuildRun persistence |
+| P3 (Cross‑Cutting) LLM Serving Hub | Centralized multi‑provider LLM gateway with RBAC catalog, policies, auditing | Model catalog + provider adapters + quotas/cost + observability |
+| P4 Agent Runtime & Build Artifacts | Real agent spawning + static template expansion | Agent‑Spawner service + static templates repo + BuildRun persistence |
 | P4 Generic Build Workflow | End‑to‑end Temporal workflow for build + deploy | `build_workflow` (name TBD) activities instrumented, <5 min minimal build |
 | P5 Capsule & Policy Maturity | Harden manifest, cost formulas, feature flags | Extended capsule schema + OPA policies (`allow_build`, quotas) |
 | P6 Security & Compliance | mTLS, secrets, audit, SBOM | Mesh/Vault integrated, audit events, Trivy + Syft in CI |
 | P7 Observability & Performance | Full tracing, metrics, latency targets | OTel spans across workflow chain, dashboards, alerts |
 | P8 Deferred Ecosystem | Marketplace convergence + Kong multi‑tenant edge | Consolidated capsule distribution, external gateway patterns |
+
+### 2A. Cross‑Cutting Program: LLM Serving Hub
+The LLM Hub is a centralized, policy‑aware gateway for all LLM access (external APIs, self‑hosted, and deterministic local models). It runs in parallel with P2–P4 and unblocks orchestrator and memory‑gateway consumers.
+
+- Scope: model catalog with RBAC; provider adapters (OpenAI, Anthropic, Azure OpenAI, Ollama, Local Deterministic); cost/quotas; safety & residency policies; audit; OTel metrics/traces; health/circuit breakers; fallback routing.
+- Consumers: orchestrator workflows/activities, memory‑gateway embeddings, gateway dashboard (health + catalog), pricing/billing usage events.
+- Outcome: a single endpoint `LLM_HUB_URL` replaces legacy `SLM_SERVICE_URL` across services.
 
 ## 3. Rapid Sprint Plan (Eight 1‑Week Sprints)
 Each sprint has hard, verifiable acceptance criteria. No placeholder code; all endpoints live, tests passing.
@@ -33,6 +41,10 @@ Each sprint has hard, verifiable acceptance criteria. No placeholder code; all e
 **Deliverables:** New `pricing-service` (or evolution of `token-estimator`) exposing `/v1/pricing/live`; pricing sources (token rates + static infra tables); OPA `allow_pricing` & `budget_cap`; gateway endpoint to request estimate.  
 **Criteria:** Estimate round trip <200ms; over‑budget request blocked by OPA test; unit tests cover drift & fallback.
 
+### Sprint 3 – LLM Hub (Core)
+**Deliverables:** `services/llm-hub` API with model catalog (RBAC‑aware), provider adapters for OpenAI + Local Deterministic; unified endpoints for `/v1/infer/sync`, `/v1/infer/stream`, `/v1/embeddings`; baseline policies (cost caps, per‑tenant quotas); OTel metrics; health endpoints.  
+**Criteria:** Catalog filters by role; adapters pass conformance tests; quotas enforced; traces present; orchestrator can call hub in dev.
+
 ### Sprint 3 – Billing Gating & Payment Intent
 **Deliverables:** Stripe payment intent endpoint `/v1/billing/intent`; webhook consumer `/v1/billing/webhook`; wizard flow updated to require APPROVED state; entitlements check; audit log events (`billing.charge`).  
 **Criteria:** Simulated intent lifecycle recorded; webhook test passes; unauthorized build blocked pre‑payment; audit row stored.
@@ -44,6 +56,10 @@ Each sprint has hard, verifiable acceptance criteria. No placeholder code; all e
 ### Sprint 5 – Agent-Spawner & Dynamic Agents
 **Deliverables:** `agent-spawner` FastAPI service (`POST /v1/spawn` → K8s Job/Deployment); `code-generator` and `ui-customizer` lightweight agent images; spawn concurrency metric; OPA `max_agents_per_user`.  
 **Criteria:** ≥20 concurrent spawns succeed in test; spawn metrics present; policy blocks excess; agent outputs real generated code consumed by workflow.
+
+### Sprint 6 – LLM Hub (Policies & Fallback)
+**Deliverables:** Safety & residency policies; cost estimation per model; fallback chains (primary → cheaper/region‑compliant → local deterministic); provider circuit breakers; admin read API for catalog/health.  
+**Criteria:** Policy decisions attached to responses; fallback counters observed; controlled degrade under provider rate limits; admin list shows model states.
 
 ### Sprint 6 – Generic Build Temporal Workflow
 **Deliverables:** `build_workflow` with activities: `fetch_live_pricing`, `opa_budget_check`, `copy_templates`, `spawn_agent`, `docker_build`, `helm_deploy`, `persist_result`; retry & compensation; OTel instrumentation.  
@@ -71,6 +87,13 @@ The Senior‑Architect blueprint maps cleanly onto our sprint plan as follows:
 - I Observability & Reliability → Sprint 8
 - J Test Suite & Documentation → Spans Sprints 4–8; finalize post‑Sprint 8
 
+## 3.2 LLM Hub Track (Three Focused Sprints)
+| Sprint | Goal | Key Deliverables | Acceptance |
+|-------|------|------------------|------------|
+| L1 | Hub Core | Catalog (RBAC), adapters (OpenAI, Local), `/v1/infer`, `/v1/embeddings`, quotas, metrics | Orchestrator calls succeed; role‑filtered catalog works |
+| L2 | Policies & Fallback | Safety/residency policies, cost caps, fallback chains, circuit breakers, admin read API | Policy decisions logged; fallback under rate‑limit conditions |
+| L3 | Provider Expansion | Add Anthropic/Azure/Ollama adapters; embeddings cache; usage events for billing | Adapters pass conformance; usage events emitted |
+
 ## 4. BuildRun Data Model (Authoritative)
 | Field | Type | Description |
 |-------|------|-------------|
@@ -89,9 +112,9 @@ The Senior‑Architect blueprint maps cleanly onto our sprint plan as follows:
 | `receipt` | object | Final cost reconciliation result |
 
 ## 4.1 Repo Gap Summary (Nov 7, 2025)
-- Present: Temporal workflows/activities (stubs), billing/analytics foundations, marketplace + task‑capsule‑repo, basic OPA rules, object‑store, metrics stack.
-- Partial: Pricing (token estimator only), agent spawn (stub only), billing gating (no intent/webhook in gateway), policies (no budget/feature/quotas), observability gaps for build.
-- Missing: Static templates repo, Agent‑Spawner service, code‑generator/ui‑customizer agents, `/v1/build` gateway flow, BuildRun persistence endpoint, Helm sub‑chart for generated apps, Stripe webhook endpoints, expanded OPA policy pack, targeted metrics and security hardening.
+- Present: Temporal workflows/activities (some stubs), billing/analytics foundations, marketplace + task‑capsule‑repo, basic OPA rules, object‑store, metrics stack, static template bundle + copy/substitution engine with tests.
+- Partial: Pricing (token estimator only), agent spawn (stub only), billing gating (no intent/webhook in gateway), policies (no budget/feature/quotas), observability gaps for build, LLM provider access not centralized.
+- Missing: Agent‑Spawner service, code‑generator/ui‑customizer agents, `/v1/build` gateway flow, BuildRun persistence endpoint, Helm sub‑chart for generated apps, Stripe webhook endpoints, expanded OPA policy pack, targeted metrics and security hardening, centralized LLM Hub service.
 
 ## 5. OPA Policy Additions
 | Policy | Purpose | Input Fields |
@@ -181,3 +204,72 @@ Immediate Actionable Checklist (pick one to start):
 
 ---
 This file supersedes all prior roadmap documents. Do not recreate separate roadmap markdowns—extend this file only.
+
+---
+
+## 13. LLM Serving Hub (Canonical)
+
+Authoritative design for the centralized, policy‑aware gateway that replaces `slm-service` and backs all LLM access in SomaAgentHub.
+
+- Purpose: unify providers, enforce RBAC/policies/quotas, standardize observability, and provide a catalog filtered by role/region/compliance.
+- API Surface: `/v1/infer/sync`, `/v1/infer/stream`, `/v1/embeddings`, `/v1/catalog/models`, `/v1/admin/health`.
+- Catalog Fields: `model_id`, `display_name`, `provider`, `capabilities`, `pricing`, `regions`, `allowed_roles`, `limits`, `safety_profile`, `version`, `state`.
+- Provider Adapters (initial): OpenAI, Local Deterministic; (expansion): Anthropic, Azure OpenAI, Ollama.
+- Policies: cost caps, per‑tenant quotas, safety classification/redaction, data residency, tool‑use restrictions; decision traces attached to responses.
+- Billing: emit `llm.usage` events with tokens/cost per request; reconcile externally.
+- Observability: OTel spans per call; metrics for latency, errors, tokens, cost, fallback counts; health/circuit breaker per provider.
+- Fallback: policy‑driven chain (primary → cheaper/region‑compliant → local deterministic) with cool‑downs to avoid oscillation.
+- Security: prompt segmentation/redaction; encrypted sensitive logs; per‑tenant provider secrets.
+
+### 13.1 Consumers & Integration Points
+- Orchestrator: replace `SOMALLM_PROVIDER_URL` usages with `LLM_HUB_URL`; activities call hub for inference/embeddings.
+- Memory‑Gateway: route embeddings to `/v1/embeddings`; register local adapter as `local-embeddings-v1`.
+- Gateway‑API: dashboard shows hub health + catalog; remove direct `slm-service` health probes.
+
+### 13.2 Migration & Deprecations
+- Remove `slm-service` from docker‑compose, K8s manifests, and CI workflows; delete service directory after cutover.
+- Replace env vars: `SLM_SERVICE_URL` → `LLM_HUB_URL`; `SLM_HEALTH_URL` → `LLM_HUB_HEALTH_URL`.
+- Remove `services/model-proxy` stub or replace with real multi‑provider adapter inside the Hub.
+- Update docs/glossary to reflect the Hub as the sole LLM entrypoint.
+
+### 13.3 Acceptance Criteria (LLM Hub v1)
+- Role‑filtered catalog lists only allowed models for the actor.
+- OpenAI + Local adapters pass conformance; quotas enforced; cost decisions logged.
+- Orchestrator and memory‑gateway operate solely via `LLM_HUB_URL` in dev.
+
+---
+
+## 14. Parallel Sprint Plan (Execution)
+
+Run multiple focused tracks in parallel to accelerate delivery. Each track has weekly outcomes and verifiable acceptance criteria. No placeholders.
+
+### Tracks
+- Track L (LLM Hub): Centralize model access, policies, fallbacks.
+- Track B (Build System): Agent‑Spawner, workflow, artifacts, deployment.
+- Track P (Pricing/Billing): Live pricing, payment gating, approvals.
+- Track S (Security/Observability): Mesh/Vault/SBOM; tracing/metrics/SLOs.
+
+### Week‑By‑Week Plan (4 Weeks)
+| Week | Track L (Hub) | Track B (Build) | Track P (Pricing/Billing) | Track S (Sec/Obs) |
+|------|----------------|------------------|----------------------------|-------------------|
+| 1 | L1 Core: Catalog (RBAC), OpenAI + Local adapters, `/v1/infer`, `/v1/embeddings`, quotas + metrics | B1: Agent‑Spawner MVP + integrate static templates engine; artifact storage wired | P1: `/v1/pricing/live` with token rate sources; OPA `allow_pricing` | S1a: Bootstrap unified logging/tracing/metrics module; begin mesh plan |
+| 2 | L2 Policies & Fallback: safety/residency policies, fallback chain, circuit breakers; admin read API | B2: Generic Build Workflow with `fetch_pricing` → `budget_check` → `copy_templates` → `spawn_agent` | P2: Payment intent + webhook; wizard gating; audit events | S1b: Vault secret templates; SBOM + Trivy CI gates; service health probes standardized |
+| 3 | L3 Provider Expansion: Anthropic/Azure/Ollama adapters; embeddings cache; usage events for billing | B3: Deploy via Helm sub‑chart, compensation paths, BuildRun persistence + delete | — | S2: SLO dashboards + alerts; chaos test (pod kill) and resiliency report |
+| 4 | L4 Hardening: throughput tests, cost anomaly alerts, provider failover drills; finalize LLM Hub (legacy slm-service removed) | B4: E2E build test asserting final URL reachability; perf tuning | P3: Reconciliation sanity vs usage events; budgets/quotas refined | S3: Finalize mesh mTLS rollout in dev; documentation + runbooks |
+
+### Acceptance Criteria (Weekly)
+- Week 1: Orchestrator calls LLM Hub in dev; Agent‑Spawner spawns ≥10 jobs; pricing endpoint <200ms p50; unified tracing visible across services.
+- Week 2: Policy decisions attached to Hub responses; build workflow runs end‑to‑end in dev gated by payment intent simulation; CI blocks HIGH CVEs.
+- Week 3: Additional providers pass conformance; BuildRun stores artifacts + receipt; SLO dashboards live; chaos recovery documented.
+- Week 4: Legacy `slm-service` already removed; validate Hub throughput & failover; E2E test green; alerts for cost anomalies and provider degradation verified.
+
+### Dependencies & Parallelization Notes
+- Track L enables Track B and P; ensure `LLM_HUB_URL` available by end of Week 1.
+- Security hardening (S1) runs in parallel but must not block core flows; gate only on critical CVEs.
+- Pricing intents (P2) required before enabling build in prod; dev/staging can simulate approvals while wiring real webhooks.
+
+### Deliverable Artifacts
+- Conformance suite for provider adapters (Track L).
+- Temporal workflow definition and tests (Track B).
+- OPA policy bundle + golden tests (Tracks P & L).
+- Dashboards, alerts, and runbooks (Track S).

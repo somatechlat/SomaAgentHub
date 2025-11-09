@@ -175,7 +175,7 @@ class SomaAgentTestReporter:
             "memory-gateway",
             "orchestrator",
             "policy-engine",
-            "slm-service",
+            # slm-service removed; hub tests integrated elsewhere
             "settings-service",
             "gateway-api",
             "identity-service",
@@ -185,7 +185,7 @@ class SomaAgentTestReporter:
             "task-capsule-repo",
         ]
 
-        legacy_alias = {"slm-service": "somallm-provider"}
+        legacy_alias = {}
 
         service_health = {}
 

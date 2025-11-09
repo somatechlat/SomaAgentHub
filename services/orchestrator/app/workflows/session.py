@@ -1,7 +1,7 @@
 """Session orchestration workflow executed by Temporal.
 
-This workflow coordinates policy evaluation, identity token issuance, SLM
-invocation via Ray, and audit emission over Kafka using real client libraries.
+Coordinates policy evaluation, identity token issuance, LLM Hub inference via
+Ray, and audit emission over Kafka using real client libraries.
 """
 
 from __future__ import annotations
@@ -41,7 +41,7 @@ class SessionStartResult:
     status: str
     policy: dict[str, Any]
     token: dict[str, Any] | None
-    slm_response: dict[str, Any]
+    llm_response: dict[str, Any]
     audit_event_id: str
     completed_at: datetime
     volcano_job: dict[str, Any] | None = None
@@ -64,7 +64,7 @@ class IdentityTokenRequest:
 
 
 @dataclass
-class SlmRequest:
+class HubInferenceRequest:
     session_id: str
     prompt: str
     model: str
@@ -146,8 +146,8 @@ async def emit_audit_event(event: dict[str, Any]) -> str:
     return audit_id
 
 
-@activity.defn(name="run-slm-completion")
-def run_slm_completion(request: SlmRequest) -> dict[str, Any]:
+@activity.defn(name="run-llm-completion")
+def run_llm_completion(request: HubInferenceRequest) -> dict[str, Any]:
     """Execute a Ray remote function to simulate a completion call."""
 
     import time
@@ -240,7 +240,7 @@ class SessionWorkflow:
                 status="rejected",
                 policy=policy,
                 token=None,
-                slm_response={},
+                llm_response={},
                 audit_event_id=audit_id,
                 completed_at=datetime.now(UTC),
             )
@@ -290,9 +290,9 @@ class SessionWorkflow:
             start_to_close_timeout=timedelta(seconds=20),
         )
 
-        slm_response = await workflow.execute_activity(
-            run_slm_completion,
-            SlmRequest(
+        llm_response = await workflow.execute_activity(
+            run_llm_completion,
+            HubInferenceRequest(
                 session_id=payload.session_id,
                 prompt=payload.prompt,
                 model=payload.model,
@@ -309,7 +309,7 @@ class SessionWorkflow:
             "status": "accepted",
             "policy": policy,
             "token_claims": {k: v for k, v in token.items() if k != "access_token"},
-            "slm_model": payload.model,
+            "llm_model": payload.model,
         }
         if volcano_job_result:
             volcano_details: dict[str, Any] = {
@@ -335,7 +335,7 @@ class SessionWorkflow:
             status="completed",
             policy=policy,
             token=token,
-            slm_response=slm_response,
+            llm_response=llm_response,
             audit_event_id=audit_event_id,
             completed_at=datetime.now(UTC),
             volcano_job=volcano_job_result,

@@ -1,0 +1,21 @@
+namespace: {{NAMESPACE}}
+
+image:
+  repository: {{IMAGE}}
+  tag: "latest"
+  pullPolicy: IfNotPresent
+
+service:
+  type: ClusterIP
+  port: {{SERVICE_PORT}}
+
+ingress:
+  enabled: true
+  className: "nginx"
+  hosts:
+    - host: {{INGRESS_HOST}}
+      paths:
+        - path: /
+          pathType: Prefix
+
+resources: {}

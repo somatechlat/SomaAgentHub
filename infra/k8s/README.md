@@ -16,8 +16,7 @@
 | `policy-engine.yaml` | Policy Engine | Redis-backed constitution cache, Kafka invalidation hooks. |
 | `identity-service.yaml` | Identity provider | Uses secrets for DB credentials, exposes `/ready` and `/health`. |
 | `analytics-service.yaml` | Analytics stack placeholder | Update when analytics pipeline finalized. |
-| `slm-service.yaml` | SomaLanguage Model (SLM) provider | Supplies embeddings for memory gateway. |
-| `somallm-provider.yaml` | Legacy naming compatibility layer | Maintained for backward compatibility with older workflows. |
+| `llm-hub` (Helm/centralized) | Central LLM Hub | Unified inference & embeddings (replaces prior local provider). |
 
 ---
 

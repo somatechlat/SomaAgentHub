@@ -148,23 +148,7 @@ services:
     networks:
       - somaagenthub-network
 
-  slm-service:
-    build:
-      context: .
-      dockerfile: services/slm-service/Dockerfile
-    container_name: somaagenthub_slm-service
-    restart: unless-stopped
-    environment:
-      - PORT=10022
-    ports:
-      - "${SLM_SERVICE_PORT:-10022}:10022"
-    healthcheck:
-      test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://127.0.0.1:10022/health', timeout=3)\""]
-      interval: 10s
-      timeout: 5s
-      retries: 6
-    networks:
-      - somaagenthub-network
+  # slm-service removed. LLM Hub replaces this role.
 
   # --- Infrastructure Services ---
   app-postgres:
@@ -209,25 +193,6 @@ services:
     image: temporalio/auto-setup:1.22.4
     container_name: somaagenthub_temporal
     restart: unless-stopped
-    ports:
-      - "${TEMPORAL_PORT:-10009}:7233"
-    depends_on:
-      temporal-postgres:
-        condition: service_healthy
-    environment:
-      - DB=postgresql
-      - DB_PORT=5432
-      - POSTGRES_USER=${TEMPORAL_POSTGRES_USER:-temporal}
-      - POSTGRES_PWD=${TEMPORAL_POSTGRES_PASSWORD:-temporal}
-      - POSTGRES_SEEDS=temporal-postgres
-      - DYNAMIC_CONFIG_FILE_PATH=config/dynamicconfig/development-sql.yaml
-    volumes:
-      - ./infra/temporal/config:/etc/temporal/config/dynamicconfig:ro
-    healthcheck:
-      test: ["CMD", "tctl", "--address", "temporal-server:7233", "cluster", "health"]
-      interval: 30s
-      timeout: 10s
-      retries: 5
     networks:
       - somaagenthub-network
 
