@@ -19,7 +19,6 @@ jobs:
       matrix:
         service:
           - gateway-api
-            # llm-hub replaces legacy slm-service
           - memory-gateway
           - constitution-service
           - identity-service
@@ -100,7 +99,6 @@ jobs:
       matrix:
         service:
           - gateway-api
-            # llm-hub replaces legacy slm-service
           - memory-gateway
           - constitution-service
     
@@ -163,13 +161,9 @@ jobs:
             gateway-api=${{ env.REGISTRY }}/${{ github.repository }}/gateway-api:develop \
             -n somaagent-staging
           
-            # llm-hub replaces legacy slm-service; no rollout needed for this component \
-              # kubectl set image deployment/llm-hub \
-              #   llm-hub=${{ env.REGISTRY }}/${{ github.repository }}/llm-hub:develop \
             -n somaagent-staging
           
           kubectl rollout status deployment/gateway-api -n somaagent-staging
-            # llm-hub replaces legacy slm-service; skipping rollout status
       
       - name: Run smoke tests
         run: |

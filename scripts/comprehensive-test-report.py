@@ -175,7 +175,7 @@ class SomaAgentTestReporter:
             "memory-gateway",
             "orchestrator",
             "policy-engine",
-            # slm-service removed; hub tests integrated elsewhere
+            # Hub tests integrated elsewhere
             "settings-service",
             "gateway-api",
             "identity-service",

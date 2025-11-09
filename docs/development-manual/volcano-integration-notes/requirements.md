@@ -84,7 +84,7 @@ Fill in each section during Sprint 0 discovery. Update the "Last Updated" field 
 ## Observability & Telemetry Sources
 
 - Prometheus scrapes `temporal:9090`, `orchestrator:8001`, `mao-service:8002`, Tool Service, and all monitoring-labeled pods (`infra/monitoring/prometheus.yml`).
-- ServiceMonitors exist for orchestrator, gateway, policy, identity, and somallm providers (`k8s/monitoring/servicemonitors.yaml`); extend with Volcano scheduler and queue exporters.
+- ServiceMonitors exist for orchestrator, gateway, policy, identity, and hub providers (`k8s/monitoring/servicemonitors.yaml`); extend with Volcano scheduler and queue exporters.
 - Temporal workflow histories provide concurrency/backlog metrics—coordinate with Temporal dashboards once scraped metrics are catalogued.
 - Ray usage currently local to orchestrator pods; enable Ray metrics endpoints when migrating workloads to dedicated workers.
 

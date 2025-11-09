@@ -48,12 +48,6 @@ services:
     image: "ghcr.io/somatechlat/soma-jobs:80e1d6f"
     imagePullPolicy: Never
     port: 1000
-  somallm-provider:
-    enabled: true
-    replicaCount: 1
-    image: "ghcr.io/somatechlat/soma-somallm-provider:80e1d6f"
-    imagePullPolicy: Never
-    port: 1001
   policy-engine:
     enabled: true
     replicaCount: 1

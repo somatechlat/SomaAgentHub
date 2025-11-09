@@ -80,7 +80,7 @@ LOAD_TESTS: list[LoadTest] = [
             "http_req_failed": ["rate<0.05"],  # Less than 5% errors
         },
     ),
-    # LLM Hub inference routing test (replaces legacy SLM service)
+    # LLM Hub inference routing test
     LoadTest(
         name="llm_hub_inference",
         target_url="https://api.somaagent.io/v1/chat/completions",

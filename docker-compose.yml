@@ -148,7 +148,7 @@ services:
     networks:
       - somaagenthub-network
 
-  # slm-service removed. LLM Hub replaces this role.
+  # LLM Hub provides centralized model access.
 
   # --- Infrastructure Services ---
   app-postgres:

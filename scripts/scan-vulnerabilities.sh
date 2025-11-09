@@ -18,7 +18,6 @@ SERVICES=(
     "gateway-api"
     "policy-engine"
     "identity-service"
-    # slm-service removed (LLM Hub centralizes model access)
     "analytics-service"
     "constitution-service"
     "billing-service"

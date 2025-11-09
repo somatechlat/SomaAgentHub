@@ -28,7 +28,7 @@ The LLM Hub is a centralized, policy‑aware gateway for all LLM access (externa
 
 - Scope: model catalog with RBAC; provider adapters (OpenAI, Anthropic, Azure OpenAI, Ollama, Local Deterministic); cost/quotas; safety & residency policies; audit; OTel metrics/traces; health/circuit breakers; fallback routing.
 - Consumers: orchestrator workflows/activities, memory‑gateway embeddings, gateway dashboard (health + catalog), pricing/billing usage events.
-- Outcome: a single endpoint `LLM_HUB_URL` replaces legacy `SLM_SERVICE_URL` across services.
+- Outcome: a single endpoint `LLM_HUB_URL` is used across services.
 
 ## 3. Rapid Sprint Plan (Eight 1‑Week Sprints)
 Each sprint has hard, verifiable acceptance criteria. No placeholder code; all endpoints live, tests passing.
@@ -209,7 +209,7 @@ This file supersedes all prior roadmap documents. Do not recreate separate roadm
 
 ## 13. LLM Serving Hub (Canonical)
 
-Authoritative design for the centralized, policy‑aware gateway that replaces `slm-service` and backs all LLM access in SomaAgentHub.
+Authoritative design for the centralized, policy‑aware gateway that backs all LLM access in SomaAgentHub.
 
 - Purpose: unify providers, enforce RBAC/policies/quotas, standardize observability, and provide a catalog filtered by role/region/compliance.
 - API Surface: `/v1/infer/sync`, `/v1/infer/stream`, `/v1/embeddings`, `/v1/catalog/models`, `/v1/admin/health`.
@@ -222,13 +222,13 @@ Authoritative design for the centralized, policy‑aware gateway that replaces `
 - Security: prompt segmentation/redaction; encrypted sensitive logs; per‑tenant provider secrets.
 
 ### 13.1 Consumers & Integration Points
-- Orchestrator: replace `SOMALLM_PROVIDER_URL` usages with `LLM_HUB_URL`; activities call hub for inference/embeddings.
+- Orchestrator: use `LLM_HUB_URL`; activities call hub for inference/embeddings.
 - Memory‑Gateway: route embeddings to `/v1/embeddings`; register local adapter as `local-embeddings-v1`.
-- Gateway‑API: dashboard shows hub health + catalog; remove direct `slm-service` health probes.
+- Gateway‑API: dashboard shows hub health + catalog.
 
 ### 13.2 Migration & Deprecations
-- Remove `slm-service` from docker‑compose, K8s manifests, and CI workflows; delete service directory after cutover.
-- Replace env vars: `SLM_SERVICE_URL` → `LLM_HUB_URL`; `SLM_HEALTH_URL` → `LLM_HUB_HEALTH_URL`.
+- Finalize LLM Hub cutover in docker‑compose, K8s manifests, and CI workflows; remove deprecated service directory.
+ 
 - Remove `services/model-proxy` stub or replace with real multi‑provider adapter inside the Hub.
 - Update docs/glossary to reflect the Hub as the sole LLM entrypoint.
 
@@ -255,13 +255,13 @@ Run multiple focused tracks in parallel to accelerate delivery. Each track has w
 | 1 | L1 Core: Catalog (RBAC), OpenAI + Local adapters, `/v1/infer`, `/v1/embeddings`, quotas + metrics | B1: Agent‑Spawner MVP + integrate static templates engine; artifact storage wired | P1: `/v1/pricing/live` with token rate sources; OPA `allow_pricing` | S1a: Bootstrap unified logging/tracing/metrics module; begin mesh plan |
 | 2 | L2 Policies & Fallback: safety/residency policies, fallback chain, circuit breakers; admin read API | B2: Generic Build Workflow with `fetch_pricing` → `budget_check` → `copy_templates` → `spawn_agent` | P2: Payment intent + webhook; wizard gating; audit events | S1b: Vault secret templates; SBOM + Trivy CI gates; service health probes standardized |
 | 3 | L3 Provider Expansion: Anthropic/Azure/Ollama adapters; embeddings cache; usage events for billing | B3: Deploy via Helm sub‑chart, compensation paths, BuildRun persistence + delete | — | S2: SLO dashboards + alerts; chaos test (pod kill) and resiliency report |
-| 4 | L4 Hardening: throughput tests, cost anomaly alerts, provider failover drills; finalize LLM Hub (legacy slm-service removed) | B4: E2E build test asserting final URL reachability; perf tuning | P3: Reconciliation sanity vs usage events; budgets/quotas refined | S3: Finalize mesh mTLS rollout in dev; documentation + runbooks |
+| 4 | L4 Hardening: throughput tests, cost anomaly alerts, provider failover drills; finalize LLM Hub | B4: E2E build test asserting final URL reachability; perf tuning | P3: Reconciliation sanity vs usage events; budgets/quotas refined | S3: Finalize mesh mTLS rollout in dev; documentation + runbooks |
 
 ### Acceptance Criteria (Weekly)
 - Week 1: Orchestrator calls LLM Hub in dev; Agent‑Spawner spawns ≥10 jobs; pricing endpoint <200ms p50; unified tracing visible across services.
 - Week 2: Policy decisions attached to Hub responses; build workflow runs end‑to‑end in dev gated by payment intent simulation; CI blocks HIGH CVEs.
 - Week 3: Additional providers pass conformance; BuildRun stores artifacts + receipt; SLO dashboards live; chaos recovery documented.
-- Week 4: Legacy `slm-service` already removed; validate Hub throughput & failover; E2E test green; alerts for cost anomalies and provider degradation verified.
+- Week 4: LLM Hub cutover complete; validate Hub throughput & failover; E2E test green; alerts for cost anomalies and provider degradation verified.
 
 ### Dependencies & Parallelization Notes
 - Track L enables Track B and P; ensure `LLM_HUB_URL` available by end of Week 1.

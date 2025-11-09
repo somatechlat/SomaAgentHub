@@ -19,7 +19,7 @@ SERVICES=(
     "gateway-api"
     "policy-engine"
     "identity-service"
-    # slm-service removed; instrumentation now focused on remaining core services
+    # instrumentation focused on core services
     "analytics-service"
 )
 

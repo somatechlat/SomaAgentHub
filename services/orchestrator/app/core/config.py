@@ -93,7 +93,7 @@ class Settings(BaseSettings):
         alias="NOTIFICATION_SERVICE_URL",
     )
 
-    # Central LLM Hub provider URL (replaces legacy slm-service)
+    # Central LLM Hub provider URL
     llm_hub_url: AnyUrl = Field(
         default=os.getenv("LLM_HUB_URL", "http://llm-hub:10022"),
         alias="LLM_HUB_URL",

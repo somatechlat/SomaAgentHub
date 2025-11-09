@@ -90,10 +90,7 @@ def kafka_container():
 
 @pytest.fixture(scope="session", autouse=True)
 def start_llm_hub_stub(kafka_container, redis_container):
-    """LLM Hub has replaced the legacy SLM worker; no background worker required here.
-
-    This fixture remains to preserve test structure but performs no action.
-    """
+    """LLM Hub requires no dedicated background worker for this test structure."""
     yield
 
 
@@ -132,7 +129,7 @@ def test_end_to_end_flow(identity_client, gateway_client, policy_client):
     eval_data = eval_resp.json()
     assert eval_data["allowed"] is True
 
-    # 4. Legacy SLM Kafka flow removed; LLM Hub integration tested elsewhere.
+    # 4. Hub integration tested elsewhere.
 
     # 5. Verify the policy engine health‑check works.
     health = policy_client.get("/v1/health/redis")

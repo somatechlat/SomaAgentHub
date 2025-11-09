@@ -39,7 +39,7 @@
 
 ## Cleanup & Consolidation
 - Remove duplicates (`object-store` vs `object_store`, `capsule-repo` vs `capsule_repo`).
-- Removed legacy `slm-service` and `model-proxy` stubs; LLM Hub is authoritative.
+	LLM Hub is authoritative for provider access.
 
 ## Acceptance
 - Mesh mTLS enforced; secrets from Vault; dashboards live; DR runbook validated quarterly.
