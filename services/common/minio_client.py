@@ -9,14 +9,9 @@ import os
 from functools import lru_cache
 from io import BytesIO
 
-try:
-    from minio import Minio
-    from minio.error import S3Error
-    from urllib3.response import HTTPResponse
-except ImportError:
-    Minio = None
-    S3Error = Exception
-    HTTPResponse = None
+from minio import Minio
+from minio.error import S3Error
+from urllib3.response import HTTPResponse
 
 
 class MinIOClient:
@@ -39,8 +34,7 @@ class MinIOClient:
             secure: Use HTTPS (default: True)
             region: S3 region name
         """
-        if Minio is None:
-            raise ImportError("minio package not installed. Install with: pip install minio")
+        # Hard requirement: minio must be installed; import already enforced above.
 
         self.endpoint = endpoint
         self.region = region

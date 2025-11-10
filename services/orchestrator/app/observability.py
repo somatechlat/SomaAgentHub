@@ -164,7 +164,7 @@ def setup_observability(
     Quick setup function for OpenTelemetry in SomaAgent services.
 
     Usage:
-        from app.observability import setup_observability
+        from .observability import setup_observability
 
         app = FastAPI()
         otel_config = setup_observability("orchestrator", app)

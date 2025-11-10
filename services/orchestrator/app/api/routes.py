@@ -28,12 +28,12 @@ from services.common.contracts.orchestrator import (
 )
 from sqlmodel import Session
 
-from app.database import get_session
-from app.repository.models import BuildRun
-from app.repository.sql_build_run_repository import (
+from ..database import get_session
+from ..repository.models import BuildRun
+from ..repository.sql_build_run_repository import (
     SQLBuildRunRepository,
 )
-from app.repository.interfaces import BuildRunRepository
+from ..repository.interfaces import BuildRunRepository
 
 from ..core.config import settings
 from ..capsule_executor import execute_capsule, CapsuleRunInput as ExecCapsuleRunInput
@@ -514,7 +514,7 @@ async def start_multi_agent(
 
     # Real event emission using outbox + publisher
     logger = logging.getLogger("orchestrator.events")
-    from app.services.event_service import OrchestratorEventService
+    from ..services.event_service import OrchestratorEventService
     from services.common.events.publisher import get_publisher
 
     publisher = get_publisher("orchestrator")

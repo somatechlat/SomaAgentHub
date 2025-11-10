@@ -4,10 +4,8 @@ import logging
 from typing import Any, Dict, List
 from uuid import UUID
 
-from services.orchestrator.app.repository.outbox_event_repository import (
-    OutboxEventRepository,
-)
-from common.events.publisher import EventPublisher
+from ..repository.outbox_event_repository import OutboxEventRepository
+from services.common.events.publisher import EventPublisher
 from sqlalchemy.ext.asyncio import AsyncSession
 
 logger = logging.getLogger(__name__)

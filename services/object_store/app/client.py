@@ -11,27 +11,8 @@ from typing import BinaryIO
 # environment where the package is not installed. We therefore import it lazily
 # and provide a minimal fallback stub so that the module can be imported even
 # without the external library.
-try:
-    from minio import Minio  # type: ignore
-    from minio.error import S3Error  # type: ignore
-except Exception:  # pragma: no cover – exercised only when ``minio`` is missing
-
-    class Minio:  # pylint: disable=too-few-public-methods
-        """Fallback stub used only for test environments without the real
-        ``minio`` package.
-
-        The test suite monkey‑patches ``services.object_store.app.client.Minio``
-        with a dummy implementation that provides ``bucket_exists``,
-        ``make_bucket``, ``put_object``, ``presigned_get_object`` and
-        ``remove_object``. Therefore this stub does not need any behavior – it
-        simply accepts any arguments.
-        """
-
-        def __init__(self, *_, **__):  # noqa: D401, D403
-            pass
-
-    class S3Error(Exception):
-        """Placeholder for ``minio.error.S3Error`` when the library is absent."""
+from minio import Minio  # type: ignore
+from minio.error import S3Error  # type: ignore
 
 
 @dataclass

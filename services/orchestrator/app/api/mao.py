@@ -16,14 +16,14 @@ from pydantic import BaseModel, Field
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from services.common.contracts.orchestrator import OrchestrationStartedEvent
-from app.repository.outbox import OutboxEvent
-from app.workflows.mao import (
+from ..repository.outbox import OutboxEvent
+from ..workflows.mao import (
     MAOStartInput,
     AgentDirective,
     MultiAgentWorkflow,
 )
-from app.repository.outbox_event_repository import OutboxEventRepository
-from app.database import get_session
+from ..repository.outbox_event_repository import OutboxEventRepository
+from ..database import get_session
 
 router = APIRouter(prefix="/v1/mao", tags=["orchestration"])
 

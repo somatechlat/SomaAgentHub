@@ -31,7 +31,8 @@ logger = logging.getLogger(__name__)
 # ``async_sessionmaker`` and ``create_async_engine`` utilities from SQLAlchemy.
 from sqlmodel.ext.asyncio.session import AsyncSession
 
-from .models.outbox import OutboxEvent
+# Adjusted import path: models are in `repository/outbox.py` not `models/outbox`.
+from .repository.outbox import OutboxEvent
 from .services.circuit_breaker import DATABASE_CIRCUIT_BREAKER
 
 # ---------------------------------------------------------------------------
@@ -46,8 +47,14 @@ DATABASE_URL: str = settings.database_url
 sync_engine = create_engine("sqlite:///:memory:", echo=False, future=True)
 
 # Async engine for runtime operations with production pooling
+_db_url = DATABASE_URL
+if not _db_url.startswith("postgresql+asyncpg://"):
+    raise RuntimeError(
+        "DATABASE_URL must use asyncpg driver (postgresql+asyncpg://). Got: " + _db_url
+    )
+
 async_engine = create_async_engine(
-    DATABASE_URL,
+    _db_url,
     echo=settings.database_echo,
     pool_size=settings.database_pool_size,
     max_overflow=settings.database_max_overflow,

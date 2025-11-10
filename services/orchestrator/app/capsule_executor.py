@@ -45,7 +45,19 @@ from services.common.observability import get_meter, get_tracer
 from services.orchestrator.app.core.config import (
     settings,
 )  # Provides capsule_repo_url
-from services.orchestrator.workflows.capsule import CapsuleRunInput
+# Local lightweight CapsuleRunInput to avoid importing workflow module here
+from dataclasses import dataclass, field
+from typing import Any
+
+@dataclass
+class CapsuleRunInput:
+    run_id: str
+    capsule_id: str
+    version: str
+    tenant: str
+    user: str
+    params: dict[str, Any] = field(default_factory=dict)
+    metadata: dict[str, Any] = field(default_factory=dict)
 
 # ---------------------------------------------------------------------------
 # Observability primitives for the executor activity
