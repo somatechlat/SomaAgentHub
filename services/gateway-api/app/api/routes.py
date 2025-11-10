@@ -6,7 +6,7 @@ import time
 from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, status
-from httpx import AsyncClient, HTTPError
+import httpx
 from pydantic import BaseModel, Field
 
 from ..config import GatewaySettings, get_sah_settings
@@ -125,7 +125,7 @@ async def create_session(
     )
 
     start = time.perf_counter()
-    async with AsyncClient(timeout=15.0) as client:
+    async with httpx.AsyncClient(timeout=15.0) as client:
         try:
             # Forward the prepared payload to the Orchestrator
             resp = await client.post(
@@ -133,7 +133,7 @@ async def create_session(
                 json=forward_payload,
                 headers=headers,
             )
-        except HTTPError as exc:  # noqa: BLE001
+        except httpx.HTTPError as exc:  # noqa: BLE001
             observe_forward_latency(ctx.tenant_id, time.perf_counter() - start)
             raise HTTPException(
                 status_code=status.HTTP_502_BAD_GATEWAY,
@@ -214,10 +214,10 @@ async def build_cost_precheck(
 
     headers = _build_forward_headers(ctx)
     start = time.perf_counter()
-    async with AsyncClient(timeout=10.0) as client:
+    async with httpx.AsyncClient(timeout=10.0) as client:
         try:
             resp = await client.post(url, json=body, headers=headers)
-        except HTTPError as exc:
+        except httpx.HTTPError as exc:
             observe_forward_latency(ctx.tenant_id, time.perf_counter() - start)
             raise HTTPException(status_code=502, detail=f"Precheck unreachable: {exc}") from exc
     observe_forward_latency(ctx.tenant_id, time.perf_counter() - start)
@@ -242,11 +242,14 @@ class BuildRunStartRequest(BaseModel):
     template_set: str = "default"
     policy_reason: str | None = None
     tenant: str | None = None
+    requires_reaccept: bool | None = Field(default=None, description="If true, user must reaccept after reconcile drift")
 
 
 class BuildRunStartResponse(BaseModel):
     build_run_id: str
     status: str
+    pricing_snapshot_id: str | None = None
+    requires_reaccept: bool | None = None
 
 
 @router.post("/build/run", response_model=BuildRunStartResponse, tags=["build"])
@@ -263,7 +266,7 @@ async def start_build_run(
         # Adjust to pricing service if directly reachable.
         pricing_direct = getattr(settings, "pricing_service_url", "http://pricing-service:10026")
         snapshot_ep = pricing_direct.rstrip("/") + "/v1/pricing/snapshot"
-        async with AsyncClient(timeout=10.0) as client:
+        async with httpx.AsyncClient(timeout=10.0) as client:
             try:
                 resp_snap = await client.post(snapshot_ep)
                 if resp_snap.status_code == 200:
@@ -287,17 +290,129 @@ async def start_build_run(
     }
     headers = _build_forward_headers(ctx)
     start = time.perf_counter()
-    async with AsyncClient(timeout=10.0) as client:
+    async with httpx.AsyncClient(timeout=10.0) as client:
         try:
             resp = await client.post(orchestrator_url, json=body, headers=headers)
-        except HTTPError as exc:
+        except httpx.HTTPError as exc:
             observe_forward_latency(ctx.tenant_id, time.perf_counter() - start)
             raise HTTPException(status_code=502, detail=f"Orchestrator unreachable: {exc}") from exc
     observe_forward_latency(ctx.tenant_id, time.perf_counter() - start)
     if resp.status_code >= 400:
         raise HTTPException(status_code=resp.status_code, detail=resp.text)
     br = resp.json()
-    return BuildRunStartResponse(build_run_id=str(br.get("id")), status=str(br.get("status")))
+    return BuildRunStartResponse(
+        build_run_id=str(br.get("id")),
+        status=str(br.get("status")),
+        pricing_snapshot_id=snapshot_id,
+        requires_reaccept=payload.requires_reaccept,
+    )
+
+
+class LiveSummaryResponse(BaseModel):
+    snapshot_id: str
+    estimated_total: float
+    currency: str | None = None
+    hours_planned: float | None = None
+    gpu_model: str | None = None
+    budget_cap: float | None = None
+    within_budget: bool | None = None
+
+
+@router.get("/pricing/live-summary", response_model=LiveSummaryResponse, tags=["pricing"])
+async def pricing_live_summary(
+    hours_planned: float | None = None,
+    gpu_model: str | None = None,
+    budget_cap: float | None = None,
+    ctx: RequestContext = Depends(request_context_dependency),
+    settings: GatewaySettings = Depends(get_sah_settings),
+):
+    pricing_service = getattr(settings, "pricing_service_url", "http://pricing-service:10026")
+    url = pricing_service.rstrip("/") + "/v1/pricing/live-summary"
+    params = {}
+    if hours_planned is not None:
+        params["hours_planned"] = hours_planned
+    if gpu_model is not None:
+        params["gpu_model"] = gpu_model
+    async with httpx.AsyncClient(timeout=10.0) as client:
+        resp = await client.get(url, params=params)
+    if resp.status_code >= 400:
+        raise HTTPException(status_code=resp.status_code, detail=resp.text)
+    data = resp.json()
+    snapshot_id = data.get("snapshot_id") or data.get("id") or "unknown"
+    est_total = float(data.get("estimated_total", data.get("total", 0.0)))
+    within_budget = None
+    if budget_cap is not None:
+        within_budget = est_total <= budget_cap
+    return LiveSummaryResponse(
+        snapshot_id=snapshot_id,
+        estimated_total=est_total,
+        currency=data.get("currency"),
+        hours_planned=hours_planned,
+        gpu_model=gpu_model,
+        budget_cap=budget_cap,
+        within_budget=within_budget,
+    )
+
+
+class ReconcileRequest(BaseModel):
+    snapshot_id: str
+    billing_quantity: int = Field(default=1, ge=1)
+    hours_actual: float | None = None
+    gpu_model: str | None = None
+    budget_cap: float | None = None
+
+
+class ReconcileResponse(BaseModel):
+    snapshot_id: str
+    reconciled_total: float
+    estimated_total: float
+    drift_ratio: float | None
+    currency: str | None = None
+    requires_reaccept: bool
+    within_budget: bool | None
+
+
+@router.post("/pricing/reconcile", response_model=ReconcileResponse, tags=["pricing"])
+async def pricing_reconcile(
+    payload: ReconcileRequest,
+    ctx: RequestContext = Depends(request_context_dependency),
+    settings: GatewaySettings = Depends(get_sah_settings),
+):
+    pricing_service = getattr(settings, "pricing_service_url", "http://pricing-service:10026")
+    url = pricing_service.rstrip("/") + "/v1/pricing/reconcile"
+    body = {
+        "snapshot_id": payload.snapshot_id,
+        "billing_quantity": payload.billing_quantity,
+    }
+    if payload.hours_actual is not None:
+        body["hours_actual"] = payload.hours_actual
+    if payload.gpu_model is not None:
+        body["gpu_model"] = payload.gpu_model
+    async with httpx.AsyncClient(timeout=10.0) as client:
+        resp = await client.post(url, json=body)
+    if resp.status_code >= 400:
+        raise HTTPException(status_code=resp.status_code, detail=resp.text)
+    data = resp.json()
+    reconciled = float(data.get("reconciled_total", data.get("total", 0.0)))
+    estimated = float(data.get("estimated_total", data.get("original_total", reconciled)))
+    drift_ratio = None
+    if estimated > 0:
+        drift_ratio = (reconciled - estimated) / estimated
+    requires_reaccept = False
+    if drift_ratio is not None and abs(drift_ratio) > 0.2:  # threshold aligned with policy
+        requires_reaccept = True
+    within_budget = None
+    if payload.budget_cap is not None:
+        within_budget = reconciled <= payload.budget_cap
+    return ReconcileResponse(
+        snapshot_id=payload.snapshot_id,
+        reconciled_total=reconciled,
+        estimated_total=estimated,
+        drift_ratio=drift_ratio,
+        currency=data.get("currency"),
+        requires_reaccept=requires_reaccept,
+        within_budget=within_budget,
+    )
 
 
 router.include_router(dashboard_router)

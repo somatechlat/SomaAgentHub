@@ -1,5 +1,7 @@
 # SomaAgentHub Canonical Roadmap
 
+> READ FIRST — Vibe Coding Rules apply to all changes. See `docs/VIBE_CODING_RULES.md`. Core: No mocks or placeholders; verify existing code and real docs first; minimal files; real implementations; clear contracts; UTC; typed models; observability; honest status. Any change must reference real sources and fit the end-to-end flow.
+
 > Single source of truth for strategic phases, rapid sprints, and deferred items. All previous roadmap documents have been removed and their content consolidated here. Temporal is the orchestrator. Marketplace (capsule distribution & Kong multi‑tenant edge) is explicitly deferred and scoped at the end.
 
 ## 1. Vision (Concise)
@@ -9,6 +11,23 @@ Deliver a production‑grade autonomous agent hub capable of:
 3. Transparent pricing & payment gating (live pricing → approval → workflow)
 4. Secure, observable, auditable multi‑tenant runs
 5. Extensible capsule system with future marketplace integration
+
+## 1.1 Strategic Pillars (Merged)
+These pillars were previously documented separately; they are now merged here for single-source guidance.
+1. Configuration & Bootstrap Unification
+2. Typed Service Contracts & Domain Isolation
+3. Interface-Driven Architecture (Adapters, Repositories, Policy Engine)
+4. Event-Centric Communication & Auditability
+5. Cost, Policy, & Safety Guardrails (Pricing + Policy + Moderation)
+6. Observability & Operability (Metrics, Tracing, Structured Logs, SLOs)
+7. Reliability & Performance (Caching, Backpressure, Circuit Breakers)
+8. Testing & Quality Automation (CI Gates, Coverage, Load Profiles)
+9. Developer Experience (Tooling, Docs, Templates, Local Environments)
+10. Security & Compliance (Secrets, AuthN/Z, Data Boundaries)
+
+Notes:
+- Pillars 1–4 underpin Phase P1–P3 execution; pillars 5–10 drive later hardening (Sprints 6–8 and deferred marketplace work).
+- All roadmap acceptance criteria reference at least one pillar.
 
 ## 2. High‑Level Phases
 | Phase | Objective | Core Outcomes |
@@ -22,6 +41,20 @@ Deliver a production‑grade autonomous agent hub capable of:
 | P6 Security & Compliance | mTLS, secrets, audit, SBOM | Mesh/Vault integrated, audit events, Trivy + Syft in CI |
 | P7 Observability & Performance | Full tracing, metrics, latency targets | OTel spans across workflow chain, dashboards, alerts |
 | P8 Deferred Ecosystem | Marketplace convergence + Kong multi‑tenant edge | Consolidated capsule distribution, external gateway patterns |
+
+### 2.1 Legacy Phase Summary (Historical Context)
+For continuity, the earlier numbered phase plan (Foundations → Interfaces → Events → Observability → Typing → Data → Security) maps onto current phases and tracks:
+| Legacy Phase | Legacy Focus | Current Mapping |
+|--------------|-------------|-----------------|
+| Foundations | Bootstrap, settings, lint & type baseline | Sprint 1 (Foundations) |
+| Interfaces & Contracts | Protocols, repositories, adapters | Sprint 2 + Track B early & Policy additions |
+| Event & Workflow Layer | Kafka topics, outbox pattern | Build workflow + future event publisher (Tracks B/P) |
+| Observability & Guardrails | Metrics, tracing, budgeting policies | Sprints 2, 7, 8 (Security/Obs tracks) |
+| Full Typing & CI | Strict MyPy, CI quality gates | Sprint 8 completion definition |
+| Data & Analytics | Aggregations, forecasting | Deferred post core build (Future enhancement section) |
+| Security & Compliance | Secrets, mTLS, SBOM, audit | Sprint 7 |
+
+Historical sections are archived under `docs/archive/` and should not be edited; evolve only this canonical document.
 
 ### 2A. Cross‑Cutting Program: LLM Serving Hub
 The LLM Hub is a centralized, policy‑aware gateway for all LLM access (external APIs, self‑hosted, and deterministic local models). It runs in parallel with P2–P4 and unblocks orchestrator and memory‑gateway consumers.
@@ -237,6 +270,29 @@ Authoritative design for the centralized, policy‑aware gateway that backs all 
 - OpenAI + Local adapters pass conformance; quotas enforced; cost decisions logged.
 - Orchestrator and memory‑gateway operate solely via `LLM_HUB_URL` in dev.
 
+### 13.4 Airflow Integration (Additive Scheduling Layer)
+Airflow is integrated as a complementary batch/scheduling system; it does not replace Temporal.
+
+Scope:
+- Periodic maintenance: session warmups (`soma_session_warmup`), memory refresh (`memory_refresh`), future embeddings re-index, pricing normalization.
+- Governance pipelines: policy bundle validation (compile + golden tests + SBOM/scan) → promote.
+- Reconciliation: daily pricing drift audit, usage aggregation for billing entitlements.
+- Security & hygiene: scheduled SBOM & vulnerability scan reports; artifact integrity audits.
+
+Boundaries:
+- Domain conversational / build workflows remain in Temporal.
+- Airflow triggers gateway/service HTTP endpoints; never orchestrates multi-step interactive agent state.
+
+Success Criteria:
+- All periodic tasks (pricing normalization, memory refresh, policy validation) operate via Airflow DAGs by end of Sprint 3.
+- No duplication of Temporal workflow logic inside DAGs; each DAG run produces auditable lineage (run_id ↔ BuildRun / snapshot IDs).
+
+Risks & Mitigations:
+- Overloading Airflow with high-frequency tasks → enforce scheduling SLAs & separate queue.
+- Credential sprawl → managed short-lived service tokens via Identity API & secret rotation.
+
+Refer to `services/airflow-service/dags/` for current DAG examples; expansion tracked under Track S & P as appropriate.
+
 ---
 
 ## 14. Parallel Sprint Plan (Execution)
@@ -273,3 +329,377 @@ Run multiple focused tracks in parallel to accelerate delivery. Each track has w
 - Temporal workflow definition and tests (Track B).
 - OPA policy bundle + golden tests (Tracks P & L).
 - Dashboards, alerts, and runbooks (Track S).
+
+---
+
+## 15. Wizard State Machine & Preflight Gates
+
+Authoritative design for the conversational intake and pre-execution approvals that gate orchestrator workflows.
+
+- Purpose: collect inputs, compute cost, enforce budget/entitlements/payment, then signal Temporal to proceed.
+- States: `collecting → estimating → awaiting_payment → approved | rejected`.
+- Storage: short-term via Memory-Gateway; audit fields duplicated in BuildRun.
+
+APIs:
+- `POST /v1/wizard` → start session `{intent, tenant_id}` → `{session_id}`
+- `POST /v1/wizard/{id}/answers` → append/update answers (idempotent by `question_id`)
+- `POST /v1/wizard/{id}/approve` → confirm budget/payment; transitions to `approved`
+
+Preflight sequence (OPA enforced):
+1) `estimate_cost` (Pricing Service)
+2) `check_entitlements` (Policy Engine)
+3) `require_payment` if over plan (Billing)
+4) `proceed_with_build` (Temporal signal)
+
+Acceptance:
+- Deterministic replays: same inputs + pricing version produce the same estimate.
+- Denials are explainable with policy decision traces.
+
+---
+
+## 16. Pricing Source: GPUBROKER (Live Pricing Authority)
+
+Centralizes infra pricing via an upstream provider, with reconciliation at checkout.
+
+- Fetch: `GET GPUBROKER /pricing/summary?profile=<capsule_profile>`.
+- Reconciliation: re-query within 5 minutes before payment; require re-accept if drift > 5%.
+- Fallback: use LKG cache (TTL ~15m) when unavailable, flag as `stale`.
+
+Observability:
+- Metrics: `pricing_drift_percent`, `pricing_reconcile_latency_seconds`.
+- Logs: pricing source, timestamps, drift reasons.
+
+### 16.1 Detailed Integration Design (SomaAgentHub ↔ GPUBROKER)
+
+Purpose: Leverage GPUBROKER's real-time provider aggregation (`provider-service`) for deterministic cost estimation and checkout-time reconciliation inside SomaAgentHub.
+
+Upstream Endpoints Utilized:
+- `GET /providers` (GPUBROKER provider-service) with query params: `gpu|gpu_type`, `region`, `max_price`, pagination (`page`, `per_page`).
+- `GET /health` (sanity + adapter inventory for diagnostics).
+- Optional enrichments (phase later): KPI service `GET /kpis/gpu/{gpu_type}` and `GET /kpis/provider/{provider_name}` for cost-per-token or reliability overlays.
+
+SomaAgentHub Pricing Facade:
+- `POST /v1/pricing/live` → returns a `PricingSummary` snapshot built from filtered provider offers.
+- `POST /v1/pricing/reconcile` → re-fetches offers with identical constraints, computes drift, enforces OPA threshold, yields `PricingReconcileResponse` (receipt & drift flag).
+
+Request Mapping:
+| Field | Source | Notes |
+|-------|--------|-------|
+| `capsule_profile` | client | Maps to a profile config (GPU search terms, default hours/tokens) |
+| `region` | client | Passed through to GPUBROKER filter or omitted if None |
+| `price_cap` | client | Translates to `max_price` param |
+| `required_tags[]` | client | Post-filter on returned `tags`; not sent upstream (GPUBROKER currently lacks that filter) |
+| `usage.hours` | client/profile | Used for total cost computation |
+| `usage.tokens` | optional | Token cost optional; fallback to internal mapping if KPI service not queried |
+
+Profile Configuration Examples:
+```
+llm-inference-a100:
+  gpu_terms: ["A100", "H100"]
+  hours: 20
+  tokens: 2000000
+  region_allow: ["us-east", "eu-west"]
+image-gen-4090:
+  gpu_terms: ["4090", "L40", "A6000"]
+  hours: 40
+training-v100:
+  gpu_terms: ["V100", "A100"]
+  hours: 100
+```
+
+Snapshot Data Model (PricingSummary):
+```
+{
+  source: "gpubroker",
+  snapshot_id: <uuid>,
+  fetched_at: <iso8601>,
+  ttl_seconds: 300,
+  stale: false,
+  cache_status: "miss|hit|stale",
+  constraints: { capsule_profile, region?, price_cap?, required_tags?, gpu_terms:[], usage: { hours, tokens? } },
+  offers_considered: <int>,
+  provider_warnings: [<string>],
+  selected_offer: { provider, gpu, region, price_per_hour, availability, last_updated },
+  breakdown: { hourly: <float>, hours: <float>, tokens?: <int>, token_cost?: <float>, bandwidth_cost?: <float>, storage_cost?: <float> },
+  total_estimated: <float>
+}
+```
+
+Reconciliation Logic:
+1. Accept prior snapshot (by `snapshot_id` or full body) and re-invoke upstream `GET /providers` with same filters.
+2. Select new offer using original selection strategy (cheapest that satisfies tags & availability > threshold).
+3. Compute `drift_percent = ((new_total - old_total) / old_total) * 100`.
+4. If `abs(drift_percent) > DRIFT_THRESHOLD` (OPA or config, default 5) → `requires_reaccept = true`.
+5. Persist receipt: `{ old_total, new_total, drift_percent, selected_offer, stale, source_metadata }` into BuildRun or Billing receipt store.
+
+Failure Modes & Fallbacks:
+| Failure | Handling | Metrics/Flags |
+|---------|----------|---------------|
+| Upstream timeout | Retry (2 attempts, exponential jitter), then LKG snapshot fallback | `pricing_upstream_timeout_total` |
+| Partial adapter failures | Upstream response includes `warnings`; accept degraded dataset | `pricing_provider_warnings_total` |
+| Empty results | Return error or fallback to LKG if allowed; policy may deny | `pricing_empty_results_total` |
+| Redis down (cache) | Graceful degrade to in-memory LRU | `pricing_cache_degraded_total` |
+| Drift high at reconcile | Require explicit user acceptance; record denial if rejected | `pricing_drift_high_total` |
+| Stale snapshot used | Mark `stale=true`; OPA may block payment | `pricing_stale_snapshot_total` |
+
+Caching Strategy:
+- Key: hash of profile + region + price_cap + gpu_terms normalized.
+- Redis TTL: 300s; in-memory LRU fallback size ~200 entries.
+- Store full JSON snapshot for fast serve; mark `cache_status: hit` on retrieval.
+
+Metrics (Extended):
+- `pricing_requests_total{stage="live|reconcile"}`
+- `pricing_latency_seconds{stage="live|reconcile"}` histogram
+- `pricing_cache_status_total{status="hit|miss|stale"}`
+- `pricing_drift_percent` gauge (last reconcile per tenant)
+- `pricing_upstream_timeout_total`
+- `pricing_provider_warnings_total`
+- `pricing_stale_snapshot_total`
+
+Alert Examples:
+- High drift: `avg_over_time(pricing_drift_percent[5m]) > 7` → notify.
+- Timeouts: `increase(pricing_upstream_timeout_total[10m]) > 20`.
+- Empty results spike: `increase(pricing_empty_results_total[10m]) > 5`.
+
+Security & Auth:
+- Internal-only network path to GPUBROKER (cluster DNS or service mesh virtual service).
+- mTLS enforced (mesh sidecars) + optional internal service JWT header: `Authorization: Bearer <service-token>`.
+- Rate limiting: pricing-service local token bucket per tenant (defend cascade retries).
+
+OPA Policy Inputs (Enhanced):
+```
+{
+  estimated_cost: <float>,
+  approved_amount: <float>,
+  age_seconds: <int>,
+  stale: <bool>,
+  drift_percent?: <float>,
+  capsule_profile: <string>,
+  region: <string>,
+  provider: <string>,
+  availability: <string>
+}
+```
+
+Rollout Plan (Weeks 1–4):
+- Week 1: Client + live endpoint + Redis cache + metrics base.
+- Week 2: Reconcile endpoint + drift policies + BuildRun storage integration.
+- Week 3: KPI enrichment (optional cost-per-token) + advanced alerts + chaos tests (forced upstream delay).
+- Week 4: Hardening (circuit breakers, backpressure, provider preference profiles) + final docs & runbooks.
+
+Testing Strategy:
+- Golden snapshot tests for representative profiles (A100, 4090, V100 training).
+- Simulated drift test (manually altered `price_per_hour`).
+- Timeout injection test (proxy delaying upstream responses). 
+- Stale fallback test (disable upstream, rely on LKG, `stale=true`).
+
+Open Questions:
+- Currency conversion needed? (Assume USD only for now.)
+- Minimum availability threshold? (Default allow all; warn if `<"low">`).
+- Provider weighting strategy phase? (Cheapest-first vs reliability score weighting – defer to KPI integration week 3.)
+
+Risks:
+- Upstream burst causing rate-limit: Mitigate with per-tenant caching & backoff.
+- Inconsistent tags taxonomy: Normalize or treat tags as hints until standardization.
+- Large pagination sets: Cap `per_page` to 100 and consider multi-page aggregation only if offers < required minimum.
+
+
+---
+
+## 17. Payments & Entitlements
+
+Stripe-first implementation with idempotent webhooks and entitlement resolver.
+
+APIs:
+- `POST /v1/billing/checkout` → `{ checkout_url, session_id }`
+- `POST /v1/billing/webhook/{stripe|paypal}`
+- `GET  /v1/billing/entitlements` → current quotas/features
+
+Data model (minimal): `customers, subscriptions, entitlements, usage, payments`.
+
+Flow:
+1) Estimate → compare to entitlements
+2) If insufficient → checkout → webhook updates entitlements
+3) Wizard resumes; OPA re-check; proceed
+
+OPA examples:
+- Deny execution if `estimated_total > budget_cap`.
+- Deny if `security_class == critical` and plan ≠ Enterprise.
+
+---
+
+## 18. Marketplace Lifecycle (Deferred Scope, Canonical Design)
+
+Responsibilities:
+- Catalog/search/versioning/channels; publish/promote/install/rollback; provenance and scans; billing entitlements for paid capsules.
+
+Draft APIs:
+- `GET  /v1/marketplace/capsules[?query=&tag=&channel=]`
+- `GET  /v1/marketplace/capsules/{id}` (+ `/versions`)
+- `POST /v1/marketplace/capsules` (publish draft)
+- `POST /v1/marketplace/capsules/{id}/promote`
+- `POST /v1/marketplace/capsules/{id}/install`
+- `POST /v1/marketplace/capsules/{id}/purchase`
+
+Security:
+- Signature verification, SBOM gate, vuln scans, OPA promotion/install policies.
+
+Channels:
+- `dev → beta → stable` promotion rules (no critical CVEs; signed artifacts; policy pass; install success rate thresholds).
+
+---
+
+## 19. Runtime Customization (Post-Deploy, No Rebuilds)
+
+Principles:
+- Static installs first (prebuilt images, Helm values); then apply lightweight runtime config (branding/flags) via ConfigMaps/Secrets and hot-reload endpoints.
+
+Flow:
+1) Namespace + NetworkPolicy
+2) Secrets injection (Vault → K8s)
+3) Helm installs (backend, frontend, worker)
+4) Config patcher applies branding and feature toggles
+5) Migrations/tests → rollback on failure
+
+---
+
+## 20. Capsule: Taxi‑Hailing Clone v10 (Install‑Ready Example)
+
+Metadata:
+- `id: taxi-hailing-clone-v10`, `version: 10.0.x`, `channel: stable`, `requires_payment: true`, `security_class: standard`
+
+Images:
+- `internal-registry/taxi-backend:v10`, `taxi-frontend:v10`, `taxi-dispatcher:v10`
+
+Variables:
+- `tenant_id, region, base_domain, brand_name, brand_color, logo_url, payment_provider, analytics_on`
+
+Steps (ordered):
+1) Preflight (entitlements/region/capacity)
+2) Cost estimate → payment reconciliation
+3) Namespace + NetworkPolicy
+4) Vault secrets → K8s
+5) Helm deploy backend/frontend/worker
+6) Branding patcher
+7) Optional modules toggling
+8) DB migrations
+9) Smoke tests → rollback on failure
+10) Observability wiring
+11) Result persistence (BuildRun + artifacts + receipt)
+
+Outputs:
+- `app_url, admin_url, api_url, grafana_url, receipt, run_log.json, build_manifest.json`
+
+---
+
+## 21. Module-by-Module Implementation Plan
+
+Per service/module, current status → detailed implementation → acceptance.
+
+1) Gateway API
+- Current: Health, routing, partial pricing integration.
+- Implement: Wizard endpoints; budget precheck; payment approval flow; BuildRun fetch.
+- APIs: `/v1/wizard/*`, `/v1/build/{id}`.
+- Acceptance: End-to-end approval→build trigger works; policy denials surfaced with reasons.
+
+2) Orchestrator (Temporal)
+- Current: Workflow scaffolds; capsule executor integration.
+- Implement: `build_workflow` with activities (`fetch_pricing`, `opa_budget_check`, `copy_templates`, `spawn_agent`, `docker_build`, `helm_deploy`, `persist_result`), signals for approve/cancel.
+- Acceptance: Minimal build < 5 minutes; compensation on failures; traces end-to-end.
+
+3) Pricing Service
+- Current: Live estimate endpoints and snapshots.
+- Implement: GPUBROKER client; reconciliation step; drift metrics; provider adapters.
+- Acceptance: p50 < 200ms; drift handling with re-accept policy.
+
+4) Policy Engine (OPA)
+- Current: Basic allow rules.
+- Implement: Budget cap, max agents per user, feature/plan checks, capacity, stale pricing guards; bundle versioning and tests.
+- Acceptance: Golden tests pass; denial reasons attached to responses.
+
+5) LLM Hub
+- Current: Minimal endpoints.
+- Implement: Catalog (RBAC), adapters (OpenAI, Local; then Anthropic/Azure/Ollama), quotas, safety/residency, fallback chains, circuit breakers; usage events.
+- Acceptance: Orchestrator/memory-gateway use Hub exclusively; quotas enforced; fallbacks observable.
+
+6) Capsule Repos & Marketplace
+- Current: Capsule-repo and Task-capsule-repo implemented.
+- Implement: Canonicalize schema; add metadata extensions (requires_payment, entitlements, security_class, estimated_cost_formula, rollback, channel); prepare for deferred marketplace APIs.
+- Acceptance: Orchestrator fetches manifests with extended fields; integrity/attestation checks.
+
+7) Agent Spawner
+- Current: Missing.
+- Implement: `POST /v1/spawn` → K8s Job/Deployment with concurrency quotas; spawn metrics.
+- Acceptance: ≥20 concurrent spawns; policy gate on max agents; outputs consumed by workflow.
+
+8) Static Templates
+- Current: Partial bundles.
+- Implement: `services/static-templates/` for FastAPI/React/Helm/CICD; variable substitution; bundle hashing.
+- Acceptance: Sample build produces source zip + Helm chart with verified hash.
+
+9) BuildRun Persistence
+- Current: Partial artifacts.
+- Implement: Authoritative model (see section 4); `/v1/build/result` persistence; deletion (GDPR) flow.
+- Acceptance: Artifact URLs + receipt retrievable; delete purges object store and marks record.
+
+10) Object Store
+- Current: Client + uploads.
+- Implement: Size limits, lifecycle policy, integrity verification.
+- Acceptance: Oversized artifacts rejected; SHA mismatch blocks persist.
+
+11) Identity & Auth
+- Current: Basic auth.
+- Implement: Tenant-aware RBAC for wizard/build/pricing; service-to-service mTLS + JWT propagation.
+- Acceptance: Role-limited model catalog; cross-service auth verified under mesh.
+
+12) Memory Gateway
+- Current: Vector + KV.
+- Implement: Embeddings via LLM Hub; TTL policies; audit logging for reads/writes.
+- Acceptance: Consistent embeddings source; access logs with tenant context.
+
+13) Observability
+- Current: Base metrics/logging.
+- Implement: Metrics and alerts (section 7); trace sampling; dashboards and runbooks.
+- Acceptance: SLOs visible; alerts firing in dev; chaos recovery documented.
+
+14) Security
+- Current: Partial.
+- Implement: Mesh mTLS; Vault secrets; SBOM + Trivy; policy audit exports; cleanup controllers and retention.
+- Acceptance: All inter-service traffic via mesh; CI blocks HIGH CVEs; rotation tests pass.
+
+---
+
+## 22. Validation Scenarios
+
+- Marketing L1: returns posts/ad image/brief; payment gated by budget.
+- Bazaar Chatbot: composite capsule; WordPress plugin; checkout if plan insufficient.
+- Accounting (Ecuador): conditional SRI + Payroll; forecast vs plan; compliance via OPA.
+
+---
+
+## 23. Helm/Config Additions
+
+Values:
+- `services.gatewayApi.billing.enabled: true`
+- `billing.provider: stripe|paypal`
+- `billing.currency: USD`
+- `billing.stripe.secretKey`, `billing.stripe.webhookSecret`, `billing.stripe.priceIds`
+- `billing.paypal.clientId`, `billing.paypal.secret`
+- `featureFlags.requirePaymentOnOverage: true`
+
+Kubernetes:
+- Secrets mounted to Gateway API and Marketplace
+- NetworkPolicies for webhook ingress
+
+---
+
+## 24. Consolidation & Maintenance
+
+- This is the single canonical roadmap. All other roadmap documents have been removed.
+- Update the “Repo Gap Summary” quarterly; keep acceptance criteria current.
+- Cross-link changes in `ARCHITECTURE.md` and `docs/specs/` when schemas evolve.
+
+### 24.1 Document Hygiene (Enforced)
+- Prohibit reintroduction of standalone roadmap markdowns (`roadmap-*.md`).
+- Archive any large deprecated strategy docs under `docs/archive/` with date stamp.
+- Reference pillar alignment in future PR descriptions (template to be added in developer docs section).

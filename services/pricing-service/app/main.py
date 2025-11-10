@@ -3,10 +3,11 @@ import statistics
 import uuid
 from contextlib import asynccontextmanager
 from datetime import UTC, datetime
+from typing import Dict, List
 
 import httpx
 from fastapi import FastAPI, HTTPException, Query
-from prometheus_client import Counter
+from prometheus_client import Counter, Histogram
 from prometheus_fastapi_instrumentator import Instrumentator
 
 from .aggregator import fetch_live_offers
@@ -15,6 +16,13 @@ from .clickhouse import get_client
 from .config import get_settings
 from .models import LivePricingResponse, LivePricingSummary, PricingOffer
 from .refresh import start_refresh_loop, stop_refresh_loop
+from .schemas import (
+    PricingLiveRequest,
+    PricingSummary,
+    SelectedOffer,
+    PricingReconcileRequest,
+    PricingReconcileResponse,
+)
 from services.common.config.base_settings import BaseServiceSettings, load_settings
 from services.common.fastapi.bootstrap import create_app
 
@@ -65,6 +73,30 @@ BUDGET_DECISIONS = Counter(
     "Budget evaluation decisions",
     ["within_budget", "policy_allow"],
 )
+LIVE_LATENCY = Histogram(
+    "pricing_latency_seconds",
+    "Latency for pricing operations",
+    ["stage"],
+    buckets=(0.05, 0.1, 0.25, 0.5, 1, 2, 5),
+)
+
+_SUMMARY_CACHE: Dict[str, PricingSummary] = {}
+
+_PROFILE_MAP: Dict[str, Dict[str, object]] = {
+    "llm-inference-a100": {
+        "gpu_terms": ["A100", "H100"],
+        "hours": 20.0,
+        "tokens": 2_000_000,
+    },
+    "image-gen-4090": {
+        "gpu_terms": ["4090", "L40", "A6000"],
+        "hours": 40.0,
+    },
+    "training-v100": {
+        "gpu_terms": ["V100", "A100"],
+        "hours": 100.0,
+    },
+}
 
 
 @app.get("/healthz")
@@ -336,6 +368,179 @@ def _opa_decide(payload: dict) -> dict | None:
     except Exception as e:
         logger.warning("[pricing-service] OPA call failed: %s", e)
     return None
+
+
+def _select_offer(offers: List[PricingOffer], gpu_terms: List[str], region: str | None, price_cap: float | None, required_tags: List[str]) -> tuple[PricingOffer | None, List[str]]:
+    warnings: List[str] = []
+    filtered = []
+    for o in offers:
+        gpu_ok = any(term.lower() in o.gpu_model.lower() for term in gpu_terms) if gpu_terms else True
+        if not gpu_ok:
+            continue
+        if region and (o.region or "").lower() != region.lower():
+            continue
+        if price_cap is not None and o.price_per_hour > price_cap:
+            continue
+        if required_tags and not set(t.lower() for t in required_tags).issubset({t.lower() for t in o.tags}):
+            continue
+        filtered.append(o)
+    if not filtered:
+        warnings.append("no_offers_after_filtering")
+        return None, warnings
+    chosen = min(filtered, key=lambda o: o.price_per_hour)
+    return chosen, warnings
+
+
+@app.post("/v1/pricing/live-summary", response_model=PricingSummary)
+def pricing_live_summary(req: PricingLiveRequest):  # type: ignore[valid-type]
+    settings = get_settings()
+    start = datetime.now(UTC)
+    stage = "live"
+    try:
+        profile_cfg = _PROFILE_MAP.get(req.capsule_profile, {})
+        gpu_terms = [str(x) for x in profile_cfg.get("gpu_terms", [])] or []
+        hours_default = float(profile_cfg.get("hours", req.usage.hours))
+        tokens_default = profile_cfg.get("tokens")
+
+        offers = fetch_live_offers()
+        chosen, warnings = _select_offer(
+            offers,
+            gpu_terms=gpu_terms,
+            region=req.region,
+            price_cap=req.price_cap,
+            required_tags=req.required_tags,
+        )
+        if not chosen:
+            raise HTTPException(status_code=404, detail="No matching offers for constraints")
+
+        hours = req.usage.hours or hours_default
+        tokens = req.usage.tokens or tokens_default
+        hourly = chosen.price_per_hour
+        token_cost = None
+        if tokens and tokens > 0:
+            # Simple linear token estimation placeholder (future: KPI service)
+            # Not a mock price; derived from hourly rate assuming 2000 tokens/sec baseline on high-end GPU
+            # tokens/sec approx scaling heuristic
+            baseline_tokens_per_hour = 2000 * 3600
+            cost_per_token = hourly / baseline_tokens_per_hour
+            token_cost = cost_per_token * tokens
+
+        total = hourly * hours + (token_cost or 0.0)
+
+        snapshot_id = str(uuid.uuid4())
+        summary = PricingSummary(
+            snapshot_id=snapshot_id,
+            fetched_at=start,
+            ttl_seconds=settings.cache_ttl_seconds,
+            stale=False,
+            cache_status="miss",
+            gpubroker_url=settings.gpubroker_url,
+            constraints={
+                "capsule_profile": req.capsule_profile,
+                "region": req.region,
+                "price_cap": req.price_cap,
+                "required_tags": req.required_tags,
+                "gpu_terms": gpu_terms,
+                "usage": {"hours": hours, "tokens": tokens},
+            },
+            offers_considered=len(offers),
+            provider_warnings=warnings,
+            selected_offer=SelectedOffer(
+                provider=chosen.provider,
+                gpu=chosen.gpu_model,
+                region=chosen.region,
+                price_per_hour=chosen.price_per_hour,
+                availability=chosen.availability,
+                last_updated=chosen.last_seen_at,
+            ),
+            breakdown={
+                "hourly": hourly,
+                "hours": hours,
+                "tokens": tokens,
+                "token_cost": token_cost,
+            },
+            total_estimated=total,
+        )
+        _SUMMARY_CACHE[snapshot_id] = summary
+        REQS.labels(endpoint="live_summary").inc()
+        return summary
+    finally:
+        LIVE_LATENCY.labels(stage=stage).observe((datetime.now(UTC) - start).total_seconds())
+
+
+@app.post("/v1/pricing/reconcile", response_model=PricingReconcileResponse)
+def pricing_reconcile(req: PricingReconcileRequest):  # type: ignore[valid-type]
+    settings = get_settings()
+    start = datetime.now(UTC)
+    stage = "reconcile"
+    try:
+        prior = req.snapshot
+        if prior.snapshot_id not in _SUMMARY_CACHE:
+            _SUMMARY_CACHE[prior.snapshot_id] = prior  # allow external snapshot usage
+
+        gpu_terms = prior.constraints.get("gpu_terms", [])
+        offers = fetch_live_offers()
+        chosen, warnings = _select_offer(
+            offers,
+            gpu_terms=gpu_terms,
+            region=prior.constraints.get("region"),
+            price_cap=prior.constraints.get("price_cap"),
+            required_tags=prior.constraints.get("required_tags", []),
+        )
+        if not chosen:
+            raise HTTPException(status_code=404, detail="No offers for reconciliation")
+
+        hours = prior.constraints["usage"]["hours"]
+        tokens = prior.constraints["usage"].get("tokens")
+        hourly = chosen.price_per_hour
+        token_cost = None
+        if tokens and tokens > 0:
+            baseline_tokens_per_hour = 2000 * 3600
+            cost_per_token = hourly / baseline_tokens_per_hour
+            token_cost = cost_per_token * tokens
+        new_total = hourly * hours + (token_cost or 0.0)
+        old_total = prior.total_estimated
+        drift_percent = ((new_total - old_total) / old_total * 100.0) if old_total > 0 else 0.0
+        requires_reaccept = abs(drift_percent) > 5.0  # default threshold (future: OPA)
+
+        updated = PricingSummary(
+            snapshot_id=prior.snapshot_id,
+            fetched_at=start,
+            ttl_seconds=settings.cache_ttl_seconds,
+            stale=False,
+            cache_status="miss",
+            gpubroker_url=settings.gpubroker_url,
+            constraints=prior.constraints,
+            offers_considered=len(offers),
+            provider_warnings=warnings,
+            selected_offer=SelectedOffer(
+                provider=chosen.provider,
+                gpu=chosen.gpu_model,
+                region=chosen.region,
+                price_per_hour=chosen.price_per_hour,
+                availability=chosen.availability,
+                last_updated=chosen.last_seen_at,
+            ),
+            breakdown={
+                "hourly": hourly,
+                "hours": hours,
+                "tokens": tokens,
+                "token_cost": token_cost,
+            },
+            total_estimated=new_total,
+        )
+        _SUMMARY_CACHE[prior.snapshot_id] = updated
+        REQS.labels(endpoint="reconcile").inc()
+        return PricingReconcileResponse(
+            old_total=old_total,
+            new_total=new_total,
+            drift_percent=drift_percent,
+            requires_reaccept=requires_reaccept,
+            summary=updated,
+            receipt_id=None,
+        )
+    finally:
+        LIVE_LATENCY.labels(stage=stage).observe((datetime.now(UTC) - start).total_seconds())
 
 
 @app.post("/v1/pricing/evaluate-budget/with-policy")

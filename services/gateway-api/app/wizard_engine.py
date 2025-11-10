@@ -16,11 +16,13 @@ from pydantic import BaseModel, Field
 from services.common.contracts.pricing import BudgetPrecheckDecision
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from gateway_api.app.services.event_service import GatewayEventService
-from common.events.publisher import EventPublisher
+# Local import guard: gateway_api package may not exist when loaded as plain module in tests
+try:
+    from gateway_api.app.services.event_service import GatewayEventService  # type: ignore
+except Exception:  # pragma: no cover
+    GatewayEventService = None  # type: ignore
 from services.common.events.publisher import EventPublisher
-from services.common.events.models import OutboxEvent
-from services.orchestrator.app.repository.outbox import OutboxRepository
+from services.orchestrator.app.repository.outbox_event_repository import OutboxEventRepository
 
 logger = logging.getLogger(__name__)
 
@@ -598,20 +600,12 @@ class WizardEngine:
             }
 
             # Create outbox event
-            outbox_event = OutboxEvent(
-                event_type="wizard.approved",
-                aggregate_id=session_id,
-                event_data=event_data,
-                created_at=datetime.now(UTC),
-            )
-
-            # Save to outbox
             engine = create_async_engine(os.getenv("DATABASE_URL", "sqlite+aiosqlite:///gateway.db"))
             async_session = sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
 
             async with async_session() as db_session:
-                outbox_repo = OutboxRepository(session=db_session)
-                await outbox_repo.save_event(outbox_event)
+                repo = OutboxEventRepository(session=db_session)
+                await repo.save_event(event_type="wizard.approved.v1", event_data=event_data)
                 await db_session.commit()
 
             await engine.dispose()

@@ -19,12 +19,13 @@ def create_app(
 ) -> FastAPI:
     """Create a FastAPI app with unified logging and observability.
 
-    - Applies log level
+    - Applies log level (fallback to INFO if attribute missing)
     - Initializes OpenTelemetry (metrics + tracing) if enabled
     - Calls an optional `routes_factory` to attach routes/routers
     """
+    log_level_name = getattr(settings, "log_level", "INFO")
     logging.basicConfig(
-        level=getattr(logging, settings.log_level, logging.INFO),
+        level=getattr(logging, str(log_level_name).upper(), logging.INFO),
         format="%(asctime)s %(levelname)s %(name)s %(message)s",
     )
 

@@ -156,9 +156,9 @@ class Settings(BaseSettings):
     # Capsule repository – where manifest YAML files are stored. The orchestrator
     # fetches a manifest when a capsule run does not provide an explicit
     # ``image``/``command`` payload.  The default points to the Helm‑deployed
-    # ``capsule-repo`` service.
+    # canonical ``task-capsule-repo`` service.
     capsule_repo_url: AnyUrl = Field(
-        default=os.getenv("CAPSULE_REPO_URL", "http://capsule-repo:8002/v1/capsules"),
+        default=os.getenv("CAPSULE_REPO_URL", "http://task-capsule-repo:10011/v1/capsules"),
         alias="CAPSULE_REPO_URL",
     )
 

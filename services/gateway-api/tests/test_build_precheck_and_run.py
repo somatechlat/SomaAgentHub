@@ -1,14 +1,15 @@
 import os
-from importlib.machinery import SourceFileLoader
-
+import sys
+import sys
+import json
 import httpx
 from fastapi.testclient import TestClient
 from httpx import Response
 
-# Add service path then dynamically load gateway main to avoid package shadowing
 BASE = os.path.dirname(os.path.dirname(__file__))
-gateway_main = SourceFileLoader("gateway_app_main", os.path.join(BASE, "app", "main.py")).load_module()
-app = gateway_main.app  # noqa: E402
+if BASE not in sys.path:
+    sys.path.insert(0, BASE)
+from app.main import app  # type: ignore
 
 client = TestClient(app)
 
@@ -35,26 +36,14 @@ class FakeAsyncClient:
                 "require_payment": False,
                 "recommended_action": None,
             }
-            return Response(
-                200,
-                content=json.dumps(data),
-                headers={"Content-Type": "application/json"},
-            )
+            return Response(status_code=200, json=data)
         if url.endswith("/v1/pricing/snapshot"):
             data = {"snapshot_id": "test-snap-123", "offers": 1, "hash": "abc"}
-            return Response(
-                200,
-                content=json.dumps(data),
-                headers={"Content-Type": "application/json"},
-            )
+            return Response(status_code=200, json=data)
         if url.endswith("/v1/build-runs"):
             data = {"id": "run-1", "status": "queued"}
-            return Response(
-                200,
-                content=json.dumps(data),
-                headers={"Content-Type": "application/json"},
-            )
-        return Response(404, json={"detail": "not found"})
+            return Response(status_code=200, json=data)
+        return Response(status_code=404, json={"detail": "not found"})
 
 
 def test_cost_precheck(monkeypatch):

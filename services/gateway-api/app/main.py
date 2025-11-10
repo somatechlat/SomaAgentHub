@@ -16,11 +16,15 @@ from pydantic import BaseModel
 from services.common.fastapi.bootstrap import create_app
 from services.common.spiffe_auth import init_spiffe
 
-from .api.routes import router as api_router
-from .config import get_sah_settings
-from .core.middleware import ContextMiddleware
-from .core.redis import close_redis_client, get_redis_client
-from .wizard_engine import wizard_engine
+# Import app-local modules in a way that works when loaded as a loose module
+import importlib
+
+api_router = importlib.import_module("app.api.routes").router  # type: ignore[attr-defined]
+get_sah_settings = importlib.import_module("app.config").get_sah_settings  # type: ignore[attr-defined]
+ContextMiddleware = importlib.import_module("app.core.middleware").ContextMiddleware  # type: ignore[attr-defined]
+close_redis_client = importlib.import_module("app.core.redis").close_redis_client  # type: ignore[attr-defined]
+get_redis_client = importlib.import_module("app.core.redis").get_redis_client  # type: ignore[attr-defined]
+wizard_engine = importlib.import_module("app.wizard_engine").wizard_engine  # type: ignore[attr-defined]
 
 logger = logging.getLogger(__name__)
 
@@ -39,6 +43,16 @@ async def lifespan(app: FastAPI):
     yield
     # Shutdown: ensure Redis client closes cleanly
     await close_redis_client()
+
+
+class WizardStartRequest(BaseModel):
+    wizard_id: str
+    user_id: str = "demo-user"
+    metadata: dict[str, Any] | None = None
+
+
+class WizardAnswerRequest(BaseModel):
+    value: Any
 
 
 def _attach_routes(app: FastAPI) -> None:
@@ -83,17 +97,11 @@ def _attach_routes(app: FastAPI) -> None:
     def list_wizards() -> dict[str, Any]:
         return {"wizards": wizard_engine.list_wizards()}
 
-    class WizardStartRequest(BaseModel):
-        wizard_id: str
-        user_id: str = "demo-user"
-        metadata: dict[str, Any] | None = None
-
-    class WizardAnswerRequest(BaseModel):
-        value: Any
+    from fastapi import Body
 
     @app.post("/v1/wizards/start", tags=["wizard"])
     def start_wizard(
-        request: WizardStartRequest,
+        request: WizardStartRequest = Body(...),
     ) -> dict[str, Any]:  # pragma: no cover - interacts with external services
         try:
             return wizard_engine.start_wizard(
