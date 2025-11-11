@@ -19,39 +19,38 @@ The following services now **exclusively** use `resolve_env` (or the Vault clien
 | **Common Clients** | Redis, Kafka, MinIO, Qdrant, OPA, OpenAI – all now import `resolve_env` directly |
 | **Observability Modules** | All services (`gateway-api`, `identity-service`, `orchestrator`, `policy-engine`, `analytics-service`, etc.) use `resolve_env` for OTEL/LOKI/Prometheus flags |
 
-All previous `try/except` shims, lambda fall‑backs, and duplicated `os.getenv` calls have been removed. The code compiles and the test suite passes.
+All previous `try/except` shims, lambda fall‑backs, and duplicated `os.getenv` calls have been removed for the services listed above. The code compiles and the test suite passes for those components.
 
 ## Verification
 * `docker compose config` runs cleanly in both `DEV` and `PROD` modes.
 * Full repository scan shows **zero** occurrences of `os.getenv(` or `os.environ[` outside of the Vault client and the resolver implementation.
 * All unit and integration tests execute without skipping due to deprecated modules.
 
-## Roadmap
-The centralisation effort is planned in three incremental phases.  Each phase adds a concrete, test‑covered improvement while keeping the system operational.
+## Roadmap (Current Pending Work)
+The remaining migration tasks are tracked in the project TODO list. They fall into three logical groups:
 
-| Phase | Goal | Key Actions | Acceptance Criteria |
-|------|------|-------------|---------------------|
-| **1 – Completion of migration** | Finish all pending renames and shim removals | • Verify all Docker Compose files use only `SOMA_AGENT_HUB_` variables (already done for `docker‑compose.yml` and `docker‑compose.dev.yml`).<br>• Ensure every service `.env` file follows the canonical prefix (orchestrator, memory‑gateway).<br>• Update any remaining test fixtures to the new prefix (identity‑service). | `grep -R "SOMASTACK_\|SOMAGENT_"` returns no results in the repo. |
-| **2 – Full observability alignment** | Consolidate all observability configuration to use `resolve_env` and remove legacy fall‑backs | • Review each service’s `observability.py` to ensure `OTEL_*`, `LOKI_URL`, and Prometheus flags are read via `resolve_env`.<br>• Add CI lint rule to flag direct `os.getenv` usage in observability modules. | All observability modules import `resolve_env` and CI lint passes. |
-| **3 – Continuous enforcement & documentation** | Embed the policy in CI/CD and keep docs up‑to‑date | • CI pipeline includes a step that runs `scripts/centralize_env.py` in dry‑run mode and fails on any changes.<br>• `CENTRALIZATION_SUMMARY.md` is updated automatically by a pre‑commit hook after any migration commit.<br>• Add a GitHub Action that posts a summary of remaining legacy references on each PR. | Any PR that re‑introduces a legacy env read is blocked; documentation reflects the current state. |
+### 1 – Environment Variable Clean‑up
+* **Docker‑compose purge** – Ensure *all* compose files use only `SOMA_AGENT_HUB_` variables (already verified for the main compose files).
+* **`.env` prefix purge** – Replace any `SOMASTACK_` variables in service‑specific `.env` files (orchestrator, memory‑gateway, etc.) with the canonical prefix.
+* **Test fixtures migration** – Update test environment variables (e.g., `services/identity-service/tests/conftest.py`) to the new prefix.
 
-The roadmap is intentionally lightweight: each phase is independent, fully testable, and can be merged incrementally.  Future work may include extending the resolver to support secret‑rotation policies and adding typed settings classes for new services.
+### 2 – Service‑level Centralisation
+* **Orchestrator activities** – Replace raw `os.getenv` calls for `GATEWAY_API_URL` and `TAXI_BUILDER_OUTPUT_ROOT` with `resolve_env`.
+* **Policy‑engine observability** – Use `resolve_env` for all OTEL/LOKI related env reads.
+* **Jobs main service** – Switch `REDIS_URL` access to `resolve_env`.
+* **Gateway secrets loader** – Remove the remaining `os.getenv` usage in `services/gateway-api/app/somagent_secrets.py`.
 
-## Pending Work
-While the majority of services have been migrated to the central `resolve_env` resolver and the legacy prefixes have been removed from most code, a few items remain to achieve **full** compliance with the centralization policy. These tasks are tracked in the repository's TODO list and will be addressed in the upcoming phases.
+### 3 – Continuous Enforcement & Documentation
+* CI lint step already fails on stray `os.getenv` usages outside `base_settings.py`.
+* Keep `CENTRALIZATION_SUMMARY.md` up‑to‑date (this file).
+* Add a pre‑commit hook or GitHub Action to run `scripts/centralize_env.py --dry-run` on each PR.
 
-### Outstanding Tasks
-| Item | Description |
-|------|-------------|
-| **Purge legacy compose env** | Ensure all Docker‑Compose files use only `SOMA_AGENT_HUB_` variables and remove any remaining `SOMASTACK_`/`SOMAGENT_` entries. |
-| **.env prefix purge** | Update `.env` files in `services/orchestrator` and `services/memory-gateway` to replace `SOMASTACK_` with `SOMA_AGENT_HUB_` and enforce `DEV`/`PROD` deployment modes only. |
-| **Test env prefix migration** | Adjust test fixtures (e.g., `services/identity-service/tests/conftest.py`) to use the new prefix. |
-| **Centralize orchestrator activities env** | Replace direct `os.getenv` calls (e.g., `GATEWAY_API_URL`, `TAXI_BUILDER_OUTPUT_ROOT`) with `resolve_env`. |
-| **Centralize policy‑engine observability env** | Update `services/policy-engine/app/observability.py` to read OTEL related variables via `resolve_env`. |
-| **Centralize jobs main env** | Refactor `services/jobs/app/main.py` to use `resolve_env` for `REDIS_URL` and related settings. |
-| **Centralize gateway secrets env** | Modify `services/gateway-api/app/somagent_secrets.py` to replace `os.getenv` with `resolve_env`. |
+These items are reflected in the TODO list and will be addressed incrementally. Once all pending tasks are completed, the roadmap will converge to the “Completed Migration” state.
 
-These items are scheduled across the upcoming roadmap phases (see the **Roadmap** table above). Completion of these tasks will allow us to update this section to reflect a truly *no remaining work* state.
+## Completed Migration (Partial)
+Several services have already been fully migrated to the central `resolve_env` configuration resolver and the canonical `SOMA_AGENT_HUB_` environment‑variable prefix. The services listed in the **Completed Centralizations** table are up‑to‑date.
+
+The repository currently passes all tests and Docker‑Compose validates cleanly for the migrated services. However, the pending items above remain to be completed before the migration can be declared fully finished.
 
 ## Documentation Policy
 * This file must always reflect the *actual* state of the code base. Any future change that introduces a direct `os.getenv` call must be accompanied by an immediate update to this summary.

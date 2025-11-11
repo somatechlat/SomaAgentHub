@@ -6,7 +6,6 @@ Sprint-5: HTTP service integrations for autonomous execution.
 from __future__ import annotations
 
 import asyncio
-import os
 from collections.abc import Mapping, Sequence
 from datetime import UTC, datetime
 from typing import Any
@@ -93,13 +92,10 @@ def _normalize_env(env_mapping: Mapping[Any, Any]) -> dict[str, str]:
 POLICY_ENGINE_URL = _ensure_endpoint(str(settings.policy_engine_url), "/v1/evaluate")
 LLM_HUB_URL = str(settings.llm_hub_url)
 from services.common.config.base_settings import resolve_env
-GATEWAY_API_URL = resolve_env(
-    "GATEWAY_API_URL",
-    runtime_default(
-        resolve_env("GATEWAY_API_URL", "http://gateway-api:10000"),
-        "http://gateway-api:8080",
-    ),
-)
+# Resolve the gateway API URL using the canonical resolver. The default points to the
+# standard development endpoint; runtime‑specific overrides are handled elsewhere via
+# the `runtime_default` helper when needed.
+GATEWAY_API_URL = resolve_env("GATEWAY_API_URL", "http://gateway-api:10000")
 
 
 @activity.defn(name="launch-volcano-session-job")

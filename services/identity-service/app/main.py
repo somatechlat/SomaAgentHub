@@ -6,7 +6,7 @@ import asyncio
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager, suppress
 from datetime import timedelta
-from os import environ, getenv
+from os import environ
 
 from fastapi import FastAPI
 from fastapi.responses import Response
@@ -52,14 +52,11 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     # into account.
     settings = get_settings()
 
-    # Determine the Redis URL. Test fixtures set ``SOMAGENT_IDENTITY_REDIS_URL``
-    # while production uses ``REDIS_URL`` or the value from the shared
-    # configuration. We prioritize explicit environment variables over the
-    # default config value.
-    # Prefer the test‑specific env var set by the fixture. If it is absent, fall
-    # back to the configured value from settings (which may contain the default
-    # placeholder). This ordering guarantees the test container URL is used.
-    configured_redis_url = getenv("SOMAGENT_IDENTITY_REDIS_URL") or settings.redis_url
+    # Determine the Redis URL. The test fixtures set ``SOMA_AGENT_HUB_IDENTITY_REDIS_URL``
+    # and production uses ``REDIS_URL`` (or the value from the shared configuration).
+    # Use ``resolve_env`` to read the canonical prefixed variable, falling back to
+    # the configured value from settings.
+    configured_redis_url = resolve_env("IDENTITY_REDIS_URL", settings.redis_url)
     if not configured_redis_url:
         raise RuntimeError("Identity service requires REDIS_URL to be configured")
 

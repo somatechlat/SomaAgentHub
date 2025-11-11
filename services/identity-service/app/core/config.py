@@ -34,27 +34,25 @@ def load_secret(env_var: str, file_env: str | None = None, default: str | None =
 class IdentitySettings(SharedSettings):
     """Runtime configuration surfaced via the shared settings layer."""
 
+    # Updated to use the canonical ``SOMA_AGENT_HUB_`` prefix only.
     service_name: str = Field(
         default="identity-service",
         validation_alias=AliasChoices(
-            "SOMASTACK_IDENTITY_SERVICE_NAME",
-            "SOMAGENT_IDENTITY_SERVICE_NAME",
+            "SOMA_AGENT_HUB_IDENTITY_SERVICE_NAME",
             "SERVICE_NAME",
         ),
     )
     service_version: str = Field(
         default="0.2.0",
         validation_alias=AliasChoices(
-            "SOMASTACK_IDENTITY_SERVICE_VERSION",
-            "SOMAGENT_IDENTITY_SERVICE_VERSION",
+            "SOMA_AGENT_HUB_IDENTITY_SERVICE_VERSION",
             "SERVICE_VERSION",
         ),
     )
     debug: bool = Field(
         default=False,
         validation_alias=AliasChoices(
-            "SOMASTACK_IDENTITY_DEBUG",
-            "SOMAGENT_IDENTITY_DEBUG",
+            "SOMA_AGENT_HUB_IDENTITY_DEBUG",
             "DEBUG",
         ),
     )
@@ -67,8 +65,7 @@ class IdentitySettings(SharedSettings):
             "https://auth.soma-infra.svc.cluster.local:8080/.well-known/jwks.json",
         ),
         validation_alias=AliasChoices(
-            "SOMASTACK_IDENTITY_JWK_SET_URL",
-            "SOMAGENT_IDENTITY_JWK_SET_URL",
+            "SOMA_AGENT_HUB_IDENTITY_JWK_SET_URL",
             "JWK_SET_URL",
         ),
     )
@@ -78,78 +75,63 @@ class IdentitySettings(SharedSettings):
             "redis://redis.soma-infra.svc.cluster.local:6379/0",
         ),
         validation_alias=AliasChoices(
-            "SOMASTACK_REDIS_URL",
-            "SOMASTACK_IDENTITY_REDIS_URL",
-            "SOMAGENT_IDENTITY_REDIS_URL",
+            "SOMA_AGENT_HUB_IDENTITY_REDIS_URL",
             "REDIS_URL",
         ),
     )
     key_rotation_seconds: int = Field(
         default=3600,
         validation_alias=AliasChoices(
-            "SOMASTACK_IDENTITY_KEY_ROTATION_SECONDS",
-            "SOMAGENT_IDENTITY_KEY_ROTATION_SECONDS",
+            "SOMA_AGENT_HUB_IDENTITY_KEY_ROTATION_SECONDS",
             "KEY_ROTATION_SECONDS",
         ),
     )
     key_rotation_check_seconds: int = Field(
         default=60,
         validation_alias=AliasChoices(
-            "SOMASTACK_IDENTITY_KEY_ROTATION_CHECK_SECONDS",
-            "SOMAGENT_IDENTITY_KEY_ROTATION_CHECK_SECONDS",
+            "SOMA_AGENT_HUB_IDENTITY_KEY_ROTATION_CHECK_SECONDS",
             "KEY_ROTATION_CHECK_SECONDS",
         ),
     )
     key_namespace: str = Field(
         default="identity:keys",
         validation_alias=AliasChoices(
-            "SOMASTACK_IDENTITY_KEY_NAMESPACE",
-            "SOMAGENT_IDENTITY_KEY_NAMESPACE",
+            "SOMA_AGENT_HUB_IDENTITY_KEY_NAMESPACE",
             "KEY_NAMESPACE",
         ),
     )
     clickhouse_host_raw: str | None = Field(
         default=runtime_default("clickhouse", "clickhouse.soma-infra.svc.cluster.local"),
         validation_alias=AliasChoices(
-            "SOMASTACK_CLICKHOUSE_HOST",
-            "SOMASTACK_IDENTITY_CLICKHOUSE_HOST",
-            "SOMAGENT_IDENTITY_CLICKHOUSE_HOST",
+            "SOMA_AGENT_HUB_CLICKHOUSE_HOST",
             "CLICKHOUSE_HOST",
         ),
     )
     clickhouse_port_raw: str | None = Field(
         default="9000",
         validation_alias=AliasChoices(
-            "SOMASTACK_CLICKHOUSE_PORT",
-            "SOMASTACK_IDENTITY_CLICKHOUSE_PORT",
-            "SOMAGENT_IDENTITY_CLICKHOUSE_PORT",
+            "SOMA_AGENT_HUB_CLICKHOUSE_PORT",
             "CLICKHOUSE_PORT",
         ),
     )
     clickhouse_database: str | None = Field(
         default="somastack_audit",
         validation_alias=AliasChoices(
-            "SOMASTACK_CLICKHOUSE_DATABASE",
-            "SOMASTACK_IDENTITY_CLICKHOUSE_DATABASE",
-            "SOMAGENT_IDENTITY_CLICKHOUSE_DATABASE",
+            "SOMA_AGENT_HUB_CLICKHOUSE_DATABASE",
             "CLICKHOUSE_DATABASE",
         ),
     )
     clickhouse_username: str | None = Field(
         default="default",
         validation_alias=AliasChoices(
-            "SOMASTACK_CLICKHOUSE_USERNAME",
-            "SOMASTACK_IDENTITY_CLICKHOUSE_USERNAME",
-            "SOMAGENT_IDENTITY_CLICKHOUSE_USERNAME",
+            "SOMA_AGENT_HUB_CLICKHOUSE_USERNAME",
             "CLICKHOUSE_USERNAME",
         ),
     )
     clickhouse_password: str | None = Field(
         default=None,
         validation_alias=AliasChoices(
-            "SOMASTACK_CLICKHOUSE_PASSWORD",
-            "SOMASTACK_IDENTITY_CLICKHOUSE_PASSWORD",
-            "SOMAGENT_IDENTITY_CLICKHOUSE_PASSWORD",
+            "SOMA_AGENT_HUB_CLICKHOUSE_PASSWORD",
             "CLICKHOUSE_PASSWORD",
         ),
     )

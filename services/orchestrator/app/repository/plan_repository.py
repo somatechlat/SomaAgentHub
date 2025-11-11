@@ -5,14 +5,18 @@ from __future__ import annotations
 from sqlmodel import select
 
 from ..database import get_async_session
+# Import model classes for the planner repository.
 from .models import (
-from services.common.config.base_settings import resolve_env
     Plan,
     PlanEvent,
     PlanModuleRecord,
     ProvisioningTaskRecord,
     ToolBindingRecord,
 )
+
+# ``resolve_env`` is imported for potential future use (e.g., configuration
+# defaults) but is not currently referenced in this module.
+from services.common.config.base_settings import resolve_env
 
 
 class PlanRepository:

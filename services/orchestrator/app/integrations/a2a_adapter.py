@@ -8,12 +8,15 @@ from typing import Any
 from temporalio import activity
 
 # Import core protocol components
+# Import protocol components for A2A messaging.
 from ..core.a2a_protocol import (
-from services.common.config.base_settings import resolve_env
     A2AProtocol,
     AgentRegistry,
     ConfigMapAgentRegistryBackend,
 )
+
+# Resolve environment variables using the canonical resolver.
+from services.common.config.base_settings import resolve_env
 
 # Global singleton registry for the service runtime
 # Choose backend based on environment configuration – default to in‑memory JSON file

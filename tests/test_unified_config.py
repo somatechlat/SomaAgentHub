@@ -1,105 +1,38 @@
 #!/usr/bin/env python3
-import pytest
-pytestmark = pytest.mark.skip("Deprecated: unified settings/registry/vault_manager removed; test skipped.")
+"""Tests for the centralised environment resolver.
+
+The original unified‑settings tests have been removed in favour of a minimal
+verification that ``resolve_env`` reads variables with the canonical
+``SOMA_AGENT_HUB_`` prefix and that the resolver falls back to defaults when
+variables are absent.
+"""
 
 import os
 import sys
-import asyncio
 from pathlib import Path
-from services.common.config.base_settings import resolve_env
 
-# Add project root to path
+# Ensure the repository root is on the import path.
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-def test_unified_settings():
-    """Test unified settings configuration"""
-    print("🧪 Testing Unified Settings...")
-    
-    try:
-        from services.common.config.unified_settings import get_settings
-        settings = get_settings()
-        
-        # Test basic configuration
-        assert settings.environment == "development"
-        assert settings.deployment_mode == "local"
-        assert "gateway_api" in settings.service_ports
-        assert settings.service_ports["gateway_api"] == 8080
-        
-        # Test environment prefix
-        assert settings.Config.env_prefix == "SOMA_AGENT_HUB_"
-        
-        print("✅ Unified Settings test passed")
-        return True
-        
-    except Exception as e:
-        print(f"❌ Unified Settings test failed: {e}")
-        return False
+from services.common.config.base_settings import resolve_env
 
 
-def test_service_registry():
-    """Test service registry"""
-    print("🧪 Testing Service Registry...")
-    
-    try:
-        from services.common.registry.service_registry import get_service_registry
-        registry = get_service_registry()
-        
-        # Test service registration
-        services = registry.services
-        assert len(services) > 0
-        assert "gateway_api" in services or "gateway-api" in services
-        
-        print("✅ Service Registry test passed")
-        return True
-        
-    except Exception as e:
-        print(f"❌ Service Registry test failed: {e}")
-        return False
+def test_resolve_env_prefix():
+    """Confirm ``resolve_env`` uses the correct prefix.
+
+    The function should prepend ``SOMA_AGENT_HUB_`` to the requested name.
+    """
+    os.environ["SOMA_AGENT_HUB_SAMPLE_VAR"] = "value"
+    assert resolve_env("SAMPLE_VAR") == "value"
+    # Cleanup
+    del os.environ["SOMA_AGENT_HUB_SAMPLE_VAR"]
 
 
-def test_secrets_manager():
-    """Test secrets manager"""
-    print("🧪 Testing Secrets Manager...")
-    
-    try:
-        from services.common.secrets.vault_manager import get_vault_manager
-        vault = get_vault_manager()
-        
-        # Test development secrets fallback
-        secret = vault.get_secret("jwt", "secret")
-        assert secret is not None
-        
-        print("✅ Secrets Manager test passed")
-        return True
-        
-    except Exception as e:
-        print(f"❌ Secrets Manager test failed: {e}")
-        return False
+def test_resolve_env_default():
+    """Verify the default value is returned when the variable is missing."""
+    default = "default-value"
+    assert resolve_env("NON_EXISTENT", default) == default
 
-
-def test_session_manager():
-    """Test session manager"""
-    print("🧪 Testing Session Manager...")
-    
-    try:
-        from services.common.session.session_manager import get_session_manager
-        session_mgr = get_session_manager()
-        
-        # Test session creation
-        token = session_mgr.create_session("test_user", "test_tenant", ["read", "write"])
-        assert token is not None
-        
-        # Test session validation
-        session_data = session_mgr.validate_session(token)
-        assert session_data.user_id == "test_user"
-        assert session_data.tenant_id == "test_tenant"
-        
-        print("✅ Session Manager test passed")
-        return True
-        
-    except Exception as e:
-        print(f"❌ Session Manager test failed: {e}")
-        return False
 
 
 def test_deployment_strategy():
@@ -158,31 +91,24 @@ async def test_service_discovery():
 
 
 def test_environment_variables():
-    """Test environment variable standardization"""
+    """Test that the canonical ``SOMA_AGENT_HUB_`` prefix works.
+
+    The legacy ``SOMASTACK_`` variables have been removed; this test now
+    verifies that ``resolve_env`` correctly reads variables with the new
+    prefix and returns ``None`` (or a default) when they are absent.
+    """
     print("🧪 Testing Environment Variables...")
-    
-    try:
-        # Test that SOMASTACK_ variables are defined
-        env_vars = [
-            "SOMASTACK_ENVIRONMENT",
-            "SOMASTACK_DEPLOYMENT_MODE",
-            "SOMASTACK_REDIS_URL",
-            "SOMASTACK_VAULT_ADDRESS"
-        ]
-        
-        for var in env_vars:
-            value = resolve_env(var)
-            if value:
-                print(f"   {var}: {value}")
-            else:
-                print(f"   {var}: not set (using defaults)")
-        
-        print("✅ Environment Variables test passed")
-        return True
-        
-    except Exception as e:
-        print(f"❌ Environment Variables test failed: {e}")
-        return False
+
+    # Set a sample variable using the new prefix.
+    os.environ["SOMA_AGENT_HUB_SAMPLE_ENV"] = "sample"
+    assert resolve_env("SAMPLE_ENV") == "sample"
+    del os.environ["SOMA_AGENT_HUB_SAMPLE_ENV"]
+
+    # Verify that a missing variable returns ``None``.
+    assert resolve_env("MISSING_ENV") is None
+
+    print("✅ Environment Variables test passed")
+    return True
 
 
 def test_migrated_services():
@@ -224,14 +150,13 @@ def run_all_tests():
     """Run all integration tests"""
     print("🚀 Running Unified Configuration Integration Tests...\n")
     
+    # Only include tests that are defined in this file.
     tests = [
-        test_unified_settings,
-        test_service_registry,
-        test_secrets_manager,
-        test_session_manager,
+        test_resolve_env_prefix,
+        test_resolve_env_default,
         test_deployment_strategy,
         test_environment_variables,
-        test_migrated_services
+        test_migrated_services,
     ]
     
     async_tests = [test_service_discovery]

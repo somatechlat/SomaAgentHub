@@ -38,6 +38,9 @@ from .services.circuit_breaker import DATABASE_CIRCUIT_BREAKER
 # ---------------------------------------------------------------------------
 # Configuration – read from environment with production defaults.
 # ---------------------------------------------------------------------------
+# Import the ``get_settings`` helper to obtain the singleton configuration.
+# The core config module now provides both a ``settings`` instance and a
+# ``get_settings`` wrapper for compatibility with existing imports.
 from .core.config import get_settings
 from services.common.config.base_settings import resolve_env
 

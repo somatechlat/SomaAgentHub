@@ -5,7 +5,6 @@ from .autogen_adapter import run_autogen_group_chat
 from .crewai_adapter import run_crewai_delegation
 from .langgraph_adapter import run_langgraph_routing
 from .wizard_to_workflow import (
-from services.common.config.base_settings import resolve_env
     get_campaign_result,
     query_campaign_progress,
     send_campaign_approval,

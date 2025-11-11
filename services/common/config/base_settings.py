@@ -4,7 +4,9 @@ from functools import lru_cache
 from typing import Any, Literal
 
 from pydantic_settings import BaseSettings
-from services.common.config.base_settings import resolve_env
+# NOTE: Removed circular import of `resolve_env`. The function is defined
+# later in this module, so importing it from the same module caused a
+# circular import error during test collection.
 
 
 class BaseServiceSettings(BaseSettings):

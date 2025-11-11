@@ -2,130 +2,12 @@
 import pytest
 pytestmark = pytest.mark.skip("Deprecated: unified/registry/vault_manager/session strategy removed; test skipped.")
 
-import os
 import sys
 from pathlib import Path
 from services.common.config.base_settings import resolve_env
 
-# Add project root to path
+# Ensure repository root is importable.
 sys.path.insert(0, str(Path(__file__).parent.parent))
-
-def test_unified_settings():
-    """Test unified settings configuration"""
-    print("🧪 Testing Unified Settings...")
-    
-    try:
-        from services.common.config.unified_settings import get_settings
-        settings = get_settings()
-        
-        # Test basic configuration
-        assert settings.environment == "development"
-        assert settings.deployment_mode == "local"
-        assert "gateway_api" in settings.service_ports
-        assert settings.service_ports["gateway_api"] == 8080
-        
-        print("✅ Unified Settings test passed")
-        return True
-        
-    except Exception as e:
-        print(f"❌ Unified Settings test failed: {e}")
-        return False
-
-
-def test_simple_registry():
-    """Test simple service registry"""
-    print("🧪 Testing Simple Service Registry...")
-    
-    try:
-        from services.common.registry.simple_registry import simple_registry
-        
-        # Test service URL retrieval
-        url = simple_registry.get_service_url("gateway_api")
-        assert url == "http://localhost:8080"
-        
-        port = simple_registry.get_service_port("orchestrator")
-        assert port == 8081
-        
-        print("✅ Simple Registry test passed")
-        return True
-        
-    except Exception as e:
-        print(f"❌ Simple Registry test failed: {e}")
-        return False
-
-
-def test_secrets_manager():
-    """Test secrets manager with development fallback"""
-    print("🧪 Testing Secrets Manager...")
-    
-    try:
-        from services.common.secrets.vault_manager import get_vault_manager
-        vault = get_vault_manager()
-        
-        # Test development secrets
-        secret = vault.get_secret("jwt", "secret")
-        assert "dev" in secret or "secret" in secret
-        
-        print("✅ Secrets Manager test passed")
-        return True
-        
-    except Exception as e:
-        print(f"❌ Secrets Manager test failed: {e}")
-        return False
-
-
-def test_session_manager():
-    """Test session manager"""
-    print("🧪 Testing Session Manager...")
-    
-    try:
-        from services.common.session.session_manager import get_session_manager
-        session_mgr = get_session_manager()
-        
-        # Test session creation
-        token = session_mgr.create_session("test_user", "test_tenant", ["read", "write"])
-        assert token is not None
-        assert isinstance(token, str)
-        
-        # Test session validation
-        session_data = session_mgr.validate_session(token)
-        assert session_data.user_id == "test_user"
-        assert session_data.tenant_id == "test_tenant"
-        
-        print("✅ Session Manager test passed")
-        return True
-        
-    except Exception as e:
-        print(f"❌ Session Manager test failed: {e}")
-        return False
-
-
-def test_deployment_strategy():
-    """Test deployment strategy"""
-    print("🧪 Testing Deployment Strategy...")
-    
-    try:
-        from services.common.deployment.deployment_strategy import (
-            DeploymentFactory,
-            get_deployment_config
-        )
-        
-        # Test deployment factory
-        strategy = DeploymentFactory.create_strategy("local")
-        assert strategy is not None
-        
-        # Test deployment config
-        config = get_deployment_config("gateway_api")
-        assert config.service_name == "gateway_api"
-        assert config.environment == "development"
-        
-        print("✅ Deployment Strategy test passed")
-        return True
-        
-    except Exception as e:
-        print(f"❌ Deployment Strategy test failed: {e}")
-        return False
-
 
 def test_migrated_services():
     """Test that services can import unified config"""
@@ -181,24 +63,6 @@ def test_migrated_services():
     return success_count >= 3  # Consider success if 3+ services work
 
 
-def test_environment_variables():
-    """Test environment variable standardization"""
-    print("🧪 Testing Environment Variables...")
-    
-    try:
-        # Test that configuration uses SOMASTACK_ prefix
-        from services.common.config.unified_settings import get_settings
-        settings = get_settings()
-        
-        # Verify environment prefix
-        assert settings.Config.env_prefix == "SOMASTACK_"
-        
-        print("✅ Environment Variables standardization test passed")
-        return True
-        
-    except Exception as e:
-        print(f"❌ Environment Variables test failed: {e}")
-        return False
 
 
 def run_all_tests():
@@ -212,7 +76,6 @@ def run_all_tests():
         test_session_manager,
         test_deployment_strategy,
         test_migrated_services,
-        test_environment_variables
     ]
     
     passed = 0
