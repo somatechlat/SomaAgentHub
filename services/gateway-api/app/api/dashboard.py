@@ -9,6 +9,7 @@ import httpx
 from fastapi import APIRouter, Depends, HTTPException, status
 
 from ..config import get_sah_settings
+from services.common.config.base_settings import resolve_env
 from ..dependencies import request_context_dependency
 from ..models.context import RequestContext
 
@@ -36,19 +37,19 @@ async def dashboard_health(
     settings = get_sah_settings()
     extra = settings.model_extra or {}
     llm_health_url = str(
-        extra.get("LLM_HUB_HEALTH_URL") or os.getenv("LLM_HUB_HEALTH_URL", "http://llm-hub:10022/health")
+        extra.get("LLM_HUB_HEALTH_URL") or resolve_env("LLM_HUB_HEALTH_URL", "http://llm-hub:10022/health")
     )
     # Use the configured MEMORY_GATEWAY_PORT (default 10021) to build the metrics URL
-    default_port = os.getenv("MEMORY_GATEWAY_PORT", "10021")
+    default_port = resolve_env("MEMORY_GATEWAY_PORT", "10021")
     somabrain_metrics_url = str(
         extra.get("SOMABRAIN_METRICS_URL")
-        or os.getenv(
+        or resolve_env(
             "SOMABRAIN_METRICS_URL",
             f"http://memory-gateway:{default_port}/metrics",
         )
     )
     kafka_endpoint = settings.kafka.bootstrap_servers[0] if settings.kafka.bootstrap_servers else "kafka:9092"
-    postgres_host = extra.get("SOMASTACK_POSTGRES_HOST") or "postgres:5432"
+    postgres_host = extra.get("POSTGRES_HOST") or resolve_env("POSTGRES_HOST", "postgres:5432")
     if settings.redis.host and settings.redis.port:
         redis_host = f"{settings.redis.host}:{settings.redis.port}"
     elif settings.redis.url:

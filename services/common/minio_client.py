@@ -332,11 +332,13 @@ def get_minio_client() -> MinIOClient:
     global _minio_client
 
     if _minio_client is None:
-        endpoint = os.getenv("MINIO_ENDPOINT", "minio:9000")
-        access_key = os.getenv("MINIO_ACCESS_KEY", "minioadmin")
-        secret_key = os.getenv("MINIO_SECRET_KEY", "minioadmin")
-        secure = os.getenv("MINIO_SECURE", "false").lower() == "true"
-        region = os.getenv("MINIO_REGION", "us-east-1")
+        from services.common.config.base_settings import resolve_env
+
+        endpoint = resolve_env("MINIO_ENDPOINT", "minio:9000")
+        access_key = resolve_env("MINIO_ACCESS_KEY", "minioadmin")
+        secret_key = resolve_env("MINIO_SECRET_KEY", "minioadmin")
+        secure = str(resolve_env("MINIO_SECURE", "false")).lower() in {"1", "true", "yes", "on"}
+        region = resolve_env("MINIO_REGION", "us-east-1")
 
         _minio_client = MinIOClient(
             endpoint=endpoint,

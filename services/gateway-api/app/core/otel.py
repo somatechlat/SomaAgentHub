@@ -23,7 +23,9 @@ def configure_otel(app: FastAPI, service_name: str, endpoint: str | None = None)
     if _CONFIGURED:
         return
 
-    target_endpoint = endpoint or os.getenv("OTEL_EXPORTER_OTLP_ENDPOINT")
+    from services.common.config.base_settings import resolve_env
+
+    target_endpoint = endpoint or resolve_env("OTEL_EXPORTER_OTLP_ENDPOINT")
     if not target_endpoint:
         _CONFIGURED = True
         return

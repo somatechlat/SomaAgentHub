@@ -12,13 +12,7 @@ from services.gateway-api.app.core.config import (
     JWT_SECRET,
 )
 
-# Environment mode helpers via centralized resolver
-try:
-    from services.common.config.base_settings import resolve_env
-except Exception:
-    import os
-    def resolve_env(name: str, default: str | None = None):
-        return os.getenv(f"SOMA_AGENT_HUB_{name}") or os.getenv(f"SOMAGENT_{name}") or os.getenv(f"SOMASTACK_{name}") or os.getenv(name, default)
+from services.common.config.base_settings import resolve_env
 
 ENVIRONMENT = resolve_env("ENVIRONMENT", "development")
 DEPLOYMENT_MODE = (resolve_env("DEPLOYMENT_MODE", "DEV") or "DEV").upper()

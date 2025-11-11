@@ -1,17 +1,11 @@
-"""OPA (Open Policy Agent) client for SomaGent platform.
+"""OPA (Open Policy Agent) client for SomaAgentHub.
 
-This module provides a reusable HTTP client for evaluating policies via OPA's
-REST API. It can be used by gateway, orchestrator, and other services.
+Real client only: no shims, no mocks. Errors fail closed.
 """
 
 from __future__ import annotations
 
-import os
-try:
-    from services.common.config.base_settings import resolve_env
-except Exception:
-    def resolve_env(name: str, default: str | None = None):
-        return os.getenv(f"SOMA_AGENT_HUB_{name}") or os.getenv(f"SOMAGENT_{name}") or os.getenv(f"SOMASTACK_{name}") or os.getenv(name, default)
+from services.common.config.base_settings import resolve_env
 from functools import lru_cache
 from typing import Any
 
@@ -37,44 +31,8 @@ class OPAClient:
         self.timeout = timeout
 
     def _create_client(self) -> httpx.AsyncClient:
-        """Create an ``httpx.AsyncClient`` instance.
-
-        ``httpx.AsyncClient`` may be monkey‑patched in the test suite with a
-        lambda that returns a client configured with a ``MockTransport``. By
-        calling ``httpx.AsyncClient`` directly we automatically get either the
-        patched client or the real implementation. The ``timeout`` argument is
-        passed to preserve the configured request timeout.
-        """
-        # ``httpx.AsyncClient`` may have been monkey‑patched in the test suite
-        # (e.g., ``lambda *a, **kw: httpx.AsyncClient(transport=transport)``).
-        # If it is still the original class, instantiate it directly. If it
-        # has been replaced with a callable, extract the ``MockTransport``
-        # from its closure and use the original implementation to avoid
-        # infinite recursion.
-        client_factory = httpx.AsyncClient
-        # Normal case – the attribute is the original ``AsyncClient`` class.
-        if isinstance(client_factory, type):
-            return client_factory(timeout=self.timeout)  # type: ignore[arg-type]
-
-        # Patched case – ``client_factory`` is a callable (e.g., a lambda)
-        # that creates a new client with a ``MockTransport``. Retrieve that
-        # transport from the closure.
-        transport = None
-        if hasattr(client_factory, "__closure__") and client_factory.__closure__:
-            for cell in client_factory.__closure__:
-                try:
-                    val = cell.cell_contents
-                except Exception:
-                    continue
-                if isinstance(val, httpx.BaseTransport):
-                    transport = val
-                    break
-        # Use the original async client implementation with the discovered
-        # transport (if any).
-        if transport is not None:
-            return _OriginalAsyncClient(timeout=self.timeout, transport=transport)
-        # Fallback to the original implementation without a transport.
-        return _OriginalAsyncClient(timeout=self.timeout)
+        """Create a real ``httpx.AsyncClient`` instance (no monkey patches)."""
+        return httpx.AsyncClient(timeout=self.timeout)
 
     async def evaluate_policy(
         self,
@@ -139,12 +97,7 @@ class OPAClient:
                 detail=f"OPA policy evaluation failed: {exc.response.status_code}",
             ) from exc
         except Exception as exc:
-            # In the test environment the OPA server is mocked via a
-            # ``MockTransport``. If the client cannot connect (e.g., because the
-            # transport was not correctly injected), we fall back to a permissive
-            # allow result so that the rest of the service can operate.
-            if isinstance(exc, httpx.HTTPError):
-                return {"allowed": True}
+            # Fail closed on any unexpected error.
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 detail=f"OPA policy evaluation error: {str(exc)}",
@@ -200,20 +153,15 @@ class OPAClient:
             "version": version,
             "roles": roles or [],
         }
-        try:
-            result = await self.evaluate_policy(
-                policy_path="somagent/capsule",
-                input_data=input_data,
-                rule="allow_write_capsule_results",
-            )
-            allowed = result.get("allowed")
-            if isinstance(allowed, bool):
-                return allowed
-            # If policy returns dict, treat presence of truthy "allowed".
-            return bool(allowed)
-        except Exception:
-            # If OPA unreachable, allow (can tighten later once policy hardened).
-            return True
+        result = await self.evaluate_policy(
+            policy_path="somagent/capsule",
+            input_data=input_data,
+            rule="allow_write_capsule_results",
+        )
+        allowed = result.get("allowed")
+        if isinstance(allowed, bool):
+            return allowed
+        return bool(allowed)
 
     async def evaluate_constitution(
         self,

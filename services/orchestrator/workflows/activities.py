@@ -92,10 +92,11 @@ def _normalize_env(env_mapping: Mapping[Any, Any]) -> dict[str, str]:
 # Real service endpoints (configured via environment)
 POLICY_ENGINE_URL = _ensure_endpoint(str(settings.policy_engine_url), "/v1/evaluate")
 LLM_HUB_URL = str(settings.llm_hub_url)
-GATEWAY_API_URL = os.getenv(
+from services.common.config.base_settings import resolve_env
+GATEWAY_API_URL = resolve_env(
     "GATEWAY_API_URL",
     runtime_default(
-        os.getenv("GATEWAY_API_URL", "http://gateway-api:10000"),
+        resolve_env("GATEWAY_API_URL", "http://gateway-api:10000"),
         "http://gateway-api:8080",
     ),
 )
@@ -527,7 +528,8 @@ async def copy_templates(app_name: str, image: str, service_port: int = 8000) ->
     In a production deployment this base path would be a shared PVC.
     """
     workflow_id = activity.info().workflow_id
-    base_dir = Path(os.getenv("TAXI_BUILDER_OUTPUT_ROOT", "/tmp/taxi-builder")) / workflow_id
+    from services.common.config.base_settings import resolve_env
+    base_dir = Path(resolve_env("TAXI_BUILDER_OUTPUT_ROOT", "/tmp/taxi-builder")) / workflow_id
     base_dir.mkdir(parents=True, exist_ok=True)
 
     from ..app.static_templates.engine import (

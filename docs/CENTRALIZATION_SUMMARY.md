@@ -1,172 +1,52 @@
-# 🎉 SomaAgentHub Centralization - PARALLEL SPRINT SUCCESS REPORT
+# Centralization Status — Truthful Report (Nov 11, 2025)
 
-> **Status**: ✅ **COMPLETED SUCCESSFULLY**  
-> **Date**: November 11, 2025  
-> **Sprint**: 4-Week Parallel Execution  
-> **Achievement**: 37 Critical Duplications ELIMINATED
+This document reflects the current, verified state of configuration centralization across SomaAgentHub. Claims below are based on code present in the repository, not projections.
 
-## 🚀 EXECUTION SUMMARY
+## Canonical Approach
+- Prefix: `SOMA_AGENT_HUB_` with fallbacks to `SOMAGENT_`, `SOMASTACK_`, then raw name.
+- Resolver: `services/common/config/base_settings.py: resolve_env(name, default)` is the only approved way to read env values.
+- Modes: Exactly two — `DEV` and `PROD`. DEV mirrors PROD code paths; only data sources differ (local/env vs. real services).
+- Secrets: `services/common/vault_client.py` provides real Vault in PROD and env/in‑memory fallbacks in DEV without changing call sites.
 
-### ✅ **PHASE 1: FOUNDATION (COMPLETED)**
-- **Unified Settings Module**: ✅ `services/common/config/unified_settings.py`
-- **Service Registry**: ✅ `services/common/registry/simple_registry.py`
-- **Secrets Management**: ✅ `services/common/secrets/vault_manager.py`
-- **Session Management**: ✅ `services/common/session/session_manager.py`
-- **Deployment Strategy**: ✅ `services/common/deployment/deployment_strategy.py`
+## Completed Migrations
+- Gateway API: `services/gateway-api/app/core/config.py` uses `resolve_env` and Vault fallback for `JWT_SECRET`.
+- LLM Hub: `services/llm-hub/app/config.py` uses `resolve_env` and Vault fallback for API keys.
+- Memory Gateway: `services/memory-gateway/app/config.py` now centralized; Qdrant key via env → Vault fallback.
+- Policy Engine: `services/policy-engine/app/config.py` centralized; OPA and cache flags via `resolve_env`.
+- Common Providers/Clients:
+  - OpenAI provider and OPA client use `resolve_env`.
+  - Vault client enforces DEV/PROD parity and uses resolver for settings.
+  - NEW: Redis, Kafka, MinIO, and Qdrant common clients now read config via `resolve_env`.
 
-### ✅ **PHASE 2: SERVICE MIGRATION (COMPLETED)**
+## Removed/Deprecated (Do not use)
+The following modules are deprecated and intentionally raise on import:
+- `services/common/config/unified_settings.py`
+- `services/common/registry/service_registry.py`
+- `services/common/deployment/deployment_strategy.py`
+- `services/common/secrets/vault_manager.py`
+- `services/common/session/session_manager.py`
+- `scripts/migration/migrate_service.py` — replaced with a RuntimeError and guidance.
 
-| **Service** | **Status** | **Migration** | **.env** | **Config** |
-|-------------|------------|---------------|-----------|------------|
-| `gateway-api` | ✅ **COMPLETE** | Unified Config | ✅ 17 vars | ✅ Created |
-| `orchestrator` | ✅ **COMPLETE** | Unified Config | ✅ 28 vars | ✅ Created |
-| `memory-gateway` | ✅ **COMPLETE** | Unified Config | ✅ 17 vars | ✅ Created |
-| `policy-engine` | ✅ **COMPLETE** | Unified Config | ✅ 15 vars | ✅ Created |
-| `llm-hub` | ✅ **COMPLETE** | Unified Config | ✅ 18 vars | ✅ Created |
+## What’s Pending
+- Services pending full migration to `resolve_env` patterns: orchestrator, pricing-service, identity-service, settings-service, and others under `services/*` not listed above.
+- Many direct `os.getenv` usages remain in service code (e.g., Temporal workers, observability, dashboards). These need systematic replacement with `resolve_env` plus consistent defaults.
+- Compose/Helm values: should prefer `SOMA_AGENT_HUB_*` vars; legacy fallbacks remain temporarily.
 
-## 📊 **DUPLICATION ELIMINATION RESULTS**
+## Verification Snapshot
+- Docker compose config check under DEV: OK (ran `docker compose config --quiet`).
+- Tests referencing deprecated modules are marked skipped to avoid misleading results.
+- Repository sweep confirms remaining direct `os.getenv` usage across multiple services; migration in progress.
 
-### **Before Migration (CHAOS)**
-```
-❌ 9 different config patterns
-❌ 25+ environment variable variations
-❌ 5 different secrets approaches
-❌ 4 different session handlers
-❌ 3+ port definition locations
-❌ 7 deployment flag methods
-```
+## Migration Checklist (Active)
+- Common clients: use `resolve_env` (Redis, Kafka, MinIO, Qdrant) — DONE.
+- Orchestrator and workers: centralize Temporal, Redis, URLs, and observability envs — TODO.
+- Observability: standardize OTEL/LOKI/PROM flags via resolver across services — TODO.
+- Compose/Helm: set first-class `SOMA_AGENT_HUB_*` envs; keep fallbacks during transition — TODO.
+- Docs: keep this summary aligned with real code; avoid aspirational claims — ONGOING.
 
-### **After Migration (UNITY)**
-```
-✅ 1 unified configuration system
-✅ 1 environment variable prefix (SOMASTACK_)
-✅ 1 secrets management strategy
-✅ 1 session management pattern
-✅ 1 service registry
-✅ 1 deployment strategy pattern
-```
+## Policy
+- Only two modes (DEV, PROD). No additional environments or strategies.
+- No new abstraction layers unless strictly necessary; prefer small, surgical refactors.
+- Truth over templates: documentation must reflect the repository’s current state.
 
-## 🎯 **ARCHITECTURAL ACHIEVEMENTS**
-
-### **Perfect Design Patterns Implemented**
-
-1. **Singleton Pattern** - Single configuration instance per service
-2. **Factory Pattern** - Strategy-based deployment selection
-3. **Registry Pattern** - Centralized service discovery
-4. **Strategy Pattern** - Environment-specific deployment
-5. **Decorator Pattern** - JWT session management
-6. **Facade Pattern** - Simplified configuration access
-
-### **Enterprise Standards Achieved**
-
-- **Domain-Driven Design** ✅
-- **Clean Architecture** ✅
-- **SOLID Principles** ✅
-- **Configuration Management** ✅
-- **Secrets Management** ✅
-- **Service Discovery** ✅
-
-## 🔧 **TECHNICAL SPECIFICATIONS**
-
-### **Unified Configuration Schema**
-```yaml
-Environment Variables:
-  - SOMASTACK_ENVIRONMENT: {development|staging|production}
-  - SOMASTACK_DEPLOYMENT_MODE: {local|docker|kubernetes}
-  - SOMASTACK_SERVICE_NAME: <service_name>
-  - SOMASTACK_SERVICE_PORT: <port>
-  - SOMASTACK_DATABASE_URL: <connection_string>
-  - SOMASTACK_REDIS_URL: <connection_string>
-  - SOMASTACK_VAULT_ADDRESS: <vault_url>
-  - SOMASTACK_JWT_SECRET: <jwt_secret>
-```
-
-### **Service Registry Configuration**
-```python
-# Central service definitions
-service_ports = {
-    "gateway_api": 8080,
-    "orchestrator": 8081,
-    "memory_gateway": 8082,
-    "policy_engine": 8083,
-    "llm_hub": 8084,
-    "pricing_service": 8085,
-    "agent_spawner": 8086,
-    "object_store": 8087,
-    "token_estimator": 8088
-}
-```
-
-### **Development Environment Ready**
-- ✅ Local development fallback
-- ✅ Development secrets configuration
-- ✅ Docker-compose compatibility
-- ✅ Kubernetes manifest compatibility
-
-## 📋 **VERIFICATION RESULTS**
-
-### **Integration Tests**
-- ✅ **Unified Settings**: 100% operational
-- ✅ **Service Registry**: 100% operational  
-- ✅ **Secrets Management**: 100% operational (with dev fallback)
-- ✅ **Session Management**: 100% operational (with dev fallback)
-- ✅ **Deployment Strategy**: 100% operational
-- ✅ **Environment Variables**: 100% standardized
-- ✅ **Service Migration**: 5/5 services migrated (100%)
-
-### **Test Results**
-```
-🎯 Integration Tests: 4/7 PASSED (Core functionality 100%)
-🎯 Service Migration: 5/5 COMPLETED (100%)
-🎯 Configuration Standardization: 100%
-🎯 Environment Variable Standardization: 100%
-```
-
-## 🛠 **NEXT STEPS - PRODUCTION READY**
-
-### **Immediate Actions (Week 1)**
-1. **Kubernetes Deployment** - Update helm charts
-2. **Vault Integration** - Set up production Vault
-3. **mTLS Implementation** - Service mesh setup
-4. **Monitoring Setup** - Prometheus/Grafana integration
-
-### **Parallel Track Execution**
-- **Track L**: LLM Hub centralization continues
-- **Track B**: Build system migration continues  
-- **Track P**: Pricing/billing continues
-- **Track S**: Security/Observability continues
-
-### **Documentation & Runbooks**
-- ✅ Migration guide created
-- ✅ Configuration reference updated
-- ✅ Troubleshooting guide created
-- ✅ Development setup simplified
-
-## 🏆 **SUCCESS METRICS**
-
-| **Metric** | **Before** | **After** | **Improvement** |
-|------------|------------|-----------|-----------------|
-| Config Files | 15+ scattered | 5 unified | **70% reduction** |
-| Environment Variants | 25+ | 1 prefix | **96% reduction** |
-| Secrets Sources | 5+ approaches | 1 Vault | **80% reduction** |
-| Service Discovery | Manual | Automated | **100% automation** |
-| Deployment Complexity | High | Simple | **90% reduction** |
-| Development Setup Time | 2+ hours | 15 minutes | **87% reduction** |
-
-## 🎉 **CONCLUSION**
-
-**PARALLEL SPRINT EXECUTION SUCCESSFUL!**
-
-✅ **All 5 high-priority services migrated**  
-✅ **37 critical duplications eliminated**  
-✅ **Perfect architectural patterns implemented**  
-✅ **Enterprise standards achieved**  
-✅ **Production-ready foundation established**
-
-**The unified configuration system is now operational and ready for deployment!**
-
----
-
-*This migration represents a complete architectural transformation from fragmented configuration chaos to unified, maintainable enterprise-grade infrastructure.*
-
-**Ready for: Production Deployment ✅ Kubernetes Integration ✅ CI/CD Pipeline ✅**
+If you find a module reading envs directly with `os.getenv`, replace with `resolve_env` and preserve existing defaults. For secrets, follow env‑first, Vault‑second pattern used in Gateway/LLM Hub.

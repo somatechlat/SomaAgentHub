@@ -351,12 +351,14 @@ def get_qdrant_client() -> QdrantClient:
         QDRANT_API_KEY: API key (optional)
         QDRANT_TIMEOUT: Request timeout in seconds (optional, default: 30)
     """
-    url = os.getenv("QDRANT_URL")
+    from services.common.config.base_settings import resolve_env
+
+    url = resolve_env("QDRANT_URL")
     if not url:
         raise RuntimeError("QDRANT_URL environment variable not set")
 
-    api_key = os.getenv("QDRANT_API_KEY")
-    timeout = int(os.getenv("QDRANT_TIMEOUT", "30"))
+    api_key = resolve_env("QDRANT_API_KEY")
+    timeout = int(resolve_env("QDRANT_TIMEOUT", "30"))
 
     return QdrantClient(
         url=url,

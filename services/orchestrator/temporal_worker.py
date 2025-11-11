@@ -154,10 +154,12 @@ async def main():
     - TEMPORAL_TASK_QUEUE: Task queue (default: kamachiq-tasks)
     - RUN_EXAMPLE: If "true", run example workflow (default: false)
     """
-    temporal_host = os.getenv("TEMPORAL_HOST", "localhost:10009")
-    namespace = os.getenv("TEMPORAL_NAMESPACE", "default")
-    task_queue = os.getenv("TEMPORAL_TASK_QUEUE", "kamachiq-tasks")
-    run_example = os.getenv("RUN_EXAMPLE", "false").lower() == "true"
+    from services.common.config.base_settings import resolve_env
+
+    temporal_host = resolve_env("TEMPORAL_HOST", "localhost:10009")
+    namespace = resolve_env("TEMPORAL_NAMESPACE", "default")
+    task_queue = resolve_env("TEMPORAL_TASK_QUEUE", "kamachiq-tasks")
+    run_example = str(resolve_env("RUN_EXAMPLE", "false")).lower() == "true"
 
     if run_example:
         # Run example workflow then start worker

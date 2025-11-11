@@ -13,12 +13,7 @@ from typing import Any
 
 import hvac
 
-# Centralized env resolution with SOMA_AGENT_HUB_ prefix and fallbacks
-try:
-    from services.common.config.base_settings import resolve_env
-except Exception:
-    def resolve_env(name: str, default: str | None = None) -> str | None:
-        return os.getenv(f"SOMA_AGENT_HUB_{name}") or os.getenv(f"SOMAGENT_{name}") or os.getenv(f"SOMASTACK_{name}") or os.getenv(name, default)
+from services.common.config.base_settings import resolve_env
 
 logger = logging.getLogger(__name__)
 

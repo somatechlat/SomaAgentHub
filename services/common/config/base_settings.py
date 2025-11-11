@@ -10,8 +10,7 @@ class BaseServiceSettings(BaseSettings):
     """Canonical base settings (no duplication, no mocks).
 
     Only two deployment modes: DEV and PROD. All environment-derived values
-    must use the standardized prefix `SOMA_AGENT_HUB_`. Backward compatibility
-    for older prefixes (SOMAGENT_, SOMASTACK_) is provided via `resolve_env`.
+    must use the standardized prefix `SOMA_AGENT_HUB_`.
     """
 
     environment: str = "development"
@@ -36,21 +35,14 @@ class BaseServiceSettings(BaseSettings):
 
 
 def resolve_env(name: str, default: Any | None = None) -> Any:
-    """Resolve an environment variable with backward-compatible prefixes.
+    """Resolve an environment variable using ONLY the canonical prefix.
 
-    Precedence:
-      1. SOMA_AGENT_HUB_<NAME>
-      2. SOMAGENT_<NAME>
-      3. SOMASTACK_<NAME>
-      4. <NAME>
-    Returns first match or default.
+    Reads `SOMA_AGENT_HUB_<NAME>` and returns its value if present,
+    otherwise returns `default`.
     """
     import os as _os
-    for prefix in ("SOMA_AGENT_HUB_", "SOMAGENT_", "SOMASTACK_", ""):
-        key = f"{prefix}{name}" if prefix else name
-        if key in _os.environ:
-            return _os.environ[key]
-    return default
+    key = f"SOMA_AGENT_HUB_{name}"
+    return _os.environ.get(key, default)
 
 
 @lru_cache(maxsize=32)

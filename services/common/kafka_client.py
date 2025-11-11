@@ -213,12 +213,14 @@ def get_kafka_client() -> KafkaClient:
     if _kafka_client is not None:
         return _kafka_client
 
-    bootstrap_servers = os.getenv("KAFKA_BOOTSTRAP_SERVERS")
+    from services.common.config.base_settings import resolve_env
+
+    bootstrap_servers = resolve_env("KAFKA_BOOTSTRAP_SERVERS")
     if not bootstrap_servers:
         raise RuntimeError("KAFKA_BOOTSTRAP_SERVERS environment variable not set")
 
-    client_id = os.getenv("KAFKA_CLIENT_ID", "somagent-service")
-    compression_type = os.getenv("KAFKA_COMPRESSION_TYPE", "gzip")
+    client_id = resolve_env("KAFKA_CLIENT_ID", "somagent-service")
+    compression_type = resolve_env("KAFKA_COMPRESSION_TYPE", "gzip")
 
     _kafka_client = KafkaClient(
         bootstrap_servers=bootstrap_servers,

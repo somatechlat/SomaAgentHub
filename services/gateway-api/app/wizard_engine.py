@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import logging
-import os
+from services.common.config.base_settings import resolve_env
 import re
 import uuid
 from datetime import UTC, datetime, timedelta
@@ -523,12 +523,10 @@ class WizardEngine:
             ]
 
         # Call the real orchestrator
-        orchestrator_base = (
-            os.getenv("SOMAGENT_GATEWAY_ORCHESTRATOR_URL") or os.getenv("ORCHESTRATOR_URL") or "http://localhost:10001"
-        )
+        orchestrator_base = resolve_env("GATEWAY_ORCHESTRATOR_URL", resolve_env("ORCHESTRATOR_URL", "http://localhost:10001"))
         url = f"{orchestrator_base}/v1/mao/start"
         payload = {
-            "tenant": session.metadata.get("tenant") or os.getenv("SOMAGENT_TENANT_ID", "demo"),
+            "tenant": session.metadata.get("tenant") or resolve_env("TENANT_ID", "demo"),
             "initiator": session.user_id,
             "directives": directives,
             "metadata": {
@@ -544,7 +542,7 @@ class WizardEngine:
         hours_planned = session.answers.get("hours") or session.answers.get("hours_planned")
         gpu_model = session.answers.get("gpu_model")
         if budget_cap and hours_planned:
-            pricing_service = os.getenv("PRICING_SERVICE_URL", "http://pricing-service:10026")
+            pricing_service = resolve_env("PRICING_SERVICE_URL", "http://pricing-service:10026")
             precheck_url = f"{pricing_service}/v1/pricing/evaluate-budget/with-policy"
             pre_params = {
                 "budget_cap": budget_cap,
@@ -600,7 +598,7 @@ class WizardEngine:
             }
 
             # Create outbox event
-            engine = create_async_engine(os.getenv("DATABASE_URL", "sqlite+aiosqlite:///gateway.db"))
+            engine = create_async_engine(resolve_env("DATABASE_URL", "sqlite+aiosqlite:///gateway.db"))
             async_session = sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
 
             async with async_session() as db_session:
