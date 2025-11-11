@@ -44,10 +44,17 @@ class ServiceRegistry:
                 services = values.get('services', {})
                 
                 for service_name, config in services.items():
+                    port = config.get('port', 8080)
+                    # Handle template variables gracefully
+                    if isinstance(port, str) and '$' in str(port):
+                        port = 8080  # Default fallback
+                    elif port is None:
+                        port = 8080
+                    
                     self.services[service_name] = ServiceEndpoint(
                         name=service_name,
                         url=f"http://{service_name}",
-                        port=config.get('port', 8080),
+                        port=int(port),
                         health_path=config.get('health_path', '/health'),
                         version=config.get('version', '1.0.0')
                     )

@@ -4,7 +4,7 @@ Unified deployment configuration for all environments
 """
 
 from abc import ABC, abstractmethod
-from typing import Dict, Any, Optional
+from typing import Dict, Any, Optional, List
 import os
 import yaml
 from dataclasses import dataclass
@@ -61,157 +61,116 @@ class DeploymentStrategy(ABC):
         pass
 
 
-class LocalDeployment(DeploymentStrategy):
-    """Local development deployment strategy"""
+class DevDeployment(DeploymentStrategy):
+    """DEV mode deployment - local development with production-like setup"""
     
     def __init__(self):
         self.settings = get_settings()
         self.vault_manager = get_vault_manager()
     
     def get_database_url(self, service: str) -> str:
-        """Local database URL"""
-        return f"postgresql://postgres:postgres@localhost:5432/{service}_dev"
+        """DEV database URL - localhost"""
+        return f"postgresql://postgres:postgres@localhost:5432/soma"
     
     def get_redis_url(self) -> str:
-        """Local Redis URL"""
+        """DEV Redis URL - localhost"""
         return "redis://localhost:6379"
     
     def get_service_url(self, service: str) -> str:
-        """Local service URL"""
+        """DEV service URL - localhost"""
         port = self.settings.service_ports.get(service, 8080)
         return f"http://localhost:{port}"
     
     def get_port(self, service: str) -> int:
-        """Get local port"""
+        """Get DEV port"""
         return self.settings.service_ports.get(service, 8080)
     
     def get_secrets(self, service: str) -> Dict[str, Any]:
-        """Get development secrets"""
-        return self.vault_manager.get_service_secrets(service)
+        """DEV secrets - simple defaults"""
+        return {
+            "jwt_secret": "dev-jwt-secret-change-in-prod",
+            "stripe_key": "dev-stripe-key",
+            "redis_password": None
+        }
     
     def get_environment_variables(self, service: str) -> Dict[str, str]:
-        """Get environment variables for local development"""
+        """DEV environment variables"""
         return {
-            "ENVIRONMENT": "development",
-            "DEPLOYMENT_MODE": "local",
-            "DATABASE_URL": self.get_database_url(service),
-            "REDIS_URL": self.get_redis_url(),
-            "SERVICE_NAME": service,
-            "LOG_LEVEL": "DEBUG",
-            "PROMETHEUS_ENABLED": "false",
-            "TRACING_ENABLED": "false"
+            "SOMASTACK_ENVIRONMENT": "development",
+            "SOMASTACK_DEPLOYMENT_MODE": "DEV",
+            "SOMASTACK_SERVICE_NAME": service,
+            "SOMASTACK_DATABASE_URL": self.get_database_url(service),
+            "SOMASTACK_REDIS_URL": self.get_redis_url(),
+            "SOMASTACK_LOG_LEVEL": "DEBUG",
+            "SOMASTACK_ENABLE_METRICS": "false",
+            "SOMASTACK_ENABLE_TRACING": "false"
         }
 
 
-class DockerDeployment(DeploymentStrategy):
-    """Docker deployment strategy"""
+class ProdDeployment(DeploymentStrategy):
+    """PROD mode deployment - production ready"""
     
     def __init__(self):
         self.settings = get_settings()
         self.vault_manager = get_vault_manager()
     
     def get_database_url(self, service: str) -> str:
-        """Docker database URL"""
-        return "postgresql://postgres:postgres@postgres:5432/soma"
+        """PROD database URL from environment"""
+        return os.getenv("SOMASTACK_DATABASE_URL", "postgresql://prod-db:5432/soma")
     
     def get_redis_url(self) -> str:
-        """Docker Redis URL"""
-        return "redis://redis:6379"
+        """PROD Redis URL from environment"""
+        return os.getenv("SOMASTACK_REDIS_URL", "redis://prod-redis:6379")
     
     def get_service_url(self, service: str) -> str:
-        """Docker service URL"""
-        port = self.settings.service_ports.get(service, 8080)
-        return f"http://{service}:{port}"
-    
-    def get_port(self, service: str) -> int:
-        """Get Docker port"""
-        return self.settings.service_ports.get(service, 8080)
-    
-    def get_secrets(self, service: str) -> Dict[str, Any]:
-        """Get Docker secrets"""
-        return self.vault_manager.get_service_secrets(service)
-    
-    def get_environment_variables(self, service: str) -> Dict[str, str]:
-        """Get environment variables for Docker"""
-        return {
-            "ENVIRONMENT": "development",
-            "DEPLOYMENT_MODE": "docker",
-            "DATABASE_URL": self.get_database_url(service),
-            "REDIS_URL": self.get_redis_url(),
-            "SERVICE_NAME": service,
-            "LOG_LEVEL": "INFO",
-            "PROMETHEUS_ENABLED": "true",
-            "TRACING_ENABLED": "true"
-        }
-
-
-class KubernetesDeployment(DeploymentStrategy):
-    """Kubernetes production deployment strategy"""
-    
-    def __init__(self):
-        self.settings = get_settings()
-        self.vault_manager = get_vault_manager()
-    
-    def get_database_url(self, service: str) -> str:
-        """Kubernetes database URL from Vault"""
-        try:
-            db_creds = self.vault_manager.get_database_credentials(service)
-            return f"postgresql://{db_creds['username']}:{db_creds['password']}@postgres-cluster:5432/soma"
-        except:
-            # Fallback to environment
-            return os.getenv("DATABASE_URL", "postgresql://postgres:postgres@postgres:5432/soma")
-    
-    def get_redis_url(self) -> str:
-        """Kubernetes Redis URL"""
-        return "redis://redis-master:6379"
-    
-    def get_service_url(self, service: str) -> str:
-        """Kubernetes service URL"""
+        """PROD service URL via service discovery"""
         return f"http://{service}.soma.svc.cluster.local:8080"
     
     def get_port(self, service: str) -> int:
-        """Get Kubernetes port"""
-        return 8080  # Standard port in K8s
+        """PROD port"""
+        return 8080
     
     def get_secrets(self, service: str) -> Dict[str, Any]:
-        """Get Kubernetes secrets from Vault"""
-        return self.vault_manager.get_service_secrets(service)
+        """PROD secrets from environment/Vault"""
+        return {
+            "jwt_secret": os.getenv("SOMASTACK_JWT_SECRET", "prod-jwt-secret"),
+            "stripe_key": os.getenv("SOMASTACK_STRIPE_KEY"),
+            "redis_password": os.getenv("SOMASTACK_REDIS_PASSWORD")
+        }
     
     def get_environment_variables(self, service: str) -> Dict[str, str]:
-        """Get environment variables for Kubernetes"""
+        """PROD environment variables"""
         return {
-            "ENVIRONMENT": "production",
-            "DEPLOYMENT_MODE": "kubernetes",
-            "DATABASE_URL": self.get_database_url(service),
-            "REDIS_URL": self.get_redis_url(),
-            "SERVICE_NAME": service,
-            "LOG_LEVEL": "INFO",
-            "PROMETHEUS_ENABLED": "true",
-            "TRACING_ENABLED": "true",
-            "VAULT_ADDR": self.settings.vault_address,
-            "VAULT_TOKEN": self.settings.vault_token
+            "SOMASTACK_ENVIRONMENT": "production",
+            "SOMASTACK_DEPLOYMENT_MODE": "PROD",
+            "SOMASTACK_SERVICE_NAME": service,
+            "SOMASTACK_LOG_LEVEL": "INFO",
+            "SOMASTACK_ENABLE_METRICS": "true",
+            "SOMASTACK_ENABLE_TRACING": "true"
         }
 
 
 class DeploymentFactory:
-    """Factory for creating deployment strategies"""
+    """Factory for creating deployment strategies - only DEV/PROD"""
     
     _strategies = {
-        "local": LocalDeployment,
-        "docker": DockerDeployment,
-        "kubernetes": KubernetesDeployment
+        "DEV": DevDeployment,
+        "PROD": ProdDeployment
     }
     
-    @classmethod
-    def create_strategy(cls, mode: str = None) -> DeploymentStrategy:
-        """Create deployment strategy based on mode"""
+    @staticmethod
+    def create_strategy(mode: str = None) -> DeploymentStrategy:
+        """Create deployment strategy - DEV or PROD only"""
         if mode is None:
             mode = get_settings().deployment_mode
         
-        if mode not in cls._strategies:
-            raise ValueError(f"Unknown deployment mode: {mode}. Must be one of {list(cls._strategies.keys())}")
-        
-        return cls._strategies[mode]()
+        # Simplify to only DEV and PROD
+        if mode == "DEV":
+            return DevDeployment()
+        elif mode == "PROD":
+            return ProdDeployment()
+        else:
+            raise ValueError("Deployment mode must be DEV or PROD")
     
     @classmethod
     def get_available_modes(cls) -> List[str]:

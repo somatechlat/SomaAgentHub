@@ -14,20 +14,21 @@ import yaml
 class UnifiedSettings(BaseSettings):
     """Single source of truth for all service configuration"""
     
-    # Environment and Deployment
+    # Environment and Deployment - Only DEV/PROD modes
     environment: str = Field(default="development", description="Current environment")
-    deployment_mode: str = Field(default="local", description="Deployment strategy")
+    deployment_mode: str = Field(default="DEV", description="Deployment mode: DEV or PROD")
     
     # Service Registry Configuration
     service_registry: Dict[str, Dict[str, Any]] = Field(default_factory=dict)
     
-    # Database Configuration
-    redis_url: str = Field(default="redis://redis:6379", description="Redis connection URL")
-    postgres_url: str = Field(default="postgresql://postgres:postgres@postgres:5432/soma", description="PostgreSQL connection URL")
-    clickhouse_url: str = Field(default="http://clickhouse:8123", description="ClickHouse connection URL")
+    # Database Configuration - DEV/PROD aware
+    redis_url: str = Field(default="redis://localhost:6379", description="Redis connection URL")
+    postgres_url: str = Field(default="postgresql://postgres:postgres@localhost:5432/soma", description="PostgreSQL connection URL")
+    clickhouse_url: str = Field(default="http://localhost:8123", description="ClickHouse connection URL")
     
-    # Service Ports (from Helm values)
+    # Service Ports - DEV/PROD specific
     service_ports: Dict[str, int] = Field(default_factory=lambda: {
+        # DEV ports (localhost development)
         "gateway_api": 8080,
         "orchestrator": 8081,
         "memory_gateway": 8082,
@@ -55,12 +56,9 @@ class UnifiedSettings(BaseSettings):
     prometheus_url: str = Field(default="http://prometheus:9090", description="Prometheus endpoint")
     grafana_url: str = Field(default="http://grafana:3000", description="Grafana endpoint")
     
-    # LLM Hub Configuration
-    llm_hub_url: str = Field(default="http://llm-hub:8084", description="LLM Hub service URL")
-    default_model_provider: str = Field(default="openai", description="Default LLM provider")
-    
-    # Pricing Service Configuration
-    pricing_service_url: str = Field(default="http://pricing-service:8085", description="Pricing service URL")
+    # DEV/PROD specific URLs
+    llm_hub_url: str = Field(default="http://localhost:8084", description="LLM Hub service URL")
+    pricing_service_url: str = Field(default="http://localhost:8085", description="Pricing service URL")
     gpubroker_url: str = Field(default="https://api.gpubroker.com", description="GPUBroker API URL")
     
     # Feature Flags
@@ -85,10 +83,20 @@ class UnifiedSettings(BaseSettings):
     
     @validator('deployment_mode')
     def validate_deployment_mode(cls, v):
-        allowed = {'local', 'docker', 'kubernetes'}
+        allowed = {'DEV', 'PROD'}  # Only two modes: DEV and PROD
         if v not in allowed:
-            raise ValueError(f'Deployment mode must be one of {allowed}')
+            raise ValueError(f'Deployment mode must be DEV or PROD')
         return v
+
+    @property
+    def is_dev_mode(self) -> bool:
+        """Check if running in DEV mode"""
+        return self.deployment_mode == 'DEV'
+
+    @property
+    def is_prod_mode(self) -> bool:
+        """Check if running in PROD mode"""
+        return self.deployment_mode == 'PROD'
     
     class Config:
         env_prefix = "SOMASTACK_"

@@ -14,6 +14,7 @@ class BaseServiceSettings(BaseSettings):
     """
 
     environment: str = "development"
+    deployment_mode: Literal["DEV", "PROD"] = "DEV"
     log_level: Literal["DEBUG", "INFO", "WARNING", "ERROR"] = "INFO"
     enable_tracing: bool = True
     enable_metrics: bool = True
@@ -23,6 +24,14 @@ class BaseServiceSettings(BaseSettings):
     class Config:
         env_prefix = "SOMAGENT_"
         case_sensitive = False
+
+    @property
+    def is_dev(self) -> bool:
+        return self.deployment_mode == "DEV"
+
+    @property
+    def is_prod(self) -> bool:
+        return self.deployment_mode == "PROD"
 
 
 @lru_cache(maxsize=32)

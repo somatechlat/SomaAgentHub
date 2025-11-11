@@ -1,190 +1,92 @@
-"""Configuration primitives for the orchestrator service.
+"""Configuration primitives for the orchestrator service using unified settings.
 
-This module centralises environment-driven configuration so both the FastAPI
-application and Temporal workers consume the same values.
+This module centralises environment-driven configuration using the unified
+configuration system.
 """
-
-from __future__ import annotations
 
 import os
 from functools import lru_cache
+from services.common.config.unified_settings import get_settings
+from services.common.registry.service_registry import get_service_registry
+from services.common.secrets.vault_manager import get_vault_manager
+from services.common.deployment.deployment_strategy import get_deployment_config
 
-from pydantic import AnyUrl, Field
-from pydantic_settings import BaseSettings
+# Get unified settings
+settings = get_settings()
+registry = get_service_registry()
+vault = get_vault_manager()
+deployment_config = get_deployment_config("orchestrator")
 
+# Service-specific configuration
+SERVICE_NAME = "orchestrator"
+SERVICE_PORT = settings.service_ports.get("orchestrator", 8081)
 
-class Settings(BaseSettings):
-    """Application configuration loaded from the environment."""
+# Database configuration
+DATABASE_URL = deployment_config.database_url
+REDIS_URL = deployment_config.redis_url
 
-    service_name: str = Field(default="orchestrator-service")
+# Temporal configuration (using SOMASTACK_ prefixed env vars)
+TEMPORAL_TARGET_HOST = os.getenv("SOMASTACK_TEMPORAL_TARGET_HOST", "localhost:10009")
+TEMPORAL_NAMESPACE = os.getenv("SOMASTACK_TEMPORAL_NAMESPACE", "default")
+TEMPORAL_TASK_QUEUE = os.getenv("SOMASTACK_TEMPORAL_TASK_QUEUE", "somagent.session.workflows")
+TEMPORAL_ENABLED = os.getenv("SOMASTACK_TEMPORAL_ENABLED", "false").lower() == "true"
 
-    # Temporal configuration
-    # Accept TEMPORAL_HOST (preferred) with fallback to legacy TEMPORAL_TARGET_HOST
-    temporal_target_host: str = Field(default="localhost:10009", alias="TEMPORAL_HOST")
-    temporal_namespace: str = Field(default="default", alias="TEMPORAL_NAMESPACE")
-    temporal_task_queue: str = Field(
-        default="somagent.session.workflows", alias="TEMPORAL_TASK_QUEUE"
-    )
-    temporal_enabled: bool = Field(default=False, alias="TEMPORAL_ENABLED")
+# Kafka configuration
+KAFKA_BOOTSTRAP_SERVERS = os.getenv("SOMASTACK_KAFKA_BOOTSTRAP_SERVERS", "localhost:9092")
+KAFKA_CLIENT_ID = os.getenv("SOMASTACK_KAFKA_CLIENT_ID", "orchestrator-service")
+KAFKA_TOPIC_PREFIX = os.getenv("SOMASTACK_KAFKA_TOPIC_PREFIX", "orchestration")
+KAFKA_SECURITY_PROTOCOL = os.getenv("SOMASTACK_KAFKA_SECURITY_PROTOCOL", "PLAINTEXT")
 
-    # Kafka configuration
-    kafka_bootstrap_servers: str | None = Field(
-        default=None, alias="KAFKA_BOOTSTRAP_SERVERS"
-    )
-    kafka_client_id: str = Field(
-        default="orchestrator-service", alias="KAFKA_CLIENT_ID"
-    )
-    kafka_topic_prefix: str = Field(default="orchestration", alias="KAFKA_TOPIC_PREFIX")
-    kafka_security_protocol: str = Field(
-        default="PLAINTEXT", alias="KAFKA_SECURITY_PROTOCOL"
-    )
-    kafka_sasl_mechanism: str | None = Field(default=None, alias="KAFKA_SASL_MECHANISM")
-    kafka_sasl_username: str | None = Field(default=None, alias="KAFKA_SASL_USERNAME")
-    kafka_sasl_password: str | None = Field(default=None, alias="KAFKA_SASL_PASSWORD")
-    kafka_ssl_cafile: str | None = Field(default=None, alias="KAFKA_SSL_CAFILE")
-    kafka_ssl_certfile: str | None = Field(default=None, alias="KAFKA_SSL_CERTFILE")
-    kafka_ssl_keyfile: str | None = Field(default=None, alias="KAFKA_SSL_KEYFILE")
-    kafka_producer_linger_ms: int = Field(default=10, alias="KAFKA_PRODUCER_LINGER_MS")
-    kafka_producer_batch_size: int = Field(
-        default=16384, alias="KAFKA_PRODUCER_BATCH_SIZE"
-    )
+# Service dependencies (using registry for discovery)
+def get_service_url(service_name: str, default_path: str = "") -> str:
+    """Get service URL with fallback to defaults"""
+    try:
+        return registry.get_service_url(service_name)
+    except:
+        port = settings.service_ports.get(service_name, 8080)
+        return f"http://localhost:{port}{default_path}"
 
-    # Database configuration
-    database_url: str = Field(
-        default="postgresql+asyncpg://postgres:postgres@localhost:5432/somaagent",
-        alias="DATABASE_URL",
-    )
-    database_pool_size: int = Field(default=20, alias="DATABASE_POOL_SIZE")
-    database_max_overflow: int = Field(default=30, alias="DATABASE_MAX_OVERFLOW")
-    database_pool_timeout: int = Field(default=30, alias="DATABASE_POOL_TIMEOUT")
-    database_pool_recycle: int = Field(default=3600, alias="DATABASE_POOL_RECYCLE")
-    database_echo: bool = Field(default=False, alias="DATABASE_ECHO")
+POLICY_ENGINE_URL = get_service_url("policy-engine", "/v1/evaluate")
+IDENTITY_SERVICE_URL = get_service_url("identity-service", "/v1/tokens/issue")
+NOTIFICATION_SERVICE_URL = get_service_url("notification-service", "/v1/notifications")
+LLM_HUB_URL = get_service_url("llm-hub")
+PRICING_SERVICE_URL = get_service_url("pricing-service")
+CONSTITUTION_SERVICE_URL = get_service_url("constitution-service", "/v1")
+CAPSULE_REPO_URL = get_service_url("capsule-repo", "/v1/capsules")
 
-    # Redis configuration
-    redis_url: str = Field(
-        default="redis://redis:6379/0",
-        alias="REDIS_URL",
-    )
+# Environment-specific configuration
+ENVIRONMENT = settings.environment
+DEPLOYMENT_MODE = settings.deployment_mode
 
-    # Policy & identity services (real HTTP endpoints)
-    policy_engine_url: AnyUrl = Field(
-        default=os.getenv("POLICY_ENGINE_URL", "http://policy-engine:10020")
-        + "/v1/evaluate",
-        alias="POLICY_ENGINE_URL",
-    )
-    # Explicit control for handling OPA errors. Default is secure (deny on error).
-    allow_on_opa_error: bool = Field(
-        default=False,
-        alias="ALLOW_ON_OPA_ERROR",
-    )
-    identity_service_url: AnyUrl = Field(
-        default=os.getenv(
-            "IDENTITY_TOKEN_ISSUE_URL", "http://identity-service:10002/v1/tokens/issue"
-        ),
-        alias="IDENTITY_SERVICE_URL",
-    )
+# Service discovery
+SERVICE_REGISTRY = registry
 
-    # Notification service used to broadcast orchestration milestones
-    notification_service_url: AnyUrl | None = Field(
-        default=os.getenv(
-            "NOTIFICATION_SERVICE_URL", "http://notification-service:10026"
-        )
-        + "/v1/notifications",
-        alias="NOTIFICATION_SERVICE_URL",
-    )
+# Secrets management
+SECRETS = vault.get_service_secrets(SERVICE_NAME)
 
-    # Central LLM Hub provider URL
-    llm_hub_url: AnyUrl = Field(
-        default=os.getenv("LLM_HUB_URL", "http://llm-hub:10022"),
-        alias="LLM_HUB_URL",
-    )
-    llm_hub_health_url: AnyUrl = Field(
-        default=os.getenv("LLM_HUB_HEALTH_URL", "http://llm-hub:10022/health"),
-        alias="LLM_HUB_HEALTH_URL",
-    )
-
-    # Pricing service base URL for budget/policy prechecks
-    pricing_service_url: AnyUrl = Field(
-        default=os.getenv("PRICING_SERVICE_URL", "http://pricing-service:10026"),
-        alias="PRICING_SERVICE_URL",
-    )
-
-    # Volcano scheduler integration (optional)
-    enable_volcano_scheduler: bool = Field(
-        default=False, alias="ENABLE_VOLCANO_SCHEDULER"
-    )
-    volcano_namespace: str = Field(default="soma-agent-hub", alias="VOLCANO_NAMESPACE")
-    volcano_default_queue: str = Field(
-        default="interactive", alias="VOLCANO_DEFAULT_QUEUE"
-    )
-    volcano_session_image: str = Field(
-        default="python:3.11-slim", alias="VOLCANO_SESSION_IMAGE"
-    )
-    volcano_session_cpu: str = Field(default="500m", alias="VOLCANO_SESSION_CPU")
-    volcano_session_memory: str = Field(default="512Mi", alias="VOLCANO_SESSION_MEMORY")
-    volcano_job_timeout_seconds: int = Field(
-        default=300, alias="VOLCANO_JOB_TIMEOUT_SECONDS"
-    )
-    kubectl_binary: str = Field(default="kubectl", alias="KUBECTL_BINARY")
-
-    # Constitution service manifest signing
-    constitution_service_url: AnyUrl = Field(
-        default=os.getenv(
-            "CONSTITUTION_SERVICE_URL", "http://constitution-service:10024"
-        )
-        + "/v1",
-        alias="CONSTITUTION_SERVICE_URL",
-    )
-    manifest_signing_enabled: bool = Field(
-        default=True,
-        alias="MANIFEST_SIGNING_ENABLED",
-    )
-    manifest_signing_timeout_seconds: float = Field(
-        default=10.0,
-        alias="MANIFEST_SIGNING_TIMEOUT_SECONDS",
-    )
-
-    # Ray runtime (can be local or remote cluster)
-    ray_address: str | None = Field(default="auto", alias="RAY_ADDRESS")
-    ray_namespace: str = Field(default="somagent", alias="RAY_NAMESPACE")
-
-    # OpenTelemetry exporter (optional)
-    otlp_endpoint: AnyUrl | None = Field(
-        default=None, alias="OTEL_EXPORTER_OTLP_ENDPOINT"
-    )
-
-    # Capsule repository – where manifest YAML files are stored. The orchestrator
-    # fetches a manifest when a capsule run does not provide an explicit
-    # ``image``/``command`` payload.  The default points to the Helm‑deployed
-    # canonical ``task-capsule-repo`` service.
-    capsule_repo_url: AnyUrl = Field(
-        default=os.getenv("CAPSULE_REPO_URL", "http://capsule-repo:8002/v1/capsules"),
-        alias="CAPSULE_REPO_URL",
-    )
-
-    # Logging configuration
-    log_level: str = Field(default="INFO", alias="LOG_LEVEL")
-
-    model_config = {
-        "env_file": ".env",
-        "env_file_encoding": "utf-8",
-        "case_sensitive": False,
-        "extra": "ignore",
-    }
-
-    def model_post_init(self, __context) -> None:
-        # Backward compatibility for Temporal host env var name
-        legacy_temporal = os.getenv("TEMPORAL_TARGET_HOST")
-        if legacy_temporal and not os.getenv("TEMPORAL_HOST"):
-            object.__setattr__(self, "temporal_target_host", legacy_temporal)
-        super().model_post_init(__context)
-
+# Configuration class for unified access
+class UnifiedSettings:
+    """Unified configuration settings"""
+    
+    def __init__(self):
+        self.service_name = SERVICE_NAME
+        self.temporal_target_host = TEMPORAL_TARGET_HOST
+        self.temporal_namespace = TEMPORAL_NAMESPACE
+        self.temporal_task_queue = TEMPORAL_TASK_QUEUE
+        self.temporal_enabled = TEMPORAL_ENABLED
+        self.database_url = DATABASE_URL
+        self.redis_url = REDIS_URL
+        self.policy_engine_url = POLICY_ENGINE_URL
+        self.identity_service_url = IDENTITY_SERVICE_URL
+        self.notification_service_url = NOTIFICATION_SERVICE_URL
+        self.llm_hub_url = LLM_HUB_URL
+        self.pricing_service_url = PRICING_SERVICE_URL
+        self.constitution_service_url = CONSTITUTION_SERVICE_URL
+        self.capsule_repo_url = CAPSULE_REPO_URL
 
 @lru_cache
-def get_settings() -> Settings:
+def get_settings() -> UnifiedSettings:
     """Singleton-style accessor used across the service."""
-
-    return Settings()  # type: ignore[arg-type]
-
+    return UnifiedSettings()
 
 settings = get_settings()

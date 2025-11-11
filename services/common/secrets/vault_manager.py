@@ -40,7 +40,21 @@ class VaultManager:
     
     def _is_development(self) -> bool:
         """Check if running in development mode"""
-        return os.getenv("SOMASTACK_ENVIRONMENT", "development") == "development"
+        env = os.getenv("SOMASTACK_ENVIRONMENT", "development")
+        # Also check if Vault is actually accessible
+        try:
+            if env != "development":
+                return False
+            # Try to connect to Vault
+            import socket
+            vault_host = self.vault_addr.replace("http://", "").replace("https://", "").split(":")[0]
+            sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            sock.settimeout(1)
+            result = sock.connect_ex((vault_host, 8200))
+            sock.close()
+            return result != 0  # Return True if Vault is NOT accessible
+        except:
+            return True
     
     def get_secret(self, path: str, key: str = None) -> Any:
         """Get secret from Vault with development fallback"""
