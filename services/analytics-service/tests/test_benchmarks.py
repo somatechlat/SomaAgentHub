@@ -14,6 +14,7 @@ sys.path.insert(0, str(SERVICE_ROOT))
 from app.core.store import store  # type: ignore  # noqa: E402
 
 from app.main import app  # type: ignore  # noqa: E402
+from services.common.config.base_settings import resolve_env
 
 client = TestClient(app)
 

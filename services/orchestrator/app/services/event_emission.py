@@ -14,6 +14,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..repository.outbox_event_repository import OutboxEventRepository
 from ..planner.schemas import ProjectPlan
+from services.common.config.base_settings import resolve_env
 
 
 class EventEmissionService:

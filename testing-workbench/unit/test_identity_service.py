@@ -5,6 +5,7 @@ Tests for Identity Service functionality.
 
 import httpx
 import pytest
+from services.common.config.base_settings import resolve_env
 
 
 class TestIdentityService:

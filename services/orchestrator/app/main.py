@@ -22,6 +22,7 @@ from .database import init_db, check_database_health
 from .startup.outbox_publisher_startup import setup_outbox_publisher
 from .services.observability import setup_observability
 from .services.security import security_manager
+from services.common.config.base_settings import resolve_env
 
 logger = logging.getLogger(__name__)
 

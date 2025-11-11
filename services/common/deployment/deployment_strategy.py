@@ -1,3 +1,4 @@
+from services.common.config.base_settings import resolve_env
 """DEPRECATED: deployment_strategy removed.
 
 Use direct environment variables via `resolve_env` in `base_settings`.

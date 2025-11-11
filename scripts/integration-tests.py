@@ -14,6 +14,7 @@ from dataclasses import dataclass
 from typing import Any
 
 import httpx
+from services.common.config.base_settings import resolve_env
 
 
 @dataclass
@@ -32,67 +33,67 @@ class SomaAgentTester:
             ServiceTest(
                 "jobs",
                 "http://localhost",
-                int(os.getenv("JOBS_PORT", "10012")),
+                int(resolve_env("JOBS_PORT", "10012")),
                 ["/health", "/jobs"],
             ),
             ServiceTest(
                 "memory-gateway",
                 "http://localhost",
-                int(os.getenv("MEMORY_GATEWAY_PORT", "10018")),
+                int(resolve_env("MEMORY_GATEWAY_PORT", "10018")),
                 ["/health", "/v1/recall/test"],
             ),
             ServiceTest(
                 "orchestrator",
                 "http://localhost",
-                int(os.getenv("ORCHESTRATOR_PORT", "10001")),
+                int(resolve_env("ORCHESTRATOR_PORT", "10001")),
                 ["/health", "/status"],
             ),
             ServiceTest(
                 "policy-engine",
                 "http://localhost",
-                int(os.getenv("POLICY_ENGINE_PORT", "10003")),
+                int(resolve_env("POLICY_ENGINE_PORT", "10003")),
                 ["/health", "/validate"],
             ),
             ServiceTest(
                 "settings-service",
                 "http://localhost",
-                int(os.getenv("SETTINGS_SERVICE_PORT", "10008")),
+                int(resolve_env("SETTINGS_SERVICE_PORT", "10008")),
                 ["/health"],
             ),
             ServiceTest(
                 "gateway-api",
                 "http://localhost",
-                int(os.getenv("GATEWAY_API_PORT", "10000")),
+                int(resolve_env("GATEWAY_API_PORT", "10000")),
                 ["/health", "/docs"],
             ),
             ServiceTest(
                 "identity-service",
                 "http://localhost",
-                int(os.getenv("IDENTITY_SERVICE_PORT", "10002")),
+                int(resolve_env("IDENTITY_SERVICE_PORT", "10002")),
                 ["/health"],
             ),
             ServiceTest(
                 "constitution-service",
                 "http://localhost",
-                int(os.getenv("CONSTITUTION_SERVICE_PORT", "10010")),
+                int(resolve_env("CONSTITUTION_SERVICE_PORT", "10010")),
                 ["/health"],
             ),
             ServiceTest(
                 "analytics-service",
                 "http://localhost",
-                int(os.getenv("ANALYTICS_SERVICE_PORT", "10007")),
+                int(resolve_env("ANALYTICS_SERVICE_PORT", "10007")),
                 ["/health", "/metrics"],
             ),
             ServiceTest(
                 "billing-service",
                 "http://localhost",
-                int(os.getenv("BILLING_SERVICE_PORT", "10009")),
+                int(resolve_env("BILLING_SERVICE_PORT", "10009")),
                 ["/health"],
             ),
             ServiceTest(
                 "task-capsule-repo",
                 "http://localhost",
-                int(os.getenv("TASK_CAPSULE_REPO_PORT", "10011")),
+                int(resolve_env("TASK_CAPSULE_REPO_PORT", "10011")),
                 ["/health", "/capsules"],
             ),
         ]

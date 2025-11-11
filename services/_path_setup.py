@@ -16,6 +16,7 @@ from __future__ import annotations
 
 import pathlib
 import sys
+from services.common.config.base_settings import resolve_env
 
 # The repository root is the parent of the ``services`` package directory.
 _repo_root = pathlib.Path(__file__).resolve().parents[1]

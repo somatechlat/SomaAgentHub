@@ -8,6 +8,7 @@ from __future__ import annotations
 import os
 
 import httpx
+from services.common.config.base_settings import resolve_env
 
 
 class IdentityClient:
@@ -209,12 +210,12 @@ def get_identity_client() -> IdentityClient:
         IDENTITY_API_KEY: API key (optional)
         IDENTITY_TIMEOUT: Request timeout in seconds (optional, default: 10.0)
     """
-    url = os.getenv("IDENTITY_SERVICE_URL")
+    url = resolve_env("IDENTITY_SERVICE_URL")
     if not url:
         raise RuntimeError("IDENTITY_SERVICE_URL environment variable not set")
 
-    api_key = os.getenv("IDENTITY_API_KEY")
-    timeout = float(os.getenv("IDENTITY_TIMEOUT", "10.0"))
+    api_key = resolve_env("IDENTITY_API_KEY")
+    timeout = float(resolve_env("IDENTITY_TIMEOUT", "10.0"))
 
     return IdentityClient(
         base_url=url,

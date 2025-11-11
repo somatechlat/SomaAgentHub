@@ -14,6 +14,7 @@ resolve ``services.<service>`` regardless of which directory appears first on
 """
 
 import pkgutil
+from services.common.config.base_settings import resolve_env
 
 # ---------------------------------------------------------------------
 # Namespace package handling

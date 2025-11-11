@@ -13,6 +13,7 @@ from sqlmodel import SQLModel
 
 from services.orchestrator.app.repository.outbox import OutboxEvent
 from services.orchestrator.app.repository.outbox_event_repository import (
+from services.common.config.base_settings import resolve_env
     OutboxEventRepository,
 )
 

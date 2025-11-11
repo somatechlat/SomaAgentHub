@@ -5,6 +5,7 @@ from pathlib import Path
 from typing import Any, Dict
 
 import httpx
+from services.common.config.base_settings import resolve_env
 
 POLICY_DIR = Path(__file__).resolve().parents[1] / "policies" / "budget"
 _BUNDLE_CACHE: Dict[str, str] = {}

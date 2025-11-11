@@ -15,6 +15,7 @@ different services to be merged.  The ``pkgutil.extend_path`` call combines the
 import pathlib
 import pkgutil
 import sys
+from services.common.config.base_settings import resolve_env
 
 # ---------------------------------------------------------------------------
 # Ensure the repository root and each service's ``app`` directory are on

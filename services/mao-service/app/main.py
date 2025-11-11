@@ -18,6 +18,7 @@ from pydantic import BaseModel, Field
 from temporalio.client import Client as TemporalClient
 from temporalio.common import RetryPolicy
 from workflows.project_workflow import (
+from services.common.config.base_settings import resolve_env
     ExecutionMode,
     ProjectConfig,
     ProjectWorkflow,
@@ -88,7 +89,7 @@ temporal_client: TemporalClient | None = None
 async def lifespan(app: FastAPI):
     global temporal_client
     temporal_client = await TemporalClient.connect(
-        os.getenv("TEMPORAL_HOST", "localhost:10009"),
+        resolve_env("TEMPORAL_HOST", "localhost:10009"),
         namespace="default",
     )
     try:
@@ -388,5 +389,5 @@ if __name__ == "__main__":
 
     import uvicorn
 
-    port = int(os.getenv("PORT", "10007"))  # Default to 10007 if not set
+    port = int(resolve_env("PORT", "10007"))  # Default to 10007 if not set
     uvicorn.run(app, host="0.0.0.0", port=port)

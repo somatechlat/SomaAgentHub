@@ -4,6 +4,7 @@ from datetime import datetime
 from typing import Any, Dict, List, Optional
 
 from pydantic import BaseModel, Field
+from services.common.config.base_settings import resolve_env
 
 
 class UsageAssumptions(BaseModel):

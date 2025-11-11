@@ -13,6 +13,7 @@ from fastapi import FastAPI
 
 from ..database import AsyncSessionLocal as get_session_factory
 from ..services.outbox_publisher import create_outbox_publisher_service
+from services.common.config.base_settings import resolve_env
 
 logger = logging.getLogger(__name__)
 
@@ -32,7 +33,7 @@ class OutboxPublisherStartup:
     async def start_publisher(self) -> None:
         """Start the outbox publisher service on startup."""
         try:
-            kafka_servers = os.getenv("KAFKA_BOOTSTRAP_SERVERS", "localhost:9092")
+            kafka_servers = resolve_env("KAFKA_BOOTSTRAP_SERVERS", "localhost:9092")
             session_factory = get_session_factory()
 
             self.publisher_service = await create_outbox_publisher_service(

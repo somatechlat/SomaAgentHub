@@ -20,6 +20,7 @@ from opentelemetry.sdk.trace import TracerProvider
 from opentelemetry.sdk.trace.export import BatchSpanProcessor
 
 from common.config.runtime import default_otlp_grpc_endpoint
+from services.common.config.base_settings import resolve_env
 
 logger = logging.getLogger(__name__)
 
@@ -60,7 +61,7 @@ class OpenTelemetryConfig:
 
         # Add OTLP exporter if enabled (for Tempo in Sprint-6)
         if self.enable_otlp:
-            otlp_endpoint = os.getenv("OTEL_EXPORTER_OTLP_ENDPOINT", default_otlp_grpc_endpoint())
+            otlp_endpoint = resolve_env("OTEL_EXPORTER_OTLP_ENDPOINT", default_otlp_grpc_endpoint())
             otlp_exporter = OTLPSpanExporter(endpoint=otlp_endpoint, insecure=True)
             trace_provider.add_span_processor(BatchSpanProcessor(otlp_exporter))
             logger.info(f"OTLP trace exporter enabled: {otlp_endpoint}")
@@ -80,7 +81,7 @@ class OpenTelemetryConfig:
 
         # OTLP metrics exporter if enabled
         if self.enable_otlp:
-            otlp_endpoint = os.getenv("OTEL_EXPORTER_OTLP_ENDPOINT", default_otlp_grpc_endpoint())
+            otlp_endpoint = resolve_env("OTEL_EXPORTER_OTLP_ENDPOINT", default_otlp_grpc_endpoint())
             logger.info(f"OTLP metrics exporter configured: {otlp_endpoint}")
 
         meter_provider = MeterProvider(resource=self.resource, metric_readers=readers)
@@ -131,14 +132,14 @@ def setup_observability(
         app = FastAPI()
         otel_config = setup_observability("analytics-service", app)
     """
-    env = environment or os.getenv("ENVIRONMENT", "development")
+    env = environment or resolve_env("ENVIRONMENT", "development")
 
     config = OpenTelemetryConfig(
         service_name=service_name,
         service_version=service_version,
         environment=env,
         enable_prometheus=True,
-        enable_otlp=os.getenv("ENABLE_OTLP", "false").lower() == "true",
+        enable_otlp=resolve_env("ENABLE_OTLP", "false").lower() == "true",
     )
 
     config.setup_all(app)

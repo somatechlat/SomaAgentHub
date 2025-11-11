@@ -44,7 +44,7 @@ class OpenAIProvider:
             from services.common.config.base_settings import resolve_env as _resolve_env
         except Exception:
             def _resolve_env(name: str, default: str | None = None):
-                return os.getenv(f"SOMA_AGENT_HUB_{name}") or os.getenv(f"SOMAGENT_{name}") or os.getenv(f"SOMASTACK_{name}") or os.getenv(name, default)
+                return resolve_env(f"SOMA_AGENT_HUB_{name}") or resolve_env(f"SOMAGENT_{name}") or resolve_env(f"SOMASTACK_{name}") or resolve_env(name, default)
 
         self.api_key = api_key or _resolve_env("OPENAI_API_KEY")
         if not self.api_key:

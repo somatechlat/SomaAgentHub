@@ -22,9 +22,11 @@ print(
 SERVICE_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(SERVICE_ROOT))
 
-os.environ.setdefault("SOMAGENT_IDENTITY_JWT_SECRET", "test-secret")
+# Use the canonical prefix for the JWT secret in tests
+os.environ.setdefault("SOMA_AGENT_HUB_IDENTITY_JWT_SECRET", "test-secret")
 
 from app.main import create_app  # noqa: E402
+from services.common.config.base_settings import resolve_env
 
 
 @pytest.fixture(scope="session")
@@ -33,12 +35,13 @@ def clickhouse_container() -> Generator[ClickHouseContainer, None, None]:
     container.start()
     host = container.get_container_host_ip()
     port = container.get_exposed_port("9000/tcp")
-    os.environ["SOMASTACK_CLICKHOUSE_HOST"] = host
-    os.environ["SOMASTACK_CLICKHOUSE_PORT"] = port
-    os.environ["SOMASTACK_CLICKHOUSE_DATABASE"] = "somastack_audit"
-    os.environ["SOMASTACK_IDENTITY_CLICKHOUSE_HOST"] = host
-    os.environ["SOMASTACK_IDENTITY_CLICKHOUSE_PORT"] = port
-    os.environ["SOMASTACK_IDENTITY_CLICKHOUSE_DATABASE"] = "somastack_audit"
+    # Use the canonical `SOMA_AGENT_HUB_` prefix for ClickHouse configuration
+    os.environ["SOMA_AGENT_HUB_CLICKHOUSE_HOST"] = host
+    os.environ["SOMA_AGENT_HUB_CLICKHOUSE_PORT"] = port
+    os.environ["SOMA_AGENT_HUB_CLICKHOUSE_DATABASE"] = "somastack_audit"
+    os.environ["SOMA_AGENT_HUB_IDENTITY_CLICKHOUSE_HOST"] = host
+    os.environ["SOMA_AGENT_HUB_IDENTITY_CLICKHOUSE_PORT"] = port
+    os.environ["SOMA_AGENT_HUB_IDENTITY_CLICKHOUSE_DATABASE"] = "somastack_audit"
     yield container
     container.stop()
 
@@ -58,7 +61,8 @@ def redis_container(
         print("DEBUG: get_connection_url missing")
     else:
         print("DEBUG: get_connection_url present")
-    os.environ["SOMAGENT_IDENTITY_REDIS_URL"] = container.get_connection_url()
+    # Use the canonical prefix for Redis URL in tests
+    os.environ["SOMA_AGENT_HUB_IDENTITY_REDIS_URL"] = container.get_connection_url()
     yield container
     container.stop()
 

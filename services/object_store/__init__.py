@@ -1,3 +1,4 @@
+from services.common.config.base_settings import resolve_env
 """Canonical object store package.
 
 The implementation now lives directly under ``services.object_store``.

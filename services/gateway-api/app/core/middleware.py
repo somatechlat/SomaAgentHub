@@ -39,7 +39,7 @@ class ContextMiddleware(BaseHTTPMiddleware):
         self._anonymous_user = resolve_env("GATEWAY_ANON_USER", "dev-user")
 
         # Check if OPA is configured
-        self._opa_enabled = bool(os.getenv("OPA_URL"))
+        self._opa_enabled = bool(resolve_env("OPA_URL"))
         if self._opa_enabled:
             try:
                 from services.common.opa_client import get_opa_client
@@ -110,7 +110,7 @@ class ContextMiddleware(BaseHTTPMiddleware):
                     )
             except HTTPException as exc:
                 # Log OPA error but don't block request (fail open in dev)
-                if os.getenv("DEPLOYMENT_MODE") == "production":
+                if resolve_env("DEPLOYMENT_MODE") == "production":
                     return JSONResponse(
                         status_code=exc.status_code,
                         content={"detail": exc.detail},

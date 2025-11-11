@@ -9,6 +9,7 @@ from collections.abc import Callable
 from typing import Any
 
 from fastapi import APIRouter, Response, status
+from services.common.config.base_settings import resolve_env
 
 logger = logging.getLogger(__name__)
 

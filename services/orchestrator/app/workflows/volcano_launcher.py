@@ -17,6 +17,7 @@ from typing import Any
 import yaml
 
 from ..core.config import settings
+from services.common.config.base_settings import resolve_env
 
 
 class VolcanoLauncherError(RuntimeError):

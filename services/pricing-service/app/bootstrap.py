@@ -1,5 +1,6 @@
 from .clickhouse import get_client
 from .ddl import (
+from services.common.config.base_settings import resolve_env
     DDL_PRICING_OFFERS_LIVE,
     DDL_PRICING_SNAPSHOT_OFFERS,
     DDL_PRICING_SNAPSHOTS,

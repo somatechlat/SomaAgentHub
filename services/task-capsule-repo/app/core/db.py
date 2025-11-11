@@ -27,6 +27,7 @@ from sqlalchemy.ext.asyncio import (
 )
 
 from .config import get_settings
+from services.common.config.base_settings import resolve_env
 
 metadata = MetaData()
 

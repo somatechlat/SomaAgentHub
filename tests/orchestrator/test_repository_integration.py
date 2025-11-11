@@ -36,6 +36,7 @@ from services.orchestrator.app.repository.build_run import (
 )
 from services.orchestrator.app.repository.outbox import OutboxRepository
 from services.common.events.models import OutboxEvent
+from services.common.config.base_settings import resolve_env
 
 
 @pytest.fixture

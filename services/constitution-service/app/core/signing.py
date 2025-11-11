@@ -7,6 +7,7 @@ import os
 from dataclasses import dataclass
 
 from .config import settings
+from services.common.config.base_settings import resolve_env
 
 try:  # pragma: no cover - optional cryptography dependency
     from nacl.signing import SigningKey, VerifyKey  # type: ignore
@@ -72,12 +73,12 @@ class ManifestSigner:
 def load_signer_from_env() -> ManifestSigner:
     """Instantiate a manifest signer from environment or service settings."""
 
-    private_key_path = settings.private_key_path or os.getenv("SOMAGENT_SIGNING_KEY")
+    private_key_path = settings.private_key_path or resolve_env("SOMAGENT_SIGNING_KEY")
     if not private_key_path or not os.path.exists(private_key_path):
         raise ManifestSigningError("Manifest signing key not configured")
     with open(private_key_path, "rb") as handle:
         private_key = handle.read().strip()
-    public_key_path = settings.public_key_path or os.getenv("SOMAGENT_PUBLIC_KEY")
+    public_key_path = settings.public_key_path or resolve_env("SOMAGENT_PUBLIC_KEY")
     public_key_bytes: bytes | None = None
     if public_key_path and os.path.exists(public_key_path):
         with open(public_key_path, "rb") as handle:

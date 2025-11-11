@@ -15,6 +15,7 @@ from typing import Any
 import openai
 from fastapi import FastAPI
 from pydantic import BaseModel, Field
+from services.common.config.base_settings import resolve_env
 
 logger = logging.getLogger(__name__)
 
@@ -22,7 +23,7 @@ logger = logging.getLogger(__name__)
 # CONFIGURATION
 # ============================================================================
 
-OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
+OPENAI_API_KEY = resolve_env("OPENAI_API_KEY", "")
 openai.api_key = OPENAI_API_KEY
 
 # ============================================================================
@@ -358,5 +359,5 @@ if __name__ == "__main__":
 
     import uvicorn
 
-    port = int(os.getenv("PORT"))
+    port = int(resolve_env("PORT"))
     uvicorn.run(app, host="0.0.0.0", port=port)

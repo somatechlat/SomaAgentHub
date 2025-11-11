@@ -6,6 +6,7 @@ from .aggregator import fetch_live_offers
 from .clickhouse import get_client
 from .config import get_settings
 from .models import PricingOffer
+from services.common.config.base_settings import resolve_env
 
 _running = False
 logger = logging.getLogger(__name__)

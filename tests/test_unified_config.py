@@ -6,6 +6,7 @@ import os
 import sys
 import asyncio
 from pathlib import Path
+from services.common.config.base_settings import resolve_env
 
 # Add project root to path
 sys.path.insert(0, str(Path(__file__).parent.parent))
@@ -25,7 +26,7 @@ def test_unified_settings():
         assert settings.service_ports["gateway_api"] == 8080
         
         # Test environment prefix
-        assert settings.Config.env_prefix == "SOMASTACK_"
+        assert settings.Config.env_prefix == "SOMA_AGENT_HUB_"
         
         print("✅ Unified Settings test passed")
         return True
@@ -170,7 +171,7 @@ def test_environment_variables():
         ]
         
         for var in env_vars:
-            value = os.getenv(var)
+            value = resolve_env(var)
             if value:
                 print(f"   {var}: {value}")
             else:

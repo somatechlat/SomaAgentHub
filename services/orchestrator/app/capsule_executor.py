@@ -48,6 +48,7 @@ from services.orchestrator.app.core.config import (
 # Local lightweight CapsuleRunInput to avoid importing workflow module here
 from dataclasses import dataclass, field
 from typing import Any
+from services.common.config.base_settings import resolve_env
 
 @dataclass
 class CapsuleRunInput:

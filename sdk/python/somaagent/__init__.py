@@ -16,6 +16,7 @@ from .exceptions import (
     ValidationError,
 )
 from .models import Agent, Capsule, Conversation, Message, Task, WorkflowRun
+from services.common.config.base_settings import resolve_env
 
 __all__ = [
     "SomaAgentClient",

@@ -15,6 +15,7 @@ from services.kamachiq_service.governance_overlay import GovernanceOverlay, Indu
 from services.kamachiq_service.project_bootstrapper import KAMACHIQBootstrapper
 from services.mao_service.app.main import MAOClient  # Assuming we have this
 from services.tool_service.tool_registry import tool_registry
+from services.common.config.base_settings import resolve_env
 
 
 async def demo_autonomous_project_creation():

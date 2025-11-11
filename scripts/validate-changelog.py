@@ -9,6 +9,7 @@ import subprocess
 import sys
 from datetime import datetime
 from pathlib import Path
+from services.common.config.base_settings import resolve_env
 
 
 class ChangelogValidator:

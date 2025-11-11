@@ -3,6 +3,7 @@ from fastapi import status
 from httpx import AsyncClient
 
 from services.marketplace.app.main import app
+from services.common.config.base_settings import resolve_env
 
 
 @pytest.mark.asyncio

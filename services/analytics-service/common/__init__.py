@@ -10,6 +10,7 @@ extends its ``__path__`` to include the repository‑level ``common`` directory.
 import pathlib
 import pkgutil
 import sys
+from services.common.config.base_settings import resolve_env
 
 # Resolve the repository root (two levels up from this file: analytics-service -> services -> repo)
 repo_root = pathlib.Path(__file__).resolve().parents[2]

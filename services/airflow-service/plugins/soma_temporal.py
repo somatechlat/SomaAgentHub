@@ -11,6 +11,7 @@ import requests
 from airflow.exceptions import AirflowException
 from airflow.models import BaseOperator
 from airflow.utils.context import Context
+from services.common.config.base_settings import resolve_env
 
 
 def _load_bearer_token() -> str:
@@ -19,7 +20,7 @@ def _load_bearer_token() -> str:
     Requires a real token set via `SOMAGENT_AIRFLOW_JWT` (or `SOMAGENT_BEARER_TOKEN`).
     Generate one via the Identity Service `/v1/tokens/issue` endpoint.
     """
-    token = os.getenv("SOMAGENT_AIRFLOW_JWT") or os.getenv("SOMAGENT_BEARER_TOKEN")
+    token = resolve_env("SOMAGENT_AIRFLOW_JWT") or resolve_env("SOMAGENT_BEARER_TOKEN")
     if not token:
         raise AirflowException("Missing bearer token. Set SOMAGENT_AIRFLOW_JWT (or SOMAGENT_BEARER_TOKEN).")
     return token
@@ -58,7 +59,7 @@ class SomaGatewayTemporalOperator(BaseOperator):
         self.user = user
         self.metadata = metadata or {}
         self.capsule_id = capsule_id
-        self.gateway_url = gateway_url or os.getenv("SOMAGENT_GATEWAY_URL", "http://gateway-api:8000")
+        self.gateway_url = gateway_url or resolve_env("SOMAGENT_GATEWAY_URL", "http://gateway-api:8000")
         self.timeout_seconds = timeout_seconds
 
     def execute(self, context: Context) -> dict[str, Any]:  # noqa: D401

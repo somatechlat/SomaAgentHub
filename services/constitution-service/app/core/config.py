@@ -1,29 +1,31 @@
-"""Configuration for the constitution service."""
+"""Configuration for the constitution service, using the canonical resolver.
 
-import os
+All environment variables are accessed through ``resolve_env`` which reads only
+variables prefixed with ``SOMA_AGENT_HUB_``.  This eliminates legacy prefixes and
+centralises configuration handling.
+"""
+
 from functools import lru_cache
 from pathlib import Path
+from typing import ClassVar
 
 from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
+from services.common.config.base_settings import resolve_env
+
 
 class Settings(BaseSettings):
-    """Runtime configuration."""
+    """Runtime configuration for the constitution service."""
 
     service_name: str = "constitution-service"
-    # Service URLs are resolved via environment variables for K8s DNS.
     # Build base URL using MEMORY_GATEWAY_PORT (default 10021).
-    # ``default_port`` is a constant, not a Pydantic field, so we annotate it as
-    # ``ClassVar`` to avoid the ``non‑annotated attribute`` validation error.
-    from typing import ClassVar
-
-    default_port: ClassVar[str] = os.getenv("MEMORY_GATEWAY_PORT", "10021")
-    somabrain_base_url: str = os.getenv(
+    default_port: ClassVar[str] = resolve_env("MEMORY_GATEWAY_PORT", "10021")
+    somabrain_base_url: str = resolve_env(
         "SOMABRAIN_BASE_URL",
         f"http://memory-gateway:{default_port}",
     )
-    redis_url: str = os.getenv("REDIS_URL", "redis://redis:6379/0")
+    redis_url: str = resolve_env("REDIS_URL", "redis://redis:6379/0")
     cache_ttl_seconds: int = 30
     http_timeout_seconds: float = 30.0
     sync_interval_seconds: float = 300.0
@@ -33,7 +35,8 @@ class Settings(BaseSettings):
     public_key_path: Path | None = None
     private_key_path: Path | None = None
     tenants: list[str] = Field(default_factory=lambda: ["somagent", "tenantA", "tenantB"])
-    model_config = SettingsConfigDict(env_prefix="SOMAGENT_CONSTITUTION_", extra="allow")
+    # No legacy env_prefix – rely on ``resolve_env`` for all values.
+    model_config = SettingsConfigDict(env_prefix="", extra="allow")
 
     def model_post_init(self, __context) -> None:  # pragma: no cover - simple config wiring
         if self.bundle_path is None:
@@ -46,7 +49,7 @@ class Settings(BaseSettings):
 
 @lru_cache
 def get_settings() -> Settings:
-    """Return cached settings."""
+    """Return cached settings instance."""
 
     return Settings()
 

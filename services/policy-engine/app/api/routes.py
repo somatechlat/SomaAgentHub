@@ -17,6 +17,7 @@ from ..core.engine import (
 )
 from ..policy_rules import PolicyRule, get_rules, set_rules
 from .schemas import (
+from services.common.config.base_settings import resolve_env
     EvaluationRequest,
     EvaluationResponse,
     PolicyRuleModel,

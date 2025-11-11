@@ -21,6 +21,7 @@ if BASE not in sys.path:
 from app.wizard_engine import wizard_engine  # type: ignore  # noqa: E402
 
 from app.main import app  # type: ignore  # noqa: E402
+from services.common.config.base_settings import resolve_env
 
 client = TestClient(app)
 
@@ -52,7 +53,8 @@ def _register_block_wizard():
 
 def test_wizard_approval_blocked(monkeypatch):
     _register_block_wizard()
-    monkeypatch.setenv("SOMAGENT_GATEWAY_ORCHESTRATOR_URL", "http://mock-orchestrator")
+    # Use canonical env var prefix for orchestrator URL in tests
+    monkeypatch.setenv("SOMA_AGENT_HUB_GATEWAY_ORCHESTRATOR_URL", "http://mock-orchestrator")
     monkeypatch.setenv("PRICING_SERVICE_URL", "http://mock-pricing")
 
     class FakeResp:

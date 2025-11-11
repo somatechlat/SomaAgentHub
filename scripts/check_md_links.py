@@ -15,6 +15,7 @@ Usage: python scripts/check_md_links.py
 import json
 import re
 from pathlib import Path
+from services.common.config.base_settings import resolve_env
 
 ROOT = Path(__file__).resolve().parents[1]
 MARKDOWN_EXTS = {".md", ".markdown", ".mdown"}

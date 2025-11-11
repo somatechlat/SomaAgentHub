@@ -12,6 +12,7 @@ from ..repository.plan_repository import PlanRepository
 from ..repository.outbox_event_repository import OutboxEventRepository
 from .client import PlannerClient
 from .schemas import PlannerContext, PlannerRequest, ProjectPlan
+from services.common.config.base_settings import resolve_env
 
 
 @dataclass

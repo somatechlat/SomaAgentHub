@@ -6,6 +6,7 @@ from sqlmodel import select
 
 from ..database import get_async_session
 from .models import (
+from services.common.config.base_settings import resolve_env
     Plan,
     PlanEvent,
     PlanModuleRecord,

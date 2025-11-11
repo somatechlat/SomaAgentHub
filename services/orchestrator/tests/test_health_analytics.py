@@ -1,4 +1,5 @@
 from fastapi import status
+from services.common.config.base_settings import resolve_env
 
 
 def test_root_health(api_client):

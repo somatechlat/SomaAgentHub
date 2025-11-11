@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from ..constitution_cache import get_cached_hash
 from ..policy_rules import RuleViolation, evaluate_prompt
+from services.common.config.base_settings import resolve_env
 
 
 def _violation_to_dict(violation: RuleViolation) -> dict[str, str | float]:

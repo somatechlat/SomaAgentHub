@@ -9,6 +9,7 @@ import os
 from typing import Any
 
 import httpx
+from services.common.config.base_settings import resolve_env
 
 
 class AnalyticsClient:
@@ -243,12 +244,12 @@ def get_analytics_client() -> AnalyticsClient:
         ANALYTICS_API_KEY: API key (optional)
         ANALYTICS_TIMEOUT: Request timeout in seconds (optional, default: 10.0)
     """
-    url = os.getenv("ANALYTICS_SERVICE_URL")
+    url = resolve_env("ANALYTICS_SERVICE_URL")
     if not url:
         raise RuntimeError("ANALYTICS_SERVICE_URL environment variable not set")
 
-    api_key = os.getenv("ANALYTICS_API_KEY")
-    timeout = float(os.getenv("ANALYTICS_TIMEOUT", "10.0"))
+    api_key = resolve_env("ANALYTICS_API_KEY")
+    timeout = float(resolve_env("ANALYTICS_TIMEOUT", "10.0"))
 
     return AnalyticsClient(
         base_url=url,

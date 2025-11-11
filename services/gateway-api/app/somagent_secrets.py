@@ -1,7 +1,7 @@
 """Secrets loader with explicit error handling (no silent bypass)."""
 
 import logging
-import os
+from services.common.config.base_settings import resolve_env
 
 
 logger = logging.getLogger("gateway.secrets")
@@ -17,13 +17,13 @@ def load_secret(
     - On file errors, logs and returns the provided default (or None if unspecified).
     """
     # Prefer environment variable first
-    value = os.getenv(env_var)
+    value = resolve_env(env_var)
     if value:
         return value
 
     # Try file path from file_env
     if file_env:
-        file_path = os.getenv(file_env)
+        file_path = resolve_env(file_env)
         if file_path and os.path.exists(file_path):
             try:
                 with open(file_path) as f:

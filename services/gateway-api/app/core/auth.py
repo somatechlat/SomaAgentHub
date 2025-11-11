@@ -28,9 +28,10 @@ from typing import Any
 
 import httpx
 from fastapi import Header, HTTPException, status
+from services.common.config.base_settings import resolve_env
 
 # The Identity Service URL can be overridden via ``IDENTITY_SERVICE_URL``.
-IDENTITY_SERVICE_URL = os.getenv(
+IDENTITY_SERVICE_URL = resolve_env(
     "IDENTITY_SERVICE_URL",
     "http://identity-service:10002",
 )

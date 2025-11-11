@@ -21,6 +21,7 @@ from ..models.sessions import (
 )
 from .capsules import router as capsules_router
 from .dashboard import router as dashboard_router
+from services.common.config.base_settings import resolve_env
 
 router = APIRouter(prefix="/v1", tags=["gateway"])
 

@@ -12,6 +12,7 @@ from fastapi import APIRouter, Header, HTTPException, status
 from fastapi.responses import StreamingResponse
 from prometheus_client import Counter, Histogram
 from pydantic import BaseModel
+from services.common.config.base_settings import resolve_env
 
 router = APIRouter(prefix="/v1/conversation", tags=["conversation"])
 logger = logging.getLogger(__name__)

@@ -16,6 +16,7 @@ from .circuit_breaker import (
     reset_all_circuit_breakers,
 )
 from .saga import Saga, SagaBuilder
+from services.common.config.base_settings import resolve_env
 
 __all__ = [
     # Saga pattern

@@ -5,6 +5,7 @@ from typing import Any
 from fastapi import FastAPI, File, HTTPException, Response, UploadFile
 from prometheus_client import CONTENT_TYPE_LATEST, Counter, Gauge, generate_latest
 from pydantic import BaseModel, Field
+from services.common.config.base_settings import resolve_env
 
 app = FastAPI(title="SOMABrain Metrics Service")
 logger = logging.getLogger(__name__)
@@ -121,7 +122,7 @@ async def remember(payload: RememberRequest):
 
         text_to_embed = json.dumps(payload.value) if not isinstance(payload.value, str) else payload.value
         try:
-            slm_url = os.getenv("LLM_HUB_URL") or "http://localhost:10022"
+            slm_url = resolve_env("LLM_HUB_URL") or "http://localhost:10022"
             async with httpx.AsyncClient(timeout=10.0) as client:
                 response = await client.post(
                     f"{slm_url}/v1/embeddings",
@@ -334,7 +335,7 @@ async def rag(request: RAGRequest):
         import httpx
 
         try:
-            slm_url = os.getenv("LLM_HUB_URL") or "http://localhost:10022"
+            slm_url = resolve_env("LLM_HUB_URL") or "http://localhost:10022"
             async with httpx.AsyncClient(timeout=10.0) as client:
                 response = await client.post(f"{slm_url}/v1/embeddings", json={"input": [request.query]})
                 response.raise_for_status()

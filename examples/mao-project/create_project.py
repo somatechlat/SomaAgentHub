@@ -12,6 +12,7 @@ import asyncio
 import json
 
 import requests
+from services.common.config.base_settings import resolve_env
 
 # MAO service API
 MAO_API = "http://localhost:10001/v1"

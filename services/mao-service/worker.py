@@ -18,6 +18,7 @@ from workflows.activities import (
     provision_git_repo,
 )
 from workflows.project_workflow import ProjectWorkflow
+from services.common.config.base_settings import resolve_env
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -36,8 +37,8 @@ async def main():
     # Connect to Temporal
     import os
 
-    temporal_host = os.getenv("TEMPORAL_HOST", "localhost:10009")
-    temporal_namespace = os.getenv("TEMPORAL_NAMESPACE", "default")
+    temporal_host = resolve_env("TEMPORAL_HOST", "localhost:10009")
+    temporal_namespace = resolve_env("TEMPORAL_NAMESPACE", "default")
     client = await Client.connect(temporal_host, namespace=temporal_namespace)
 
     logger.info("✅ Connected to Temporal server")

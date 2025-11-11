@@ -14,6 +14,7 @@ import logging
 from typing import Any
 
 from playwright.sync_api import Browser, BrowserContext, Page, sync_playwright
+from services.common.config.base_settings import resolve_env
 
 logger = logging.getLogger(__name__)
 

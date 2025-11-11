@@ -6,6 +6,7 @@ Tests that verify docker-compose deployment is working.
 
 import httpx
 import pytest
+from services.common.config.base_settings import resolve_env
 
 
 class TestDockerComposeDeployment:

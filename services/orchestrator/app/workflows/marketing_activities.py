@@ -24,6 +24,7 @@ from temporalio import activity
 
 from ..core.config import settings
 from ..patterns.circuit_breaker import get_circuit_breaker
+from services.common.config.base_settings import resolve_env
 
 # ============================================================================
 # DATA MODELS (Input/Output for each activity)
@@ -109,7 +110,7 @@ class ToolServiceClient:
     def __init__(self):
         self.base_url = str(
             settings.tool_service_url
-            or os.getenv("TOOL_SERVICE_URL", "http://tool-service:8080")
+            or resolve_env("TOOL_SERVICE_URL", "http://tool-service:8080")
         )
         self.timeout = httpx.Timeout(60.0, connect=10.0)
 
@@ -188,7 +189,7 @@ class LLMHubClient:
     def __init__(self):
         self.base_url = str(
             settings.llm_hub_url
-            or os.getenv("LLM_HUB_URL", "http://llm-hub:10022")
+            or resolve_env("LLM_HUB_URL", "http://llm-hub:10022")
         )
         self.timeout = httpx.Timeout(120.0, connect=10.0)
 

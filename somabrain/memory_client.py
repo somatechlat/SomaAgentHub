@@ -13,6 +13,7 @@ except Exception:  # pragma: no cover - fallback to standard library math
     _np = None
 
 from .geometry import GeodesicKernel
+from services.common.config.base_settings import resolve_env
 
 
 @dataclass(slots=True)
@@ -51,7 +52,7 @@ class MemoryClient:
     ) -> None:
         self._vector_store = vector_store
         self._geodesic_kernel = geodesic_kernel or GeodesicKernel()
-        env_flag = os.getenv("SOMABRAIN_GEODESIC_ENABLED", "0")
+        env_flag = resolve_env("SOMABRAIN_GEODESIC_ENABLED", "0")
         self._geodesic_enabled_default = env_flag.lower() in {"1", "true", "yes"}
         self._default_top_k = default_top_k
 

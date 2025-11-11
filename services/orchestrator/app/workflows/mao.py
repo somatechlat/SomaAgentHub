@@ -11,6 +11,7 @@ from temporalio import activity, workflow
 
 from ..core.config import settings
 from .session import (
+from services.common.config.base_settings import resolve_env
     IdentityTokenRequest,
     PolicyEvaluationContext,
     HubInferenceRequest,

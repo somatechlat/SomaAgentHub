@@ -1,6 +1,7 @@
 from datetime import UTC, datetime, timedelta
 
 from .redis_client import get_constitution_hash as _redis_get_hash
+from services.common.config.base_settings import resolve_env
 
 # TTL for cached constitution hashes (seconds)
 _CACHE_TTL = 60

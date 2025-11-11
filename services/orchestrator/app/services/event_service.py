@@ -7,6 +7,7 @@ from uuid import UUID
 from ..repository.outbox_event_repository import OutboxEventRepository
 from services.common.events.publisher import EventPublisher
 from sqlalchemy.ext.asyncio import AsyncSession
+from services.common.config.base_settings import resolve_env
 
 logger = logging.getLogger(__name__)
 

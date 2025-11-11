@@ -27,6 +27,7 @@ from services.common.contracts.orchestrator import (
 from services.orchestrator.app.repository.outbox import OutboxRepository
 from services.gateway_api.app.wizard_engine import wizard_engine
 from services.orchestrator.app.main import build_app as build_orchestrator_app
+from services.common.config.base_settings import resolve_env
 
 
 class TestEndToEndEventFlow:

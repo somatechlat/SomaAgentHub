@@ -10,6 +10,7 @@ from typing import Any
 
 from google.cloud import compute_v1, sql_v1, storage
 from google.oauth2 import service_account
+from services.common.config.base_settings import resolve_env
 
 logger = logging.getLogger(__name__)
 

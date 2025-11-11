@@ -3,6 +3,7 @@
 from fastapi import FastAPI
 from fastapi.responses import Response
 from prometheus_client import CONTENT_TYPE_LATEST, generate_latest
+from services.common.config.base_settings import resolve_env
 
 app = FastAPI(
     title="SomaGent Settings Service",

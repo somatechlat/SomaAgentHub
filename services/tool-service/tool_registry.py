@@ -13,6 +13,7 @@ import logging
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Protocol, runtime_checkable
+from services.common.config.base_settings import resolve_env
 
 logger = logging.getLogger(__name__)
 

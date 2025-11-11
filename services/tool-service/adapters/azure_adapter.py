@@ -15,6 +15,7 @@ from azure.mgmt.resource import ResourceManagementClient
 from azure.mgmt.sql import SqlManagementClient
 from azure.mgmt.storage import StorageManagementClient
 from azure.storage.blob import BlobServiceClient
+from services.common.config.base_settings import resolve_env
 
 logger = logging.getLogger(__name__)
 

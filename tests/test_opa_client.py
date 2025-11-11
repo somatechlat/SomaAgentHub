@@ -16,6 +16,7 @@ import httpx
 import pytest
 
 from services.common.opa_client import OPAClient
+from services.common.config.base_settings import resolve_env
 
 
 def make_mock_response(json_data: dict[str, Any], status_code: int = 200) -> httpx.Response:

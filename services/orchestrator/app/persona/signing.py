@@ -8,6 +8,7 @@ import httpx
 
 from ..core.config import settings
 from .manifest import ManifestSignature, PersonaManifest
+from services.common.config.base_settings import resolve_env
 
 
 class ManifestSigningFailure(RuntimeError):

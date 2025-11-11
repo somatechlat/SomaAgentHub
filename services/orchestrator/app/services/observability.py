@@ -29,6 +29,7 @@ from opentelemetry.sdk.trace import TracerProvider
 from opentelemetry.sdk.trace.export import BatchSpanProcessor
 from prometheus_client import Counter, Histogram, Gauge, start_http_server
 from starlette.middleware.base import BaseHTTPMiddleware
+from services.common.config.base_settings import resolve_env
 
 logger = logging.getLogger(__name__)
 
@@ -90,7 +91,7 @@ def setup_opentelemetry(service_name: str, service_version: str) -> None:
     trace.set_tracer_provider(provider)
 
     # OTLP exporter
-    otlp_endpoint = os.getenv("OTEL_EXPORTER_OTLP_ENDPOINT")
+    otlp_endpoint = resolve_env("OTEL_EXPORTER_OTLP_ENDPOINT")
     if otlp_endpoint:
         exporter = OTLPSpanExporter(endpoint=otlp_endpoint)
         span_processor = BatchSpanProcessor(exporter)
@@ -322,7 +323,7 @@ class Tracer:
 
 def setup_logging():
     """Setup structured JSON logging."""
-    log_level = os.getenv("LOG_LEVEL", "INFO").upper()
+    log_level = resolve_env("LOG_LEVEL", "INFO").upper()
 
     # Configure root logger
     root_logger = logging.getLogger()

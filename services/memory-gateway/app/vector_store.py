@@ -12,6 +12,7 @@ import os
 from dataclasses import dataclass
 from enum import Enum
 from typing import Any
+from services.common.config.base_settings import resolve_env
 
 logger = logging.getLogger(__name__)
 
@@ -62,8 +63,8 @@ class VectorStore:
         if self.backend == VectorBackend.PINECONE:
             import pinecone
 
-            api_key = os.getenv("PINECONE_API_KEY")
-            environment = os.getenv("PINECONE_ENVIRONMENT", "us-west1-gcp")
+            api_key = resolve_env("PINECONE_API_KEY")
+            environment = resolve_env("PINECONE_ENVIRONMENT", "us-west1-gcp")
 
             pinecone.init(api_key=api_key, environment=environment)
 
@@ -77,8 +78,8 @@ class VectorStore:
             from qdrant_client import QdrantClient
             from qdrant_client.models import Distance, VectorParams
 
-            host = os.getenv("QDRANT_HOST", "localhost")
-            port = int(os.getenv("QDRANT_PORT", 6333))
+            host = resolve_env("QDRANT_HOST", "localhost")
+            port = int(resolve_env("QDRANT_PORT", 6333))
 
             client = QdrantClient(host=host, port=port)
 
@@ -325,6 +326,6 @@ def get_vector_store() -> VectorStore:
     """Get or create global vector store."""
     global _vector_store
     if _vector_store is None:
-        backend = VectorBackend(os.getenv("VECTOR_BACKEND", "qdrant"))
+        backend = VectorBackend(resolve_env("VECTOR_BACKEND", "qdrant"))
         _vector_store = VectorStore(backend=backend)
     return _vector_store

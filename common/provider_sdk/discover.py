@@ -9,6 +9,7 @@ Future design:
 from __future__ import annotations
 
 from typing import Any
+from services.common.config.base_settings import resolve_env
 
 
 def discover() -> list[dict[str, Any]]:

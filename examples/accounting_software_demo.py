@@ -12,6 +12,7 @@ import json
 import logging
 import os
 from datetime import UTC, datetime
+from services.common.config.base_settings import resolve_env
 
 logging.basicConfig(level=logging.INFO, format="%(message)s")
 

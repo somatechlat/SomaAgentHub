@@ -15,6 +15,7 @@ from cryptography.hazmat.primitives import hashes, serialization
 from cryptography.hazmat.primitives.asymmetric import padding
 
 from .models import ConstitutionBundle
+from services.common.config.base_settings import resolve_env
 
 logger = logging.getLogger(__name__)
 

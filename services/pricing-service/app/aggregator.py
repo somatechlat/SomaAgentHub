@@ -9,6 +9,7 @@ from .models import PricingOffer
 from .providers.aws_adapter import AWS_ADAPTER
 from .providers.gpubroker_adapter import get_gpubroker_adapter
 from .providers.runpod_adapter import RUNPOD_ADAPTER
+from services.common.config.base_settings import resolve_env
 
 _CACHE: tuple[float, list[PricingOffer]] | None = None
 CACHE_HITS = Counter("pricing_cache_hits_total", "Cache hits in live offers fetch")

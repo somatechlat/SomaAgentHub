@@ -8,6 +8,7 @@ from prometheus_client import CONTENT_TYPE_LATEST, Counter, Histogram, generate_
 from pydantic import BaseModel, Field, constr
 
 from .local_models import get_embedding_model, get_text_generator, GenerationResult
+from services.common.config.base_settings import resolve_env
 
 app = FastAPI(
     title="SomaAgent LLM Hub",

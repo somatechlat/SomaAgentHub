@@ -15,6 +15,7 @@ from enum import Enum
 from typing import Any, Awaitable, Callable, Dict, Optional
 
 from prometheus_client import Counter, Histogram
+from services.common.config.base_settings import resolve_env
 
 logger = logging.getLogger(__name__)
 

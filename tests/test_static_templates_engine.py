@@ -1,6 +1,7 @@
 from pathlib import Path
 
 from services.orchestrator.app.static_templates.engine import (
+from services.common.config.base_settings import resolve_env
     build_default_tokens,
     render_template_set,
     TEMPLATE_ROOT,

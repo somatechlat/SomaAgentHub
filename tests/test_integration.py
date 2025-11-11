@@ -18,6 +18,7 @@ from services.orchestrator.app.repository.outbox_event_repository import (
 )
 from services.orchestrator.app.services.event_emission import EventEmissionService
 from services.orchestrator.app.planner.schemas import ProjectPlan, ModuleSpec
+from services.common.config.base_settings import resolve_env
 
 
 @pytest.mark.asyncio

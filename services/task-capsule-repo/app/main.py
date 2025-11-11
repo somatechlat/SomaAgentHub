@@ -5,6 +5,7 @@ from __future__ import annotations
 from fastapi import FastAPI, HTTPException, Request, status
 from fastapi.responses import PlainTextResponse, Response
 from prometheus_client import CONTENT_TYPE_LATEST, generate_latest
+from services.common.config.base_settings import resolve_env
 
 app = FastAPI(
     title="Task Capsule Repository",

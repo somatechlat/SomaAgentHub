@@ -7,6 +7,7 @@ from dataclasses import asdict, dataclass
 from typing import Any
 
 from temporalio import activity
+from services.common.config.base_settings import resolve_env
 
 
 @dataclass(slots=True)

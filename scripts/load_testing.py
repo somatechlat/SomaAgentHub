@@ -136,6 +136,7 @@ class K6TestGenerator:
         script = f"""import http from 'k6/http';
 import {{ check, sleep }} from 'k6';
 import {{ Rate }} from 'k6/metrics';
+from services.common.config.base_settings import resolve_env
 
 // Custom metrics
 const errorRate = new Rate('errors');

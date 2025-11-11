@@ -8,6 +8,7 @@ from datetime import UTC, datetime, timedelta
 from typing import Any
 
 from temporalio import client as temporal_client
+from services.common.config.base_settings import resolve_env
 
 
 async def start_marketing_campaign_workflow(

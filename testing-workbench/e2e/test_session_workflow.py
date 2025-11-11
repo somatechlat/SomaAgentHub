@@ -8,6 +8,7 @@ import time
 
 import httpx
 import pytest
+from services.common.config.base_settings import resolve_env
 
 
 @pytest.mark.e2e

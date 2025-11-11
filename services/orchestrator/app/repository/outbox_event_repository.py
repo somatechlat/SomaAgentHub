@@ -14,6 +14,7 @@ from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..repository.outbox import OutboxEvent
+from services.common.config.base_settings import resolve_env
 
 
 class OutboxEventRepository:

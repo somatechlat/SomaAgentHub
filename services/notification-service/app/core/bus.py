@@ -17,6 +17,7 @@ except ImportError:  # pragma: no cover - dependency injected via requirements
 
 from ..api.schemas import NotificationPayload, NotificationRecord
 from .config import Settings
+from services.common.config.base_settings import resolve_env
 
 logger = logging.getLogger("notification.bus")
 

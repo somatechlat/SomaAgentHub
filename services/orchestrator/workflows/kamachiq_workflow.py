@@ -10,6 +10,7 @@ from typing import Any
 
 from temporalio import workflow
 from temporalio.common import RetryPolicy
+from services.common.config.base_settings import resolve_env
 
 # Import activities (will be implemented separately)
 with workflow.unsafe.imports_passed_through():

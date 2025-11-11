@@ -27,11 +27,12 @@ from sqlalchemy import (
 )
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import Session, sessionmaker
+from services.common.config.base_settings import resolve_env
 
 logger = logging.getLogger(__name__)
 
 # Database setup
-DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://somagent:somagent@localhost:10004/somagent")
+DATABASE_URL = resolve_env("DATABASE_URL", "postgresql://somagent:somagent@localhost:10004/somagent")
 engine = create_engine(DATABASE_URL)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
@@ -363,5 +364,5 @@ if __name__ == "__main__":
 
     import uvicorn
 
-    port = int(os.getenv("PORT"))
+    port = int(resolve_env("PORT"))
     uvicorn.run(app, host="0.0.0.0", port=port)

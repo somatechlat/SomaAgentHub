@@ -2,6 +2,7 @@ from typing import Any
 
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel, Field
+from services.common.config.base_settings import resolve_env
 
 app = FastAPI(title="Recall Service", version="0.1.0")
 

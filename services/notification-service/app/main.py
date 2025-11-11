@@ -11,6 +11,7 @@ from prometheus_client import CONTENT_TYPE_LATEST, generate_latest
 from .api.routes import router
 from .core.bus import get_notification_bus
 from .core.config import settings
+from services.common.config.base_settings import resolve_env
 
 
 @asynccontextmanager

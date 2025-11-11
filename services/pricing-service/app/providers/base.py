@@ -2,6 +2,7 @@ from datetime import UTC, datetime
 from typing import Protocol
 
 from ..models import PricingOffer
+from services.common.config.base_settings import resolve_env
 
 
 class ProviderAdapter(Protocol):

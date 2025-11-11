@@ -5,6 +5,7 @@ pytestmark = pytest.mark.skip("Deprecated: unified/registry/vault_manager/sessio
 import os
 import sys
 from pathlib import Path
+from services.common.config.base_settings import resolve_env
 
 # Add project root to path
 sys.path.insert(0, str(Path(__file__).parent.parent))

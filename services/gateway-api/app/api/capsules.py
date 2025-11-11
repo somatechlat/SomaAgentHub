@@ -14,6 +14,7 @@ from pydantic import BaseModel
 from ..config import GatewaySettings, get_sah_settings
 from ..dependencies import request_context_dependency
 from ..models.context import RequestContext
+from services.common.config.base_settings import resolve_env
 
 router = APIRouter(tags=["capsules"])
 

@@ -23,6 +23,7 @@ from fastapi.middleware.trustedhost import TrustedHostMiddleware
 from pydantic import BaseModel, Field, validator
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.responses import Response
+from services.common.config.base_settings import resolve_env
 
 # Security configuration
 SECURITY_CONFIG = {

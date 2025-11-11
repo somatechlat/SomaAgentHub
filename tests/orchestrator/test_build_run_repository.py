@@ -3,6 +3,7 @@ from sqlmodel import SQLModel, create_engine, Session
 
 from services.orchestrator.app.repository.models import BuildRun
 from services.orchestrator.app.repository.sql_build_run_repository import (
+from services.common.config.base_settings import resolve_env
     SQLBuildRunRepository,
 )
 

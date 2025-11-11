@@ -5,6 +5,7 @@ Tests that all core services are running and responding correctly.
 
 import httpx
 import pytest
+from services.common.config.base_settings import resolve_env
 
 
 class TestServiceHealth:

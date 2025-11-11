@@ -47,6 +47,7 @@ _tracer = get_tracer("planner-api")
 # how the service can handle parallel work without blocking the event loop.
 # ---------------------------------------------------------------------------
 import asyncio  # noqa: E402
+from services.common.config.base_settings import resolve_env
 
 
 class GeneratePlanPayload(BaseModel):

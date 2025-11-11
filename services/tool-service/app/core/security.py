@@ -6,6 +6,7 @@ import hashlib
 import hmac
 import json
 from typing import Any
+from services.common.config.base_settings import resolve_env
 
 
 def _canonical_json(obj: Any) -> bytes:

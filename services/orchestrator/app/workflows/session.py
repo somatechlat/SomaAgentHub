@@ -17,6 +17,7 @@ from aiokafka import AIOKafkaProducer
 from temporalio import activity, workflow
 
 from ..core.config import settings
+from services.common.config.base_settings import resolve_env
 
 # ---------------------------------------------------------------------------
 # Data contracts shared between the API surface and workflow execution.

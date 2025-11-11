@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from prometheus_client import Counter, Histogram
+from services.common.config.base_settings import resolve_env
 
 TOOL_EXECUTIONS = Counter(
     "tool_adapter_executions_total",

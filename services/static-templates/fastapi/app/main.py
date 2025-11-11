@@ -1,4 +1,5 @@
 from fastapi import FastAPI
+from services.common.config.base_settings import resolve_env
 
 app = FastAPI(title="{{APP_NAME}}")
 

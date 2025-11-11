@@ -14,6 +14,7 @@ process (see ``services/orchestrator/temporal_worker.py``).
 from __future__ import annotations
 
 from prometheus_client import Gauge
+from services.common.config.base_settings import resolve_env
 
 # Gauge with a ``task_queue`` label so multiple queues can be tracked if needed.
 ORCHESTRATOR_QUEUE_GAUGE = Gauge(

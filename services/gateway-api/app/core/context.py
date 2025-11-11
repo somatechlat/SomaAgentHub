@@ -9,6 +9,7 @@ from typing import Any
 from fastapi import Request
 
 from ..models.context import RequestContext
+from services.common.config.base_settings import resolve_env
 
 _request_context_var: contextvars.ContextVar[RequestContext] = contextvars.ContextVar("request_context")
 

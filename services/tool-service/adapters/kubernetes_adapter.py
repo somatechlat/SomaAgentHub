@@ -17,6 +17,7 @@ from typing import Any
 
 import yaml
 from kubernetes import client, config
+from services.common.config.base_settings import resolve_env
 
 logger = logging.getLogger(__name__)
 

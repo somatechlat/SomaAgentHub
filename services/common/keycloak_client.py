@@ -14,6 +14,7 @@ from typing import Any
 from fastapi import HTTPException, status
 from keycloak import KeycloakOpenID
 from keycloak.exceptions import KeycloakError
+from services.common.config.base_settings import resolve_env
 
 # Ensure module can be accessed via both 'keycloak_client' and 'services.common.keycloak_client' for testing patches
 sys.modules.setdefault("services.common.keycloak_client", sys.modules[__name__])
@@ -154,10 +155,10 @@ def get_keycloak_client() -> KeycloakClient:
         KEYCLOAK_CLIENT_ID: Client ID
         KEYCLOAK_CLIENT_SECRET: Client secret (optional)
     """
-    server_url = os.getenv("KEYCLOAK_SERVER_URL")
-    realm = os.getenv("KEYCLOAK_REALM")
-    client_id = os.getenv("KEYCLOAK_CLIENT_ID")
-    client_secret = os.getenv("KEYCLOAK_CLIENT_SECRET")
+    server_url = resolve_env("KEYCLOAK_SERVER_URL")
+    realm = resolve_env("KEYCLOAK_REALM")
+    client_id = resolve_env("KEYCLOAK_CLIENT_ID")
+    client_secret = resolve_env("KEYCLOAK_CLIENT_SECRET")
 
     if not server_url or not realm or not client_id:
         raise RuntimeError(

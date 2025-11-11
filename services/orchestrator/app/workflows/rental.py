@@ -7,6 +7,7 @@ from datetime import timedelta
 from typing import Any
 
 from temporalio import activity, workflow
+from services.common.config.base_settings import resolve_env
 
 # ---------------------------------------------------------------------------
 # Data contracts

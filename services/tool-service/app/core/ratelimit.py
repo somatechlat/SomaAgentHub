@@ -5,6 +5,7 @@ from __future__ import annotations
 import time
 from collections import deque
 from dataclasses import dataclass
+from services.common.config.base_settings import resolve_env
 
 
 @dataclass

@@ -10,6 +10,7 @@ import time
 from datetime import UTC, datetime
 
 from kafka import KafkaProducer
+from services.common.config.base_settings import resolve_env
 
 
 def build_event(index: int) -> dict:

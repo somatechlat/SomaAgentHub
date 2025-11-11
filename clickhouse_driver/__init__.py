@@ -15,6 +15,7 @@ import sys
 from pathlib import Path
 from types import ModuleType
 from typing import Any
+from services.common.config.base_settings import resolve_env
 
 _CURRENT_FILE = Path(__file__).resolve()
 _MODULE_NAME = "_soma_clickhouse_driver"

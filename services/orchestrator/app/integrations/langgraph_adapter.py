@@ -8,6 +8,7 @@ from collections.abc import Awaitable, Callable
 from typing import Any
 
 from temporalio import activity
+from services.common.config.base_settings import resolve_env
 
 GraphCallable = Callable[
     [dict[str, Any]], dict[str, Any] | Awaitable[dict[str, Any] | None] | None

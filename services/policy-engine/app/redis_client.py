@@ -8,6 +8,7 @@ Exports:
 from __future__ import annotations
 
 import os
+from services.common.config.base_settings import resolve_env
 
 try:  # pragma: no cover
     from services.common.redis_client import get_redis_client
@@ -18,7 +19,7 @@ except Exception:  # pragma: no cover
 async def _build_client():
     if get_redis_client is None:
         return None
-    url = os.getenv("REDIS_URL")
+    url = resolve_env("REDIS_URL")
     if not url:
         return None
     try:

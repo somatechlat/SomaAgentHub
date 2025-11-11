@@ -9,6 +9,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 from ..core.bus import NotificationBus, get_notification_bus
 from ..core.config import settings
 from .schemas import (
+from services.common.config.base_settings import resolve_env
     EnqueueNotificationResponse,
     NotificationBacklogResponse,
     NotificationPayload,

@@ -17,6 +17,7 @@ import sys
 from pathlib import Path
 
 import yaml
+from services.common.config.base_settings import resolve_env
 
 
 def load_yaml(path: Path):
@@ -57,12 +58,12 @@ async def upsert_postgres(seed: dict):
     import asyncpg
 
     # Use the POSTGRES_URL env var if provided; otherwise fall back to localhost defaults.
-    dsn = os.getenv("POSTGRES_URL")
+    dsn = resolve_env("POSTGRES_URL")
     if dsn:
         conn = await asyncpg.connect(dsn)
     else:
         conn = await asyncpg.connect(
-            host=os.getenv("POSTGRES_HOST", "localhost"),
+            host=resolve_env("POSTGRES_HOST", "localhost"),
             database="model_profiles",
             user="postgres",
             password="password",

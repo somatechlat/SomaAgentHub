@@ -15,6 +15,7 @@ from collections.abc import Iterable
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Protocol
+from services.common.config.base_settings import resolve_env
 
 
 class AgentNotFoundError(RuntimeError):
@@ -146,8 +147,8 @@ class ConfigMapAgentRegistryBackend:
     def __init__(self) -> None:
         # Delay heavy imports until we know we need them (optional dependency).
         self._client = None
-        self._configmap_name = os.getenv("AGENT_REGISTRY_CONFIGMAP", "agent-registry")
-        self._namespace = os.getenv("AGENT_REGISTRY_NAMESPACE", "somaagenthub")
+        self._configmap_name = resolve_env("AGENT_REGISTRY_CONFIGMAP", "agent-registry")
+        self._namespace = resolve_env("AGENT_REGISTRY_NAMESPACE", "somaagenthub")
 
     async def _ensure_client(self):
         if self._client is not None:

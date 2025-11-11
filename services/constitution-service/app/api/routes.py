@@ -19,6 +19,7 @@ from ..core.models import (
     ValidationResult,
 )
 from ..core.signing import ManifestSigner
+from services.common.config.base_settings import resolve_env
 
 router = APIRouter(prefix="/v1", tags=["constitution"])
 

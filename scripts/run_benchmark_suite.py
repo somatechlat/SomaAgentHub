@@ -19,6 +19,7 @@ from dataclasses import dataclass
 from datetime import UTC, datetime
 
 import httpx
+from services.common.config.base_settings import resolve_env
 
 DEFAULT_ANALYTICS_URL = "http://localhost:8008"
 

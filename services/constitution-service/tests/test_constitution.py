@@ -8,6 +8,7 @@ from app.core.models import ConstitutionBundle
 from fastapi.testclient import TestClient
 
 from app.main import create_app
+from services.common.config.base_settings import resolve_env
 
 
 @pytest.fixture()

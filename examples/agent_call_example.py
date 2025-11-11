@@ -32,6 +32,7 @@ import json
 import os
 import sys
 from typing import Any
+from services.common.config.base_settings import resolve_env
 
 try:
     from somaagent import AsyncSomaAgentClient
@@ -45,7 +46,7 @@ except ImportError as exc:  # pragma: no cover - helpful guidance
 def _env_default(name: str, fallback: str | None = None) -> str | None:
     """Return environment override if present."""
 
-    value = os.getenv(name)
+    value = resolve_env(name)
     if value:
         return value
     return fallback

@@ -25,6 +25,7 @@ from services.orchestrator.app.workflows.mao import (
     MAOResult,
 )  # noqa: E402
 from services.orchestrator.app.workflows.session import SessionStartResult  # noqa: E402
+from services.common.config.base_settings import resolve_env
 
 
 class FakeWorkflowHandle:

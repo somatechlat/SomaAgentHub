@@ -25,6 +25,7 @@ from .schemas import (
 )
 from services.common.config.base_settings import BaseServiceSettings, load_settings
 from services.common.fastapi.bootstrap import create_app
+from services.common.config.base_settings import resolve_env
 
 logger = logging.getLogger(__name__)
 

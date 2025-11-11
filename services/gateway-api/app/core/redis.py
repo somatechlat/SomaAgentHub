@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from typing import TYPE_CHECKING
+from services.common.config.base_settings import resolve_env
 
 if TYPE_CHECKING:  # pragma: no cover - import only for type checking
     from services.common.redis_client import RedisClient

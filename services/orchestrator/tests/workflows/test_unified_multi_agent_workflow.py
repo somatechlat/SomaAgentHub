@@ -17,6 +17,7 @@ from services.orchestrator.app.workflows.session import (
     evaluate_policy,
 )
 from services.orchestrator.app.workflows.unified_multi_agent import (
+from services.common.config.base_settings import resolve_env
     UnifiedMultiAgentWorkflow,
 )
 

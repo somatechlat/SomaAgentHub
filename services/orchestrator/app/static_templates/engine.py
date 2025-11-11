@@ -21,6 +21,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Iterable, Mapping
 import zipfile
+from services.common.config.base_settings import resolve_env
 
 RE_TOKEN = re.compile(r"{{([A-Z0-9_]+)}}")
 

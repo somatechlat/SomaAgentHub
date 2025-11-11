@@ -12,6 +12,7 @@ for name in list(sys.modules.keys()):
         del sys.modules[name]
 
 from app.main import app  # type: ignore  # noqa: E402
+from services.common.config.base_settings import resolve_env
 
 client = TestClient(app)
 

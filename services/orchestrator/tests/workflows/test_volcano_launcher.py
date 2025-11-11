@@ -5,6 +5,7 @@ from pathlib import Path
 
 import pytest
 import yaml
+from services.common.config.base_settings import resolve_env
 
 ROOT = Path(__file__).resolve().parents[4]
 if str(ROOT) not in sys.path:

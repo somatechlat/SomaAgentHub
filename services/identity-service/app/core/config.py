@@ -10,16 +10,17 @@ from pydantic import AliasChoices, Field
 
 from common.config.runtime import runtime_default
 from common.config.settings import Settings as SharedSettings
+from services.common.config.base_settings import resolve_env
 
 
 def load_secret(env_var: str, file_env: str | None = None, default: str | None = None) -> str:
     """Load a secret from environment variable or mounted file."""
 
-    value = os.getenv(env_var)
+    value = resolve_env(env_var)
     if value:
         return value
     if file_env:
-        file_path = os.getenv(file_env)
+        file_path = resolve_env(file_env)
         if file_path:
             path = Path(file_path)
             if path.is_file():
@@ -59,7 +60,7 @@ class IdentitySettings(SharedSettings):
     )
     jwk_set_url: str = Field(
         default=runtime_default(
-            os.getenv(
+            resolve_env(
                 "IDENTITY_JWKS_URL",
                 "http://identity-service:10002/.well-known/jwks.json",
             ),
@@ -73,7 +74,7 @@ class IdentitySettings(SharedSettings):
     )
     redis_url: str | None = Field(
         default=runtime_default(
-            os.getenv("REDIS_URL", "redis://redis:6379/0"),
+            resolve_env("REDIS_URL", "redis://redis:6379/0"),
             "redis://redis.soma-infra.svc.cluster.local:6379/0",
         ),
         validation_alias=AliasChoices(

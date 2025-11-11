@@ -12,6 +12,7 @@ from .activities import (
     spawn_agent,
 )
 from .kamachiq_workflow import AgentTaskWorkflow, KAMACHIQProjectWorkflow
+from services.common.config.base_settings import resolve_env
 
 __all__ = [
     "KAMACHIQProjectWorkflow",

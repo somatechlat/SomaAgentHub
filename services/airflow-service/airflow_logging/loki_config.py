@@ -1,7 +1,8 @@
 import os
+from services.common.config.base_settings import resolve_env
 
 # Airflow expects a dict named LOGGING_CONFIG when using custom logging config class path
-LOKI_URL = os.getenv("LOKI_URL", "http://loki.observability:3100")
+LOKI_URL = resolve_env("LOKI_URL", "http://loki.observability:3100")
 
 LOGGING_CONFIG = {
     "version": 1,

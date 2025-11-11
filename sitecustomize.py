@@ -25,6 +25,7 @@ import logging
 import os
 import sys
 from pathlib import Path
+from services.common.config.base_settings import resolve_env
 
 # Debug: indicate that sitecustomize has been loaded (appears in pytest output)
 _logger = logging.getLogger("sitecustomize")

@@ -9,6 +9,7 @@ from statistics import fmean
 from typing import Any
 
 from ..core.config import get_settings
+from services.common.config.base_settings import resolve_env
 
 
 @dataclass

@@ -10,6 +10,7 @@ from pathlib import Path
 from typing import Literal
 
 from pydantic import BaseModel, Field, ValidationError
+from services.common.config.base_settings import resolve_env
 
 try:  # pragma: no cover - redis is optional in tests/local runs
     from redis.asyncio import Redis
@@ -142,7 +143,7 @@ engine = RuleEngine({tenant: pack.ordered_rules() for tenant, pack in RULE_PACKS
 async def _get_redis_client() -> Redis | None:
     if redis_from_url is None:
         return None
-    redis_url = os.getenv("REDIS_URL")
+    redis_url = resolve_env("REDIS_URL")
     if not redis_url:
         return None
     client: Redis = redis_from_url(redis_url, decode_responses=True)

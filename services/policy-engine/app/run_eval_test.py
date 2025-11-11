@@ -18,6 +18,7 @@ pytestmark = pytest.mark.skip(reason="utility script for manual execution only")
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from app.policy_app import EvalRequest, evaluate_sync  # noqa: E402
+from services.common.config.base_settings import resolve_env
 
 
 def main() -> None:

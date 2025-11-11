@@ -17,6 +17,7 @@ from typing import Any
 
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel, Field
+from services.common.config.base_settings import resolve_env
 
 logger = logging.getLogger(__name__)
 
@@ -501,7 +502,7 @@ if __name__ == "__main__":
     import uvicorn
 
     # Allow running directly with an optional PORT env; default to 8000
-    port_env = os.getenv("PORT")
+    port_env = resolve_env("PORT")
     try:
         port = int(port_env) if port_env else 8000
     except ValueError:

@@ -19,6 +19,7 @@ from .core.audit import AuditLogger
 from .core.config import get_settings
 from .core.key_manager import KeyManager
 from .core.storage import IdentityStore
+from services.common.config.base_settings import resolve_env
 
 
 async def _rotation_worker(key_manager: KeyManager, interval: float, stop_event: asyncio.Event) -> None:

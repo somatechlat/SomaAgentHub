@@ -1,6 +1,7 @@
 from datetime import datetime
 
 from pydantic import BaseModel, Field
+from services.common.config.base_settings import resolve_env
 
 
 class PricingOffer(BaseModel):

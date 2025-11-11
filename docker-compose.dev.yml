@@ -56,11 +56,11 @@ services:
     ports:
       - "8080:8080"
     environment:
-      - SOMASTACK_ENVIRONMENT=DEV
-      - SOMASTACK_DEPLOYMENT_MODE=DEV
-      - SOMASTACK_SERVICE_NAME=gateway-api
-      - SOMASTACK_REDIS_URL=redis://redis:6379
-      - SOMASTACK_DATABASE_URL=postgresql://postgres:postgres@postgres:5432/soma
+      - SOMA_AGENT_HUB_ENVIRONMENT=DEV
+      - SOMA_AGENT_HUB_DEPLOYMENT_MODE=DEV
+      - SOMA_AGENT_HUB_SERVICE_NAME=gateway-api
+      - SOMA_AGENT_HUB_REDIS_URL=redis://redis:6379
+      - SOMA_AGENT_HUB_DATABASE_URL=postgresql://postgres:postgres@postgres:5432/soma
     depends_on:
       - postgres
       - redis
@@ -73,11 +73,11 @@ services:
     ports:
       - "8081:8081"
     environment:
-      - SOMASTACK_ENVIRONMENT=DEV
-      - SOMASTACK_DEPLOYMENT_MODE=DEV
-      - SOMASTACK_SERVICE_NAME=orchestrator
-      - SOMASTACK_REDIS_URL=redis://redis:6379
-      - SOMASTACK_DATABASE_URL=postgresql://postgres:postgres@postgres:5432/soma
+      - SOMA_AGENT_HUB_ENVIRONMENT=DEV
+      - SOMA_AGENT_HUB_DEPLOYMENT_MODE=DEV
+      - SOMA_AGENT_HUB_SERVICE_NAME=orchestrator
+      - SOMA_AGENT_HUB_REDIS_URL=redis://redis:6379
+      - SOMA_AGENT_HUB_DATABASE_URL=postgresql://postgres:postgres@postgres:5432/soma
     depends_on:
       - postgres
       - redis
@@ -90,11 +90,11 @@ services:
     ports:
       - "8082:8082"
     environment:
-      - SOMASTACK_ENVIRONMENT=DEV
-      - SOMASTACK_DEPLOYMENT_MODE=DEV
-      - SOMASTACK_SERVICE_NAME=memory-gateway
-      - SOMASTACK_REDIS_URL=redis://redis:6379
-      - SOMASTACK_DATABASE_URL=postgresql://postgres:postgres@postgres:5432/soma
+      - SOMA_AGENT_HUB_ENVIRONMENT=DEV
+      - SOMA_AGENT_HUB_DEPLOYMENT_MODE=DEV
+      - SOMA_AGENT_HUB_SERVICE_NAME=memory-gateway
+      - SOMA_AGENT_HUB_REDIS_URL=redis://redis:6379
+      - SOMA_AGENT_HUB_DATABASE_URL=postgresql://postgres:postgres@postgres:5432/soma
     depends_on:
       - postgres
       - redis
@@ -107,11 +107,11 @@ services:
     ports:
       - "8083:8083"
     environment:
-      - SOMASTACK_ENVIRONMENT=DEV
-      - SOMASTACK_DEPLOYMENT_MODE=DEV
-      - SOMASTACK_SERVICE_NAME=policy-engine
-      - SOMASTACK_REDIS_URL=redis://redis:6379
-      - SOMASTACK_DATABASE_URL=postgresql://postgres:postgres@postgres:5432/soma
+      - SOMA_AGENT_HUB_ENVIRONMENT=DEV
+      - SOMA_AGENT_HUB_DEPLOYMENT_MODE=DEV
+      - SOMA_AGENT_HUB_SERVICE_NAME=policy-engine
+      - SOMA_AGENT_HUB_REDIS_URL=redis://redis:6379
+      - SOMA_AGENT_HUB_DATABASE_URL=postgresql://postgres:postgres@postgres:5432/soma
     depends_on:
       - postgres
       - redis
@@ -124,11 +124,11 @@ services:
     ports:
       - "8084:8084"
     environment:
-      - SOMASTACK_ENVIRONMENT=DEV
-      - SOMASTACK_DEPLOYMENT_MODE=DEV
-      - SOMASTACK_SERVICE_NAME=llm-hub
-      - SOMASTACK_REDIS_URL=redis://redis:6379
-      - SOMASTACK_DATABASE_URL=postgresql://postgres:postgres@postgres:5432/soma
+      - SOMA_AGENT_HUB_ENVIRONMENT=DEV
+      - SOMA_AGENT_HUB_DEPLOYMENT_MODE=DEV
+      - SOMA_AGENT_HUB_SERVICE_NAME=llm-hub
+      - SOMA_AGENT_HUB_REDIS_URL=redis://redis:6379
+      - SOMA_AGENT_HUB_DATABASE_URL=postgresql://postgres:postgres@postgres:5432/soma
     depends_on:
       - postgres
       - redis
@@ -141,11 +141,11 @@ services:
     ports:
       - "8085:8085"
     environment:
-      - SOMASTACK_ENVIRONMENT=DEV
-      - SOMASTACK_DEPLOYMENT_MODE=DEV
-      - SOMASTACK_SERVICE_NAME=pricing-service
-      - SOMASTACK_REDIS_URL=redis://redis:6379
-      - SOMASTACK_DATABASE_URL=postgresql://postgres:postgres@postgres:5432/soma
+      - SOMA_AGENT_HUB_ENVIRONMENT=DEV
+      - SOMA_AGENT_HUB_DEPLOYMENT_MODE=DEV
+      - SOMA_AGENT_HUB_SERVICE_NAME=pricing-service
+      - SOMA_AGENT_HUB_REDIS_URL=redis://redis:6379
+      - SOMA_AGENT_HUB_DATABASE_URL=postgresql://postgres:postgres@postgres:5432/soma
     depends_on:
       - postgres
       - redis

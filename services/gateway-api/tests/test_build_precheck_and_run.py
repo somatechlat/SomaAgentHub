@@ -10,6 +10,7 @@ BASE = os.path.dirname(os.path.dirname(__file__))
 if BASE not in sys.path:
     sys.path.insert(0, BASE)
 from app.main import app  # type: ignore
+from services.common.config.base_settings import resolve_env
 
 client = TestClient(app)
 
@@ -47,7 +48,8 @@ class FakeAsyncClient:
 
 
 def test_cost_precheck(monkeypatch):
-    monkeypatch.setenv("SOMAGENT_GATEWAY_ORCHESTRATOR_URL", "http://orchestrator-mock")
+    # Use canonical env var prefix for orchestrator URL
+    monkeypatch.setenv("SOMA_AGENT_HUB_GATEWAY_ORCHESTRATOR_URL", "http://orchestrator-mock")
     monkeypatch.setattr(httpx, "AsyncClient", FakeAsyncClient)
     resp = client.post(
         "/v1/build/cost-precheck",
@@ -71,7 +73,7 @@ def test_cost_precheck(monkeypatch):
 
 def test_build_run_requires_snapshot_auto(monkeypatch):
     # Mock orchestrator endpoint and pricing snapshot creation via monkeypatching AsyncClient
-    monkeypatch.setenv("SOMAGENT_GATEWAY_ORCHESTRATOR_URL", "http://orchestrator-mock")
+    monkeypatch.setenv("SOMA_AGENT_HUB_GATEWAY_ORCHESTRATOR_URL", "http://orchestrator-mock")
     monkeypatch.setattr(httpx, "AsyncClient", FakeAsyncClient)
     resp = client.post(
         "/v1/build/run",

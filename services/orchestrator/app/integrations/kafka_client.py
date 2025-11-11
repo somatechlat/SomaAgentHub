@@ -12,6 +12,7 @@ from aiokafka.errors import KafkaError
 from prometheus_client import Counter, Histogram
 
 from ..core.config import get_settings
+from services.common.config.base_settings import resolve_env
 
 logger = logging.getLogger(__name__)
 

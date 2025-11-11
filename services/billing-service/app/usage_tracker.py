@@ -14,11 +14,12 @@ from decimal import Decimal
 import stripe
 
 from clickhouse_driver import Client
+from services.common.config.base_settings import resolve_env
 
 logger = logging.getLogger(__name__)
 
 # Stripe configuration
-stripe.api_key = os.getenv("STRIPE_SECRET_KEY")
+stripe.api_key = resolve_env("STRIPE_SECRET_KEY")
 
 
 @dataclass

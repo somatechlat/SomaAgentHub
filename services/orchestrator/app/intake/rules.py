@@ -1,6 +1,7 @@
 """Dependency and validation rules for intake modules."""
 
 from __future__ import annotations
+from services.common.config.base_settings import resolve_env
 
 
 def resolve_missing_dependencies(

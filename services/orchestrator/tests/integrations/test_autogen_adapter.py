@@ -6,6 +6,7 @@ from typing import Any
 import pytest
 
 from services.orchestrator.app.integrations import autogen_adapter
+from services.common.config.base_settings import resolve_env
 
 # FIXME: These tests use DummyAssistantAgent/DummyUserProxyAgent/etc instead of real AutoGen.
 # The monkeypatch prevents real AutoGen from executing.

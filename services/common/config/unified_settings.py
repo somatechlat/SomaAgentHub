@@ -1,3 +1,4 @@
+from services.common.config.base_settings import resolve_env
 """DEPRECATED: unified_settings has been removed.
 
 Use `services.common.config.base_settings.resolve_env` and service-specific settings.

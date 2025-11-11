@@ -15,6 +15,7 @@ from typing import Any
 
 from sqlalchemy import JSON, Column
 from sqlmodel import Field, SQLModel
+from services.common.config.base_settings import resolve_env
 
 
 class Plan(SQLModel, table=True):

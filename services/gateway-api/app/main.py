@@ -18,6 +18,7 @@ from services.common.spiffe_auth import init_spiffe
 
 # Import app-local modules in a way that works when loaded as a loose module
 import importlib
+from services.common.config.base_settings import resolve_env
 
 api_router = importlib.import_module("app.api.routes").router  # type: ignore[attr-defined]
 get_sah_settings = importlib.import_module("app.config").get_sah_settings  # type: ignore[attr-defined]

@@ -18,6 +18,7 @@ from pydantic import AliasChoices, Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 from common.config.runtime import runtime_default
+from services.common.config.base_settings import resolve_env
 
 
 @dataclass(frozen=True)

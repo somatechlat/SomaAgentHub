@@ -11,6 +11,7 @@ import time
 from typing import Any
 
 import requests
+from services.common.config.base_settings import resolve_env
 
 TERMINAL_STATUSES = {"completed", "failed", "cancelled", "terminated"}
 
@@ -25,8 +26,8 @@ def build_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument(
         "--orchestrator-url",
-        default=os.getenv("SOMAGENT_GATEWAY_ORCHESTRATOR_URL")
-        or os.getenv("ORCHESTRATOR_URL")
+        default=resolve_env("SOMAGENT_GATEWAY_ORCHESTRATOR_URL")
+        or resolve_env("ORCHESTRATOR_URL")
         or "http://localhost:10001",
         help="Base URL for the orchestrator service (default: %(default)s).",
     )

@@ -8,6 +8,7 @@ merged as a namespace package.
 import pathlib
 import pkgutil
 import sys
+from services.common.config.base_settings import resolve_env
 
 repo_root = pathlib.Path(__file__).resolve().parents[2]
 repo_common = repo_root / "common"

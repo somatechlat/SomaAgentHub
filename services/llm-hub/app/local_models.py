@@ -10,6 +10,7 @@ from collections.abc import Sequence
 
 import numpy as np
 from sklearn.feature_extraction.text import TfidfVectorizer
+from services.common.config.base_settings import resolve_env
 
 DATA_PATH = Path(__file__).resolve().parent / "corpus.txt"
 _TOKEN_REGEX = re.compile(r"\w+|[^\w\s]")

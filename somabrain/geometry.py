@@ -5,6 +5,7 @@ from __future__ import annotations
 import math
 from collections.abc import Iterable, Sequence
 from dataclasses import dataclass
+from services.common.config.base_settings import resolve_env
 
 
 @dataclass

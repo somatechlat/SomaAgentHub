@@ -1,6 +1,7 @@
 from fastapi import status
 
 from services.orchestrator.app.core.config import settings
+from services.common.config.base_settings import resolve_env
 
 # FIXME: These tests use FakeTemporalClient which never fails.
 # They don't test real Temporal behavior (timeouts, retries, errors).

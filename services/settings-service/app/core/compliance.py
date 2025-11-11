@@ -6,6 +6,7 @@ import re
 from datetime import UTC, datetime
 
 from ..api.schemas import CapsuleSubmissionRequest, ComplianceIssue, ComplianceReport
+from services.common.config.base_settings import resolve_env
 
 VERSION_PATTERN = re.compile(r"^v?(\d+\.\d+\.\d+)$")
 

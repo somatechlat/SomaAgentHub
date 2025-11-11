@@ -1,4 +1,5 @@
 import os
+from services.common.config.base_settings import resolve_env
 import uuid
 
 import redis.asyncio as aioredis
@@ -9,7 +10,7 @@ from pydantic import BaseModel, Field
 app = FastAPI(title="Jobs Service")
 
 # Redis connection (reuse same host/port as other services)
-REDIS_URL = os.getenv("REDIS_URL", "redis://redis:6379/0")
+REDIS_URL = resolve_env("REDIS_URL", "redis://redis:6379/0")
 redis_client = aioredis.from_url(REDIS_URL)
 
 # Simple counter for jobs service metrics

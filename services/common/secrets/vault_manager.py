@@ -1,3 +1,4 @@
+from services.common.config.base_settings import resolve_env
 """DEPRECATED: vault_manager has been removed.
 
 Use `services.common.vault_client.VaultClient` and `resolve_env` instead.

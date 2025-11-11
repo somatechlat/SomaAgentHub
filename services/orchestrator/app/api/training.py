@@ -9,6 +9,7 @@ import time
 from fastapi import APIRouter, HTTPException, status
 from prometheus_client import Gauge
 from pydantic import BaseModel
+from services.common.config.base_settings import resolve_env
 
 router = APIRouter(prefix="/v1/training", tags=["training"])
 logger = logging.getLogger(__name__)

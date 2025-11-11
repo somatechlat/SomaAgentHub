@@ -14,6 +14,7 @@ from typing import Any
 
 from fastapi import HTTPException, Request
 from geolite2 import geolite2
+from services.common.config.base_settings import resolve_env
 
 logger = logging.getLogger(__name__)
 
@@ -37,14 +38,14 @@ class DataResidencyZone(str, Enum):
 # Region configuration
 REGION_CONFIG = {
     Region.US_WEST_2: {
-        "endpoint": os.getenv("US_WEST_2_ENDPOINT", "https://api-usw2.somaagent.io"),
+        "endpoint": resolve_env("US_WEST_2_ENDPOINT", "https://api-usw2.somaagent.io"),
         "data_zone": DataResidencyZone.US,
         "continents": ["NA", "SA"],  # North/South America
         "weight": 50,
         "enabled": True,
     },
     Region.EU_WEST_1: {
-        "endpoint": os.getenv("EU_WEST_1_ENDPOINT", "https://api-euw1.somaagent.io"),
+        "endpoint": resolve_env("EU_WEST_1_ENDPOINT", "https://api-euw1.somaagent.io"),
         "data_zone": DataResidencyZone.EU,
         "continents": ["EU", "AF"],  # Europe, Africa
         "weight": 50,

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import os
 from functools import lru_cache
+from services.common.config.base_settings import resolve_env
 
 _RUNTIME_ENV_VARS = (
     "SOMASTACK_RUNTIME_TARGET",
@@ -17,10 +18,10 @@ def runtime_flavor() -> str:
     """Return the active runtime flavour (``docker`` by default)."""
 
     for name in _RUNTIME_ENV_VARS:
-        value = os.getenv(name)
+        value = resolve_env(name)
         if value:
             return value.strip().lower()
-    if os.getenv("KUBERNETES_SERVICE_HOST"):
+    if resolve_env("KUBERNETES_SERVICE_HOST"):
         return "kubernetes"
     return "docker"
 

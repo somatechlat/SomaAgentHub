@@ -7,6 +7,7 @@ import time
 import uuid
 from dataclasses import dataclass
 from typing import Any
+from services.common.config.base_settings import resolve_env
 
 
 @dataclass

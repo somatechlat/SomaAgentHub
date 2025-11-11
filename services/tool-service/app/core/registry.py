@@ -6,6 +6,7 @@ from copy import deepcopy
 
 from .config import Settings, get_settings
 from .security import compute_manifest_digest, compute_release_signature
+from services.common.config.base_settings import resolve_env
 
 
 def _build_registry(settings: Settings) -> dict[str, dict]:

@@ -1,6 +1,7 @@
 import pytest
 
 from services.common.opa_client import OPAClient
+from services.common.config.base_settings import resolve_env
 
 
 class DummyTransport:

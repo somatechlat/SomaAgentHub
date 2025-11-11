@@ -8,6 +8,7 @@ definition easy to discover and reuse across services.
 from __future__ import annotations
 
 from prometheus_client import Counter, Histogram
+from services.common.config.base_settings import resolve_env
 
 # Total number of plan generation requests (including batch calls – each item
 # counts as a separate generation).

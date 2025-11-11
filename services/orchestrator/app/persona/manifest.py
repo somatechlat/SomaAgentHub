@@ -10,6 +10,7 @@ from typing import Any
 
 import yaml
 from pydantic import BaseModel, Field, HttpUrl, ValidationError, validator
+from services.common.config.base_settings import resolve_env
 
 SCHEMA_VERSION = "0.2.0"
 

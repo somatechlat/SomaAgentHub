@@ -9,6 +9,7 @@ import aiohttp
 
 from .exceptions import APIError, AuthenticationError, RateLimitError
 from .models import Agent, Capsule, Conversation, Message, WorkflowRun
+from services.common.config.base_settings import resolve_env
 
 
 class AsyncSomaAgentClient:
@@ -28,8 +29,8 @@ class AsyncSomaAgentClient:
             base_url: API base URL (default: https://api.somaagent.io)
             timeout: Request timeout in seconds
         """
-        self.api_key = api_key or os.getenv("SOMAAGENT_API_KEY")
-        self.base_url = base_url or os.getenv(
+        self.api_key = api_key or resolve_env("SOMAAGENT_API_KEY")
+        self.base_url = base_url or resolve_env(
             "SOMAAGENT_API_URL", "https://api.somaagent.io"
         )
         self.timeout = aiohttp.ClientTimeout(total=timeout)

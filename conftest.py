@@ -4,6 +4,7 @@ import httpx
 import pytest
 from httpx import ASGITransport
 from httpx import AsyncClient as OriginalAsyncClient
+from services.common.config.base_settings import resolve_env
 
 
 # Patch httpx.AsyncClient to accept `app` and `base_url` for ASGI testing.

@@ -11,6 +11,7 @@ from pyflink.common import Row
 from pyflink.datastream import StreamExecutionEnvironment
 from pyflink.datastream.functions import RichSinkFunction
 from pyflink.table import EnvironmentSettings, StreamTableEnvironment
+from services.common.config.base_settings import resolve_env
 
 
 @dataclass
@@ -23,10 +24,10 @@ class FlinkConfig:
     @classmethod
     def from_env(cls) -> FlinkConfig:
         return cls(
-            bootstrap_servers=os.getenv("KAFKA_BOOTSTRAP_SERVERS", "kafka:9092"),
-            topic=os.getenv("KAFKA_TOPIC", "soma.events"),
-            pushgateway=os.getenv("PROMETHEUS_PUSHGATEWAY", "http://pushgateway:9091"),
-            metrics_job=os.getenv("PROMETHEUS_JOB_NAME", "soma_flink_job"),
+            bootstrap_servers=resolve_env("KAFKA_BOOTSTRAP_SERVERS", "kafka:9092"),
+            topic=resolve_env("KAFKA_TOPIC", "soma.events"),
+            pushgateway=resolve_env("PROMETHEUS_PUSHGATEWAY", "http://pushgateway:9091"),
+            metrics_job=resolve_env("PROMETHEUS_JOB_NAME", "soma_flink_job"),
         )
 
 

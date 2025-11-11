@@ -6,6 +6,7 @@ import pytest
 # is not a valid Python identifier). The repository provides an alias package
 # ``services.object_store`` that re‑exports the client implementation.
 from services.object_store.app.client import ObjectStoreClient, ObjectStoreSettings
+from services.common.config.base_settings import resolve_env
 
 
 class DummyMinio:

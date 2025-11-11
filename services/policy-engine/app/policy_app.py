@@ -20,6 +20,7 @@ from .core.engine import evaluate as evaluate_engine
 from .observability import setup_observability
 from .policy_rules import PolicyRule, bootstrap_rule_engine, get_rules, list_tenants
 from .redis_client import get_constitution_hash
+from services.common.config.base_settings import resolve_env
 
 try:  # pragma: no cover - optional dependency during local dev
     from aiokafka import AIOKafkaConsumer
@@ -72,7 +73,7 @@ async def _prefetch_constitution_hashes(stop_event: asyncio.Event, interval_seco
 async def _listen_constitution_updates(stop_event: asyncio.Event, max_backoff: float = 30.0) -> None:
     """Consume ``constitution.updated`` events and invalidate cached hashes with backoff."""
 
-    bootstrap = os.getenv("KAFKA_BOOTSTRAP_SERVERS")
+    bootstrap = resolve_env("KAFKA_BOOTSTRAP_SERVERS")
     if not bootstrap or AIOKafkaConsumer is None:
         return
 

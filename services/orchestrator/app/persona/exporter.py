@@ -23,6 +23,7 @@ from .manifest import (
     dump_persona_manifest,
 )
 from .signing import (
+from services.common.config.base_settings import resolve_env
     ManifestSigningClient,
     ManifestSigningFailure,
     build_signing_client,

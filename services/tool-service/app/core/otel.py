@@ -11,6 +11,7 @@ from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
 from opentelemetry.sdk.resources import Resource
 from opentelemetry.sdk.trace import TracerProvider
 from opentelemetry.sdk.trace.export import BatchSpanProcessor
+from services.common.config.base_settings import resolve_env
 
 _CONFIGURED = False
 
@@ -21,7 +22,7 @@ def configure_otel(app: FastAPI, service_name: str, endpoint: str | None = None)
     if _CONFIGURED:
         return
 
-    target_endpoint = endpoint or os.getenv("OTEL_EXPORTER_OTLP_ENDPOINT")
+    target_endpoint = endpoint or resolve_env("OTEL_EXPORTER_OTLP_ENDPOINT")
     if not target_endpoint:
         _CONFIGURED = True
         return

@@ -10,6 +10,7 @@ if "REDIS_URL" in os.environ:
 
 from app.constitution_cache import get_cached_hash, invalidate_hash
 from app.policy_app import EvalRequest, app, evaluate_sync
+from services.common.config.base_settings import resolve_env
 
 
 @pytest.fixture()

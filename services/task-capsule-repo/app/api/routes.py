@@ -20,6 +20,7 @@ from ..core.db import (
 )
 from ..core.loader import get_loader
 from .schemas import (
+from services.common.config.base_settings import resolve_env
     CapsuleCatalogEntry,
     CapsuleDetail,
     CapsuleInstallationListResponse,

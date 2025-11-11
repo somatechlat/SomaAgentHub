@@ -14,6 +14,7 @@ from enum import Enum
 from typing import Any
 
 from temporalio import activity
+from services.common.config.base_settings import resolve_env
 
 
 class CircuitState(str, Enum):

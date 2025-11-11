@@ -4,6 +4,7 @@ from functools import lru_cache
 from typing import Any, Literal
 
 from pydantic_settings import BaseSettings
+from services.common.config.base_settings import resolve_env
 
 
 class BaseServiceSettings(BaseSettings):

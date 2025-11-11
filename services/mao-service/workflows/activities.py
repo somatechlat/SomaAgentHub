@@ -13,6 +13,7 @@ import boto3
 import docker
 import requests
 from temporalio import activity
+from services.common.config.base_settings import resolve_env
 
 
 @dataclass
@@ -196,7 +197,7 @@ async def execute_capsule(task_config: dict[str, Any]) -> dict[str, Any]:
 
         # Call capsule execution API
         response = requests.post(
-            f"{os.getenv('TASK_CAPSULE_REPO_URL', 'http://capsule-repo:8002')}/v1/capsules/execute",
+            f"{resolve_env('TASK_CAPSULE_REPO_URL', 'http://capsule-repo:8002')}/v1/capsules/execute",
             json={
                 "capsule_id": capsule_id,
                 "persona_id": task_config.get("persona_id"),
@@ -375,7 +376,7 @@ async def _store_workspace_metadata(workspace_id: str, metadata: dict[str, Any])
 
     import redis.asyncio as redis
 
-    redis_url = os.getenv("REDIS_URL", "redis://localhost:10003")
+    redis_url = resolve_env("REDIS_URL", "redis://localhost:10003")
     client = redis.from_url(redis_url)
     try:
         await client.hset(
@@ -393,7 +394,7 @@ async def _get_workspace_metadata(workspace_id: str) -> dict[str, Any]:
 
     import redis.asyncio as redis
 
-    redis_url = os.getenv("REDIS_URL", "redis://localhost:10003")
+    redis_url = resolve_env("REDIS_URL", "redis://localhost:10003")
     client = redis.from_url(redis_url)
     try:
         data = await client.hgetall(f"workspace:{workspace_id}")
@@ -410,7 +411,7 @@ async def _delete_workspace_metadata(workspace_id: str) -> None:
 
     import redis.asyncio as redis
 
-    redis_url = os.getenv("REDIS_URL", "redis://localhost:10003")
+    redis_url = resolve_env("REDIS_URL", "redis://localhost:10003")
     client = redis.from_url(redis_url)
     try:
         await client.delete(f"workspace:{workspace_id}")

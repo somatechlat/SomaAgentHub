@@ -11,6 +11,7 @@ from fastapi.testclient import TestClient
 
 # Import the FastAPI app from the service implementation
 from app.main import app  # type: ignore
+from services.common.config.base_settings import resolve_env
 
 client = TestClient(app)
 

@@ -14,6 +14,7 @@ import time
 from typing import Any
 
 import requests
+from services.common.config.base_settings import resolve_env
 
 
 def build_payload(args: argparse.Namespace) -> dict[str, Any]:
@@ -33,22 +34,22 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "identity_url",
         nargs="?",
-        default=os.getenv("IDENTITY_SERVICE_URL", "http://localhost:10002"),
+        default=resolve_env("IDENTITY_SERVICE_URL", "http://localhost:10002"),
         help="Identity Service base URL",
     )
     parser.add_argument(
-        "--tenant", default=os.getenv("SOMAGENT_AIRFLOW_TENANT", "demo")
+        "--tenant", default=resolve_env("SOMAGENT_AIRFLOW_TENANT", "demo")
     )
     parser.add_argument(
         "--user",
         dest="user",
-        default=os.getenv("SOMAGENT_AIRFLOW_SUBJECT", "airflow-service"),
+        default=resolve_env("SOMAGENT_AIRFLOW_SUBJECT", "airflow-service"),
         help="User ID for the token",
     )
     parser.add_argument(
         "--mfa",
         dest="mfa",
-        default=os.getenv("SOMAGENT_AIRFLOW_MFA_CODE", ""),
+        default=resolve_env("SOMAGENT_AIRFLOW_MFA_CODE", ""),
         help="MFA code if required",
     )
     parser.add_argument(

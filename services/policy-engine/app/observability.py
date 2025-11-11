@@ -8,7 +8,7 @@ Sprint-6 Observability: Export to Prometheus in observability namespace.
 from __future__ import annotations
 
 import logging
-import os
+from services.common.config.base_settings import resolve_env
 
 from opentelemetry import metrics, trace
 from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import OTLPSpanExporter
@@ -60,8 +60,8 @@ class OpenTelemetryConfig:
 
         # Add OTLP exporter if enabled (for Tempo in Sprint-6)
         if self.enable_otlp:
-            otlp_endpoint = os.getenv("OTEL_EXPORTER_OTLP_ENDPOINT", default_otlp_grpc_endpoint())
-            insecure = os.getenv("OTEL_INSECURE", "false").lower() == "true"
+            otlp_endpoint = resolve_env("OTEL_EXPORTER_OTLP_ENDPOINT", default_otlp_grpc_endpoint())
+            insecure = str(resolve_env("OTEL_INSECURE", "false")).lower() == "true"
             if insecure:
                 logger.warning(
                     "OTLP trace exporter using insecure channel (OTEL_INSECURE=true); set OTEL_INSECURE=false for TLS"
@@ -87,7 +87,7 @@ class OpenTelemetryConfig:
 
         # OTLP metrics exporter if enabled
         if self.enable_otlp:
-            otlp_endpoint = os.getenv("OTEL_EXPORTER_OTLP_ENDPOINT", default_otlp_grpc_endpoint())
+            otlp_endpoint = resolve_env("OTEL_EXPORTER_OTLP_ENDPOINT", default_otlp_grpc_endpoint())
             logger.info(f"OTLP metrics exporter configured: {otlp_endpoint}")
 
         meter_provider = MeterProvider(resource=self.resource, metric_readers=readers)
@@ -138,14 +138,14 @@ def setup_observability(
         app = FastAPI()
         otel_config = setup_observability("policy-engine", app)
     """
-    env = environment or os.getenv("ENVIRONMENT", "development")
+    env = environment or resolve_env("ENVIRONMENT", "development")
 
     config = OpenTelemetryConfig(
         service_name=service_name,
         service_version=service_version,
         environment=env,
         enable_prometheus=True,
-        enable_otlp=os.getenv("ENABLE_OTLP", "false").lower() == "true",
+        enable_otlp=str(resolve_env("ENABLE_OTLP", "false")).lower() == "true",
     )
 
     config.setup_all(app)

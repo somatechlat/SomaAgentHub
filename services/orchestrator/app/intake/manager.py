@@ -5,6 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 from .schemas import IntakeAnswer, IntakeRequest, IntakeResponse, ModuleState
+from services.common.config.base_settings import resolve_env
 
 
 @dataclass

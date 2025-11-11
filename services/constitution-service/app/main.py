@@ -24,6 +24,7 @@ from .core.constitution import (
 )
 from .core.models import ConstitutionBundle
 from .core.signing import ManifestSigner, ManifestSigningError, load_signer_from_env
+from services.common.config.base_settings import resolve_env
 
 logger = logging.getLogger(__name__)
 

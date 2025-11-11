@@ -12,6 +12,7 @@ import asyncio
 import os
 import sys
 from pathlib import Path
+from services.common.config.base_settings import resolve_env
 
 # Add services to path for imports
 project_root = Path(__file__).parent.parent
@@ -128,7 +129,7 @@ async def test_openai_provider():
         from services.common.openai_provider import get_openai_provider
 
         # Check if API key is set
-        if not os.getenv("OPENAI_API_KEY"):
+        if not resolve_env("OPENAI_API_KEY"):
             print("⚠ OPENAI_API_KEY not set, skipping real API test")
             print("✓ Provider module imports successfully")
             return True

@@ -5,6 +5,7 @@ Data models for SomaAgent SDK.
 from dataclasses import dataclass, field
 from datetime import datetime
 from typing import Any, Dict, List, Optional
+from services.common.config.base_settings import resolve_env
 
 
 @dataclass

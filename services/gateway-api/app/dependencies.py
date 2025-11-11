@@ -5,6 +5,7 @@ from fastapi import HTTPException, status
 from .core.context import get_request_context
 from .core.moderation import ModerationGuard, get_moderation_guard
 from .models.context import RequestContext
+from services.common.config.base_settings import resolve_env
 
 
 def request_context_dependency() -> RequestContext:

@@ -10,6 +10,7 @@ module hierarchy.
 import pathlib
 import pkgutil
 import sys
+from services.common.config.base_settings import resolve_env
 
 # Repository root (two levels up from this file: services/common -> services -> repo)
 repo_root = pathlib.Path(__file__).resolve().parents[2]

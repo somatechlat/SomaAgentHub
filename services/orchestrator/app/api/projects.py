@@ -5,6 +5,7 @@ from __future__ import annotations
 from fastapi import APIRouter, HTTPException, status
 from uuid import uuid4
 from pydantic import BaseModel, Field
+from services.common.config.base_settings import resolve_env
 
 router = APIRouter(prefix="/v1/projects", tags=["projects"])
 

@@ -7,6 +7,7 @@ Uses Chaos Mesh to inject faults and test resilience.
 import logging
 from dataclasses import dataclass
 from enum import Enum
+from services.common.config.base_settings import resolve_env
 
 logger = logging.getLogger(__name__)
 

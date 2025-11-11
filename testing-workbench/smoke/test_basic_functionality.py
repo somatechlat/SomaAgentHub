@@ -5,6 +5,7 @@ Quick tests to verify core functionality is working.
 
 import httpx
 import pytest
+from services.common.config.base_settings import resolve_env
 
 
 class TestBasicFunctionality:

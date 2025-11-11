@@ -7,6 +7,7 @@ from prometheus_client import CONTENT_TYPE_LATEST, generate_latest
 from .api.routes import router
 from .core.config import settings
 from .observability import setup_observability
+from services.common.config.base_settings import resolve_env
 
 app = FastAPI(
     title="SomaGent Analytics Service",

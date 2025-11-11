@@ -13,6 +13,7 @@ from sqlalchemy.orm import sessionmaker
 
 from services.common.events.outbox import OutboxEvent, OutboxRepository
 from services.common.events.publisher import InMemoryEventPublisher
+from services.common.config.base_settings import resolve_env
 
 
 class BuildRunStatus(str, Enum):

@@ -4,6 +4,7 @@ import uuid
 from typing import Protocol
 
 from ..repository.models import BuildRun
+from services.common.config.base_settings import resolve_env
 
 
 class BuildRunRepository(Protocol):

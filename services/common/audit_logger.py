@@ -16,6 +16,7 @@ from typing import TYPE_CHECKING, Any
 # the real implementation when the driver is installed.
 from clickhouse_driver.client import Client
 from common.config.settings import get_settings
+from services.common.config.base_settings import resolve_env
 
 if TYPE_CHECKING:  # pragma: no cover - import only for typing
     from common.config.settings import Settings

@@ -56,7 +56,7 @@ def _parse_allowed_actions(env_value: str | None) -> list[tuple[str, str]]:
     return pairs
 
 
-ALLOWED_ACTIONS = _parse_allowed_actions(os.getenv("ALLOWED_ACTIONS"))
+ALLOWED_ACTIONS = _parse_allowed_actions(resolve_env("ALLOWED_ACTIONS"))
 
 
 # ---------------------------------------------------------------------------
@@ -133,3 +133,4 @@ so ``uvicorn app.main:app`` uses the fully featured service implementation.
 """
 
 from .policy_app import app  # noqa: F401,E402
+from services.common.config.base_settings import resolve_env

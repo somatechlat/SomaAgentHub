@@ -1,6 +1,7 @@
 """Helper utilities for optional Redis caching."""
 
 from __future__ import annotations
+from services.common.config.base_settings import resolve_env
 
 try:  # pragma: no cover - environment guard
     from redis.asyncio import Redis

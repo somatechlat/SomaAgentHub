@@ -42,6 +42,7 @@ JWT_EXP_SECONDS = 3600
 # that the gateway can fetch the JWKS and validate tokens.
 
 import os  # noqa: E402  # Late import to keep explanatory comment block above intact
+from services.common.config.base_settings import resolve_env
 
 oidc_router = APIRouter(prefix="/.well-known", tags=["oidc"])
 
@@ -54,7 +55,7 @@ def _not_found() -> HTTPException:
 def openid_configuration() -> dict:
     # Minimal OIDC discovery document – URLs are derived from environment
     # variables that the Helm chart sets (OPA_URL etc.).
-    issuer = os.getenv("OIDC_ISSUER_URL", "http://identity-service:10002")
+    issuer = resolve_env("OIDC_ISSUER_URL", "http://identity-service:10002")
     jwks_uri = f"{issuer}/.well-known/jwks.json"
     return {
         "issuer": issuer,

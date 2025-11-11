@@ -1,6 +1,7 @@
 from clickhouse_driver import Client
 
 from .config import get_settings
+from services.common.config.base_settings import resolve_env
 
 _client = None
 

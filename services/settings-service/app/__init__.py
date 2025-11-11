@@ -5,3 +5,4 @@ Import the central path‑setup shim to ensure the repository root is on
 """
 
 import services._path_setup  # noqa: F401
+from services.common.config.base_settings import resolve_env

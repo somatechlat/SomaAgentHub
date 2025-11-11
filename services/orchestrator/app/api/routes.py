@@ -221,6 +221,7 @@ async def build_precheck(payload: BuildPrecheckRequest) -> BuildPrecheckResponse
 
 # Planner endpoints – generate, refine, retrieve, delete plans
 from .planner import router as planner_router  # noqa: E402
+from services.common.config.base_settings import resolve_env
 
 router.include_router(planner_router)
 

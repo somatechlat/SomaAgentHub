@@ -6,6 +6,7 @@ from dataclasses import dataclass
 from typing import Any
 
 import httpx
+from services.common.config.base_settings import resolve_env
 
 
 @dataclass
@@ -58,7 +59,7 @@ class PlannerClient:
         # Resolve LLM Hub base URL from environment (LLM_HUB_URL) or default service DNS.
         import os
 
-        hub_base = os.getenv("LLM_HUB_URL", "http://llm-hub:10022").rstrip("/")
+        hub_base = resolve_env("LLM_HUB_URL", "http://llm-hub:10022").rstrip("/")
         hub_url = f"{hub_base}/v1/infer/sync"
 
         async with httpx.AsyncClient(

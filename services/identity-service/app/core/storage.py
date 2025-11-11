@@ -9,6 +9,7 @@ from datetime import UTC, datetime
 from redis.asyncio import Redis
 
 from ..api.schemas import TrainingLockStatus, UserRecord
+from services.common.config.base_settings import resolve_env
 
 
 class IdentityStore:

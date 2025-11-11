@@ -9,6 +9,7 @@ from sqlalchemy.orm import sessionmaker
 
 from ..repository.outbox import OutboxEventRepository
 from common.events.publisher import EventPublisher
+from services.common.config.base_settings import resolve_env
 
 logger = logging.getLogger(__name__)
 

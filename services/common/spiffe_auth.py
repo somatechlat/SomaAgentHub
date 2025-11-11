@@ -8,6 +8,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 import grpc
+from services.common.config.base_settings import resolve_env
 
 logger = logging.getLogger(__name__)
 
@@ -30,11 +31,11 @@ class SPIFFEAuthenticator:
     def __init__(self, socket_path: str = "unix:///run/spire/sockets/agent.sock"):
         """Initialize SPIFFE authenticator."""
 
-        self.socket_path = os.getenv("SPIFFE_WORKLOAD_SOCKET", socket_path)
+        self.socket_path = resolve_env("SPIFFE_WORKLOAD_SOCKET", socket_path)
         self.identity: SPIFFEIdentity | None = None
 
         # Default paths for X.509 materials
-        cert_dir_path = os.getenv("SPIFFE_CERT_DIR", "/tmp/spiffe")
+        cert_dir_path = resolve_env("SPIFFE_CERT_DIR", "/tmp/spiffe")
         self.cert_dir = Path(cert_dir_path)
         try:
             self.cert_dir.mkdir(parents=True, exist_ok=True)
@@ -53,7 +54,7 @@ class SPIFFEAuthenticator:
         Returns:
             SPIFFEIdentity with certificate paths
         """
-        trust_domain = os.getenv("SPIFFE_TRUST_DOMAIN", "somaagent.io")
+        trust_domain = resolve_env("SPIFFE_TRUST_DOMAIN", "somaagent.io")
         spiffe_id = f"spiffe://{trust_domain}/service/{service_name}"
 
         # In production, this would use the SPIRE Workload API
@@ -159,7 +160,7 @@ def init_spiffe(service_name: str, *, optional: bool = True) -> SPIFFEIdentity |
     Returns:
         SPIFFEIdentity for the service
     """
-    enabled = os.getenv("ENABLE_SPIFFE", "false").lower() == "true"
+    enabled = resolve_env("ENABLE_SPIFFE", "false").lower() == "true"
     if not enabled:
         logger.info("SPIFFE initialization skipped: ENABLE_SPIFFE is false")
         return None

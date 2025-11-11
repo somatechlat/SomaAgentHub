@@ -12,6 +12,7 @@ from typing import Any
 
 from ..policy_rules import PolicyRule
 from ..redis_client import redis_client
+from services.common.config.base_settings import resolve_env
 
 RULE_PACK_TTL = 3600  # 1 hour cache TTL
 

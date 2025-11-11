@@ -6,6 +6,7 @@ from typing import Any
 import pytest
 
 from services.orchestrator.app.integrations import crewai_adapter
+from services.common.config.base_settings import resolve_env
 
 # FIXME: These tests use DummyAgent/DummyTask/DummyCrew instead of real CrewAI.
 # The monkeypatch prevents real CrewAI from executing.

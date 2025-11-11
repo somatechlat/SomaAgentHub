@@ -16,6 +16,7 @@ from services.common.audit_logger import (
 )
 
 from .config import IdentitySettings
+from services.common.config.base_settings import resolve_env
 
 
 class AuditLogger:

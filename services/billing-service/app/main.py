@@ -23,11 +23,12 @@ from prometheus_client import CONTENT_TYPE_LATEST, generate_latest
 from pydantic import BaseModel, Field
 
 from .usage_tracker import get_usage_tracker
+from services.common.config.base_settings import resolve_env
 
 logger = logging.getLogger(__name__)
 
-STRIPE_KEY = os.getenv("STRIPE_SECRET_KEY")
-STRIPE_WEBHOOK_SECRET = os.getenv("STRIPE_WEBHOOK_SECRET")
+STRIPE_KEY = resolve_env("STRIPE_SECRET_KEY")
+STRIPE_WEBHOOK_SECRET = resolve_env("STRIPE_WEBHOOK_SECRET")
 
 if STRIPE_KEY:
     stripe.api_key = STRIPE_KEY

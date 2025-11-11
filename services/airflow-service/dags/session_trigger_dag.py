@@ -6,6 +6,7 @@ from datetime import datetime, timedelta
 
 from airflow import DAG
 from plugins.soma_temporal import SomaGatewayTemporalOperator
+from services.common.config.base_settings import resolve_env
 
 DEFAULT_ARGS = {
     "owner": "airflow",

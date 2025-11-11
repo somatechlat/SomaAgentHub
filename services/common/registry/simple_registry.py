@@ -4,6 +4,7 @@ Fallback registry that doesn't parse YAML files
 """
 
 from typing import Dict
+from services.common.config.base_settings import resolve_env
 
 
 class SimpleServiceRegistry:

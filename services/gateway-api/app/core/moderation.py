@@ -9,6 +9,7 @@ from redis.asyncio import Redis, RedisError
 from ..models.context import RequestContext
 from .config import GatewaySettings, get_settings
 from .redis import get_redis_client
+from services.common.config.base_settings import resolve_env
 
 
 class ModerationError(RuntimeError):

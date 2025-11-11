@@ -14,6 +14,7 @@ from rich.panel import Panel
 from rich.prompt import Prompt
 from rich.syntax import Syntax
 from somaagent import AsyncSomaAgentClient
+from services.common.config.base_settings import resolve_env
 
 console = Console()
 
@@ -226,7 +227,7 @@ class CodeAssistant:
 
 async def main():
     """Main entry point."""
-    api_key = os.getenv("SOMAAGENT_API_KEY")
+    api_key = resolve_env("SOMAAGENT_API_KEY")
 
     if not api_key:
         console.print("[red]Error: SOMAAGENT_API_KEY not set[/red]")

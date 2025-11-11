@@ -3,6 +3,7 @@ from __future__ import annotations
 import pytest
 
 from services.orchestrator.app.core.framework_router import (
+from services.common.config.base_settings import resolve_env
     FrameworkRouter,
     MultiAgentPattern,
 )

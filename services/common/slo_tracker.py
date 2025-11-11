@@ -8,6 +8,7 @@ import logging
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from enum import Enum
+from services.common.config.base_settings import resolve_env
 
 logger = logging.getLogger(__name__)
 
@@ -121,7 +122,7 @@ class SLOTracker:
         """
         import os
 
-        self.prometheus_url = prometheus_url or os.getenv("PROMETHEUS_URL", "http://prometheus:9090")
+        self.prometheus_url = prometheus_url or resolve_env("PROMETHEUS_URL", "http://prometheus:9090")
 
     def calculate_availability(self, service: str, window: str) -> float:
         """

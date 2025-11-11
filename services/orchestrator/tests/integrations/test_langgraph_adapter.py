@@ -7,6 +7,7 @@ from typing import Any
 import pytest
 
 from services.orchestrator.app.integrations import langgraph_adapter
+from services.common.config.base_settings import resolve_env
 
 # FIXME: These tests use DummyStateGraph/DummyCompiledGraph instead of real LangGraph.
 # The monkeypatch prevents real LangGraph from executing.

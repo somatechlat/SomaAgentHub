@@ -39,6 +39,7 @@ from .services.circuit_breaker import DATABASE_CIRCUIT_BREAKER
 # Configuration – read from environment with production defaults.
 # ---------------------------------------------------------------------------
 from .core.config import get_settings
+from services.common.config.base_settings import resolve_env
 
 settings = get_settings()
 DATABASE_URL: str = settings.database_url

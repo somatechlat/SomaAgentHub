@@ -17,6 +17,7 @@ from services.orchestrator.app.api.planner import _repo, _service, router
 # Import the FastAPI app for the orchestrator service.
 from services.orchestrator.app.main import app
 from services.orchestrator.app.planner.schemas import (
+from services.common.config.base_settings import resolve_env
     PlannerContext,
     PlannerRequest,
     ProjectPlan,

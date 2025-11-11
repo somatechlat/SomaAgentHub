@@ -15,6 +15,7 @@ resolve correctly during testing and when the service runs in isolation.
 import pathlib
 import pkgutil
 import sys
+from services.common.config.base_settings import resolve_env
 
 # Extend the ``app`` namespace to include subpackages from other services.
 __path__ = pkgutil.extend_path(__path__, __name__)

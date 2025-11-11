@@ -14,6 +14,7 @@ from ..database import check_database_health, async_engine
 from ..integrations.kafka_client import KafkaClientConfig
 from ..core.config import get_settings
 from ..services.circuit_breaker import circuit_breaker_manager, KAFKA_CIRCUIT_BREAKER
+from services.common.config.base_settings import resolve_env
 
 router = APIRouter(prefix="/health", tags=["health"])
 

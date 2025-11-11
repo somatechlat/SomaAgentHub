@@ -8,6 +8,7 @@ from sqlalchemy import Column, DateTime, String, Text, func, JSON
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.sql import expression
+from services.common.config.base_settings import resolve_env
 
 # Use declarative base for compatibility with both PostgreSQL and SQLite
 Base = declarative_base()

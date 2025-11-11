@@ -13,6 +13,7 @@ from typing import Any, Dict, List, Optional
 from datetime import datetime, timezone
 
 from pydantic import BaseModel
+from services.common.config.base_settings import resolve_env
 
 logger = logging.getLogger(__name__)
 
@@ -161,10 +162,10 @@ def get_publisher(service_name: str) -> EventPublisher:
     """Get configured event publisher for service."""
     import os
 
-    backend = os.getenv("EVENT_BACKEND", "memory")
+    backend = resolve_env("EVENT_BACKEND", "memory")
 
     if backend == "kafka":
-        kafka_config = {"bootstrap_servers": os.getenv("KAFKA_BOOTSTRAP_SERVERS", "localhost:9092")}
+        kafka_config = {"bootstrap_servers": resolve_env("KAFKA_BOOTSTRAP_SERVERS", "localhost:9092")}
         return KafkaEventPublisher(service_name, kafka_config)
     else:
         return InMemoryEventPublisher(service_name)

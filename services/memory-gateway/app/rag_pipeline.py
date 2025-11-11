@@ -10,6 +10,7 @@ from typing import Any
 
 from .embedding_service import EmbeddingService, get_embedding_service
 from .vector_store import VectorDocument, VectorStore, get_vector_store
+from services.common.config.base_settings import resolve_env
 
 logger = logging.getLogger(__name__)
 

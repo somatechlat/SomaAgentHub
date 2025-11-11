@@ -7,6 +7,7 @@ from fastapi import FastAPI
 
 from services.common.config.base_settings import BaseServiceSettings, apply_log_level
 from services.common.observability import setup_observability
+from services.common.config.base_settings import resolve_env
 
 
 def create_app(

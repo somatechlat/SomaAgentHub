@@ -12,6 +12,7 @@ import os
 from enum import Enum
 
 import numpy as np
+from services.common.config.base_settings import resolve_env
 
 logger = logging.getLogger(__name__)
 
@@ -51,7 +52,7 @@ class EmbeddingService:
             # OpenAI embeddings
             import openai
 
-            openai.api_key = os.getenv("OPENAI_API_KEY")
+            openai.api_key = resolve_env("OPENAI_API_KEY")
             return openai
 
         elif self.model == EmbeddingModel.SENTENCE_BERT:
@@ -64,7 +65,7 @@ class EmbeddingService:
             # Cohere embeddings
             import cohere
 
-            api_key = os.getenv("COHERE_API_KEY")
+            api_key = resolve_env("COHERE_API_KEY")
             return cohere.Client(api_key)
 
         else:
@@ -204,7 +205,7 @@ def get_embedding_service() -> EmbeddingService:
     """Get or create global embedding service."""
     global _embedding_service
     if _embedding_service is None:
-        model_name = os.getenv("EMBEDDING_MODEL", "text-embedding-ada-002")
+        model_name = resolve_env("EMBEDDING_MODEL", "text-embedding-ada-002")
         model = EmbeddingModel(model_name)
         _embedding_service = EmbeddingService(model=model)
     return _embedding_service

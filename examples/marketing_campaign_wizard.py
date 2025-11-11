@@ -13,6 +13,7 @@ from pathlib import Path
 from typing import Any
 
 import requests
+from services.common.config.base_settings import resolve_env
 
 DEFAULT_ANSWERS = {
     "campaign_name": "Fall 2025 AI Platform Launch",
@@ -41,12 +42,12 @@ def build_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument(
         "--api-url",
-        default=os.getenv("SOMAGENT_GATEWAY_URL", "http://localhost:10000"),
+        default=resolve_env("SOMAGENT_GATEWAY_URL", "http://localhost:10000"),
         help="Gateway API base URL (default: %(default)s or env SOMAGENT_GATEWAY_URL).",
     )
     parser.add_argument(
         "--user-id",
-        default=os.getenv("SOMAGENT_DEMO_USER", "demo-agent"),
+        default=resolve_env("SOMAGENT_DEMO_USER", "demo-agent"),
         help="User ID to associate with the wizard session (default: %(default)s).",
     )
     parser.add_argument(
@@ -66,8 +67,8 @@ def build_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument(
         "--orchestrator-url",
-        default=os.getenv("SOMAGENT_GATEWAY_ORCHESTRATOR_URL")
-        or os.getenv("ORCHESTRATOR_URL")
+        default=resolve_env("SOMAGENT_GATEWAY_ORCHESTRATOR_URL")
+        or resolve_env("ORCHESTRATOR_URL")
         or "http://localhost:10001",
         help="Orchestrator base URL for status polling (default: %(default)s).",
     )

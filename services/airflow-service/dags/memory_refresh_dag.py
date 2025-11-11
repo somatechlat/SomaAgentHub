@@ -4,9 +4,10 @@ from datetime import datetime, timedelta
 import requests
 from airflow import DAG
 from airflow.operators.python import PythonOperator
+from services.common.config.base_settings import resolve_env
 
-GATEWAY_URL = os.getenv("GATEWAY_URL", "http://gateway-api:8000")
-STATIC_TOKEN = os.getenv("SOMAGENT_AIRFLOW_JWT") or os.getenv("SOMAGENT_BEARER_TOKEN")
+GATEWAY_URL = resolve_env("GATEWAY_URL", "http://gateway-api:8000")
+STATIC_TOKEN = resolve_env("SOMAGENT_AIRFLOW_JWT") or resolve_env("SOMAGENT_BEARER_TOKEN")
 
 
 def _build_token() -> str:

@@ -8,6 +8,7 @@ import json
 import subprocess
 import sys
 from datetime import datetime
+from services.common.config.base_settings import resolve_env
 
 
 class SomaAgentTestReporter:

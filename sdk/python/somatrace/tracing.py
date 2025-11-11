@@ -5,6 +5,7 @@ from __future__ import annotations
 import os
 from functools import lru_cache
 from typing import Mapping, MutableMapping, Optional
+from services.common.config.base_settings import resolve_env
 
 try:
     from traceloop.sdk import Traceloop
@@ -18,7 +19,7 @@ _DEFAULT_ENDPOINT = "http://langfuse-ingester.observability:4318"
 
 
 def _bool_from_env(name: str, default: bool = False) -> bool:
-    raw = os.getenv(name)
+    raw = resolve_env(name)
     if raw is None:
         return default
     return raw.strip().lower() in {"1", "true", "yes", "on"}
@@ -73,12 +74,12 @@ def init_tracing(
     if not app_name:
         raise ValueError("app_name must be a non-empty string")
 
-    otlp_endpoint = endpoint or os.getenv(
+    otlp_endpoint = endpoint or resolve_env(
         "OTEL_EXPORTER_OTLP_ENDPOINT", _DEFAULT_ENDPOINT
     )
     os.environ.setdefault("OTEL_EXPORTER_OTLP_ENDPOINT", otlp_endpoint)
 
-    existing_headers = os.getenv("OTEL_EXPORTER_OTLP_HEADERS", "")
+    existing_headers = resolve_env("OTEL_EXPORTER_OTLP_HEADERS", "")
     if headers:
         merged = _merge_headers(existing_headers, headers)
         os.environ["OTEL_EXPORTER_OTLP_HEADERS"] = merged

@@ -7,6 +7,7 @@ from sqlmodel import Session, select
 
 from .models import BuildRun
 from .interfaces import BuildRunRepository
+from services.common.config.base_settings import resolve_env
 
 
 class SQLBuildRunRepository(BuildRunRepository):

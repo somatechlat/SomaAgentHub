@@ -9,6 +9,7 @@ from temporalio import activity
 
 # Import core protocol components
 from ..core.a2a_protocol import (
+from services.common.config.base_settings import resolve_env
     A2AProtocol,
     AgentRegistry,
     ConfigMapAgentRegistryBackend,
@@ -16,7 +17,7 @@ from ..core.a2a_protocol import (
 
 # Global singleton registry for the service runtime
 # Choose backend based on environment configuration – default to in‑memory JSON file
-backend_type = os.getenv("AGENT_REGISTRY_BACKEND", "json").lower()
+backend_type = resolve_env("AGENT_REGISTRY_BACKEND", "json").lower()
 if backend_type == "configmap":
     # Use the ConfigMap backend; it will lazily load the kubernetes client.
     _registry = AgentRegistry(backend=ConfigMapAgentRegistryBackend())

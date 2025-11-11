@@ -3,6 +3,7 @@ from __future__ import annotations
 from typing import Any
 
 from pydantic import BaseModel, Field
+from services.common.config.base_settings import resolve_env
 
 
 class BudgetPrecheckRequest(BaseModel):

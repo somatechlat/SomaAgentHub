@@ -13,6 +13,7 @@ from typing import BinaryIO
 # without the external library.
 from minio import Minio  # type: ignore
 from minio.error import S3Error  # type: ignore
+from services.common.config.base_settings import resolve_env
 
 
 @dataclass
@@ -25,11 +26,11 @@ class ObjectStoreSettings:
 
     @classmethod
     def from_env(cls) -> ObjectStoreSettings:
-        endpoint = os.getenv("MINIO_ENDPOINT", "localhost:9000")
-        access_key = os.getenv("MINIO_ACCESS_KEY", "minioadmin")
-        secret_key = os.getenv("MINIO_SECRET_KEY", "minioadmin")
-        secure = os.getenv("MINIO_SECURE", "false").lower() in {"1", "true", "yes"}
-        default_bucket = os.getenv("MINIO_DEFAULT_BUCKET", "somagent-artifacts")
+        endpoint = resolve_env("MINIO_ENDPOINT", "localhost:9000")
+        access_key = resolve_env("MINIO_ACCESS_KEY", "minioadmin")
+        secret_key = resolve_env("MINIO_SECRET_KEY", "minioadmin")
+        secure = resolve_env("MINIO_SECURE", "false").lower() in {"1", "true", "yes"}
+        default_bucket = resolve_env("MINIO_DEFAULT_BUCKET", "somagent-artifacts")
         return cls(endpoint, access_key, secret_key, secure, default_bucket)
 
 

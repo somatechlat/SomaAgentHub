@@ -27,6 +27,7 @@ from services.common.contracts.orchestrator import (
     OrchestrationStartedEvent,
 )
 from services.orchestrator.app.main import create_app
+from services.common.config.base_settings import resolve_env
 
 
 @pytest.fixture
