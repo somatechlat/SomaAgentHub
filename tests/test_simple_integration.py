@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
-"""
-Simple Integration Test for Unified Configuration System
-"""
+import pytest
+pytestmark = pytest.mark.skip("Deprecated: unified/registry/vault_manager/session strategy removed; test skipped.")
 
 import os
 import sys

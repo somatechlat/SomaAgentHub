@@ -34,7 +34,9 @@ class ContextMiddleware(BaseHTTPMiddleware):
 
         environment = (settings.environment or "development").lower()
         self._allow_anonymous = environment != "production"
-        self._anonymous_user = os.getenv("SOMAGENT_GATEWAY_ANON_USER", "dev-user")
+        # Backward-compatible resolution of anonymous user env var
+        from services.common.config.base_settings import resolve_env
+        self._anonymous_user = resolve_env("GATEWAY_ANON_USER", "dev-user")
 
         # Check if OPA is configured
         self._opa_enabled = bool(os.getenv("OPA_URL"))

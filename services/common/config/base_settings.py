@@ -7,10 +7,11 @@ from pydantic_settings import BaseSettings
 
 
 class BaseServiceSettings(BaseSettings):
-    """Common base settings for all SomaAgent services.
+    """Canonical base settings (no duplication, no mocks).
 
-    Provides shared environment fields (environment, log level, tracing flags) that
-    each service can extend. Centralizing here reduces duplication and drift.
+    Only two deployment modes: DEV and PROD. All environment-derived values
+    must use the standardized prefix `SOMA_AGENT_HUB_`. Backward compatibility
+    for older prefixes (SOMAGENT_, SOMASTACK_) is provided via `resolve_env`.
     """
 
     environment: str = "development"
@@ -22,7 +23,7 @@ class BaseServiceSettings(BaseSettings):
     enable_otlp: bool = False  # overridable per environment
 
     class Config:
-        env_prefix = "SOMAGENT_"
+        env_prefix = "SOMA_AGENT_HUB_"
         case_sensitive = False
 
     @property
@@ -32,6 +33,24 @@ class BaseServiceSettings(BaseSettings):
     @property
     def is_prod(self) -> bool:
         return self.deployment_mode == "PROD"
+
+
+def resolve_env(name: str, default: Any | None = None) -> Any:
+    """Resolve an environment variable with backward-compatible prefixes.
+
+    Precedence:
+      1. SOMA_AGENT_HUB_<NAME>
+      2. SOMAGENT_<NAME>
+      3. SOMASTACK_<NAME>
+      4. <NAME>
+    Returns first match or default.
+    """
+    import os as _os
+    for prefix in ("SOMA_AGENT_HUB_", "SOMAGENT_", "SOMASTACK_", ""):
+        key = f"{prefix}{name}" if prefix else name
+        if key in _os.environ:
+            return _os.environ[key]
+    return default
 
 
 @lru_cache(maxsize=32)

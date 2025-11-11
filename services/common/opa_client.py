@@ -7,6 +7,11 @@ REST API. It can be used by gateway, orchestrator, and other services.
 from __future__ import annotations
 
 import os
+try:
+    from services.common.config.base_settings import resolve_env
+except Exception:
+    def resolve_env(name: str, default: str | None = None):
+        return os.getenv(f"SOMA_AGENT_HUB_{name}") or os.getenv(f"SOMAGENT_{name}") or os.getenv(f"SOMASTACK_{name}") or os.getenv(name, default)
 from functools import lru_cache
 from typing import Any
 
@@ -261,8 +266,8 @@ def get_opa_client() -> OPAClient:
         OPA_URL: OPA server URL (default: http://opa:8181)
         OPA_TIMEOUT: Request timeout in seconds (default: 5.0)
     """
-    opa_url = os.getenv("OPA_URL", "http://opa:8181")
-    timeout = float(os.getenv("OPA_TIMEOUT", "5.0"))
+    opa_url = resolve_env("OPA_URL", "http://opa:8181")
+    timeout = float(resolve_env("OPA_TIMEOUT", "5.0") or "5.0")
 
     return OPAClient(opa_url=opa_url, timeout=timeout)
 

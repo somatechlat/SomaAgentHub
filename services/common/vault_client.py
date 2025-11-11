@@ -13,6 +13,13 @@ from typing import Any
 
 import hvac
 
+# Centralized env resolution with SOMA_AGENT_HUB_ prefix and fallbacks
+try:
+    from services.common.config.base_settings import resolve_env
+except Exception:
+    def resolve_env(name: str, default: str | None = None) -> str | None:
+        return os.getenv(f"SOMA_AGENT_HUB_{name}") or os.getenv(f"SOMAGENT_{name}") or os.getenv(f"SOMASTACK_{name}") or os.getenv(name, default)
+
 logger = logging.getLogger(__name__)
 
 
@@ -38,11 +45,18 @@ class VaultClient:
             vault_addr: Vault server address (default: env VAULT_ADDR)
             vault_namespace: Vault namespace (default: env VAULT_NAMESPACE)
         """
-        self.vault_addr = vault_addr or os.getenv("VAULT_ADDR", "http://vault:8200")
-        self.vault_namespace = vault_namespace or os.getenv("VAULT_NAMESPACE", "somaagent")
+        self.vault_addr = vault_addr or resolve_env("VAULT_ADDR", "http://vault:8200")
+        self.vault_namespace = vault_namespace or resolve_env("VAULT_NAMESPACE", "somaagent")
 
-        self.client = hvac.Client(url=self.vault_addr, namespace=self.vault_namespace)
+        # Determine mode once; DEV mirrors interfaces using env/in-memory fallbacks
+        self._deployment_mode = (resolve_env("DEPLOYMENT_MODE", "DEV") or "DEV").upper()
+        self._dev_mode = self._deployment_mode == "DEV"
+
+        # Delay client init; in DEV we may never instantiate hvac.Client
+        self.client: hvac.Client | None = None
         self._authenticated = False
+        self._dev_store: dict[str, dict[str, Any]] = {} if self._dev_mode else {}
+        self._dev_versions: dict[str, int] = {} if self._dev_mode else {}
 
     def authenticate_with_k8s(
         self,
@@ -56,10 +70,16 @@ class VaultClient:
             role: Vault role for Kubernetes auth
             jwt_path: Path to service account JWT token
         """
+        if self._dev_mode:
+            # Mark authenticated; use env-only / in-memory secrets
+            self._authenticated = True
+            logger.warning("DEV mode: simulating Vault k8s auth; using environment/in-memory secrets.")
+            return
         try:
             with open(jwt_path) as f:
                 jwt = f.read().strip()
-
+            if self.client is None:
+                self.client = hvac.Client(url=self.vault_addr, namespace=self.vault_namespace)
             self.client.auth.kubernetes.login(role=role, jwt=jwt)
 
             self._authenticated = True
@@ -77,6 +97,10 @@ class VaultClient:
             cert_path: Path to SPIFFE SVID certificate
             key_path: Path to SPIFFE SVID private key
         """
+        if self._dev_mode:
+            self._authenticated = True
+            logger.warning("DEV mode: simulating Vault SPIFFE auth; using environment/in-memory secrets.")
+            return
         try:
             self.client = hvac.Client(
                 url=self.vault_addr,
@@ -104,10 +128,39 @@ class VaultClient:
         Returns:
             VaultSecret with data and metadata
         """
+        if self._dev_mode:
+            # Try in-memory first
+            if path in self._dev_store:
+                data = self._dev_store[path]
+                version = self._dev_versions.get(path, 1)
+                return VaultSecret(
+                    data=data,
+                    version=version,
+                    created_time=datetime.now(UTC),
+                )
+            # Fallback: derive env-based secret mapping
+            # Convert path like "database/postgres" -> prefix tokens
+            tokens = [t for t in path.replace("/", "_").split("_") if t]
+            prefix = "SOMA_AGENT_HUB_" + "_".join([t.upper() for t in tokens]) + "_"
+            env_data: dict[str, Any] = {}
+            for k, v in os.environ.items():
+                if k.startswith(prefix):
+                    # key after prefix
+                    short_key = k[len(prefix):].lower()
+                    env_data[short_key] = v
+            if not env_data:
+                logger.warning(f"DEV mode: no env secret values for path {path}; returning empty secret.")
+            return VaultSecret(
+                data=env_data,
+                version=0,
+                created_time=datetime.now(UTC),
+            )
         if not self._authenticated:
             raise RuntimeError("Not authenticated to Vault")
 
         try:
+            if self.client is None:
+                self.client = hvac.Client(url=self.vault_addr, namespace=self.vault_namespace)
             response = self.client.secrets.kv.v2.read_secret_version(path=path, mount_point=mount_point)
 
             data = response["data"]["data"]
@@ -134,10 +187,18 @@ class VaultClient:
         Returns:
             Version number of created secret
         """
+        if self._dev_mode:
+            current_version = self._dev_versions.get(path, 0) + 1
+            self._dev_versions[path] = current_version
+            self._dev_store[path] = data
+            logger.info(f"DEV mode: stored in-memory secret {path} version {current_version}")
+            return current_version
         if not self._authenticated:
             raise RuntimeError("Not authenticated to Vault")
 
         try:
+            if self.client is None:
+                self.client = hvac.Client(url=self.vault_addr, namespace=self.vault_namespace)
             response = self.client.secrets.kv.v2.create_or_update_secret(
                 path=path, secret=data, mount_point=mount_point
             )
@@ -157,10 +218,17 @@ class VaultClient:
             path: Secret path
             mount_point: KV mount point
         """
+        if self._dev_mode:
+            removed = self._dev_store.pop(path, None)
+            self._dev_versions.pop(path, None)
+            logger.info(f"DEV mode: deleted in-memory secret {path} (present={removed is not None})")
+            return
         if not self._authenticated:
             raise RuntimeError("Not authenticated to Vault")
 
         try:
+            if self.client is None:
+                self.client = hvac.Client(url=self.vault_addr, namespace=self.vault_namespace)
             self.client.secrets.kv.v2.delete_latest_version_of_secret(path=path, mount_point=mount_point)
             logger.info(f"Deleted secret {path}")
         except Exception as e:
@@ -178,10 +246,22 @@ class VaultClient:
         Returns:
             VaultSecret with username, password, and lease info
         """
+        if self._dev_mode:
+            username = resolve_env("DB_USERNAME", "devuser") or "devuser"
+            password = resolve_env("DB_PASSWORD", "devpass") or "devpass"
+            return VaultSecret(
+                data={"username": username, "password": password},
+                version=1,
+                created_time=datetime.now(UTC),
+                lease_duration=0,
+                lease_id=None,
+            )
         if not self._authenticated:
             raise RuntimeError("Not authenticated to Vault")
 
         try:
+            if self.client is None:
+                self.client = hvac.Client(url=self.vault_addr, namespace=self.vault_namespace)
             response = self.client.secrets.database.generate_credentials(name=db_role, mount_point=mount_point)
 
             return VaultSecret(
@@ -209,6 +289,9 @@ class VaultClient:
         Returns:
             New lease duration
         """
+        if self._dev_mode:
+            logger.info("DEV mode: lease renew noop.")
+            return increment
         if not self._authenticated:
             raise RuntimeError("Not authenticated to Vault")
 
@@ -227,6 +310,9 @@ class VaultClient:
         Args:
             lease_id: Lease ID to revoke
         """
+        if self._dev_mode:
+            logger.info("DEV mode: lease revoke noop.")
+            return
         if not self._authenticated:
             raise RuntimeError("Not authenticated to Vault")
 
@@ -262,6 +348,17 @@ def init_vault(role: str, auth_method: str = "kubernetes") -> VaultClient:
         Authenticated VaultClient
     """
     client = get_vault_client()
+
+    # DEV mode: perform simulated auth without network calls
+    if (resolve_env("DEPLOYMENT_MODE", "DEV") or "DEV").upper() == "DEV":
+        if auth_method == "kubernetes":
+            client.authenticate_with_k8s(role)
+        elif auth_method == "spiffe":
+            client.authenticate_with_spiffe("spiffe://dev/local", "dev-cert", "dev-key")  # placeholders
+        else:
+            raise ValueError(f"Unknown auth method: {auth_method}")
+        logger.warning("DEV mode: Vault auth simulated; using env/in-memory secrets.")
+        return client
 
     if auth_method == "kubernetes":
         client.authenticate_with_k8s(role)

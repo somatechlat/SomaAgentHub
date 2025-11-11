@@ -1,48 +1,56 @@
-"""Gateway service configuration primitives using unified settings."""
+"""Gateway service configuration using centralized resolver and Vault client."""
 
 from __future__ import annotations
 
 from functools import lru_cache
 import os
-from services.common.config.unified_settings import get_settings as get_unified_settings
-from services.common.registry.service_registry import get_service_registry
-from services.common.secrets.vault_manager import get_vault_manager
-from services.common.deployment.deployment_strategy import get_deployment_config
-
-# Get unified settings
-settings = get_unified_settings()
-registry = get_service_registry()
-vault = get_vault_manager()
-deployment_config = get_deployment_config("gateway-api")
+from services.common.config.base_settings import resolve_env
+from services.common.vault_client import get_vault_client, init_vault
 
 # Service-specific configuration
 SERVICE_NAME = "gateway-api"
-SERVICE_PORT = settings.service_ports.get("gateway_api", 8080)
+SERVICE_PORT = int(resolve_env("SERVICE_PORT", "8080"))
 
 # Database configuration
-DATABASE_URL = deployment_config.database_url
-REDIS_URL = deployment_config.redis_url
+DATABASE_URL = resolve_env("DATABASE_URL", "postgresql://postgres:postgres@postgres:5432/soma")
+REDIS_URL = (
+    resolve_env("GATEWAY_REDIS_URL")
+    or resolve_env("REDIS_URL", "redis://redis:6379/0")
+)
 
 # Service dependencies (using registry for discovery)
-def get_service_url(service_name: str, default_path: str = "") -> str:
-    """Get service URL with fallback to defaults"""
-    try:
-        return registry.get_service_url(service_name)
-    except:
-        port = settings.service_ports.get(service_name, 8080)
-        return f"http://localhost:{port}{default_path}"
+def _svc(name: str, default: str) -> str:
+    # Prefer service-specific vars, then generic, then default
+    return (
+        resolve_env(f"GATEWAY_{name.upper()}_URL")
+        or resolve_env(f"{name.upper()}_URL")
+        or default
+    )
 
-ORCHESTRATOR_URL = get_service_url("orchestrator")
-PRICING_SERVICE_URL = get_service_url("pricing-service")
-AUTH_URL = get_service_url("identity-service")
-ADMIN_API_URL = get_service_url("settings-service")
+ORCHESTRATOR_URL = _svc("orchestrator", "http://orchestrator:8000")
+PRICING_SERVICE_URL = _svc("pricing-service", "http://pricing-service:10026")
+AUTH_URL = _svc("identity-service", "http://identity-service:10030")
+ADMIN_API_URL = _svc("settings-service", "http://settings-service:10032")
 
 # Security configuration
-JWT_SECRET = vault.get_secret("jwt", "secret") or settings.jwt_secret
+def _get_jwt_secret() -> str:
+    env_secret = resolve_env("JWT_SECRET")
+    if env_secret:
+        return env_secret
+    try:
+        client = init_vault(role=SERVICE_NAME)
+        secret = client.read_secret("jwt").data.get("secret")
+        if secret:
+            return secret
+    except Exception:
+        pass
+    return resolve_env("JWT_SECRET", "dev-jwt-secret")
+
+JWT_SECRET = _get_jwt_secret()
 
 # Feature flags
-DEBUG = os.getenv("SOMASTACK_DEBUG", "false").lower() == "true"
-KILL_SWITCH_ENABLED = os.getenv("SOMASTACK_KILL_SWITCH_ENABLED", "false").lower() == "true"
+DEBUG = (resolve_env("DEBUG", "false") or "false").lower() == "true"
+KILL_SWITCH_ENABLED = (resolve_env("KILL_SWITCH_ENABLED", "false") or "false").lower() == "true"
 
 # Headers and defaults
 TENANT_HEADER = "X-Tenant-ID"
@@ -62,9 +70,9 @@ MODERATION_BLOCK_AFTER_STRIKES = 1
 MODERATION_WARNING_STRIKES = 1
 
 # TLS configuration
-TLS_CERTFILE = os.getenv("SOMASTACK_TLS_CERTFILE")
-TLS_KEYFILE = os.getenv("SOMASTACK_TLS_KEYFILE")
-TLS_CA_CERT = os.getenv("SOMASTACK_TLS_CA_CERT")
+TLS_CERTFILE = resolve_env("TLS_CERTFILE")
+TLS_KEYFILE = resolve_env("TLS_KEYFILE")
+TLS_CA_CERT = resolve_env("TLS_CA_CERT")
 
 class GatewaySettings:
     """Unified configuration settings for gateway service"""

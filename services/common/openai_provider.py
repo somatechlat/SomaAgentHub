@@ -39,7 +39,14 @@ class OpenAIProvider:
         if AsyncOpenAI is None:
             raise RuntimeError("openai library not installed. Run: pip install openai")
 
-        self.api_key = api_key or os.getenv("OPENAI_API_KEY")
+        # Centralized resolver (new prefix + fallbacks) without breaking legacy values
+        try:
+            from services.common.config.base_settings import resolve_env as _resolve_env
+        except Exception:
+            def _resolve_env(name: str, default: str | None = None):
+                return os.getenv(f"SOMA_AGENT_HUB_{name}") or os.getenv(f"SOMAGENT_{name}") or os.getenv(f"SOMASTACK_{name}") or os.getenv(name, default)
+
+        self.api_key = api_key or _resolve_env("OPENAI_API_KEY")
         if not self.api_key:
             raise ValueError("OpenAI API key not configured")
 
@@ -59,8 +66,8 @@ class OpenAIProvider:
         else:
             self.client = AsyncOpenAI(
                 api_key=self.api_key,
-                organization=organization or os.getenv("OPENAI_ORGANIZATION"),
-                base_url=base_url or os.getenv("OPENAI_BASE_URL"),
+                organization=organization or _resolve_env("OPENAI_ORGANIZATION"),
+                base_url=base_url or _resolve_env("OPENAI_BASE_URL"),
             )
         # Preserve organization attribute for tests that inspect it.
         self.organization = organization

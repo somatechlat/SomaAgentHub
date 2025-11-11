@@ -1,71 +1,66 @@
 """
-Unified Configuration for memory-gateway service
-Migrated to use centralized settings
+Memory-gateway configuration using centralized resolver and Vault client.
+
+Two modes only: DEV and PROD. DEV mirrors PROD code paths with local fallbacks.
 """
 
-import os
-from services.common.config.unified_settings import get_settings
-from services.common.registry.service_registry import get_service_registry
-from services.common.secrets.vault_manager import get_vault_manager
-from services.common.deployment.deployment_strategy import get_deployment_config
+from services.common.config.base_settings import resolve_env
+from services.common.vault_client import init_vault
 
-# Get unified settings
-settings = get_settings()
-registry = get_service_registry()
-vault = get_vault_manager()
-deployment_config = get_deployment_config("memory-gateway")
-
-# Service-specific configuration
 SERVICE_NAME = "memory-gateway"
-SERVICE_PORT = settings.service_ports.get("memory_gateway", 8082)
+SERVICE_PORT = int(resolve_env("SERVICE_PORT", "8082"))
 
 # Database configuration
-DATABASE_URL = deployment_config.database_url
-REDIS_URL = deployment_config.redis_url
+DATABASE_URL = resolve_env("DATABASE_URL", "postgresql://postgres:postgres@postgres:5432/soma")
+REDIS_URL = (
+    resolve_env("MEMORY_GATEWAY_REDIS_URL")
+    or resolve_env("REDIS_URL", "redis://redis:6379/0")
+)
 
 # Vector store configuration
-QDRANT_URL = os.getenv("SOMASTACK_QDRANT_URL", "http://localhost:6333")
-QDRANT_API_KEY = os.getenv("SOMASTACK_QDRANT_API_KEY", "")
+def _get_qdrant_api_key() -> str:
+    val = resolve_env("QDRANT_API_KEY")
+    if val:
+        return val
+    try:
+        client = init_vault(role=SERVICE_NAME)
+        secret = client.read_secret("services/memory-gateway").data.get("qdrant_api_key")
+        if secret:
+            return secret
+    except Exception:
+        pass
+    return ""
+
+QDRANT_URL = (
+    resolve_env("MEMORY_GATEWAY_QDRANT_URL")
+    or resolve_env("QDRANT_URL", "http://localhost:6333")
+)
+QDRANT_API_KEY = _get_qdrant_api_key()
 
 # Object storage configuration
-OBJECT_STORE_BUCKET = settings.object_store_bucket
-OBJECT_STORE_REGION = settings.object_store_region
-
-# Service discovery
-SERVICE_REGISTRY = registry
-
-# Secrets management
-SECRETS = vault.get_service_secrets(SERVICE_NAME)
+OBJECT_STORE_BUCKET = resolve_env("OBJECT_STORE_BUCKET", "")
+OBJECT_STORE_REGION = resolve_env("OBJECT_STORE_REGION", "")
 
 # Environment-specific configuration
-ENVIRONMENT = settings.environment
-DEPLOYMENT_MODE = settings.deployment_mode
+ENVIRONMENT = resolve_env("ENVIRONMENT", "development")
+DEPLOYMENT_MODE = (resolve_env("DEPLOYMENT_MODE", "DEV") or "DEV").upper()
 
-# Quick access functions
-def get_service_url(service_name: str):
-    """Get URL for another service"""
-    import asyncio
-    loop = asyncio.new_event_loop()
-    asyncio.set_event_loop(loop)
-    try:
-        return loop.run_until_complete(registry.get_service_url(service_name))
-    finally:
-        loop.close()
+# Backward-compatible helpers
+def get_service_url(service_name: str) -> str:
+    key = f"{service_name.upper().replace('-', '_')}_URL"
+    return resolve_env(key, f"http://{service_name}")
 
-# Legacy compatibility
 def get_env_var(name: str, default=None):
-    """Get environment variable with fallback to settings"""
-    return os.getenv(name, getattr(settings, name.lower(), default))
+    return resolve_env(name, default)
 
-# Configuration class for backward compatibility
+
 class MemoryGatewayConfig:
     """Configuration class for memory-gateway service"""
-    
+
     @classmethod
     def from_env(cls):
-        """Load configuration from environment"""
         return cls()
-    
+
     def __init__(self):
         self.qdrant_url = QDRANT_URL
         self.qdrant_api_key = QDRANT_API_KEY

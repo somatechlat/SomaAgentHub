@@ -1,77 +1,48 @@
-"""
-Unified Configuration for llm-hub service
-Migrated to use centralized settings
-"""
+"""LLM Hub configuration using centralized resolver and Vault client."""
 
 import os
-from services.common.config.unified_settings import get_settings
-from services.common.registry.service_registry import get_service_registry
-from services.common.secrets.vault_manager import get_vault_manager
-from services.common.deployment.deployment_strategy import get_deployment_config
+from services.common.config.base_settings import resolve_env
+from services.common.vault_client import init_vault
 
-# Get unified settings
-settings = get_settings()
-registry = get_service_registry()
-vault = get_vault_manager()
-deployment_config = get_deployment_config("llm-hub")
-
-# Service-specific configuration
 SERVICE_NAME = "llm-hub"
-SERVICE_PORT = settings.service_ports.get("llm_hub", 8084)
+SERVICE_PORT = int(resolve_env("SERVICE_PORT", "8084"))
 
-# Database configuration
-DATABASE_URL = deployment_config.database_url
+DATABASE_URL = resolve_env("DATABASE_URL", "postgresql://postgres:postgres@postgres:5432/soma")
 
-# API Keys (loaded from Vault in production)
-OPENAI_API_KEY = vault.get_secret("services/llm-hub", "openai_api_key") or os.getenv("SOMASTACK_OPENAI_API_KEY", "")
-ANTHROPIC_API_KEY = vault.get_secret("services/llm-hub", "anthropic_api_key") or os.getenv("SOMASTACK_ANTHROPIC_API_KEY", "")
-GOOGLE_API_KEY = vault.get_secret("services/llm-hub", "google_api_key") or os.getenv("SOMASTACK_GOOGLE_API_KEY", "")
-
-# Model configuration
-DEFAULT_MODEL_PROVIDER = os.getenv("SOMASTACK_DEFAULT_MODEL_PROVIDER", settings.default_model_provider)
-DEFAULT_MODEL = os.getenv("SOMASTACK_DEFAULT_MODEL", "gpt-3.5-turbo")
-MAX_TOKENS = int(os.getenv("SOMASTACK_MAX_TOKENS", "4000"))
-TEMPERATURE = float(os.getenv("SOMASTACK_TEMPERATURE", "0.7"))
-
-# Rate limiting
-REQUESTS_PER_MINUTE = int(os.getenv("SOMASTACK_REQUESTS_PER_MINUTE", "60"))
-TOKENS_PER_MINUTE = int(os.getenv("SOMASTACK_TOKENS_PER_MINUTE", "40000"))
-
-# Service discovery
-SERVICE_REGISTRY = registry
-
-# Secrets management
-SECRETS = vault.get_service_secrets(SERVICE_NAME)
-
-# Environment-specific configuration
-ENVIRONMENT = settings.environment
-DEPLOYMENT_MODE = settings.deployment_mode
-
-# Quick access functions
-def get_service_url(service_name: str):
-    """Get URL for another service"""
-    import asyncio
-    loop = asyncio.new_event_loop()
-    asyncio.set_event_loop(loop)
+def _get_api_key(env_name: str, vault_key: str) -> str:
+    # Prefer env variable; fallback to Vault path services/llm-hub
+    val = resolve_env(env_name)
+    if val:
+        return val
     try:
-        return loop.run_until_complete(registry.get_service_url(service_name))
-    finally:
-        loop.close()
+        client = init_vault(role=SERVICE_NAME)
+        secret = client.read_secret("services/llm-hub").data.get(vault_key)
+        if secret:
+            return secret
+    except Exception:
+        pass
+    return ""
 
-# Legacy compatibility
-def get_env_var(name: str, default=None):
-    """Get environment variable with fallback to settings"""
-    return os.getenv(name, getattr(settings, name.lower(), default))
+OPENAI_API_KEY = _get_api_key("OPENAI_API_KEY", "openai_api_key")
+ANTHROPIC_API_KEY = _get_api_key("ANTHROPIC_API_KEY", "anthropic_api_key")
+GOOGLE_API_KEY = _get_api_key("GOOGLE_API_KEY", "google_api_key")
 
-# Configuration class for backward compatibility
+DEFAULT_MODEL_PROVIDER = resolve_env("DEFAULT_MODEL_PROVIDER", "openai")
+DEFAULT_MODEL = resolve_env("DEFAULT_MODEL", "gpt-3.5-turbo")
+MAX_TOKENS = int(resolve_env("MAX_TOKENS", "4000"))
+TEMPERATURE = float(resolve_env("TEMPERATURE", "0.7"))
+
+REQUESTS_PER_MINUTE = int(resolve_env("REQUESTS_PER_MINUTE", "60"))
+TOKENS_PER_MINUTE = int(resolve_env("TOKENS_PER_MINUTE", "40000"))
+
+ENVIRONMENT = resolve_env("ENVIRONMENT", "development")
+DEPLOYMENT_MODE = (resolve_env("DEPLOYMENT_MODE", "DEV") or "DEV").upper()
+
 class LLMHubConfig:
-    """Configuration class for llm-hub service"""
-    
     @classmethod
     def from_env(cls):
-        """Load configuration from environment"""
         return cls()
-    
+
     def __init__(self):
         self.database_url = DATABASE_URL
         self.openai_api_key = OPENAI_API_KEY
