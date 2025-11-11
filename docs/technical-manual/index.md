@@ -1,370 +1,245 @@
-# SomaAgentHub Technical Manual
+# Technical Manual
 
-**Complete guide for system administrators, SREs, and DevOps teams**
+![Version](https://img.shields.io/badge/version-1.0.0-blue)
 
-> Master the deployment, operation, and management of SomaAgentHub's enterprise-grade agent orchestration platform in production environments.
+## Overview
 
----
+This manual provides comprehensive technical documentation for SomaAgentHub deployment, architecture, monitoring, and operations.
 
-## 📋 Overview
+## Contents
 
-This Technical Manual provides comprehensive guidance for deploying, operating, and maintaining SomaAgentHub in production environments. It covers architecture, deployment strategies, monitoring, security, and operational procedures.
+- [Architecture](architecture.md) - System design and component interactions
+- [Deployment](deployment.md) - Production deployment guide
+- [Monitoring](monitoring.md) - Observability and alerting setup
+- [Runbooks](runbooks/) - Operational procedures and troubleshooting
+- [Security](security/) - Security policies and RBAC configuration
+- [Backup & Recovery](backup-and-recovery.md) - Data protection procedures
 
-### Target Audience
+## System Architecture
 
-- **System Administrators** - Platform deployment and configuration
-- **Site Reliability Engineers (SREs)** - Production operations and incident response
-- **DevOps Engineers** - CI/CD integration and automation
-- **Platform Engineers** - Infrastructure management and scaling
-- **Security Engineers** - Security configuration and compliance
+SomaAgentHub is built as a microservices architecture on Kubernetes with the following core components:
 
----
-
-## 🏗️ System Architecture
-
-**High-Level Architecture Overview:**
-
-```
-┌─────────────────────────────────────────────────────────────┐
-│                    SomaAgentHub Platform                    │
-├─────────────────────────────────────────────────────────────┤
-│                                                             │
-│  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐         │
-│  │   Gateway   │  │ Orchestrator│  │  Identity   │         │
-│  │     API     │  │   Service   │  │   Service   │         │
-│  │  (10000)    │  │  (10001)    │  │  (10002)    │         │
-│  └─────────────┘  └─────────────┘  └─────────────┘         │
-│                                                             │
-│  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐         │
-│  │   Policy    │  │   Memory    │  │    Tool     │         │
-│  │   Engine    │  │   Gateway   │  │   Service   │         │
-│  │  (10020)    │  │ (container) │  │  (10022)    │         │
-│  └─────────────┘  └─────────────┘  └─────────────┘         │
-│                                                             │
-└─────────────────────────────────────────────────────────────┘
-                              │
-┌─────────────────────────────────────────────────────────────┐
-│                Infrastructure Layer                         │
-├─────────────────────────────────────────────────────────────┤
-│                                                             │
-│  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐         │
-│  │  Temporal   │  │    Redis    │  │ PostgreSQL  │         │
-│  │   Server    │  │   Cache     │  │  Database   │         │
-│  │  (10009)    │  │  (10003)    │  │  (10004)    │         │
-│  └─────────────┘  └─────────────┘  └─────────────┘         │
-│                                                             │
-│  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐         │
-│  │   Qdrant    │  │ ClickHouse  │  │    MinIO    │         │
-│  │   Vector    │  │ Analytics   │  │   Storage   │         │
-│  │  (10005)    │  │  (10006)    │  │(10007/10008)│         │
-│  └─────────────┘  └─────────────┘  └─────────────┘         │
-│                                                             │
-└─────────────────────────────────────────────────────────────┘
-```
-
----
-
-## 📚 Manual Contents
-
-| Section | Description | Audience |
-|---------|-------------|----------|
-| [Architecture](architecture.md) | System design, components, and data flow | All technical roles |
-| [Deployment](deployment.md) | Installation, configuration, and setup | SysAdmins, DevOps |
-| [Monitoring](monitoring.md) | Observability, metrics, and alerting | SREs, Platform Engineers |
-| [Security](security/index.md) | Security configuration and compliance | Security Engineers, SysAdmins |
-| [Backup & Recovery](backup-and-recovery.md) | Data protection and disaster recovery | SysAdmins, SREs |
-| [Runbooks](runbooks/index.md) | Operational procedures and troubleshooting | SREs, On-call Engineers |
-
-### Specialized Topics
-
-- [Volcano Scheduler](volcano-scheduler.md) - Kubernetes batch job scheduling
-- [SPIFFE/SPIRE Integration](security/spiffe-spire.md) - Zero-trust identity framework
-- [Multi-Region Deployment](deployment-multi-region.md) - Geographic distribution
-- [Performance Tuning](performance-tuning.md) - Optimization and scaling
-
----
-
-## 🚀 Quick Start for Operators
-
-### 1. Prerequisites Check
-
-**Infrastructure Requirements:**
-```bash
-# Kubernetes cluster
-kubectl version --client
-kubectl cluster-info
-
-# Helm package manager
-helm version
-
-# Storage provisioner
-kubectl get storageclass
-
-# Network policies support
-kubectl api-resources | grep networkpolicies
-```
-
-**Resource Requirements:**
-- **Minimum**: 3 nodes, 8GB RAM each, 4 CPU cores each
-- **Recommended**: 5+ nodes, 16GB RAM each, 8 CPU cores each
-- **Storage**: 500GB+ for data persistence
-- **Network**: Load balancer support, ingress controller
-
-### 2. Deployment Overview
-
-**Standard Deployment Process:**
-```bash
-# 1. Create namespace
-kubectl create namespace soma-agent-hub
-
-# 2. Install Helm chart
-helm repo add somagenthub https://charts.somagenthub.com
-helm install soma-agent-hub somagenthub/soma-agent-hub \
-  --namespace soma-agent-hub \
-  --values production-values.yaml
-
-# 3. Verify deployment
-kubectl get pods -n soma-agent-hub
-kubectl get services -n soma-agent-hub
-
-# 4. Run health checks
-make k8s-smoke
-```
-
-### 3. Essential Monitoring
-
-**Key Metrics to Monitor:**
-- **Service Health**: All pods running and ready
-- **Resource Usage**: CPU, memory, storage utilization
-- **Request Latency**: API response times < 200ms
-- **Error Rates**: < 1% error rate across services
-- **Workflow Success**: > 95% workflow completion rate
-
-**Critical Alerts:**
-- Pod crash loops or restart failures
-- High memory or CPU usage (> 80%)
-- Database connection failures
-- Temporal workflow failures
-- External integration timeouts
-
----
-
-## 🔧 Core Services
-
-### Application Services
-
+### Core Services
 | Service | Port | Purpose | Dependencies |
 |---------|------|---------|--------------|
-| **Gateway API** | 10000 | Public ingress, wizard flows | Redis, Identity, Orchestrator |
-| **Orchestrator** | 10001 | Workflow coordination | Temporal, Policy, Identity |
-| **Identity Service** | 10002 | Authentication, authorization | Redis, PostgreSQL |
-| **Policy Engine** | 10020 | Governance, compliance | Redis, Constitution Service |
-| **Memory Gateway** | varies (container 8000) | Vector storage, context | Qdrant, Redis |
-| **Tool Service** | 10022 | External integrations | Various APIs |
+| Gateway API | 10000 | Public ingress, wizard flows | Redis, Orchestrator, Identity |
+| Orchestrator | 10001 | Workflow coordination | Temporal, Policy, Identity |
+| Identity Service | 10002 | Authentication, token management | PostgreSQL |
+| Memory Gateway | 10021 | Vector/KV storage | Qdrant, Redis |
+| Policy Engine | 10020 | Rule enforcement | OPA, Constitution Service |
 
-### Infrastructure Services
+### Supporting Services
+| Service | Purpose | Technology |
+|---------|---------|------------|
+| Analytics Service | Metrics collection | ClickHouse, Kafka |
+| Billing Service | Usage tracking | PostgreSQL |
+| Tool Service | External integrations | FastAPI, Adapters |
+| Notification Service | Alerts and messaging | SMTP, Webhooks |
 
-| Service | Port | Purpose | Data Persistence |
-|---------|------|---------|------------------|
-| **Temporal Server** | 10009 | Workflow engine | PostgreSQL |
-| **Redis** | 10003 | Caching, sessions | Memory + AOF |
-| **PostgreSQL** | 10004 | Relational data | Persistent volumes |
-| **Qdrant** | 10005 | Vector database | Persistent volumes |
-| **ClickHouse** | 10006 | Analytics data | Persistent volumes |
-| **MinIO** | 10007/10008 | Object storage | Persistent volumes |
+### Infrastructure Components
+| Component | Purpose | Configuration |
+|-----------|---------|---------------|
+| Temporal | Workflow orchestration | `infra/temporal/` |
+| Redis | Session state, caching | Helm chart values |
+| PostgreSQL | Transactional data | External or in-cluster |
+| Qdrant | Vector database | Memory Gateway integration |
+| Prometheus | Metrics collection | `k8s/monitoring/` |
+| Grafana | Visualization | Pre-built dashboards |
 
-### Observability Stack
+## Deployment Patterns
 
-| Service | Port | Purpose | Configuration |
-|---------|------|---------|---------------|
-| **Prometheus** | 10010 | Metrics collection | 200h retention |
-| **Grafana** | 10011 | Visualization | Pre-configured dashboards |
-| **Loki** | 10012 | Log aggregation | 30d retention |
-| **Tempo** | 10013/10014 | Distributed tracing | 7d retention |
-
----
-
-## 🛡️ Security & Compliance
-
-### Security Architecture
-
-**Zero-Trust Principles:**
-- **Identity Verification** - SPIFFE/SPIRE for service identity
-- **Least Privilege** - RBAC with minimal permissions
-- **Network Segmentation** - Kubernetes network policies
-- **Encryption Everywhere** - TLS for all communications
-- **Audit Logging** - Complete activity tracking
-
-**Compliance Features:**
-- **SOC 2 Type II** - Security and availability controls
-- **GDPR** - Data privacy and protection
-- **HIPAA** - Healthcare data security (optional)
-- **SOX** - Financial controls and audit trails
-
-### Access Control
-
-**Role-Based Access Control (RBAC):**
-```yaml
-roles:
-  - name: "platform-admin"
-    permissions: ["*"]
-    scope: "cluster"
-  - name: "sre-operator"
-    permissions: ["read", "restart", "scale"]
-    scope: "soma-agent-hub"
-  - name: "developer"
-    permissions: ["read", "deploy"]
-    scope: "development"
-```
-
----
-
-## 📊 Operational Excellence
-
-### Service Level Objectives (SLOs)
-
-**Availability Targets:**
-- **Gateway API**: 99.9% uptime (43 minutes downtime/month)
-- **Orchestrator**: 99.95% uptime (22 minutes downtime/month)
-- **Core Infrastructure**: 99.99% uptime (4 minutes downtime/month)
-
-**Performance Targets:**
-- **API Latency**: P95 < 200ms, P99 < 500ms
-- **Workflow Start Time**: < 5 seconds
-- **Agent Response Time**: P95 < 30 seconds
-
-**Reliability Targets:**
-- **Workflow Success Rate**: > 95%
-- **Data Durability**: 99.999999999% (11 9's)
-- **Recovery Time Objective (RTO)**: < 1 hour
-- **Recovery Point Objective (RPO)**: < 15 minutes
-
-### Monitoring & Alerting
-
-**Critical Alerts (Page Immediately):**
-- Service down or unhealthy
-- Database connection failures
-- High error rates (> 5%)
-- Resource exhaustion (> 90% usage)
-- Security incidents
-
-**Warning Alerts (Business Hours):**
-- Performance degradation
-- Capacity planning thresholds
-- Configuration drift
-- Certificate expiration (< 30 days)
-
----
-
-## 🔄 Operational Procedures
-
-### Daily Operations
-
-**Health Checks:**
+### Local Development
 ```bash
-# Service status
-kubectl get pods -n soma-agent-hub
-
-# Resource utilization
-kubectl top nodes
-kubectl top pods -n soma-agent-hub
-
-# Application health
-curl -f http://gateway:10000/healthz
-curl -f http://orchestrator:10001/ready
+make start-cluster  # Kind + Helm deployment
+make dev-up        # Docker Compose dependencies
 ```
 
-**Monitoring Review:**
-- Check Grafana dashboards for anomalies
-- Review error logs in Loki
-- Verify SLO compliance
-- Monitor resource trends
+### Production Kubernetes
+```bash
+helm upgrade --install soma-agent-hub ./k8s/helm/soma-agent \
+  --namespace soma-agent-hub \
+  --values values-production.yaml
+```
 
-### Weekly Operations
+### Multi-Environment
+- **Development**: Kind clusters with local images
+- **Staging**: Kubernetes with external databases
+- **Production**: Multi-node clusters with HA configuration
 
-**Capacity Planning:**
-- Review resource utilization trends
-- Plan for upcoming capacity needs
-- Update resource requests/limits
-- Scale infrastructure as needed
+## Network Architecture
 
-**Security Review:**
-- Check for security updates
-- Review access logs
-- Validate certificate status
-- Update security policies
+```
+Internet → Ingress Controller → Gateway API (10000)
+                                     ↓
+                              Orchestrator (10001) ← → Temporal
+                                     ↓
+                    ┌────────────────┼────────────────┐
+                    ↓                ↓                ↓
+            Identity Service    Policy Engine    Memory Gateway
+               (10002)           (10020)          (10021)
+                    ↓                ↓                ↓
+               PostgreSQL           OPA            Qdrant
+```
 
-### Monthly Operations
+## Data Flow
 
-**Performance Review:**
-- Analyze SLO compliance
-- Identify optimization opportunities
-- Review incident post-mortems
-- Update operational procedures
+### Request Processing
+1. **Ingress**: External requests hit Gateway API
+2. **Authentication**: Identity Service validates tokens
+3. **Policy Check**: Policy Engine evaluates permissions
+4. **Orchestration**: Orchestrator starts Temporal workflows
+5. **Execution**: Agents execute tasks with tool integrations
+6. **Memory**: Context stored in Memory Gateway
+7. **Analytics**: Events sent to Analytics Service
 
-**Backup Verification:**
-- Test backup restoration procedures
-- Verify backup integrity
-- Update disaster recovery plans
-- Conduct failover tests
+### Event Streaming
+```
+Agent Actions → Kafka → Analytics Service → ClickHouse
+                   ↓
+              Flink Processing → Real-time Metrics
+                   ↓
+              Redis Streams → WebSocket Updates
+```
 
----
+## Configuration Management
 
-## 📞 Getting Help
+### Helm Values Structure
+```yaml
+global:
+  imageRegistry: "ghcr.io/somatechlat"
+  imageTag: "v1.0.0"
+  namespace: "soma-agent-hub"
 
-### Internal Escalation
+services:
+  gateway:
+    enabled: true
+    replicas: 3
+    resources:
+      requests:
+        cpu: 500m
+        memory: 512Mi
+```
 
-**Severity Levels:**
-- **P0 (Critical)**: Service down, data loss risk
-- **P1 (High)**: Major functionality impacted
-- **P2 (Medium)**: Minor functionality impacted
-- **P3 (Low)**: Enhancement requests, questions
+### Environment Variables
+- **Development**: `.env` files per service
+- **Kubernetes**: ConfigMaps and Secrets
+- **Helm**: Values files with environment overrides
 
-**Escalation Path:**
-1. **On-call Engineer** - Immediate response for P0/P1
-2. **Platform Team Lead** - Technical escalation
-3. **Engineering Manager** - Resource allocation
-4. **VP Engineering** - Executive escalation
+### Service Discovery
+- **Internal**: Kubernetes DNS (`service-name.namespace.svc.cluster.local`)
+- **External**: Ingress controllers with TLS termination
+- **Health Checks**: `/health` and `/ready` endpoints
 
-### External Support
+## Observability Stack
 
-**Vendor Support:**
-- **SomaAgentHub Support** - Platform-specific issues
-- **Cloud Provider** - Infrastructure issues
-- **Kubernetes** - Container orchestration issues
-- **Temporal** - Workflow engine issues
+### Metrics (Prometheus)
+- Service-level metrics from `/metrics` endpoints
+- Custom business metrics via pushgateway
+- Resource utilization from kubelet
+- Alert rules for SLA monitoring
 
-**Community Resources:**
-- **Documentation** - Comprehensive guides and tutorials
-- **Community Forum** - User discussions and solutions
-- **GitHub Issues** - Bug reports and feature requests
-- **Slack Channel** - Real-time community support
+### Logging (Loki)
+- Structured JSON logs from all services
+- Log aggregation via promtail
+- Correlation with trace IDs
+- Log-based alerting
 
----
+### Tracing (OpenTelemetry)
+- Distributed traces across service boundaries
+- Temporal workflow tracing
+- Database query tracing
+- Performance bottleneck identification
 
-## 🔄 What's Next?
+### Dashboards (Grafana)
+- Service overview dashboards
+- Infrastructure monitoring
+- Business metrics visualization
+- Alert management interface
 
-### Immediate Actions
+## Security Architecture
 
-1. **Review [Architecture](architecture.md)** - Understand system design
-2. **Follow [Deployment Guide](deployment.md)** - Install SomaAgentHub
-3. **Set up [Monitoring](monitoring.md)** - Configure observability
-4. **Implement [Security](security/index.md)** - Secure your deployment
+### Authentication & Authorization
+- **Service-to-Service**: Kubernetes ServiceAccounts
+- **External Access**: JWT tokens from Identity Service
+- **Admin Access**: RBAC with least privilege
+- **Optional**: SPIFFE/SPIRE for zero-trust
 
-### Advanced Topics
+### Network Security
+- **Network Policies**: Restrict pod-to-pod communication
+- **TLS**: End-to-end encryption for external traffic
+- **Secrets Management**: Kubernetes Secrets or Vault
+- **Image Security**: Trivy scanning in CI/CD
 
-- **[Runbooks](runbooks/index.md)** - Operational procedures for common scenarios
-- **[Backup & Recovery](backup-and-recovery.md)** - Data protection strategies
-- **[Performance Tuning](performance-tuning.md)** - Optimization techniques
-- **[Multi-Region Deployment](deployment-multi-region.md)** - Geographic distribution
+### Policy Enforcement
+- **OPA Integration**: Policy-as-code with Rego
+- **Constitution Service**: Governance framework
+- **Audit Logging**: All policy decisions logged
+- **Compliance**: SOC2, GDPR considerations
 
-### Continuous Improvement
+## Operational Procedures
 
-- **Monitor SLOs** - Track and improve service reliability
-- **Automate Operations** - Reduce manual intervention
-- **Update Documentation** - Keep procedures current
-- **Train Team Members** - Ensure operational knowledge transfer
+### Deployment
+1. **Pre-deployment**: Run smoke tests, validate configuration
+2. **Rolling Update**: Helm upgrade with zero downtime
+3. **Post-deployment**: Health checks, smoke tests
+4. **Rollback**: Automated rollback on failure
 
----
+### Monitoring
+1. **Health Monitoring**: Continuous health endpoint checks
+2. **Performance**: SLA monitoring with alerting
+3. **Capacity**: Resource utilization tracking
+4. **Business Metrics**: Agent success rates, workflow completion
 
-**Ready to deploy and operate SomaAgentHub? Start with the [Architecture Overview](architecture.md) to understand the system design, then proceed to [Deployment](deployment.md) for installation instructions.**
+### Incident Response
+1. **Detection**: Automated alerting via Prometheus
+2. **Triage**: Runbook-driven response procedures
+3. **Resolution**: Service restart, scaling, or rollback
+4. **Post-mortem**: Root cause analysis and prevention
+
+## Scaling Considerations
+
+### Horizontal Scaling
+- **Stateless Services**: Gateway, Orchestrator, Policy Engine
+- **Database Scaling**: Read replicas, connection pooling
+- **Cache Scaling**: Redis clustering
+- **Queue Scaling**: Kafka partition scaling
+
+### Vertical Scaling
+- **Memory**: Increase for agent context storage
+- **CPU**: Scale for compute-intensive workflows
+- **Storage**: Expand for vector database growth
+- **Network**: Bandwidth for real-time propagation
+
+### Performance Optimization
+- **Connection Pooling**: Database and Redis connections
+- **Caching**: Aggressive caching of policy decisions
+- **Batch Processing**: Bulk operations where possible
+- **Async Processing**: Non-blocking I/O throughout
+
+## Disaster Recovery
+
+### Backup Strategy
+- **Database Backups**: Automated daily snapshots
+- **Configuration Backup**: Helm values and secrets
+- **Code Backup**: Git repository with tags
+- **Infrastructure**: Terraform state backup
+
+### Recovery Procedures
+- **Service Recovery**: Pod restart and health validation
+- **Data Recovery**: Point-in-time database restore
+- **Full Recovery**: Complete cluster rebuild
+- **Testing**: Regular DR drills and validation
+
+## Compliance & Governance
+
+### Documentation Standards
+- **ISO/IEC 26514**: User documentation requirements
+- **ISO/IEC 26515**: Online documentation delivery
+- **ISO/IEC 26512**: Documentation processes
+- **Change Control**: Version-controlled documentation
+
+### Audit Requirements
+- **Access Logging**: All administrative actions
+- **Policy Decisions**: Complete audit trail
+- **Data Handling**: GDPR compliance measures
+- **Security Events**: Comprehensive security logging

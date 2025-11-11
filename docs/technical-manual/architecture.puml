@@ -1,0 +1,102 @@
+@startuml SomaAgentHub Architecture
+!define RECTANGLE class
+skinparam rectangle {
+  BackgroundColor<<Service>> LightBlue
+  BackgroundColor<<Database>> LightYellow
+  BackgroundColor<<Infrastructure>> LightGreen
+  BorderColor Black
+}
+
+title SomaAgentHub System Architecture
+
+actor "User" as User
+actor "CLI Client" as CLI
+actor "External API" as ExtAPI
+
+package "Ingress Layer" {
+  RECTANGLE "Ingress Controller" as Ingress <<Infrastructure>>
+  RECTANGLE "Load Balancer" as LB <<Infrastructure>>
+}
+
+package "Application Services" {
+  RECTANGLE "Gateway API\n:10000" as Gateway <<Service>>
+  RECTANGLE "Orchestrator\n:10001" as Orchestrator <<Service>>
+  RECTANGLE "Identity Service\n:10002" as Identity <<Service>>
+  RECTANGLE "Memory Gateway\n:10021" as Memory <<Service>>
+  RECTANGLE "Policy Engine\n:10020" as Policy <<Service>>
+}
+
+package "Supporting Services" {
+  RECTANGLE "Analytics Service" as Analytics <<Service>>
+  RECTANGLE "Billing Service" as Billing <<Service>>
+  RECTANGLE "Tool Service" as Tools <<Service>>
+  RECTANGLE "Notification Service" as Notifications <<Service>>
+}
+
+package "Workflow Layer" {
+  RECTANGLE "Temporal Server\n:7233" as Temporal <<Infrastructure>>
+  RECTANGLE "Temporal Workers" as Workers <<Infrastructure>>
+}
+
+package "Data Layer" {
+  RECTANGLE "Redis\nSession State" as Redis <<Database>>
+  RECTANGLE "Qdrant\nVector DB" as Qdrant <<Database>>
+  RECTANGLE "PostgreSQL\nTransactional" as Postgres <<Database>>
+  RECTANGLE "ClickHouse\nAnalytics" as ClickHouse <<Database>>
+}
+
+package "Infrastructure Layer" {
+  RECTANGLE "Prometheus\nMetrics" as Prometheus <<Infrastructure>>
+  RECTANGLE "Grafana\nDashboards" as Grafana <<Infrastructure>>
+  RECTANGLE "Loki\nLogs" as Loki <<Infrastructure>>
+  RECTANGLE "Kafka\nStreaming" as Kafka <<Infrastructure>>
+}
+
+' External connections
+User --> Ingress : HTTPS
+CLI --> Ingress : HTTPS
+ExtAPI --> Ingress : HTTPS
+
+' Ingress layer
+Ingress --> LB
+LB --> Gateway
+
+' Core service connections
+Gateway --> Orchestrator : HTTP
+Gateway --> Identity : HTTP
+Gateway --> Policy : HTTP
+Gateway --> Redis : TCP
+
+Orchestrator --> Temporal : gRPC
+Orchestrator --> Memory : HTTP
+Orchestrator --> Policy : HTTP
+Orchestrator --> Identity : HTTP
+
+Temporal --> Workers : gRPC
+Workers --> Tools : HTTP
+Workers --> Memory : HTTP
+
+' Data connections
+Identity --> Postgres : SQL
+Memory --> Qdrant : HTTP
+Memory --> Redis : TCP
+Analytics --> ClickHouse : TCP
+Analytics --> Kafka : TCP
+
+' Infrastructure connections
+Gateway --> Prometheus : HTTP
+Orchestrator --> Prometheus : HTTP
+Memory --> Prometheus : HTTP
+Policy --> Prometheus : HTTP
+
+Prometheus --> Grafana : HTTP
+Gateway --> Loki : HTTP
+Orchestrator --> Loki : HTTP
+
+' Supporting service connections
+Analytics --> Kafka : TCP
+Billing --> Postgres : SQL
+Tools --> Kafka : TCP
+Notifications --> Kafka : TCP
+
+@enduml

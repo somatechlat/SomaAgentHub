@@ -1,40 +1,46 @@
-# SomaAgentHub Changelog
+# Changelog
 
-All notable changes to this project will be documented in this file.
+![Version](https://img.shields.io/badge/version-1.0.0-blue)
+
+All notable changes to SomaAgentHub will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
----
-
-## [Unreleased]
+## [1.0.0] - 2024-12-19
 
 ### Added
-- **Intelligent Dev Environment**: Implemented a new `make dev-env` command that intelligently detects cluster state, verifies health, and interactively prompts for recreation, ensuring a robust and idempotent startup process.
-- **Persistent Local Storage**: Reconfigured the local Kind cluster to use persistent host-path mounting, ensuring all data survives cluster recreation.
-- **Optimized Build Process**: Created a new `build-changed.sh` script that intelligently builds only the necessary Docker images, dramatically speeding up local development cycles.
-- **Comprehensive Documentation Framework**:
-    - Implemented a new four-manual documentation structure: User, Technical, Development, and Onboarding manuals.
-    - Created detailed, high-quality content for all documentation files based on a deep analysis of the codebase.
-    - Added a `DOCUMENTATION_GUIDE_TEMPLATE.md` to standardize future documentation.
-    - Added a `style-guide.md` and `glossary.md`.
+- ISO/IEC compliant documentation structure
+- Core services: Gateway API, Orchestrator, Identity Service, Memory Gateway, Policy Engine
+- Kubernetes-native deployment with Helm charts
+- Temporal workflow orchestration
+- FastAPI-based microservices architecture
+- Redis session management
+- Qdrant vector storage integration
+- Prometheus metrics and observability
+- Make-based build and deployment automation
+- Comprehensive testing framework (unit, integration, e2e)
 
-### Changed
-- **Standardized All Ports**: Refactored the entire repository to use a new, consistent port mapping starting from 10000. All hardcoded ports have been removed in favor of a centralized Helm configuration.
-- **Standardized Dockerfiles**: Audited and refactored all `Dockerfiles` to use official, version-pinned, minimal base images, improving security and build reliability.
-- **Simplified Makefile**: Refactored the `Makefile` to be a clean wrapper around Helm and automation scripts, adopting best practices from `SomaStack`.
-- Replaced the monolithic `HANDBOOK.md` and other scattered documentation files with the new structured documentation.
+### Infrastructure
+- Kind-based local development environment
+- Docker Compose for local dependencies (Temporal, Redis)
+- Kubernetes manifests with health probes and resource limits
+- Helm chart with environment-aware configuration
+- CI/CD pipeline with GitHub Actions
 
-### Removed
-- Deleted numerous outdated and redundant documentation files from the `docs/` directory to centralize information.
+### Services
+- **Gateway API** (port 10000): Public ingress and wizard flows
+- **Orchestrator** (port 10001): Temporal workflow coordination
+- **Identity Service** (port 10002): Token issuance and validation
+- **Memory Gateway** (port 10021): Vector and KV storage
+- **Policy Engine** (port 10020): Rule-based guardrails
+- **Analytics Service**: Metrics collection and analysis
+- **Billing Service**: Usage tracking and cost management
+- **Tool Service**: External tool integration adapters
 
----
-
-## [1.0.0] - 2024-10-01
-
-### Added
-- Initial release of the SomaAgentHub platform.
-- Core services: Gateway API, Orchestrator, Identity Service, Policy Engine, Memory Gateway.
-- Kubernetes deployment support via Helm.
-- Basic documentation and README.
-```
+### Documentation
+- User manual with installation and feature guides
+- Technical manual with architecture and runbooks
+- Development manual with coding standards and setup
+- Onboarding manual for new contributors
+- Agent onboarding for AI automation
