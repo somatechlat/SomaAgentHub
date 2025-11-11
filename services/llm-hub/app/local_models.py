@@ -57,16 +57,32 @@ class MarkovTextGenerator:
         choices = list(counter.keys())
         return self.random.choices(choices, weights=probs, k=1)[0]
 
-    def generate(self, prompt: str, max_tokens: int = 64, temperature: float = 0.8) -> GenerationResult:
+    def generate(
+        self, prompt: str, max_tokens: int = 64, temperature: float = 0.8
+    ) -> GenerationResult:
         prompt_tokens = self._tokenize(prompt) or self.tokens[: self.order]
-        state = tuple(prompt_tokens[-self.order :]) if len(prompt_tokens) >= self.order else tuple(self.tokens[: self.order])
+        state = (
+            tuple(prompt_tokens[-self.order :])
+            if len(prompt_tokens) >= self.order
+            else tuple(self.tokens[: self.order])
+        )
         generated: list[str] = []
         for _ in range(max_tokens):
-            nxt = self._temperature_sample(self.model.get(state, Counter()), temperature)
+            nxt = self._temperature_sample(
+                self.model.get(state, Counter()), temperature
+            )
             generated.append(nxt)
-            state = tuple((*state[1:], nxt)) if len(state) == self.order else tuple((*state, nxt))
+            state = (
+                tuple((*state[1:], nxt))
+                if len(state) == self.order
+                else tuple((*state, nxt))
+            )
         completion = self._detokenize(generated)
-        return GenerationResult(text=completion, prompt_tokens=len(prompt_tokens), completion_tokens=len(generated))
+        return GenerationResult(
+            text=completion,
+            prompt_tokens=len(prompt_tokens),
+            completion_tokens=len(generated),
+        )
 
     @staticmethod
     def _detokenize(tokens: Sequence[str]) -> str:

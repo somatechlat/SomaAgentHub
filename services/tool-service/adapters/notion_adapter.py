@@ -38,7 +38,9 @@ class NotionAdapter:
         """Make authenticated API request."""
         url = f"{self.base_url}/{endpoint}"
 
-        response = requests.request(method=method, url=url, headers=self.headers, timeout=30, **kwargs)
+        response = requests.request(
+            method=method, url=url, headers=self.headers, timeout=30, **kwargs
+        )
 
         response.raise_for_status()
         return response.json() if response.content else {}
@@ -159,14 +161,18 @@ class NotionAdapter:
 
     # Block Management
 
-    def append_blocks(self, block_id: str, children: list[dict[str, Any]]) -> dict[str, Any]:
+    def append_blocks(
+        self, block_id: str, children: list[dict[str, Any]]
+    ) -> dict[str, Any]:
         """Append blocks to a page or block."""
         data = {"children": children}
         return self._request("PATCH", f"blocks/{block_id}/children", json=data)
 
     def get_block_children(self, block_id: str, page_size: int = 100) -> dict[str, Any]:
         """Get child blocks."""
-        return self._request("GET", f"blocks/{block_id}/children", params={"page_size": page_size})
+        return self._request(
+            "GET", f"blocks/{block_id}/children", params={"page_size": page_size}
+        )
 
     def delete_block(self, block_id: str) -> dict[str, Any]:
         """Delete a block."""
@@ -257,7 +263,9 @@ class NotionAdapter:
         """Build a bulleted list item."""
         return {
             "type": "bulleted_list_item",
-            "bulleted_list_item": {"rich_text": [{"type": "text", "text": {"content": text}}]},
+            "bulleted_list_item": {
+                "rich_text": [{"type": "text", "text": {"content": text}}]
+            },
         }
 
     # Helper Methods - Property Builders
@@ -297,7 +305,9 @@ class NotionAdapter:
 
     # Utility Methods
 
-    def create_task_database(self, parent_page_id: str, title: str = "Tasks") -> dict[str, Any]:
+    def create_task_database(
+        self, parent_page_id: str, title: str = "Tasks"
+    ) -> dict[str, Any]:
         """
         Create a standard task database with common properties.
 
@@ -374,7 +384,11 @@ class NotionAdapter:
             self.build_heading_block("Agenda", 2),
             self.build_paragraph_block(""),
             self.build_heading_block("Discussion", 2),
-            (self.build_paragraph_block(notes) if notes else self.build_paragraph_block("")),
+            (
+                self.build_paragraph_block(notes)
+                if notes
+                else self.build_paragraph_block("")
+            ),
             self.build_heading_block("Action Items", 2),
             self.build_todo_block("Add action items here"),
         ]

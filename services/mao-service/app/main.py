@@ -17,9 +17,9 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 from temporalio.client import Client as TemporalClient
 from temporalio.common import RetryPolicy
-from workflows.project_workflow import (
 from services.common.config.base_settings import resolve_env
-    ExecutionMode,
+
+    ExecutionMode,
     ProjectConfig,
     ProjectWorkflow,
     TaskDefinition,

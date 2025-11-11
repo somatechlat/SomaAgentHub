@@ -122,7 +122,9 @@ class SLOTracker:
         """
         import os
 
-        self.prometheus_url = prometheus_url or resolve_env("PROMETHEUS_URL", "http://prometheus:9090")
+        self.prometheus_url = prometheus_url or resolve_env(
+            "PROMETHEUS_URL", "http://prometheus:9090"
+        )
 
     def calculate_availability(self, service: str, window: str) -> float:
         """
@@ -150,7 +152,9 @@ class SLOTracker:
 
         return 100.0  # Default to 100% if no data
 
-    def calculate_latency_percentile(self, service: str, percentile: int, window: str) -> float:
+    def calculate_latency_percentile(
+        self, service: str, percentile: int, window: str
+    ) -> float:
         """
         Calculate latency percentile.
 
@@ -216,11 +220,15 @@ class SLOTracker:
             current = self.calculate_availability(slo.service, slo.window)
             is_met = current >= slo.target
             error_budget = 100.0 - slo.target  # Total allowed downtime
-            error_budget_consumed = (100.0 - current) / error_budget if error_budget > 0 else 0
+            error_budget_consumed = (
+                (100.0 - current) / error_budget if error_budget > 0 else 0
+            )
 
         elif slo.metric.startswith("latency_p"):
             percentile = int(slo.metric.split("_p")[1])
-            current = self.calculate_latency_percentile(slo.service, percentile, slo.window)
+            current = self.calculate_latency_percentile(
+                slo.service, percentile, slo.window
+            )
             is_met = current <= slo.target
             error_budget = slo.target  # Max allowed latency
             error_budget_consumed = current / error_budget if error_budget > 0 else 0
@@ -270,7 +278,9 @@ class SLOTracker:
 
                 # Log violations
                 if result["status"] == SLOStatus.VIOLATED.value:
-                    logger.error(f"SLO VIOLATED: {slo.name} - current={result['current']}, target={slo.target}")
+                    logger.error(
+                        f"SLO VIOLATED: {slo.name} - current={result['current']}, target={slo.target}"
+                    )
                 elif result["status"] == SLOStatus.AT_RISK.value:
                     logger.warning(
                         f"SLO AT RISK: {slo.name} - error budget {result['error_budget_consumed']:.1f}% consumed"

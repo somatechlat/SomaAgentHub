@@ -67,42 +67,54 @@ class AzureAdapter:
     def compute_client(self):
         """Lazy load compute client."""
         if not self._compute_client:
-            self._compute_client = ComputeManagementClient(self.credential, self.subscription_id)
+            self._compute_client = ComputeManagementClient(
+                self.credential, self.subscription_id
+            )
         return self._compute_client
 
     @property
     def storage_client(self):
         """Lazy load storage client."""
         if not self._storage_client:
-            self._storage_client = StorageManagementClient(self.credential, self.subscription_id)
+            self._storage_client = StorageManagementClient(
+                self.credential, self.subscription_id
+            )
         return self._storage_client
 
     @property
     def resource_client(self):
         """Lazy load resource client."""
         if not self._resource_client:
-            self._resource_client = ResourceManagementClient(self.credential, self.subscription_id)
+            self._resource_client = ResourceManagementClient(
+                self.credential, self.subscription_id
+            )
         return self._resource_client
 
     @property
     def network_client(self):
         """Lazy load network client."""
         if not self._network_client:
-            self._network_client = NetworkManagementClient(self.credential, self.subscription_id)
+            self._network_client = NetworkManagementClient(
+                self.credential, self.subscription_id
+            )
         return self._network_client
 
     @property
     def sql_client(self):
         """Lazy load SQL client."""
         if not self._sql_client:
-            self._sql_client = SqlManagementClient(self.credential, self.subscription_id)
+            self._sql_client = SqlManagementClient(
+                self.credential, self.subscription_id
+            )
         return self._sql_client
 
     # ============================================================================
     # RESOURCE GROUPS
     # ============================================================================
 
-    def create_resource_group(self, name: str, location: str, tags: dict[str, str] | None = None) -> dict[str, Any]:
+    def create_resource_group(
+        self, name: str, location: str, tags: dict[str, str] | None = None
+    ) -> dict[str, Any]:
         """Create a resource group."""
         parameters = {"location": location}
         if tags:
@@ -160,7 +172,9 @@ class AzureAdapter:
             },
         }
 
-        poller = self.compute_client.virtual_machines.begin_create_or_update(resource_group, vm_name, vm_parameters)
+        poller = self.compute_client.virtual_machines.begin_create_or_update(
+            resource_group, vm_name, vm_parameters
+        )
         vm = poller.result()
         logger.info(f"Created VM: {vm.name}")
         return vm.as_dict()
@@ -175,19 +189,25 @@ class AzureAdapter:
 
     def start_vm(self, resource_group: str, vm_name: str):
         """Start a VM."""
-        poller = self.compute_client.virtual_machines.begin_start(resource_group, vm_name)
+        poller = self.compute_client.virtual_machines.begin_start(
+            resource_group, vm_name
+        )
         poller.wait()
         logger.info(f"Started VM: {vm_name}")
 
     def stop_vm(self, resource_group: str, vm_name: str):
         """Stop a VM."""
-        poller = self.compute_client.virtual_machines.begin_power_off(resource_group, vm_name)
+        poller = self.compute_client.virtual_machines.begin_power_off(
+            resource_group, vm_name
+        )
         poller.wait()
         logger.info(f"Stopped VM: {vm_name}")
 
     def delete_vm(self, resource_group: str, vm_name: str):
         """Delete a VM."""
-        poller = self.compute_client.virtual_machines.begin_delete(resource_group, vm_name)
+        poller = self.compute_client.virtual_machines.begin_delete(
+            resource_group, vm_name
+        )
         poller.wait()
         logger.info(f"Deleted VM: {vm_name}")
 
@@ -206,15 +226,21 @@ class AzureAdapter:
         """Create a storage account."""
         parameters = {"location": location, "sku": {"name": sku}, "kind": kind}
 
-        poller = self.storage_client.storage_accounts.begin_create(resource_group, account_name, parameters)
+        poller = self.storage_client.storage_accounts.begin_create(
+            resource_group, account_name, parameters
+        )
         account = poller.result()
         logger.info(f"Created storage account: {account.name}")
         return account.as_dict()
 
-    def list_storage_accounts(self, resource_group: str | None = None) -> list[dict[str, Any]]:
+    def list_storage_accounts(
+        self, resource_group: str | None = None
+    ) -> list[dict[str, Any]]:
         """List storage accounts."""
         if resource_group:
-            accounts = self.storage_client.storage_accounts.list_by_resource_group(resource_group)
+            accounts = self.storage_client.storage_accounts.list_by_resource_group(
+                resource_group
+            )
         else:
             accounts = self.storage_client.storage_accounts.list()
         return [acc.as_dict() for acc in accounts]
@@ -228,7 +254,9 @@ class AzureAdapter:
     # BLOB STORAGE
     # ============================================================================
 
-    def upload_blob(self, storage_account: str, container_name: str, blob_name: str, data: bytes):
+    def upload_blob(
+        self, storage_account: str, container_name: str, blob_name: str, data: bytes
+    ):
         """Upload data to blob storage."""
         # Get connection string (simplified - in production use proper key management)
         blob_service = BlobServiceClient(
@@ -240,7 +268,9 @@ class AzureAdapter:
         blob_client.upload_blob(data, overwrite=True)
         logger.info(f"Uploaded blob: {blob_name}")
 
-    def download_blob(self, storage_account: str, container_name: str, blob_name: str) -> bytes:
+    def download_blob(
+        self, storage_account: str, container_name: str, blob_name: str
+    ) -> bytes:
         """Download data from blob storage."""
         blob_service = BlobServiceClient(
             account_url=f"https://{storage_account}.blob.core.windows.net",
@@ -269,7 +299,9 @@ class AzureAdapter:
             "administrator_login_password": admin_password,
         }
 
-        poller = self.sql_client.servers.begin_create_or_update(resource_group, server_name, parameters)
+        poller = self.sql_client.servers.begin_create_or_update(
+            resource_group, server_name, parameters
+        )
         server = poller.result()
         logger.info(f"Created SQL server: {server.name}")
         return server.as_dict()
@@ -298,12 +330,16 @@ class AzureAdapter:
     # UTILITIES
     # ============================================================================
 
-    def bootstrap_infrastructure(self, project_name: str, location: str = "eastus") -> dict[str, Any]:
+    def bootstrap_infrastructure(
+        self, project_name: str, location: str = "eastus"
+    ) -> dict[str, Any]:
         """Bootstrap complete Azure infrastructure for a project."""
         rg_name = f"{project_name}-rg"
 
         # Create resource group
-        rg = self.create_resource_group(rg_name, location, tags={"project": project_name})
+        rg = self.create_resource_group(
+            rg_name, location, tags={"project": project_name}
+        )
 
         # Create storage account
         storage_name = f"{project_name.replace('-', '')}storage"[:24]  # Max 24 chars

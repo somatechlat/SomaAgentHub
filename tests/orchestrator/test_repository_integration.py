@@ -54,7 +54,9 @@ async def db_session(sqlite_engine) -> AsyncGenerator[AsyncSession, None]:
     async with sqlite_engine.begin() as conn:
         await conn.run_sync(SQLModel.metadata.create_all)
 
-    async_session = async_sessionmaker(sqlite_engine, class_=AsyncSession, expire_on_commit=False)
+    async_session = async_sessionmaker(
+        sqlite_engine, class_=AsyncSession, expire_on_commit=False
+    )
     async with async_session() as session:
         yield session
 
@@ -176,7 +178,9 @@ class TestBuildRunRepository:
             )
 
         # Retrieve by status
-        running_runs = await build_run_repo.get_build_runs_by_status(BuildRunStatus.RUNNING)
+        running_runs = await build_run_repo.get_build_runs_by_status(
+            BuildRunStatus.RUNNING
+        )
 
         assert len(running_runs) == 1
         assert running_runs[0].status == BuildRunStatus.RUNNING
@@ -186,7 +190,9 @@ class TestRepositoryTransactionHandling:
     """Test repository transaction handling and isolation."""
 
     @pytest.mark.asyncio
-    async def test_transaction_rollback_on_error(self, db_session: AsyncSession, build_run_repo: BuildRunRepository):
+    async def test_transaction_rollback_on_error(
+        self, db_session: AsyncSession, build_run_repo: BuildRunRepository
+    ):
         """Test transaction rollback on error."""
         build_id = str(uuid.uuid4())
 
@@ -212,7 +218,9 @@ class TestRepositoryTransactionHandling:
     @pytest.mark.asyncio
     async def test_concurrent_access_isolation(self, sqlite_engine):
         """Test concurrent access isolation."""
-        async_session = async_sessionmaker(sqlite_engine, class_=AsyncSession, expire_on_commit=False)
+        async_session = async_sessionmaker(
+            sqlite_engine, class_=AsyncSession, expire_on_commit=False
+        )
 
         build_id = str(uuid.uuid4())
 
@@ -257,7 +265,9 @@ class TestEventEmissionIntegration:
 
         # Verify event was created in outbox
         events = await outbox_repo.get_unprocessed_events(limit=10)
-        orchestration_events = [e for e in events if e.event_type == "orchestration.started"]
+        orchestration_events = [
+            e for e in events if e.event_type == "orchestration.started"
+        ]
 
         assert len(orchestration_events) == 1
         event = orchestration_events[0]
@@ -291,7 +301,9 @@ class TestEventEmissionIntegration:
 
         # Verify completion event
         events = await outbox_repo.get_unprocessed_events(limit=10)
-        completion_events = [e for e in events if e.event_type == "orchestration.completed"]
+        completion_events = [
+            e for e in events if e.event_type == "orchestration.completed"
+        ]
 
         assert len(completion_events) == 1
         event = completion_events[0]
@@ -300,7 +312,9 @@ class TestEventEmissionIntegration:
         assert event.event_data["duration"] == 120
 
     @pytest.mark.asyncio
-    async def test_bulk_operation_with_events(self, build_run_repo: BuildRunRepository, outbox_repo: OutboxRepository):
+    async def test_bulk_operation_with_events(
+        self, build_run_repo: BuildRunRepository, outbox_repo: OutboxRepository
+    ):
         """Test bulk operation with event emission."""
         project_id = "bulk-test-project"
 
@@ -318,7 +332,9 @@ class TestEventEmissionIntegration:
 
         # Verify events were created
         events = await outbox_repo.get_unprocessed_events(limit=10)
-        orchestration_events = [e for e in events if e.event_type == "orchestration.started"]
+        orchestration_events = [
+            e for e in events if e.event_type == "orchestration.started"
+        ]
 
         assert len(orchestration_events) == 3
         event_build_ids = {e.event_data["mao_id"] for e in orchestration_events}
@@ -363,8 +379,12 @@ class TestRepositoryPerformance:
             )
 
         # Test pagination
-        page1 = await build_run_repo.get_build_runs_by_project(project_id, limit=20, offset=0)
-        page2 = await build_run_repo.get_build_runs_by_project(project_id, limit=20, offset=20)
+        page1 = await build_run_repo.get_build_runs_by_project(
+            project_id, limit=20, offset=0
+        )
+        page2 = await build_run_repo.get_build_runs_by_project(
+            project_id, limit=20, offset=20
+        )
 
         assert len(page1) == 20
         assert len(page2) == 20

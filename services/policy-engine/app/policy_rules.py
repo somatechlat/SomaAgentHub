@@ -100,13 +100,19 @@ class RuleEngine:
         for tenant, rules in mapping.items():
             self.set_rules(tenant, list(rules))
 
-    def evaluate(self, tenant: str, prompt: str) -> tuple[bool, float, list[RuleViolation]]:
+    def evaluate(
+        self, tenant: str, prompt: str
+    ) -> tuple[bool, float, list[RuleViolation]]:
         violations: list[RuleViolation] = []
         total_weight = 0.0
         lowered_prompt = prompt.lower()
         for rule in self.get_rules(tenant):
             if rule.pattern.lower() in lowered_prompt:
-                violations.append(RuleViolation(rule=rule, excerpt=_excerpt_for_pattern(prompt, rule.pattern)))
+                violations.append(
+                    RuleViolation(
+                        rule=rule, excerpt=_excerpt_for_pattern(prompt, rule.pattern)
+                    )
+                )
                 total_weight += rule.weight
         score = round(max(0.0, 1.0 - total_weight), 6)
         allowed = len(violations) == 0
@@ -137,7 +143,9 @@ def _load_default_rule_packs() -> dict[str, RulePack]:
 
 
 RULE_PACKS: dict[str, RulePack] = _load_default_rule_packs()
-engine = RuleEngine({tenant: pack.ordered_rules() for tenant, pack in RULE_PACKS.items()})
+engine = RuleEngine(
+    {tenant: pack.ordered_rules() for tenant, pack in RULE_PACKS.items()}
+)
 
 
 async def _get_redis_client() -> Redis | None:
@@ -221,5 +229,7 @@ def set_rules(
     return pack
 
 
-def evaluate_prompt(tenant: str, prompt: str) -> tuple[bool, float, list[RuleViolation]]:
+def evaluate_prompt(
+    tenant: str, prompt: str
+) -> tuple[bool, float, list[RuleViolation]]:
     return engine.evaluate(tenant, prompt)

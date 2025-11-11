@@ -12,7 +12,9 @@ from services.common.config.base_settings import resolve_env
 app = FastAPI(
     title="SomaGent Tool Service",
     version="0.1.0",
-    description=("Hosts adapters for external systems (Plane, GitHub, Notion, etc.) and records audit events."),
+    description=(
+        "Hosts adapters for external systems (Plane, GitHub, Notion, etc.) and records audit events."
+    ),
 )
 
 configure_otel(app, settings.service_name)

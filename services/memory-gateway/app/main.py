@@ -32,8 +32,12 @@ async def startup_event():
 
         async def _ensure(name: str, size: int = 768) -> None:
             try:
-                await _qdrant_client.create_collection(collection_name=name, vector_size=size)
-                logger.info("[STARTUP] Created Qdrant collection: %s (%s-dim)", name, size)
+                await _qdrant_client.create_collection(
+                    collection_name=name, vector_size=size
+                )
+                logger.info(
+                    "[STARTUP] Created Qdrant collection: %s (%s-dim)", name, size
+                )
             except Exception as exc:
                 # Collection may already exist; log and continue.
                 logger.info("[STARTUP] Qdrant collection '%s' setup: %s", name, exc)
@@ -50,7 +54,9 @@ try:
     _qdrant_client = get_qdrant_client()
     _use_qdrant = True
 except Exception as exc:
-    logger.warning("[QDRANT_WARNING] Qdrant client unavailable, using in-memory store: %s", exc)
+    logger.warning(
+        "[QDRANT_WARNING] Qdrant client unavailable, using in-memory store: %s", exc
+    )
     _qdrant_client = None
     _use_qdrant = False
 
@@ -66,7 +72,9 @@ class RecallResponse(BaseModel):
 
 
 class RAGRequest(BaseModel):
-    query: str = Field(..., description="Search query for retrieval‑augmented generation")
+    query: str = Field(
+        ..., description="Search query for retrieval‑augmented generation"
+    )
 
 
 class RAGResponse(BaseModel):
@@ -120,7 +128,11 @@ async def remember(payload: RememberRequest):
 
         import httpx
 
-        text_to_embed = json.dumps(payload.value) if not isinstance(payload.value, str) else payload.value
+        text_to_embed = (
+            json.dumps(payload.value)
+            if not isinstance(payload.value, str)
+            else payload.value
+        )
         try:
             slm_url = resolve_env("LLM_HUB_URL") or "http://localhost:10022"
             async with httpx.AsyncClient(timeout=10.0) as client:
@@ -155,7 +167,9 @@ async def remember(payload: RememberRequest):
                 ],
             )
             return payload
-        except Exception as exc:  # pragma: no cover – exercised in tests when Qdrant is unavailable
+        except (
+            Exception
+        ) as exc:  # pragma: no cover – exercised in tests when Qdrant is unavailable
             logger.warning(
                 "[QDRANT_WARNING] Upsert failed, falling back to in-memory store: %s",
                 exc,
@@ -193,7 +207,9 @@ async def save_capsule_result(
             },
         )
         if allowed is False:
-            raise HTTPException(status_code=403, detail="Not allowed to write capsule results")
+            raise HTTPException(
+                status_code=403, detail="Not allowed to write capsule results"
+            )
     except Exception:
         # If OPA unreachable, proceed but this can be tightened later
         pass
@@ -297,7 +313,9 @@ async def get_memory(key: str):
 async def recall(key: str):
     if _use_qdrant:
         try:
-            point = await _qdrant_client.get_point(collection_name="memory", point_id=key)
+            point = await _qdrant_client.get_point(
+                collection_name="memory", point_id=key
+            )
             if point is None:
                 raise HTTPException(status_code=404, detail="Key not found")
             return RecallResponse(key=key, value=point.payload.get("value"))
@@ -337,12 +355,16 @@ async def rag(request: RAGRequest):
         try:
             slm_url = resolve_env("LLM_HUB_URL") or "http://localhost:10022"
             async with httpx.AsyncClient(timeout=10.0) as client:
-                response = await client.post(f"{slm_url}/v1/embeddings", json={"input": [request.query]})
+                response = await client.post(
+                    f"{slm_url}/v1/embeddings", json={"input": [request.query]}
+                )
                 response.raise_for_status()
                 data = response.json()
                 query_vector = data["vectors"][0]["embedding"]
         except Exception as exc:
-            logger.warning("[LLM_HUB_WARNING] Query embedding failed, using zero vector: %s", exc)
+            logger.warning(
+                "[LLM_HUB_WARNING] Query embedding failed, using zero vector: %s", exc
+            )
             query_vector = [0.0] * 768  # Fallback to zero vector
 
         results = await _qdrant_client.search(
@@ -355,9 +377,7 @@ async def rag(request: RAGRequest):
         sources = [r.payload.get("key", "unknown") for r in results]
         # Build answer from retrieved context
         context_texts = [r.payload.get("text", "") for r in results]
-        answer = (
-            f"Found {len(results)} relevant memories. Top result: {context_texts[0][:100] if context_texts else 'None'}"
-        )
+        answer = f"Found {len(results)} relevant memories. Top result: {context_texts[0][:100] if context_texts else 'None'}"
         return RAGResponse(answer=answer, sources=sources)
     else:
         # Fallback: No vector store available. Return error or use basic string matching.
@@ -369,7 +389,9 @@ async def rag(request: RAGRequest):
 
 
 # Metrics
-REQUESTS = Counter("somabrain_requests_total", "Total requests to SOMABrain metrics endpoint")
+REQUESTS = Counter(
+    "somabrain_requests_total", "Total requests to SOMABrain metrics endpoint"
+)
 QDRANT_UP = Gauge("qdrant_up", "Qdrant availability as seen by memory-gateway")
 REDIS_UP = Gauge("redis_up", "Redis availability as seen by memory-gateway")
 

@@ -70,7 +70,9 @@ class VectorStore:
 
             # Create index if not exists
             if self.collection_name not in pinecone.list_indexes():
-                pinecone.create_index(self.collection_name, dimension=self.dimension, metric="cosine")
+                pinecone.create_index(
+                    self.collection_name, dimension=self.dimension, metric="cosine"
+                )
 
             return pinecone.Index(self.collection_name)
 
@@ -89,7 +91,9 @@ class VectorStore:
             except Exception:
                 client.create_collection(
                     collection_name=self.collection_name,
-                    vectors_config=VectorParams(size=self.dimension, distance=Distance.COSINE),
+                    vectors_config=VectorParams(
+                        size=self.dimension, distance=Distance.COSINE
+                    ),
                 )
 
             return client
@@ -181,7 +185,10 @@ class VectorStore:
             # Build filter
             query_filter = None
             if filters:
-                conditions = [FieldCondition(key=k, match=MatchValue(value=v)) for k, v in filters.items()]
+                conditions = [
+                    FieldCondition(key=k, match=MatchValue(value=v))
+                    for k, v in filters.items()
+                ]
                 query_filter = Filter(must=conditions)
 
             results = self.client.search(
@@ -203,7 +210,9 @@ class VectorStore:
             ]
 
         elif self.backend == VectorBackend.CHROMA:
-            results = self.client.query(query_embeddings=[query_embedding], n_results=top_k, where=filters)
+            results = self.client.query(
+                query_embeddings=[query_embedding], n_results=top_k, where=filters
+            )
 
             documents = []
             for i in range(len(results["ids"][0])):
@@ -213,7 +222,8 @@ class VectorStore:
                         content=results["documents"][0][i],
                         embedding=[],
                         metadata=results["metadatas"][0][i],
-                        score=1 - results["distances"][0][i],  # Convert distance to similarity
+                        score=1
+                        - results["distances"][0][i],  # Convert distance to similarity
                     )
                 )
 
@@ -232,7 +242,9 @@ class VectorStore:
             self.client.delete(ids=ids)
 
         elif self.backend == VectorBackend.QDRANT:
-            self.client.delete(collection_name=self.collection_name, points_selector=ids)
+            self.client.delete(
+                collection_name=self.collection_name, points_selector=ids
+            )
 
         elif self.backend == VectorBackend.CHROMA:
             self.client.delete(ids=ids)

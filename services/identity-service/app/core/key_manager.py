@@ -146,7 +146,9 @@ class KeyManager:
         now = datetime.now(UTC)
         kid = uuid4().hex
         # Generate a new RSA keypair
-        private_key = rsa.generate_private_key(public_exponent=65537, key_size=2048, backend=default_backend())
+        private_key = rsa.generate_private_key(
+            public_exponent=65537, key_size=2048, backend=default_backend()
+        )
         public_key = private_key.public_key()
         private_pem = private_key.private_bytes(
             encoding=serialization.Encoding.PEM,
@@ -196,7 +198,9 @@ class KeyManager:
         keys: list[dict] = []
         # Include the active key first
         if self._active:
-            pub = serialization.load_pem_public_key(self._active.public_pem, backend=default_backend())
+            pub = serialization.load_pem_public_key(
+                self._active.public_pem, backend=default_backend()
+            )
             if isinstance(pub, RSAPublicKey):
                 keys.append(self._pubkey_to_jwk(self._active.kid, pub))
         # Include cached keys
@@ -204,7 +208,9 @@ class KeyManager:
             if self._active and kid == self._active.kid:
                 continue
             try:
-                pub = serialization.load_pem_public_key(key.public_pem, backend=default_backend())
+                pub = serialization.load_pem_public_key(
+                    key.public_pem, backend=default_backend()
+                )
                 if isinstance(pub, RSAPublicKey):
                     keys.append(self._pubkey_to_jwk(kid, pub))
             except Exception:

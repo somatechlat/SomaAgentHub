@@ -95,11 +95,15 @@ class KAMACHIQBootstrapper:
         # Detect project type
         if any(word in prompt_lower for word in ["website", "web app", "dashboard"]):
             project_type = "web_app"
-        elif any(word in prompt_lower for word in ["api", "backend", "rest", "graphql"]):
+        elif any(
+            word in prompt_lower for word in ["api", "backend", "rest", "graphql"]
+        ):
             project_type = "api_service"
         elif any(word in prompt_lower for word in ["mobile", "ios", "android", "app"]):
             project_type = "mobile_app"
-        elif any(word in prompt_lower for word in ["ml", "machine learning", "ai model"]):
+        elif any(
+            word in prompt_lower for word in ["ml", "machine learning", "ai model"]
+        ):
             project_type = "ml_service"
         else:
             project_type = "web_app"  # Default
@@ -234,7 +238,9 @@ class KAMACHIQBootstrapper:
 
         return architecture
 
-    def generate_execution_plan(self, spec: ProjectSpec, architecture: dict[str, Any]) -> dict[str, Any]:
+    def generate_execution_plan(
+        self, spec: ProjectSpec, architecture: dict[str, Any]
+    ) -> dict[str, Any]:
         """
         Generate complete project execution plan (DAG).
 

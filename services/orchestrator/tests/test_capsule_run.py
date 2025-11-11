@@ -19,7 +19,9 @@ def test_capsule_run_starts_workflow(api_client):
     data = resp.json()
 
     # Basic shape
-    assert set(["workflow_id", "run_id", "task_queue", "capsule_id", "version"]).issubset(data.keys())
+    assert set(
+        ["workflow_id", "run_id", "task_queue", "capsule_id", "version"]
+    ).issubset(data.keys())
     assert data["capsule_id"] == payload["capsule_id"]
     assert data["version"] == payload["version"]
 

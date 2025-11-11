@@ -184,7 +184,10 @@ class AnalyticsStore:
         runs = self.list_kamachiq_runs()
         if not runs:
             return {"count": 0, "average_deliverables": 0.0, "tenants": []}
-        total_deliverables = sum(int(run.metadata.get("deliverable_count", run.deliverable_count)) for run in runs)
+        total_deliverables = sum(
+            int(run.metadata.get("deliverable_count", run.deliverable_count))
+            for run in runs
+        )
         tenants = sorted(set(run.tenant_id for run in runs))
         return {
             "count": len(runs),
@@ -228,20 +231,30 @@ class AnalyticsStore:
     def record_blocked_deliverable(self, data: dict[str, str]) -> None:
         self.blocked_deliverables.append(data)
 
-    def list_blocked_deliverables(self, tenant_id: str | None = None) -> list[dict[str, str]]:
+    def list_blocked_deliverables(
+        self, tenant_id: str | None = None
+    ) -> list[dict[str, str]]:
         if tenant_id:
-            return [d for d in self.blocked_deliverables if d.get("tenant_id") == tenant_id]
+            return [
+                d for d in self.blocked_deliverables if d.get("tenant_id") == tenant_id
+            ]
         return list(self.blocked_deliverables)
 
     def record_resolved_deliverable(self, data: dict[str, str]) -> None:
         self.resolved_deliverables.append(data)
 
-    def list_resolved_deliverables(self, tenant_id: str | None = None) -> list[dict[str, str]]:
+    def list_resolved_deliverables(
+        self, tenant_id: str | None = None
+    ) -> list[dict[str, str]]:
         if tenant_id:
-            return [d for d in self.resolved_deliverables if d.get("tenant_id") == tenant_id]
+            return [
+                d for d in self.resolved_deliverables if d.get("tenant_id") == tenant_id
+            ]
         return list(self.resolved_deliverables)
 
-    def pending_regressions(self, now: datetime | None = None) -> list[PersonaRegression]:
+    def pending_regressions(
+        self, now: datetime | None = None
+    ) -> list[PersonaRegression]:
         settings = get_settings()
         now = now or datetime.now(UTC)
         due: list[PersonaRegression] = []
@@ -345,7 +358,11 @@ class AnalyticsStore:
 
     @staticmethod
     def _avg_metric(items: list[BenchmarkResult], metric: str) -> float:
-        values = [item.metrics.get(metric) for item in items if item.metrics.get(metric) is not None]
+        values = [
+            item.metrics.get(metric)
+            for item in items
+            if item.metrics.get(metric) is not None
+        ]
         if not values:
             return 0.0
         return round(fmean(values), 4)

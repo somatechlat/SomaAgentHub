@@ -49,7 +49,9 @@ class FakeAsyncClient:
 
 def test_cost_precheck(monkeypatch):
     # Use canonical env var prefix for orchestrator URL
-    monkeypatch.setenv("SOMA_AGENT_HUB_GATEWAY_ORCHESTRATOR_URL", "http://orchestrator-mock")
+    monkeypatch.setenv(
+        "SOMA_AGENT_HUB_GATEWAY_ORCHESTRATOR_URL", "http://orchestrator-mock"
+    )
     monkeypatch.setattr(httpx, "AsyncClient", FakeAsyncClient)
     resp = client.post(
         "/v1/build/cost-precheck",
@@ -73,7 +75,9 @@ def test_cost_precheck(monkeypatch):
 
 def test_build_run_requires_snapshot_auto(monkeypatch):
     # Mock orchestrator endpoint and pricing snapshot creation via monkeypatching AsyncClient
-    monkeypatch.setenv("SOMA_AGENT_HUB_GATEWAY_ORCHESTRATOR_URL", "http://orchestrator-mock")
+    monkeypatch.setenv(
+        "SOMA_AGENT_HUB_GATEWAY_ORCHESTRATOR_URL", "http://orchestrator-mock"
+    )
     monkeypatch.setattr(httpx, "AsyncClient", FakeAsyncClient)
     resp = client.post(
         "/v1/build/run",

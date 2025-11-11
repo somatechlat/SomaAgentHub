@@ -34,7 +34,9 @@ class KafkaClient:
             client_id: Client identifier (defaults to service name)
             compression_type: Message compression ("gzip", "snappy", "lz4", or "none")
         """
-        self.bootstrap_servers = [s.strip() for s in bootstrap_servers.split(",") if s.strip()]
+        self.bootstrap_servers = [
+            s.strip() for s in bootstrap_servers.split(",") if s.strip()
+        ]
         self.client_id = client_id or "somagent-service"
         self.compression_type = compression_type
         self._producer: AIOKafkaProducer | None = None

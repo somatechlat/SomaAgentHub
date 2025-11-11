@@ -16,9 +16,9 @@ from ..core.engine import (
     score_only as engine_score_only,
 )
 from ..policy_rules import PolicyRule, get_rules, set_rules
-from .schemas import (
 from services.common.config.base_settings import resolve_env
-    EvaluationRequest,
+
+    EvaluationRequest,
     EvaluationResponse,
     PolicyRuleModel,
     PolicyUpdateRequest,

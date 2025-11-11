@@ -41,7 +41,9 @@ class WorkspaceManager:
         self.docker_client = docker.from_env()
         self.workspaces: dict[str, WorkspaceInfo] = {}
 
-    async def create_workspace(self, workspace_id: str, config: dict[str, Any] | None = None) -> WorkspaceInfo:
+    async def create_workspace(
+        self, workspace_id: str, config: dict[str, Any] | None = None
+    ) -> WorkspaceInfo:
         """
         Create a new VSCode workspace.
 
@@ -119,7 +121,9 @@ class WorkspaceManager:
 
             self.workspaces[workspace_id] = workspace_info
 
-            logger.info(f"Workspace created: {workspace_id} at {workspace_info.vscode_url}")
+            logger.info(
+                f"Workspace created: {workspace_id} at {workspace_info.vscode_url}"
+            )
 
             return workspace_info
 
@@ -127,7 +131,9 @@ class WorkspaceManager:
             logger.error(f"Failed to create workspace: {e}")
             raise
 
-    async def provision_git_repo(self, workspace_id: str, repo_url: str, branch: str = "main") -> dict[str, Any]:
+    async def provision_git_repo(
+        self, workspace_id: str, repo_url: str, branch: str = "main"
+    ) -> dict[str, Any]:
         """
         Clone Git repository into workspace.
 

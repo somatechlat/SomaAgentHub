@@ -39,7 +39,9 @@ class GitHubAdapter:
         """Make authenticated API request."""
         url = f"{self.base_url}/{endpoint}"
 
-        response = requests.request(method=method, url=url, headers=self.headers, timeout=30, **kwargs)
+        response = requests.request(
+            method=method, url=url, headers=self.headers, timeout=30, **kwargs
+        )
 
         response.raise_for_status()
         return response.json() if response.content else {}
@@ -195,9 +197,13 @@ class GitHubAdapter:
 
         return self._request("POST", f"repos/{owner}/{repo}/issues", json=data)
 
-    def update_issue(self, owner: str, repo: str, issue_number: int, **kwargs) -> dict[str, Any]:
+    def update_issue(
+        self, owner: str, repo: str, issue_number: int, **kwargs
+    ) -> dict[str, Any]:
         """Update an issue."""
-        return self._request("PATCH", f"repos/{owner}/{repo}/issues/{issue_number}", json=kwargs)
+        return self._request(
+            "PATCH", f"repos/{owner}/{repo}/issues/{issue_number}", json=kwargs
+        )
 
     def list_issues(
         self,
@@ -264,16 +270,22 @@ class GitHubAdapter:
 
         data = {"merge_method": merge_method}
 
-        return self._request("PUT", f"repos/{owner}/{repo}/pulls/{pull_number}/merge", json=data)
+        return self._request(
+            "PUT", f"repos/{owner}/{repo}/pulls/{pull_number}/merge", json=data
+        )
 
     # Branch Management
 
-    def create_branch(self, owner: str, repo: str, branch: str, from_branch: str = "main") -> dict[str, Any]:
+    def create_branch(
+        self, owner: str, repo: str, branch: str, from_branch: str = "main"
+    ) -> dict[str, Any]:
         """Create a new branch from existing branch."""
         logger.info(f"Creating branch: {branch}")
 
         # Get SHA of from_branch
-        ref_data = self._request("GET", f"repos/{owner}/{repo}/git/ref/heads/{from_branch}")
+        ref_data = self._request(
+            "GET", f"repos/{owner}/{repo}/git/ref/heads/{from_branch}"
+        )
         sha = ref_data["object"]["sha"]
 
         # Create new branch
@@ -379,7 +391,9 @@ class GitHubAdapter:
 
     # Labels
 
-    def create_label(self, owner: str, repo: str, name: str, color: str, description: str = "") -> dict[str, Any]:
+    def create_label(
+        self, owner: str, repo: str, name: str, color: str, description: str = ""
+    ) -> dict[str, Any]:
         """Create an issue label."""
         data = {
             "name": name,
@@ -442,7 +456,9 @@ class GitHubAdapter:
 
     # Utility Methods
 
-    def bootstrap_repository(self, name: str, description: str, template: str = "python") -> dict[str, Any]:
+    def bootstrap_repository(
+        self, name: str, description: str, template: str = "python"
+    ) -> dict[str, Any]:
         """
         Bootstrap a complete repository with standard structure.
 

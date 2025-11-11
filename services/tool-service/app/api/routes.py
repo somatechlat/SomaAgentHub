@@ -16,9 +16,9 @@ from ..core.ratelimit import RateLimiter, RateLimitExceeded
 from ..core.registry import get_adapter, list_adapters
 from ..core.sandbox import SandboxRunner
 from ..core.security import verify_release_signature
-from ..models.tools import (
 from services.common.config.base_settings import resolve_env
-    AdapterExecuteRequest,
+
+    AdapterExecuteRequest,
     AdapterExecuteResponse,
     AdapterListResponse,
     AdapterMetadata,

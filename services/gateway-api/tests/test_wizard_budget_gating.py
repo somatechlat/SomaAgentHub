@@ -33,7 +33,9 @@ class FakeAsyncClient:
     async def __aexit__(self, exc_type, exc, tb):
         return False
 
-    async def post(self, url, params=None, json=None, headers=None, timeout=None):  # noqa: A003
+    async def post(
+        self, url, params=None, json=None, headers=None, timeout=None
+    ):  # noqa: A003
         # pricing budget check
         if url.endswith("/v1/pricing/evaluate-budget/with-policy"):
             # Fake over-budget response
@@ -86,7 +88,9 @@ def test_wizard_budget_block(monkeypatch):
     wizard_engine.wizard_schemas["cost-wiz"] = schema
 
     # Start session
-    r = client.post("/v1/wizards/start", json={"wizard_id": "cost-wiz", "user_id": "u1"})
+    r = client.post(
+        "/v1/wizards/start", json={"wizard_id": "cost-wiz", "user_id": "u1"}
+    )
     assert r.status_code == 200
     sid = r.json()["session_id"]
 

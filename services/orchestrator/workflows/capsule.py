@@ -163,7 +163,7 @@ class CapsuleRunWorkflow:
 # execution path with artefact upload.  Importing it here registers the same
 # activity name ("execute_capsule") with Temporal, so the workflow continues to
 # call ``execute_capsule`` unchanged.
-from services.orchestrator.app.capsule_executor import (
 from services.common.config.base_settings import resolve_env
-    execute_capsule,
+
+    execute_capsule,
 )  # noqa: F401,E402

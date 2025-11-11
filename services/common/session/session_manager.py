@@ -1,4 +1,5 @@
 from services.common.config.base_settings import resolve_env
+
 """DEPRECATED: session_manager has been removed.
 
 Use service-local session handling with `resolve_env` and standard JWT libs.

@@ -45,10 +45,12 @@ from services.common.observability import get_meter, get_tracer
 from services.orchestrator.app.core.config import (
     settings,
 )  # Provides capsule_repo_url
+
 # Local lightweight CapsuleRunInput to avoid importing workflow module here
 from dataclasses import dataclass, field
 from typing import Any
 from services.common.config.base_settings import resolve_env
+
 
 @dataclass
 class CapsuleRunInput:
@@ -59,6 +61,7 @@ class CapsuleRunInput:
     user: str
     params: dict[str, Any] = field(default_factory=dict)
     metadata: dict[str, Any] = field(default_factory=dict)
+
 
 # ---------------------------------------------------------------------------
 # Observability primitives for the executor activity

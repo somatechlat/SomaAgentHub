@@ -14,7 +14,9 @@ import requests
 from fastapi.testclient import TestClient
 
 # Match import technique used in other gateway tests
-BASE = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "services", "gateway-api"))
+BASE = os.path.abspath(
+    os.path.join(os.path.dirname(__file__), "..", "..", "services", "gateway-api")
+)
 if BASE not in sys.path:
     sys.path.insert(0, BASE)
 
@@ -54,7 +56,9 @@ def _register_block_wizard():
 def test_wizard_approval_blocked(monkeypatch):
     _register_block_wizard()
     # Use canonical env var prefix for orchestrator URL in tests
-    monkeypatch.setenv("SOMA_AGENT_HUB_GATEWAY_ORCHESTRATOR_URL", "http://mock-orchestrator")
+    monkeypatch.setenv(
+        "SOMA_AGENT_HUB_GATEWAY_ORCHESTRATOR_URL", "http://mock-orchestrator"
+    )
     monkeypatch.setenv("PRICING_SERVICE_URL", "http://mock-pricing")
 
     class FakeResp:
@@ -91,12 +95,20 @@ def test_wizard_approval_blocked(monkeypatch):
 
     monkeypatch.setattr(requests, "post", fake_post)
 
-    start = client.post("/v1/wizards/start", json={"wizard_id": "block-wiz", "user_id": "tester"})
+    start = client.post(
+        "/v1/wizards/start", json={"wizard_id": "block-wiz", "user_id": "tester"}
+    )
     assert start.status_code == 200, start.text
     session_id = start.json()["session_id"]
 
-    assert client.post(f"/v1/wizards/{session_id}/answer", json={"value": 100}).status_code == 200
-    assert client.post(f"/v1/wizards/{session_id}/answer", json={"value": 12}).status_code == 200
+    assert (
+        client.post(f"/v1/wizards/{session_id}/answer", json={"value": 100}).status_code
+        == 200
+    )
+    assert (
+        client.post(f"/v1/wizards/{session_id}/answer", json={"value": 12}).status_code
+        == 200
+    )
 
     approve = client.post(f"/v1/wizards/{session_id}/approve")
     assert approve.status_code == 200

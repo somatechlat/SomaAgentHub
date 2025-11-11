@@ -22,7 +22,9 @@ from .core.storage import IdentityStore
 from services.common.config.base_settings import resolve_env
 
 
-async def _rotation_worker(key_manager: KeyManager, interval: float, stop_event: asyncio.Event) -> None:
+async def _rotation_worker(
+    key_manager: KeyManager, interval: float, stop_event: asyncio.Event
+) -> None:
     try:
         while True:
             await key_manager.rotate_if_due()
@@ -152,7 +154,9 @@ def create_app() -> FastAPI:
     @app.get("/ready", tags=["system"])
     async def ready() -> dict[str, str]:
         # Consider ready if key manager and identity store have been initialized
-        healthy = hasattr(app.state, "identity_store") and hasattr(app.state, "key_manager")
+        healthy = hasattr(app.state, "identity_store") and hasattr(
+            app.state, "key_manager"
+        )
         return {"status": "ready" if healthy else "starting"}
 
     @app.get("/")
@@ -168,7 +172,9 @@ def create_app() -> FastAPI:
     app.include_router(oidc_router)
 
     # REAL OpenTelemetry instrumentation - no mocks, exports to Prometheus
-    setup_observability(settings.service_name, app, service_version=settings.service_version)
+    setup_observability(
+        settings.service_name, app, service_version=settings.service_version
+    )
 
     return app
 

@@ -62,7 +62,9 @@ capsule_packages = Table(
         default=datetime.utcnow,
         server_default=text("now()"),
     ),
-    UniqueConstraint("capsule_id", "version", name="uq_capsule_packages_capsule_version"),
+    UniqueConstraint(
+        "capsule_id", "version", name="uq_capsule_packages_capsule_version"
+    ),
 )
 
 capsule_reviews = Table(
@@ -122,7 +124,9 @@ capsule_installations = Table(
 
 _settings = get_settings()
 _engine: AsyncEngine = create_async_engine(_settings.postgres_url, echo=False)
-_sessionmaker: async_sessionmaker[AsyncSession] = async_sessionmaker(_engine, expire_on_commit=False)
+_sessionmaker: async_sessionmaker[AsyncSession] = async_sessionmaker(
+    _engine, expire_on_commit=False
+)
 
 
 def get_engine() -> AsyncEngine:

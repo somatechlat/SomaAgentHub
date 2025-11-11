@@ -49,7 +49,9 @@ EVALUATION_SCORE = Histogram(
 )
 
 
-async def _prefetch_constitution_hashes(stop_event: asyncio.Event, interval_seconds: float = 300.0) -> None:
+async def _prefetch_constitution_hashes(
+    stop_event: asyncio.Event, interval_seconds: float = 300.0
+) -> None:
     """Periodically prefetch constitution hashes to keep the local cache warm."""
 
     jitter = 0.1 * interval_seconds
@@ -70,7 +72,9 @@ async def _prefetch_constitution_hashes(stop_event: asyncio.Event, interval_seco
             continue
 
 
-async def _listen_constitution_updates(stop_event: asyncio.Event, max_backoff: float = 30.0) -> None:
+async def _listen_constitution_updates(
+    stop_event: asyncio.Event, max_backoff: float = 30.0
+) -> None:
     """Consume ``constitution.updated`` events and invalidate cached hashes with backoff."""
 
     bootstrap = resolve_env("KAFKA_BOOTSTRAP_SERVERS")
@@ -179,7 +183,9 @@ def _rule_to_dict(rule: PolicyRule) -> dict[str, Any]:
 @app.post("/v1/evaluate", response_model=EvalResponse)
 async def evaluate(req: EvalRequest):
     started = time.perf_counter()
-    allowed, score, violations, constitution_hash = await evaluate_engine(req.tenant, req.prompt)
+    allowed, score, violations, constitution_hash = await evaluate_engine(
+        req.tenant, req.prompt
+    )
     severity = compute_severity(score)
     reasons: dict[str, Any] = {
         "constitution_hash": constitution_hash,
@@ -187,10 +193,14 @@ async def evaluate(req: EvalRequest):
     }
     decision = "allow" if allowed else "deny"
     elapsed = time.perf_counter() - started
-    EVALUATION_COUNTER.labels(tenant=req.tenant, decision=decision, severity=severity).inc()
+    EVALUATION_COUNTER.labels(
+        tenant=req.tenant, decision=decision, severity=severity
+    ).inc()
     EVALUATION_LATENCY.labels(tenant=req.tenant).observe(elapsed)
     EVALUATION_SCORE.labels(tenant=req.tenant).observe(score)
-    return EvalResponse(allowed=allowed, score=score, severity=severity, reasons=reasons)
+    return EvalResponse(
+        allowed=allowed, score=score, severity=severity, reasons=reasons
+    )
 
 
 @app.get("/health", tags=["system"])
@@ -238,7 +248,9 @@ async def health_redis() -> dict:
     except Exception:
         from fastapi import HTTPException, status
 
-        raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail="Redis unavailable")
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail="Redis unavailable"
+        )
 
 
 # ---------------------------------------------------------------------------

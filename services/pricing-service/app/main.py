@@ -191,7 +191,9 @@ def get_live_pricing(
 
     paging = {"page": page, "page_size": page_size, "total": total}
 
-    return LivePricingResponse(offers=page_items, summary=summary, paging=paging, meta=meta)
+    return LivePricingResponse(
+        offers=page_items, summary=summary, paging=paging, meta=meta
+    )
 
 
 @app.post("/v1/pricing/snapshot")
@@ -205,7 +207,11 @@ def create_snapshot():
     median = statistics.median(prices)
     p95 = sorted(prices)[max(0, int(round(0.95 * (len(prices) - 1))))]
 
-    payload_str = "|".join(sorted(f"{o.provider}:{o.gpu_model}:{o.region}:{o.price_per_hour}" for o in offers))
+    payload_str = "|".join(
+        sorted(
+            f"{o.provider}:{o.gpu_model}:{o.region}:{o.price_per_hour}" for o in offers
+        )
+    )
     hash_fixed = uuid.uuid5(uuid.NAMESPACE_DNS, payload_str).hex
 
     sid = uuid.uuid4()
@@ -371,18 +377,30 @@ def _opa_decide(payload: dict) -> dict | None:
     return None
 
 
-def _select_offer(offers: List[PricingOffer], gpu_terms: List[str], region: str | None, price_cap: float | None, required_tags: List[str]) -> tuple[PricingOffer | None, List[str]]:
+def _select_offer(
+    offers: List[PricingOffer],
+    gpu_terms: List[str],
+    region: str | None,
+    price_cap: float | None,
+    required_tags: List[str],
+) -> tuple[PricingOffer | None, List[str]]:
     warnings: List[str] = []
     filtered = []
     for o in offers:
-        gpu_ok = any(term.lower() in o.gpu_model.lower() for term in gpu_terms) if gpu_terms else True
+        gpu_ok = (
+            any(term.lower() in o.gpu_model.lower() for term in gpu_terms)
+            if gpu_terms
+            else True
+        )
         if not gpu_ok:
             continue
         if region and (o.region or "").lower() != region.lower():
             continue
         if price_cap is not None and o.price_per_hour > price_cap:
             continue
-        if required_tags and not set(t.lower() for t in required_tags).issubset({t.lower() for t in o.tags}):
+        if required_tags and not set(t.lower() for t in required_tags).issubset(
+            {t.lower() for t in o.tags}
+        ):
             continue
         filtered.append(o)
     if not filtered:
@@ -412,7 +430,9 @@ def pricing_live_summary(req: PricingLiveRequest):  # type: ignore[valid-type]
             required_tags=req.required_tags,
         )
         if not chosen:
-            raise HTTPException(status_code=404, detail="No matching offers for constraints")
+            raise HTTPException(
+                status_code=404, detail="No matching offers for constraints"
+            )
 
         hours = req.usage.hours or hours_default
         tokens = req.usage.tokens or tokens_default
@@ -466,7 +486,9 @@ def pricing_live_summary(req: PricingLiveRequest):  # type: ignore[valid-type]
         REQS.labels(endpoint="live_summary").inc()
         return summary
     finally:
-        LIVE_LATENCY.labels(stage=stage).observe((datetime.now(UTC) - start).total_seconds())
+        LIVE_LATENCY.labels(stage=stage).observe(
+            (datetime.now(UTC) - start).total_seconds()
+        )
 
 
 @app.post("/v1/pricing/reconcile", response_model=PricingReconcileResponse)
@@ -501,7 +523,9 @@ def pricing_reconcile(req: PricingReconcileRequest):  # type: ignore[valid-type]
             token_cost = cost_per_token * tokens
         new_total = hourly * hours + (token_cost or 0.0)
         old_total = prior.total_estimated
-        drift_percent = ((new_total - old_total) / old_total * 100.0) if old_total > 0 else 0.0
+        drift_percent = (
+            ((new_total - old_total) / old_total * 100.0) if old_total > 0 else 0.0
+        )
         requires_reaccept = abs(drift_percent) > 5.0  # default threshold (future: OPA)
 
         updated = PricingSummary(
@@ -541,7 +565,9 @@ def pricing_reconcile(req: PricingReconcileRequest):  # type: ignore[valid-type]
             receipt_id=None,
         )
     finally:
-        LIVE_LATENCY.labels(stage=stage).observe((datetime.now(UTC) - start).total_seconds())
+        LIVE_LATENCY.labels(stage=stage).observe(
+            (datetime.now(UTC) - start).total_seconds()
+        )
 
 
 @app.post("/v1/pricing/evaluate-budget/with-policy")

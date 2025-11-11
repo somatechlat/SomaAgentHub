@@ -74,7 +74,8 @@ def redis_container():
     """Start a real Redis container for the duration of the test session."""
     container = RedisContainer(image="redis:7-alpine")
     container.start()
-    os.environ["REDIS_URL"] = container.get_connection_url()
+    # Use the canonical prefix for Redis URL in tests
+    os.environ["SOMA_AGENT_HUB_REDIS_URL"] = container.get_connection_url()
     yield container
     container.stop()
 
@@ -84,7 +85,10 @@ def kafka_container():
     """Start a real Kafka container for the duration of the test session."""
     container = KafkaContainer(image="bitnami/kafka:3.5")
     container.start()
-    os.environ["KAFKA_BOOTSTRAP_SERVERS"] = container.get_bootstrap_server()
+    # Use the canonical prefix for Kafka bootstrap servers in tests
+    os.environ["SOMA_AGENT_HUB_KAFKA_BOOTSTRAP_SERVERS"] = (
+        container.get_bootstrap_server()
+    )
     yield container
     container.stop()
 
@@ -110,9 +114,10 @@ def test_end_to_end_flow(identity_client, gateway_client, policy_client):
     headers = {"Authorization": f"Bearer {token}"}
     # Ensure gateway is pointed at a real orchestrator via env var
     # Ensure the orchestrator URL is provided via the canonical env prefix.
-    assert resolve_env("SOMA_AGENT_HUB_GATEWAY_ORCHESTRATOR_URL"), (
-        "Set SOMA_AGENT_HUB_GATEWAY_ORCHESTRATOR_URL to real Orchestrator URL"
-    )
+    # resolve_env expects the unprefixed name; it applies SOMA_AGENT_HUB_
+    assert resolve_env(
+        "GATEWAY_ORCHESTRATOR_URL"
+    ), "Set SOMA_AGENT_HUB_GATEWAY_ORCHESTRATOR_URL to real Orchestrator URL"
     resp = gateway_client.post("/v1/sessions", json=session_payload, headers=headers)
     assert resp.status_code == 201
     session_id = resp.json()["session_id"]

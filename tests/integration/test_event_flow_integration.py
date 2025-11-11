@@ -49,7 +49,9 @@ class TestEndToEndEventFlow:
     async def test_db_session(self):
         """Create test database session."""
         engine = create_async_engine("sqlite+aiosqlite:///:memory:")
-        async_session = sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
+        async_session = sessionmaker(
+            engine, class_=AsyncSession, expire_on_commit=False
+        )
 
         # Create tables
         from services.common.events.models import SQLModel
@@ -167,7 +169,9 @@ class TestEndToEndEventFlow:
         await outbox_repo.save_event(outbox_event)
 
         # Verify event was created
-        orchestration_events = await outbox_repo.get_events_by_type("orchestration.started")
+        orchestration_events = await outbox_repo.get_events_by_type(
+            "orchestration.started"
+        )
 
         assert len(orchestration_events) >= 1
         orchestration_event = orchestration_events[0]
@@ -177,7 +181,9 @@ class TestEndToEndEventFlow:
         assert len(orchestration_event.event_data["agent_ids"]) == 2
 
     @pytest.mark.asyncio
-    async def test_event_publisher_delivery(self, test_db_session: AsyncSession, event_publisher: EventPublisher):
+    async def test_event_publisher_delivery(
+        self, test_db_session: AsyncSession, event_publisher: EventPublisher
+    ):
         """Test that events are properly delivered via publisher."""
 
         # Create test events
@@ -214,7 +220,9 @@ class TestEndToEndEventFlow:
 
         # Publish events
         for event in unprocessed_events:
-            await event_publisher.publish({"event_type": event.event_type, "data": event.event_data})
+            await event_publisher.publish(
+                {"event_type": event.event_type, "data": event.event_data}
+            )
             await outbox_repo.mark_processed(event.id)
 
         # Verify events were published to in-memory store
@@ -282,7 +290,9 @@ class TestEndToEndEventFlow:
 
         # Verify both events were saved correctly
         wizard_events = await outbox_repo.get_events_by_type("wizard.approved")
-        orchestration_events = await outbox_repo.get_events_by_type("orchestration.started")
+        orchestration_events = await outbox_repo.get_events_by_type(
+            "orchestration.started"
+        )
 
         assert len(wizard_events) >= 1
         assert len(orchestration_events) >= 1
@@ -294,7 +304,10 @@ class TestEndToEndEventFlow:
 
         stored_orchestration = orchestration_events[0]
         assert stored_orchestration.event_data["mao_id"] == orchestration_event.mao_id
-        assert stored_orchestration.event_data["agent_ids"] == orchestration_event.agent_ids
+        assert (
+            stored_orchestration.event_data["agent_ids"]
+            == orchestration_event.agent_ids
+        )
 
     @pytest.mark.asyncio
     async def test_event_retry_and_failure_handling(
@@ -322,7 +335,9 @@ class TestEndToEndEventFlow:
 
             # Attempt to publish (will fail)
             try:
-                await event_publisher.publish({"event_type": event.event_type, "data": event.event_data})
+                await event_publisher.publish(
+                    {"event_type": event.event_type, "data": event.event_data}
+                )
             except Exception:
                 pass  # Expected failure
 
@@ -333,7 +348,9 @@ class TestEndToEndEventFlow:
             assert updated_event.processed is False
 
     @pytest.mark.asyncio
-    async def test_bulk_event_processing(self, test_db_session: AsyncSession, event_publisher: EventPublisher):
+    async def test_bulk_event_processing(
+        self, test_db_session: AsyncSession, event_publisher: EventPublisher
+    ):
         """Test processing multiple events efficiently."""
 
         # Create multiple events
@@ -356,7 +373,10 @@ class TestEndToEndEventFlow:
         unprocessed_events = await outbox_repo.get_unprocessed_events(limit=10)
 
         # Publish in batch
-        batch_data = [{"event_type": e.event_type, "data": e.event_data} for e in unprocessed_events]
+        batch_data = [
+            {"event_type": e.event_type, "data": e.event_data}
+            for e in unprocessed_events
+        ]
 
         await event_publisher.publish_batch(batch_data)
 

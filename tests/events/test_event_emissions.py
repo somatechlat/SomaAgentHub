@@ -108,7 +108,9 @@ class TestWizardApprovedEvent:
         assert event.configuration["budget"] == 5000.0
 
     @pytest.mark.asyncio
-    async def test_wizard_approved_event_persistence(self, outbox_repo: OutboxRepository):
+    async def test_wizard_approved_event_persistence(
+        self, outbox_repo: OutboxRepository
+    ):
         """Test wizard approved event is persisted in outbox."""
         wizard_id = str(uuid.uuid4())
         event_data = {
@@ -158,7 +160,9 @@ class TestOrchestrationStartedEvent:
         assert len(event.agent_ids) == 3
 
     @pytest.mark.asyncio
-    async def test_orchestration_started_event_persistence(self, outbox_repo: OutboxRepository):
+    async def test_orchestration_started_event_persistence(
+        self, outbox_repo: OutboxRepository
+    ):
         """Test orchestration started event is persisted in outbox."""
         mao_id = str(uuid.uuid4())
         event_data = {
@@ -200,7 +204,9 @@ class TestEventPublisher:
         assert event_publisher._in_memory_events[0] == test_event
 
     @pytest.mark.asyncio
-    async def test_event_schema_validation_in_publisher(self, event_publisher: EventPublisher):
+    async def test_event_schema_validation_in_publisher(
+        self, event_publisher: EventPublisher
+    ):
         """Test that publisher validates event schemas."""
         invalid_event = {"invalid": "schema"}
 
@@ -275,7 +281,9 @@ class TestEventFlowIntegration:
         assert events[0].event_type == "wizard.approved"
 
         # Publish events
-        await event_publisher.publish_batch([{"event_type": e.event_type, "data": e.event_data} for e in events])
+        await event_publisher.publish_batch(
+            [{"event_type": e.event_type, "data": e.event_data} for e in events]
+        )
 
         # Verify events were published
         assert len(event_publisher._in_memory_events) == 1
@@ -284,7 +292,9 @@ class TestEventFlowIntegration:
         assert published_event["data"]["wizard_id"] == wizard_id
 
     @pytest.mark.asyncio
-    async def test_event_retry_mechanism(self, event_publisher: EventPublisher, outbox_repo: OutboxRepository):
+    async def test_event_retry_mechanism(
+        self, event_publisher: EventPublisher, outbox_repo: OutboxRepository
+    ):
         """Test event retry mechanism for failed publishes."""
         # Create a failed event
         outbox_event = OutboxEvent(
@@ -299,7 +309,9 @@ class TestEventFlowIntegration:
         await outbox_repo.save_event(outbox_event)
 
         # Mock publisher to simulate failure
-        with patch.object(event_publisher, "_publish_to_kafka", side_effect=Exception("Kafka down")):
+        with patch.object(
+            event_publisher, "_publish_to_kafka", side_effect=Exception("Kafka down")
+        ):
             with patch("asyncio.sleep"):  # Speed up retries
                 await event_publisher.publish_with_retry(outbox_event)
 

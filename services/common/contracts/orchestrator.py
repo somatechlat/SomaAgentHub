@@ -46,9 +46,30 @@ class SessionStartResponse(BaseModel):
 
 class OrchestrationStartedEvent(BaseModel):
     """Event emitted when a multi-agent orchestration is started."""
+
     mao_id: str
     project_id: str
     workflow_type: str
     agent_ids: list[str]
     input_data: dict[str, Any]
+    timestamp: str
+
+
+class WizardApprovedEvent(BaseModel):
+    """Event emitted when a wizard flow is approved by a user.
+
+    The test suite expects the following fields:
+    - ``wizard_id``: unique identifier for the wizard instance
+    - ``project_id``: identifier of the associated project
+    - ``user_id``: identifier of the approving user
+    - ``wizard_type``: type/name of the wizard (e.g. ``marketing_campaign``)
+    - ``configuration``: arbitrary configuration dict supplied to the wizard
+    - ``timestamp``: ISO‑8601 timestamp string when the approval occurred
+    """
+
+    wizard_id: str
+    project_id: str
+    user_id: str
+    wizard_type: str
+    configuration: dict[str, Any]
     timestamp: str

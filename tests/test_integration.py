@@ -87,7 +87,9 @@ async def test_event_emission():
         )
 
         # Emit plan event
-        await emission_service.emit_plan_created_event(plan=test_plan, session_id="test-session", initiator="test-user")
+        await emission_service.emit_plan_created_event(
+            plan=test_plan, session_id="test-session", initiator="test-user"
+        )
 
         await session.commit()
 

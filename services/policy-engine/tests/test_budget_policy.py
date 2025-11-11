@@ -25,22 +25,55 @@ from services.common.config.base_settings import resolve_env
                 "quota_used": 10,
                 "quota_limit": 100,
             },
-            {"allow_pricing": True, "within_budget": True, "not_stale": True, "within_quota": True, "drift_ok": True},
+            {
+                "allow_pricing": True,
+                "within_budget": True,
+                "not_stale": True,
+                "within_quota": True,
+                "drift_ok": True,
+            },
         ),
         (
-            {"estimated_total": 150, "budget_cap": 100, "last_quote_age_min": 5, "quota_used": 10, "quota_limit": 100},
+            {
+                "estimated_total": 150,
+                "budget_cap": 100,
+                "last_quote_age_min": 5,
+                "quota_used": 10,
+                "quota_limit": 100,
+            },
             {"allow_pricing": False, "within_budget": False},
         ),
         (
-            {"estimated_total": 50, "budget_cap": 100, "last_quote_age_min": 120, "max_price_age_min": 30, "quota_used": 10, "quota_limit": 100},
+            {
+                "estimated_total": 50,
+                "budget_cap": 100,
+                "last_quote_age_min": 120,
+                "max_price_age_min": 30,
+                "quota_used": 10,
+                "quota_limit": 100,
+            },
             {"allow_pricing": False, "not_stale": False},
         ),
         (
-            {"estimated_total": 50, "budget_cap": 100, "last_quote_age_min": 5, "quota_used": 110, "quota_limit": 100},
+            {
+                "estimated_total": 50,
+                "budget_cap": 100,
+                "last_quote_age_min": 5,
+                "quota_used": 110,
+                "quota_limit": 100,
+            },
             {"allow_pricing": False, "within_quota": False},
         ),
         (
-            {"estimated_total": 50, "budget_cap": 100, "last_quote_age_min": 5, "quota_used": 10, "quota_limit": 100, "drift_ratio": 0.5, "max_drift_ratio": 0.2},
+            {
+                "estimated_total": 50,
+                "budget_cap": 100,
+                "last_quote_age_min": 5,
+                "quota_used": 10,
+                "quota_limit": 100,
+                "drift_ratio": 0.5,
+                "max_drift_ratio": 0.2,
+            },
             {"allow_pricing": False, "drift_ok": False},
         ),
     ],
@@ -48,7 +81,9 @@ from services.common.config.base_settings import resolve_env
 def test_budget_policy_cases(payload, expect):
     result = evaluate_locally(payload)
     for k, v in expect.items():
-        assert result[k] == v, f"Expected {k} == {v} got {result[k]} for payload {payload}"
+        assert (
+            result[k] == v
+        ), f"Expected {k} == {v} got {result[k]} for payload {payload}"
 
     # Sanity: allow_pricing matches conjunction logic
     conj = all(

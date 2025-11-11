@@ -75,11 +75,15 @@ class IdentityClient:
                     return False
 
         except httpx.TimeoutException as exc:
-            raise RuntimeError(f"Identity service timeout checking capability: {capability}") from exc
+            raise RuntimeError(
+                f"Identity service timeout checking capability: {capability}"
+            ) from exc
         except httpx.HTTPStatusError as exc:
             if exc.response.status_code == 404:
                 return False
-            raise RuntimeError(f"Identity service error: {exc.response.status_code}") from exc
+            raise RuntimeError(
+                f"Identity service error: {exc.response.status_code}"
+            ) from exc
 
     async def get_user_capabilities(
         self,
@@ -117,9 +121,13 @@ class IdentityClient:
                 return data.get("capabilities", [])
 
         except httpx.TimeoutException as exc:
-            raise RuntimeError("Identity service timeout fetching capabilities") from exc
+            raise RuntimeError(
+                "Identity service timeout fetching capabilities"
+            ) from exc
         except httpx.HTTPStatusError as exc:
-            raise RuntimeError(f"Identity service error: {exc.response.status_code}") from exc
+            raise RuntimeError(
+                f"Identity service error: {exc.response.status_code}"
+            ) from exc
 
     async def get_user_roles(
         self,
@@ -159,7 +167,9 @@ class IdentityClient:
         except httpx.TimeoutException as exc:
             raise RuntimeError("Identity service timeout fetching roles") from exc
         except httpx.HTTPStatusError as exc:
-            raise RuntimeError(f"Identity service error: {exc.response.status_code}") from exc
+            raise RuntimeError(
+                f"Identity service error: {exc.response.status_code}"
+            ) from exc
 
     async def verify_user(
         self,
@@ -190,7 +200,9 @@ class IdentityClient:
         except httpx.HTTPStatusError as exc:
             if exc.response.status_code == 404:
                 raise ValueError(f"User not found: {user_id}") from exc
-            raise RuntimeError(f"Identity service error: {exc.response.status_code}") from exc
+            raise RuntimeError(
+                f"Identity service error: {exc.response.status_code}"
+            ) from exc
 
     async def health_check(self) -> bool:
         """Check if identity service is accessible."""

@@ -34,7 +34,9 @@ class GCPAdapter:
 
         # Load credentials
         if credentials_path:
-            self.credentials = service_account.Credentials.from_service_account_file(credentials_path)
+            self.credentials = service_account.Credentials.from_service_account_file(
+                credentials_path
+            )
             logger.info("GCP adapter initialized with service account")
         else:
             self.credentials = None  # Use default credentials
@@ -49,21 +51,27 @@ class GCPAdapter:
     def compute_client(self):
         """Lazy load compute client."""
         if not self._compute_client:
-            self._compute_client = compute_v1.InstancesClient(credentials=self.credentials)
+            self._compute_client = compute_v1.InstancesClient(
+                credentials=self.credentials
+            )
         return self._compute_client
 
     @property
     def storage_client(self):
         """Lazy load storage client."""
         if not self._storage_client:
-            self._storage_client = storage.Client(project=self.project_id, credentials=self.credentials)
+            self._storage_client = storage.Client(
+                project=self.project_id, credentials=self.credentials
+            )
         return self._storage_client
 
     @property
     def sql_client(self):
         """Lazy load SQL admin client."""
         if not self._sql_client:
-            self._sql_client = sql_v1.SqlInstancesServiceClient(credentials=self.credentials)
+            self._sql_client = sql_v1.SqlInstancesServiceClient(
+                credentials=self.credentials
+            )
         return self._sql_client
 
     # ============================================================================
@@ -186,19 +194,25 @@ class GCPAdapter:
             )
         return buckets
 
-    def upload_blob(self, bucket_name: str, source_file: str, destination_blob_name: str):
+    def upload_blob(
+        self, bucket_name: str, source_file: str, destination_blob_name: str
+    ):
         """Upload a file to Cloud Storage."""
         bucket = self.storage_client.bucket(bucket_name)
         blob = bucket.blob(destination_blob_name)
         blob.upload_from_filename(source_file)
         logger.info(f"Uploaded {source_file} to {bucket_name}/{destination_blob_name}")
 
-    def download_blob(self, bucket_name: str, source_blob_name: str, destination_file: str):
+    def download_blob(
+        self, bucket_name: str, source_blob_name: str, destination_file: str
+    ):
         """Download a file from Cloud Storage."""
         bucket = self.storage_client.bucket(bucket_name)
         blob = bucket.blob(source_blob_name)
         blob.download_to_filename(destination_file)
-        logger.info(f"Downloaded {bucket_name}/{source_blob_name} to {destination_file}")
+        logger.info(
+            f"Downloaded {bucket_name}/{source_blob_name} to {destination_file}"
+        )
 
     def delete_bucket(self, bucket_name: str):
         """Delete a bucket."""

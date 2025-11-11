@@ -34,13 +34,17 @@ class LinearAdapter:
         self.headers = {"Authorization": api_key, "Content-Type": "application/json"}
         logger.info("Linear adapter initialized")
 
-    def _graphql_query(self, query: str, variables: dict | None = None) -> dict[str, Any]:
+    def _graphql_query(
+        self, query: str, variables: dict | None = None
+    ) -> dict[str, Any]:
         """Execute GraphQL query."""
         payload = {"query": query}
         if variables:
             payload["variables"] = variables
 
-        response = requests.post(self.api_url, json=payload, headers=self.headers, timeout=30)
+        response = requests.post(
+            self.api_url, json=payload, headers=self.headers, timeout=30
+        )
         response.raise_for_status()
 
         result = response.json()
@@ -195,7 +199,9 @@ class LinearAdapter:
         result = self._graphql_query(mutation, {"id": issue_id, "input": input_data})
         return result["issueUpdate"]["issue"]
 
-    def search_issues(self, query: str, team_id: str | None = None, limit: int = 50) -> list[dict[str, Any]]:
+    def search_issues(
+        self, query: str, team_id: str | None = None, limit: int = 50
+    ) -> list[dict[str, Any]]:
         """
         Search issues using Linear's search syntax.
 
@@ -314,7 +320,9 @@ class LinearAdapter:
         result = self._graphql_query(query, {"id": project_id})
         return result["project"]
 
-    def list_projects(self, team_id: str | None = None, limit: int = 50) -> list[dict[str, Any]]:
+    def list_projects(
+        self, team_id: str | None = None, limit: int = 50
+    ) -> list[dict[str, Any]]:
         """List projects."""
         query = """
         query ListProjects($first: Int!) {
@@ -496,7 +504,9 @@ class LinearAdapter:
             Dictionary with project and created issues
         """
         # Create project
-        project = self.create_project(name=name, description=description, team_ids=[team_id])
+        project = self.create_project(
+            name=name, description=description, team_ids=[team_id]
+        )
 
         # Create initial issues if provided
         created_issues = []

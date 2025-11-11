@@ -24,6 +24,8 @@ class ServiceTest:
     port: int
     endpoints: list[str]
     expected_status: int = 200
+
+
 # ... existing code ...
 
 

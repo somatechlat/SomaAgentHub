@@ -25,7 +25,9 @@ ORCHESTRATOR_LATENCY = Histogram(
 )
 
 
-def record_moderation_decision(tenant: str, outcome: str, flagged: bool, strikes: int) -> None:
+def record_moderation_decision(
+    tenant: str, outcome: str, flagged: bool, strikes: int
+) -> None:
     """Increment counters for moderation outcomes."""
 
     MODERATION_DECISIONS.labels(tenant=tenant, outcome=outcome).inc()

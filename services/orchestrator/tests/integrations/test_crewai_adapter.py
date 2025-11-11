@@ -93,7 +93,9 @@ def patch_crewai(monkeypatch: pytest.MonkeyPatch) -> None:
         "_get_crewai_components",
         lambda: (DummyAgent, DummyTask, DummyCrew, DummyProcess),
     )
-    monkeypatch.setattr(crewai_adapter, "activity", SimpleNamespace(logger=DummyLogger()))
+    monkeypatch.setattr(
+        crewai_adapter, "activity", SimpleNamespace(logger=DummyLogger())
+    )
 
 
 @pytest.mark.asyncio

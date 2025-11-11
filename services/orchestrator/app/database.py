@@ -69,6 +69,7 @@ AsyncSessionLocal = async_sessionmaker(
     bind=async_engine, class_=AsyncSession, expire_on_commit=False
 )
 
+
 # Alias for backward compatibility
 def get_session_factory():
     """Return the async session factory for service initialization."""

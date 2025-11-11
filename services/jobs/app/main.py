@@ -18,7 +18,9 @@ JOBS_REQUESTS = Counter("jobs_requests_total", "Total requests to Jobs service")
 
 class JobCreate(BaseModel):
     task: str = Field(..., description="Name of the task to run")
-    payload: dict = Field(default_factory=dict, description="Arbitrary payload for the job")
+    payload: dict = Field(
+        default_factory=dict, description="Arbitrary payload for the job"
+    )
 
 
 class JobStatus(BaseModel):
@@ -63,7 +65,9 @@ async def _run_job(job_id: str, task: str, payload: dict):
 
         await redis_client.publish(
             f"jobs:{job_id}",
-            json.dumps({"status": JOB_STORE[job_id].status, "result": JOB_STORE[job_id].result}),
+            json.dumps(
+                {"status": JOB_STORE[job_id].status, "result": JOB_STORE[job_id].result}
+            ),
         )
 
 
@@ -76,10 +80,17 @@ async def _process_data(payload: dict) -> dict:
         count = len(data)
     elif isinstance(data, dict):
         count = len(data)
-    source = payload.get("source") or ("records_list" if isinstance(data, list) else "records_map" if isinstance(data, dict) else "unknown")
+    source = payload.get("source") or (
+        "records_list"
+        if isinstance(data, list)
+        else "records_map" if isinstance(data, dict) else "unknown"
+    )
     # Compute a stable fingerprint for idempotency/debugging
     import json, hashlib
-    fingerprint = hashlib.sha256(json.dumps(payload, sort_keys=True).encode("utf-8")).hexdigest()
+
+    fingerprint = hashlib.sha256(
+        json.dumps(payload, sort_keys=True).encode("utf-8")
+    ).hexdigest()
     return {"processed": source, "records": count, "fingerprint": fingerprint}
 
 
@@ -100,7 +111,10 @@ async def _generate_report(payload: dict) -> dict:
     content = "\n".join(lines)
     # Store in-memory artifact for retrieval (could be persisted later)
     report_id = f"report-{uuid.uuid4().hex[:8]}"
-    JOB_STORE.setdefault("_artifacts", {})[report_id] = {"content_type": "text/markdown", "content": content}
+    JOB_STORE.setdefault("_artifacts", {})[report_id] = {
+        "content_type": "text/markdown",
+        "content": content,
+    }
     return {"report_id": report_id, "bytes": len(content.encode("utf-8"))}
 
 
@@ -108,12 +122,15 @@ async def _sync_external(payload: dict) -> dict:
     """Task handler: Sync with external system."""
     # Realistic behavior without external dependencies: publish to Redis stream
     import json
+
     stream = payload.get("stream", "external_sync")
     target = payload.get("target", "unknown")
     body = payload.get("body", {})
     if not isinstance(body, dict):
         body = {"value": str(body)}
-    entry_id = await redis_client.xadd(stream, {"target": target, "body": json.dumps(body)})
+    entry_id = await redis_client.xadd(
+        stream, {"target": target, "body": json.dumps(body)}
+    )
     return {"synced": target, "stream": stream, "entry_id": entry_id}
 
 

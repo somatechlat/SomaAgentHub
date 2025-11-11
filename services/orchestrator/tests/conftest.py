@@ -59,7 +59,9 @@ class FakeTemporalClient:
         self.workflows: dict[str, FakeWorkflowHandle] = {}
         self.closed = False
 
-    async def start_workflow(self, workflow: str, payload: Any, *, id: str, **kwargs: Any) -> FakeWorkflowHandle:  # noqa: D417
+    async def start_workflow(
+        self, workflow: str, payload: Any, *, id: str, **kwargs: Any
+    ) -> FakeWorkflowHandle:  # noqa: D417
         run_id = str(uuid4())
         if workflow == "multi-agent-orchestration-workflow":
             agent_results = [

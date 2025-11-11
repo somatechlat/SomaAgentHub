@@ -98,7 +98,9 @@ EXPERIMENTS: list[ChaosExperiment] = [
         duration="10m",
         description="Stress gateway CPU to 80%",
         params={"workers": "2", "load": "80"},
-        validation_queries=['rate(http_requests_total{service="gateway-api",code="200"}[1m]) > 10'],
+        validation_queries=[
+            'rate(http_requests_total{service="gateway-api",code="200"}[1m]) > 10'
+        ],
     ),
     ChaosExperiment(
         name="llm_hub_memory_stress",
@@ -107,7 +109,9 @@ EXPERIMENTS: list[ChaosExperiment] = [
         duration="5m",
         description="Fill 70% of LLM Hub memory",
         params={"size": "70%"},
-        validation_queries=['container_memory_usage_bytes{pod=~"llm-hub.*"} < container_spec_memory_limit_bytes'],
+        validation_queries=[
+            'container_memory_usage_bytes{pod=~"llm-hub.*"} < container_spec_memory_limit_bytes'
+        ],
     ),
     # I/O chaos
     ChaosExperiment(
@@ -197,7 +201,9 @@ class ChaosRunner:
 
         elif experiment.type == ExperimentType.STRESS_MEMORY:
             base_manifest["kind"] = "StressChaos"
-            base_manifest["spec"]["stressors"] = {"memory": {"workers": 1, "size": experiment.params["size"]}}
+            base_manifest["spec"]["stressors"] = {
+                "memory": {"workers": 1, "size": experiment.params["size"]}
+            }
 
         elif experiment.type == ExperimentType.IO_DELAY:
             base_manifest["kind"] = "IOChaos"
@@ -291,10 +297,14 @@ class ChaosRunner:
 
         for query in experiment.validation_queries or []:
             try:
-                response = requests.get(f"{prometheus_url}/api/v1/query", params={"query": query}, timeout=5)
+                response = requests.get(
+                    f"{prometheus_url}/api/v1/query", params={"query": query}, timeout=5
+                )
 
                 data = response.json()
-                is_valid = data["status"] == "success" and len(data["data"]["result"]) > 0
+                is_valid = (
+                    data["status"] == "success" and len(data["data"]["result"]) > 0
+                )
 
                 results["validations"].append(
                     {
@@ -306,6 +316,8 @@ class ChaosRunner:
 
             except Exception as e:
                 logger.error(f"Validation query failed: {e}")
-                results["validations"].append({"query": query, "valid": False, "error": str(e)})
+                results["validations"].append(
+                    {"query": query, "valid": False, "error": str(e)}
+                )
 
         return results

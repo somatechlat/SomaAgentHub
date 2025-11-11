@@ -61,10 +61,14 @@ def _iter_files(base: Path) -> Iterable[Path]:
 
 def _is_text_file(path: Path) -> bool:
     # Heuristic by extension only (templates are controlled)
-    return path.suffix in TEXT_EXTENSIONS or any(str(path).endswith(ext) for ext in TEXT_EXTENSIONS if ext)
+    return path.suffix in TEXT_EXTENSIONS or any(
+        str(path).endswith(ext) for ext in TEXT_EXTENSIONS if ext
+    )
 
 
-def validate_tokens(content: str, provided: Mapping[str, str], *, file_path: Path) -> None:
+def validate_tokens(
+    content: str, provided: Mapping[str, str], *, file_path: Path
+) -> None:
     missing: set[str] = set()
     for match in RE_TOKEN.finditer(content):
         token = match.group(1)
@@ -101,12 +105,16 @@ def render_template_set(
     """
     source_dir = TEMPLATE_ROOT / template_set
     if not source_dir.is_dir():
-        raise FileNotFoundError(f"Template set '{template_set}' not found under {TEMPLATE_ROOT}")
+        raise FileNotFoundError(
+            f"Template set '{template_set}' not found under {TEMPLATE_ROOT}"
+        )
 
     output_dir = destination_root / template_set
     if output_dir.exists():
         if not overwrite:
-            raise FileExistsError(f"Output directory {output_dir} already exists and overwrite=False")
+            raise FileExistsError(
+                f"Output directory {output_dir} already exists and overwrite=False"
+            )
         shutil.rmtree(output_dir)
     shutil.copytree(source_dir, output_dir)
 
@@ -135,7 +143,12 @@ def render_template_set(
                 arcname = file_path.relative_to(destination_root)
                 zf.write(file_path, arcname)
 
-    return RenderResult(output_dir=output_dir, zipped_path=zipped_path, tokens=dict(tokens), files_rendered=files_rendered)
+    return RenderResult(
+        output_dir=output_dir,
+        zipped_path=zipped_path,
+        tokens=dict(tokens),
+        files_rendered=files_rendered,
+    )
 
 
 def build_default_tokens(

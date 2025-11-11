@@ -36,7 +36,9 @@ class KAMACHIQProjectWorkflow:
     """
 
     @workflow.run
-    async def run(self, project_description: str, user_id: str, session_id: str) -> dict[str, Any]:
+    async def run(
+        self, project_description: str, user_id: str, session_id: str
+    ) -> dict[str, Any]:
         """
         Execute a complete project autonomously.
 
@@ -48,7 +50,9 @@ class KAMACHIQProjectWorkflow:
         Returns:
             Dict with project results, artifacts, and execution metadata
         """
-        workflow.logger.info(f"Starting KAMACHIQ project workflow: {project_description[:50]}...")
+        workflow.logger.info(
+            f"Starting KAMACHIQ project workflow: {project_description[:50]}..."
+        )
 
         # Step 1: Decompose project into executable tasks (activity)
         task_breakdown = await workflow.execute_activity(
@@ -62,7 +66,9 @@ class KAMACHIQProjectWorkflow:
             ),
         )
 
-        workflow.logger.info(f"Project decomposed into {len(task_breakdown['tasks'])} tasks")
+        workflow.logger.info(
+            f"Project decomposed into {len(task_breakdown['tasks'])} tasks"
+        )
 
         # Step 2: Create execution plan with dependencies (activity)
         execution_plan = await workflow.execute_activity(
@@ -75,7 +81,9 @@ class KAMACHIQProjectWorkflow:
         # Step 3: Execute tasks in parallel where possible (parallel execution)
         task_results = []
         for wave in execution_plan["waves"]:
-            workflow.logger.info(f"Executing wave {wave['wave_number']} with {len(wave['tasks'])} tasks")
+            workflow.logger.info(
+                f"Executing wave {wave['wave_number']} with {len(wave['tasks'])} tasks"
+            )
 
             # Execute all tasks in this wave in parallel (concurrency)
             wave_results = await workflow.execute_activity(
@@ -95,7 +103,9 @@ class KAMACHIQProjectWorkflow:
             retry_policy=RetryPolicy(maximum_attempts=2),
         )
 
-        workflow.logger.info(f"Quality review: {review_result['status']} (score: {review_result['score']})")
+        workflow.logger.info(
+            f"Quality review: {review_result['status']} (score: {review_result['score']})"
+        )
 
         # Step 5: Aggregate final results (aggregation)
         final_result = await workflow.execute_activity(
@@ -127,7 +137,9 @@ class AgentTaskWorkflow:
     """
 
     @workflow.run
-    async def run(self, task: dict[str, Any], context: dict[str, Any]) -> dict[str, Any]:
+    async def run(
+        self, task: dict[str, Any], context: dict[str, Any]
+    ) -> dict[str, Any]:
         """
         Execute a single task with an agent.
 
@@ -170,7 +182,9 @@ class AgentTaskWorkflow:
         }
 
 
-async def execute_task_wave(tasks: list[dict[str, Any]], session_id: str) -> list[dict[str, Any]]:
+async def execute_task_wave(
+    tasks: list[dict[str, Any]], session_id: str
+) -> list[dict[str, Any]]:
     """
     Execute multiple tasks in parallel using child workflows.
 

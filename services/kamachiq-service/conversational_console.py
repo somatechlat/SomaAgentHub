@@ -48,7 +48,9 @@ class KAMACHIQConsole:
         self.conversations: dict[str, list[ConversationTurn]] = {}
         self.active_projects: dict[str, dict[str, Any]] = {}
 
-    async def process_message(self, session_id: str, message: str) -> AsyncIterator[dict[str, Any]]:
+    async def process_message(
+        self, session_id: str, message: str
+    ) -> AsyncIterator[dict[str, Any]]:
         """
         Process user message and stream responses.
 
@@ -83,7 +85,9 @@ class KAMACHIQConsole:
         message_lower = message.lower()
 
         # Project creation intent
-        if any(word in message_lower for word in ["create", "build", "make", "new project"]):
+        if any(
+            word in message_lower for word in ["create", "build", "make", "new project"]
+        ):
             async for chunk in self._handle_project_creation(session_id, message):
                 yield chunk
 
@@ -93,7 +97,9 @@ class KAMACHIQConsole:
                 yield chunk
 
         # Modification intent
-        elif any(word in message_lower for word in ["change", "modify", "update", "add"]):
+        elif any(
+            word in message_lower for word in ["change", "modify", "update", "add"]
+        ):
             async for chunk in self._handle_project_modification(session_id, message):
                 yield chunk
 
@@ -108,7 +114,9 @@ class KAMACHIQConsole:
                 "content": "I can help you create projects! Try saying something like:\n• 'Create a web app for task management'\n• 'Build a REST API for user authentication'\n• 'Make a mobile app for fitness tracking'",
             }
 
-    async def _handle_project_creation(self, session_id: str, prompt: str) -> AsyncIterator[dict[str, Any]]:
+    async def _handle_project_creation(
+        self, session_id: str, prompt: str
+    ) -> AsyncIterator[dict[str, Any]]:
         """Handle project creation request."""
         logger.info("Handling project creation")
 
@@ -151,7 +159,9 @@ class KAMACHIQConsole:
             )
         )
 
-    async def _handle_status_check(self, session_id: str, message: str) -> AsyncIterator[dict[str, Any]]:
+    async def _handle_status_check(
+        self, session_id: str, message: str
+    ) -> AsyncIterator[dict[str, Any]]:
         """Handle project status check."""
         logger.info("Handling status check")
 
@@ -188,7 +198,9 @@ class KAMACHIQConsole:
                     "progress": (i + 1) * 33,
                 }
 
-    async def _handle_project_modification(self, session_id: str, message: str) -> AsyncIterator[dict[str, Any]]:
+    async def _handle_project_modification(
+        self, session_id: str, message: str
+    ) -> AsyncIterator[dict[str, Any]]:
         """Handle project modification request."""
         logger.info("Handling project modification")
 
@@ -197,7 +209,9 @@ class KAMACHIQConsole:
             "content": "🔧 I can help modify the project. What would you like to change?\n• Tech stack\n• Features\n• Infrastructure\n• Team size",
         }
 
-    async def confirm_and_execute(self, session_id: str, spec_data: dict[str, Any]) -> AsyncIterator[dict[str, Any]]:
+    async def confirm_and_execute(
+        self, session_id: str, spec_data: dict[str, Any]
+    ) -> AsyncIterator[dict[str, Any]]:
         """
         Execute confirmed project creation.
 
@@ -278,7 +292,9 @@ class KAMACHIQConsole:
         async for update in self._stream_execution_updates(project_id):
             yield update
 
-    async def _stream_execution_updates(self, project_id: str) -> AsyncIterator[dict[str, Any]]:
+    async def _stream_execution_updates(
+        self, project_id: str
+    ) -> AsyncIterator[dict[str, Any]]:
         """Stream real-time execution updates."""
         # Connect to MAO WebSocket
         async for update in self.mao_client.stream_project_updates(project_id):

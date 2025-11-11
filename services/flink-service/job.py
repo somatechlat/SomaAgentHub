@@ -26,7 +26,9 @@ class FlinkConfig:
         return cls(
             bootstrap_servers=resolve_env("KAFKA_BOOTSTRAP_SERVERS", "kafka:9092"),
             topic=resolve_env("KAFKA_TOPIC", "soma.events"),
-            pushgateway=resolve_env("PROMETHEUS_PUSHGATEWAY", "http://pushgateway:9091"),
+            pushgateway=resolve_env(
+                "PROMETHEUS_PUSHGATEWAY", "http://pushgateway:9091"
+            ),
             metrics_job=resolve_env("PROMETHEUS_JOB_NAME", "soma_flink_job"),
         )
 

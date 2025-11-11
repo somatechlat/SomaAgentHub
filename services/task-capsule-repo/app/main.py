@@ -18,6 +18,7 @@ app = FastAPI(
 # ----------------------------------------------------------------------------
 _store: dict[str, str] = {}
 
+
 def _key(capsule_id: str, version: str) -> str:
     return f"{capsule_id}:{version}"
 
@@ -58,7 +59,9 @@ async def upload_capsule(capsule_id: str, version: str, request: Request) -> str
     try:
         body_str = body.decode("utf-8")
     except UnicodeDecodeError as exc:
-        raise HTTPException(status_code=400, detail="Manifest must be UTF-8 text") from exc
+        raise HTTPException(
+            status_code=400, detail="Manifest must be UTF-8 text"
+        ) from exc
     _store[_key(capsule_id, version)] = body_str
     return f"Capsule {capsule_id}:{version} stored"
 

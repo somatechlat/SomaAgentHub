@@ -1,4 +1,5 @@
 from services.common.config.base_settings import resolve_env
+
 """DEPRECATED: Service Registry Pattern
 
 This module is deprecated. Use explicit service URLs resolved via

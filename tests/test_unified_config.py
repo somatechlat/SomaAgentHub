@@ -34,57 +34,53 @@ def test_resolve_env_default():
     assert resolve_env("NON_EXISTENT", default) == default
 
 
-
 def test_deployment_strategy():
     """Test deployment strategy"""
     print("🧪 Testing Deployment Strategy...")
-    
+
     try:
         from services.common.deployment.deployment_strategy import (
             get_deployment_config,
-            DeploymentFactory
+            DeploymentFactory,
         )
-        
+
         # Test deployment factory
         strategy = DeploymentFactory.create_strategy("local")
         assert strategy is not None
-        
+
         # Test deployment config
         config = get_deployment_config("gateway_api")
         assert config.service_name == "gateway_api"
         assert config.database_url is not None
-        
+
         print("✅ Deployment Strategy test passed")
         return True
-        
+
     except Exception as e:
         print(f"❌ Deployment Strategy test failed: {e}")
         return False
 
 
-async def test_service_discovery():
-    """Test service discovery"""
-    print("🧪 Testing Service Discovery...")
-    
+def test_service_discovery():
+    """Test basic discovery via the simple registry stub."""
+    print("🧪 Testing Service Discovery (simple registry)...")
+
     try:
-        from services.common.registry.service_registry import get_service_registry
-        registry = get_service_registry()
-        
-        # Test service URL retrieval
-        # Note: This will use localhost URLs in development
-        services = list(registry.services.keys())[:3]  # Test first 3 services
-        
-        for service_name in services:
-            try:
-                url = await registry.get_service_url(service_name, healthy_only=False)
-                assert url is not None
-                print(f"   {service_name}: {url}")
-            except Exception as e:
-                print(f"   {service_name}: URL not available ({e})")
-        
-        print("✅ Service Discovery test passed")
+        from services.common.registry.simple_registry import simple_registry
+
+        services = list(simple_registry.get_all_services().keys())[:3]
+        assert services, "No services found in simple registry"
+
+        for name in services:
+            url = simple_registry.get_service_url(name)
+            assert url.startswith(
+                "http://localhost:"
+            ), f"Unexpected URL for {name}: {url}"
+            print(f"   {name}: {url}")
+
+        print("✅ Service Discovery (simple) test passed")
         return True
-        
+
     except Exception as e:
         print(f"❌ Service Discovery test failed: {e}")
         return False
@@ -114,34 +110,36 @@ def test_environment_variables():
 def test_migrated_services():
     """Test that services can import unified config"""
     print("🧪 Testing Migrated Services...")
-    
+
     services = [
         "gateway_api",
-        "orchestrator", 
+        "orchestrator",
         "memory_gateway",
         "policy_engine",
-        "llm_hub"
+        "llm_hub",
     ]
-    
+
     success_count = 0
-    
+
     for service in services:
         try:
             # Test that service can import unified config
             service_path = Path(f"services/{service}")
-            
+
             # Check for unified config files
-            config_files = list(service_path.glob("**/config.py")) + list(service_path.glob("**/unified_config.py"))
-            
+            config_files = list(service_path.glob("**/config.py")) + list(
+                service_path.glob("**/unified_config.py")
+            )
+
             if config_files:
                 print(f"   {service}: ✅ Found unified config")
                 success_count += 1
             else:
                 print(f"   {service}: ⚠️ No unified config found")
-                
+
         except Exception as e:
             print(f"   {service}: ❌ Import error: {e}")
-    
+
     print(f"✅ {success_count}/{len(services)} services migrated successfully")
     return success_count == len(services)
 
@@ -149,7 +147,7 @@ def test_migrated_services():
 def run_all_tests():
     """Run all integration tests"""
     print("🚀 Running Unified Configuration Integration Tests...\n")
-    
+
     # Only include tests that are defined in this file.
     tests = [
         test_resolve_env_prefix,
@@ -158,17 +156,17 @@ def run_all_tests():
         test_environment_variables,
         test_migrated_services,
     ]
-    
+
     async_tests = [test_service_discovery]
-    
+
     passed = 0
     total = len(tests) + len(async_tests)
-    
+
     # Run synchronous tests
     for test in tests:
         if test():
             passed += 1
-    
+
     # Run async tests
     for test in async_tests:
         try:
@@ -176,14 +174,14 @@ def run_all_tests():
                 passed += 1
         except Exception as e:
             print(f"❌ Async test {test.__name__} failed: {e}")
-    
+
     print(f"\n📊 Test Results: {passed}/{total} tests passed")
-    
+
     if passed == total:
         print("🎉 All integration tests passed! Unified configuration system is ready.")
     else:
         print("⚠️ Some tests failed. Check the output above for details.")
-    
+
     return passed == total
 
 

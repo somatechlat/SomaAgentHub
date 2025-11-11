@@ -118,7 +118,9 @@ class KubernetesAdapter:
 
         # Add environment variables
         if env_vars:
-            container.env = [client.V1EnvVar(name=k, value=v) for k, v in env_vars.items()]
+            container.env = [
+                client.V1EnvVar(name=k, value=v) for k, v in env_vars.items()
+            ]
 
         # Add resources
         if resources:
@@ -145,7 +147,9 @@ class KubernetesAdapter:
             spec=spec,
         )
 
-        return self.apps_v1.create_namespaced_deployment(namespace=namespace, body=deployment)
+        return self.apps_v1.create_namespaced_deployment(
+            namespace=namespace, body=deployment
+        )
 
     def list_deployments(self, namespace: str) -> list[Any]:
         """List deployments in namespace."""
@@ -162,7 +166,9 @@ class KubernetesAdapter:
         # Update replicas
         deployment.spec.replicas = replicas
 
-        return self.apps_v1.patch_namespaced_deployment(name=name, namespace=namespace, body=deployment)
+        return self.apps_v1.patch_namespaced_deployment(
+            name=name, namespace=namespace, body=deployment
+        )
 
     def delete_deployment(self, name: str, namespace: str) -> Any:
         """Delete deployment."""
@@ -201,7 +207,9 @@ class KubernetesAdapter:
             for p in ports
         ]
 
-        spec = client.V1ServiceSpec(selector=selector, ports=service_ports, type=service_type)
+        spec = client.V1ServiceSpec(
+            selector=selector, ports=service_ports, type=service_type
+        )
 
         service = client.V1Service(
             api_version="v1",
@@ -266,14 +274,18 @@ class KubernetesAdapter:
             data=data,
         )
 
-        return self.core_v1.create_namespaced_config_map(namespace=namespace, body=configmap)
+        return self.core_v1.create_namespaced_config_map(
+            namespace=namespace, body=configmap
+        )
 
     def update_configmap(self, name: str, namespace: str, data: dict[str, str]) -> Any:
         """Update ConfigMap."""
         configmap = self.core_v1.read_namespaced_config_map(name, namespace)
         configmap.data = data
 
-        return self.core_v1.patch_namespaced_config_map(name=name, namespace=namespace, body=configmap)
+        return self.core_v1.patch_namespaced_config_map(
+            name=name, namespace=namespace, body=configmap
+        )
 
     # Secret Operations
 
@@ -290,7 +302,9 @@ class KubernetesAdapter:
         # Base64 encode values
         import base64
 
-        encoded_data = {k: base64.b64encode(v.encode()).decode() for k, v in data.items()}
+        encoded_data = {
+            k: base64.b64encode(v.encode()).decode() for k, v in data.items()
+        }
 
         secret = client.V1Secret(
             api_version="v1",
@@ -324,7 +338,9 @@ class KubernetesAdapter:
                     backend=client.V1IngressBackend(
                         service=client.V1IngressServiceBackend(
                             name=p.get("serviceName"),
-                            port=client.V1ServiceBackendPort(number=p.get("servicePort")),
+                            port=client.V1ServiceBackendPort(
+                                number=p.get("servicePort")
+                            ),
                         )
                     ),
                 )
@@ -342,7 +358,12 @@ class KubernetesAdapter:
 
         # Add TLS if provided
         if tls:
-            spec.tls = [client.V1IngressTLS(hosts=t.get("hosts", []), secret_name=t.get("secretName")) for t in tls]
+            spec.tls = [
+                client.V1IngressTLS(
+                    hosts=t.get("hosts", []), secret_name=t.get("secretName")
+                )
+                for t in tls
+            ]
 
         ingress = client.V1Ingress(
             api_version="networking.k8s.io/v1",
@@ -351,7 +372,9 @@ class KubernetesAdapter:
             spec=spec,
         )
 
-        return self.networking_v1.create_namespaced_ingress(namespace=namespace, body=ingress)
+        return self.networking_v1.create_namespaced_ingress(
+            namespace=namespace, body=ingress
+        )
 
     # Utility Methods
 
@@ -383,11 +406,17 @@ class KubernetesAdapter:
 
             # Route to appropriate API based on kind
             if kind == "Deployment":
-                result = self.apps_v1.create_namespaced_deployment(namespace=namespace, body=resource)
+                result = self.apps_v1.create_namespaced_deployment(
+                    namespace=namespace, body=resource
+                )
             elif kind == "Service":
-                result = self.core_v1.create_namespaced_service(namespace=namespace, body=resource)
+                result = self.core_v1.create_namespaced_service(
+                    namespace=namespace, body=resource
+                )
             elif kind == "ConfigMap":
-                result = self.core_v1.create_namespaced_config_map(namespace=namespace, body=resource)
+                result = self.core_v1.create_namespaced_config_map(
+                    namespace=namespace, body=resource
+                )
             else:
                 logger.warning(f"Unsupported resource kind: {kind}")
                 continue
@@ -396,7 +425,9 @@ class KubernetesAdapter:
 
         return results
 
-    def bootstrap_namespace(self, namespace: str, labels: dict[str, str] | None = None) -> dict[str, Any]:
+    def bootstrap_namespace(
+        self, namespace: str, labels: dict[str, str] | None = None
+    ) -> dict[str, Any]:
         """
         Bootstrap a namespace with common resources.
 

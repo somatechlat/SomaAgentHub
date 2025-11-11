@@ -13,9 +13,9 @@ from .core.config import settings
 # New capsule workflow and activity
 from .workflows.capsule import CapsuleRunWorkflow, execute_capsule
 from .workflows.mao import MultiAgentWorkflow, dispatch_notification
-from .workflows.session import (
 from services.common.config.base_settings import resolve_env
-    SessionWorkflow,
+
+    SessionWorkflow,
     emit_audit_event,
     evaluate_policy,
     issue_identity_token,

@@ -13,7 +13,9 @@ from common.config.settings import Settings as SharedSettings
 from services.common.config.base_settings import resolve_env
 
 
-def load_secret(env_var: str, file_env: str | None = None, default: str | None = None) -> str:
+def load_secret(
+    env_var: str, file_env: str | None = None, default: str | None = None
+) -> str:
     """Load a secret from environment variable or mounted file."""
 
     value = resolve_env(env_var)
@@ -101,7 +103,9 @@ class IdentitySettings(SharedSettings):
         ),
     )
     clickhouse_host_raw: str | None = Field(
-        default=runtime_default("clickhouse", "clickhouse.soma-infra.svc.cluster.local"),
+        default=runtime_default(
+            "clickhouse", "clickhouse.soma-infra.svc.cluster.local"
+        ),
         validation_alias=AliasChoices(
             "SOMA_AGENT_HUB_CLICKHOUSE_HOST",
             "CLICKHOUSE_HOST",

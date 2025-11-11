@@ -136,7 +136,9 @@ class EmbeddingService:
     def _embed_sentence_bert(self, texts: list[str]) -> list[list[float]]:
         """Generate sentence-BERT embeddings."""
         try:
-            embeddings = self.client.encode(texts, batch_size=self.batch_size, show_progress_bar=False)
+            embeddings = self.client.encode(
+                texts, batch_size=self.batch_size, show_progress_bar=False
+            )
 
             # Convert to list of lists
             embeddings_list = [emb.tolist() for emb in embeddings]
@@ -150,7 +152,9 @@ class EmbeddingService:
     def _embed_cohere(self, texts: list[str]) -> list[list[float]]:
         """Generate Cohere embeddings."""
         try:
-            response = self.client.embed(texts=texts, model=self.model.value, input_type="search_document")
+            response = self.client.embed(
+                texts=texts, model=self.model.value, input_type="search_document"
+            )
 
             embeddings = response.embeddings
             logger.debug(f"Generated {len(embeddings)} Cohere embeddings")
@@ -173,7 +177,9 @@ class EmbeddingService:
         dim = dims.get(self.model, 1536)
         return [0.0] * dim
 
-    def cosine_similarity(self, embedding1: list[float], embedding2: list[float]) -> float:
+    def cosine_similarity(
+        self, embedding1: list[float], embedding2: list[float]
+    ) -> float:
         """
         Calculate cosine similarity between two embeddings.
 

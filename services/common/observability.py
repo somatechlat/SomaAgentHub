@@ -54,7 +54,9 @@ class OpenTelemetryConfig:
         if self.enable_otlp:
             from services.common.config.base_settings import resolve_env
 
-            otlp_endpoint = resolve_env("OTEL_EXPORTER_OTLP_ENDPOINT", "http://otel-collector:4317")
+            otlp_endpoint = resolve_env(
+                "OTEL_EXPORTER_OTLP_ENDPOINT", "http://otel-collector:4317"
+            )
             insecure_flag = str(resolve_env("OTEL_INSECURE", "false")).lower() == "true"
             exporter = OTLPSpanExporter(endpoint=otlp_endpoint, insecure=insecure_flag)
             provider.add_span_processor(BatchSpanProcessor(exporter))
@@ -62,7 +64,9 @@ class OpenTelemetryConfig:
                 logger.warning(
                     "OTLP exporter using insecure transport (OTEL_INSECURE=true). Not recommended outside development."
                 )
-            logger.info(f"OTLP trace exporter enabled: {otlp_endpoint} insecure={insecure_flag}")
+            logger.info(
+                f"OTLP trace exporter enabled: {otlp_endpoint} insecure={insecure_flag}"
+            )
         trace.set_tracer_provider(provider)
         logger.info(f"Tracing initialized for service: {self.service_name}")
 
@@ -73,9 +77,13 @@ class OpenTelemetryConfig:
                 from opentelemetry.exporter.prometheus import PrometheusMetricReader
 
                 readers.append(PrometheusMetricReader())
-                logger.info(f"Prometheus metrics reader enabled on port {self.prometheus_port}")
+                logger.info(
+                    f"Prometheus metrics reader enabled on port {self.prometheus_port}"
+                )
             except Exception:  # pragma: no cover - optional dependency missing
-                logger.warning("Prometheus exporter not installed; metrics endpoint will be disabled.")
+                logger.warning(
+                    "Prometheus exporter not installed; metrics endpoint will be disabled."
+                )
         meter_provider = MeterProvider(resource=self.resource, metric_readers=readers)
         metrics.set_meter_provider(meter_provider)
         logger.info(f"Metrics initialized for service: {self.service_name}")
@@ -110,7 +118,9 @@ def setup_observability(
     from services.common.config.base_settings import resolve_env
 
     env: str = environment or resolve_env("ENVIRONMENT", "development")
-    enable_otlp_raw = resolve_env("ENABLE_OTLP", "true" if env == "development" else "false")
+    enable_otlp_raw = resolve_env(
+        "ENABLE_OTLP", "true" if env == "development" else "false"
+    )
     enable_otlp = str(enable_otlp_raw).lower() in {"1", "true", "yes", "on"}
 
     config = OpenTelemetryConfig(

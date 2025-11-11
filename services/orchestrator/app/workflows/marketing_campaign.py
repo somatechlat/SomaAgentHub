@@ -18,9 +18,9 @@ from typing import Any
 from temporalio import workflow
 
 from ..patterns.saga import Saga
-from .marketing_activities import (
 from services.common.config.base_settings import resolve_env
-    AnalyticsSetupInput,
+
+    AnalyticsSetupInput,
     ContentCreationInput,
     DesignAssetsInput,
     DistributionInput,

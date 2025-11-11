@@ -12,9 +12,9 @@ from pydantic import BaseModel, Field
 from sqlalchemy import func, or_
 from sqlalchemy.orm import Session
 
-from .db import (
 from services.common.config.base_settings import resolve_env
-    Capsule,
+
+    Capsule,
     CapsuleDownload,
     CapsuleRating,
     CapsuleVersion,

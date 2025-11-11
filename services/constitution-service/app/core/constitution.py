@@ -45,32 +45,44 @@ def canonicalise_document(bundle: ConstitutionBundle) -> bytes:
 def _verify_hash(bundle: ConstitutionBundle, canonical_document: bytes) -> None:
     computed_hash = sha256(canonical_document).hexdigest()
     if computed_hash != bundle.hash:
-        raise ConstitutionVerificationError("Constitution hash mismatch: bundle hash does not match computed hash")
+        raise ConstitutionVerificationError(
+            "Constitution hash mismatch: bundle hash does not match computed hash"
+        )
 
 
-def _verify_signature(bundle: ConstitutionBundle, canonical_document: bytes, public_key_path: Path) -> None:
+def _verify_signature(
+    bundle: ConstitutionBundle, canonical_document: bytes, public_key_path: Path
+) -> None:
     signature_bytes = base64.b64decode(bundle.signature.value)
     public_key = serialization.load_pem_public_key(public_key_path.read_bytes())
     try:
-        public_key.verify(signature_bytes, canonical_document, padding.PKCS1v15(), hashes.SHA256())
+        public_key.verify(
+            signature_bytes, canonical_document, padding.PKCS1v15(), hashes.SHA256()
+        )
     except InvalidSignature as exc:  # pragma: no cover - defensive guard
         raise ConstitutionVerificationError("Signature verification failed") from exc
 
 
-def _build_verified(bundle: ConstitutionBundle, public_key_path: Path) -> VerifiedConstitution:
+def _build_verified(
+    bundle: ConstitutionBundle, public_key_path: Path
+) -> VerifiedConstitution:
     canonical_document = canonicalise_document(bundle)
     _verify_hash(bundle, canonical_document)
     _verify_signature(bundle, canonical_document, public_key_path)
     return VerifiedConstitution(bundle=bundle, canonical_document=canonical_document)
 
 
-def load_verified_constitution(bundle_path: Path, public_key_path: Path) -> VerifiedConstitution:
+def load_verified_constitution(
+    bundle_path: Path, public_key_path: Path
+) -> VerifiedConstitution:
     """Load, validate, and return the signed constitution bundle."""
 
     try:
         raw = json.loads(bundle_path.read_text(encoding="utf-8"))
     except FileNotFoundError as exc:
-        raise ConstitutionVerificationError(f"Constitution bundle not found at {bundle_path}") from exc
+        raise ConstitutionVerificationError(
+            f"Constitution bundle not found at {bundle_path}"
+        ) from exc
 
     bundle = ConstitutionBundle.model_validate(raw)
     verified = _build_verified(bundle, public_key_path)
@@ -90,7 +102,9 @@ def normalise_tenant(tenant: str) -> str:
 class ConstitutionRegistry:
     """In-memory registry that serves the verified constitution for all tenants."""
 
-    def __init__(self, verified: VerifiedConstitution, tenants: Iterable[str] | None = None) -> None:
+    def __init__(
+        self, verified: VerifiedConstitution, tenants: Iterable[str] | None = None
+    ) -> None:
         self._verified = verified
         tenant_set = {normalise_tenant(t) for t in (tenants or {"global"})}
         if not tenant_set:
@@ -121,7 +135,9 @@ class ConstitutionRegistry:
         self._verified = verified
 
 
-def build_verified_from_bundle(bundle: ConstitutionBundle, public_key_path: Path) -> VerifiedConstitution:
+def build_verified_from_bundle(
+    bundle: ConstitutionBundle, public_key_path: Path
+) -> VerifiedConstitution:
     """Validate *bundle* and return a :class:`VerifiedConstitution`."""
 
     return _build_verified(bundle, public_key_path)

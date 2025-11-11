@@ -49,7 +49,9 @@ class GatewayEventService:
 
         try:
             # Save to outbox for durability
-            await self.outbox_repo.save_event(event_type="gateway.wizard_approved.v1", event_data=event_data)
+            await self.outbox_repo.save_event(
+                event_type="gateway.wizard_approved.v1", event_data=event_data
+            )
 
             logger.info(f"Emitted wizard approved event: {session_id} -> {workflow_id}")
 
@@ -57,7 +59,9 @@ class GatewayEventService:
             logger.exception(f"Failed to emit wizard approved event: {e}")
             raise
 
-    async def emit_wizard_rejected(self, session_id: str, user_id: str, reason: str, campaign_name: str) -> None:
+    async def emit_wizard_rejected(
+        self, session_id: str, user_id: str, reason: str, campaign_name: str
+    ) -> None:
         """Emit wizard rejection event.
 
         Args:
@@ -77,7 +81,9 @@ class GatewayEventService:
 
         try:
             # Save to outbox for durability
-            await self.outbox_repo.save_event(event_type="gateway.wizard_rejected.v1", event_data=event_data)
+            await self.outbox_repo.save_event(
+                event_type="gateway.wizard_rejected.v1", event_data=event_data
+            )
 
             logger.info(f"Emitted wizard rejected event: {session_id}")
 
@@ -114,7 +120,9 @@ class GatewayEventService:
 
         try:
             # Save to outbox for durability
-            await self.outbox_repo.save_event(event_type="gateway.budget_exceeded.v1", event_data=event_data)
+            await self.outbox_repo.save_event(
+                event_type="gateway.budget_exceeded.v1", event_data=event_data
+            )
 
             logger.info(f"Emitted budget exceeded event: {session_id}")
 

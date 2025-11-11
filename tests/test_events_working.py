@@ -73,7 +73,9 @@ async def test_outbox_event_workflow():
 
         # Test 3: Process events with publisher
         for event in unprocessed:
-            await publisher.publish({"event_type": event.event_type, "data": event.event_data})
+            await publisher.publish(
+                {"event_type": event.event_type, "data": event.event_data}
+            )
             await outbox_repo.mark_processed(event.id)
 
         # Test 4: Verify events were published

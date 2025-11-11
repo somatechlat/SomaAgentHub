@@ -31,7 +31,9 @@ class DummyMinio:
         self.objects[(bucket_name, object_name)] = data.read(length)
 
     def presigned_get_object(self, bucket, object_name, expires):
-        return f"http://example/{bucket}/{object_name}?exp={int(expires.total_seconds())}"
+        return (
+            f"http://example/{bucket}/{object_name}?exp={int(expires.total_seconds())}"
+        )
 
     def remove_object(self, bucket, object_name):
         self.objects.pop((bucket, object_name), None)
@@ -54,7 +56,9 @@ def patch_minio(monkeypatch):
 def test_upload_and_presign():
     client = ObjectStoreClient(ObjectStoreSettings.from_env())
     data = io.BytesIO(b"hello world")
-    s3_url = client.upload("tenant/capsule/v1/out.txt", data, length=11, content_type="text/plain")
+    s3_url = client.upload(
+        "tenant/capsule/v1/out.txt", data, length=11, content_type="text/plain"
+    )
     assert s3_url.startswith("s3://")
     presigned = client.presign_get("tenant/capsule/v1/out.txt")
     assert presigned.startswith("http://example/")

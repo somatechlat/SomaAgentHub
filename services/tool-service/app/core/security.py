@@ -12,7 +12,9 @@ from services.common.config.base_settings import resolve_env
 def _canonical_json(obj: Any) -> bytes:
     """Return canonical JSON bytes for deterministic hashing."""
 
-    return json.dumps(obj, sort_keys=True, separators=(",", ":"), ensure_ascii=False).encode("utf-8")
+    return json.dumps(
+        obj, sort_keys=True, separators=(",", ":"), ensure_ascii=False
+    ).encode("utf-8")
 
 
 def compute_manifest_digest(manifest: Any) -> str:
@@ -31,7 +33,9 @@ def compute_release_signature(
     """Return HMAC signature for the adapter release (including manifest digest)."""
 
     payload = f"{adapter_id}:{version}:{manifest_digest or ''}"
-    digest = hmac.new(secret.encode(), payload.encode("utf-8"), hashlib.sha256).hexdigest()
+    digest = hmac.new(
+        secret.encode(), payload.encode("utf-8"), hashlib.sha256
+    ).hexdigest()
     return f"sha256:{digest}"
 
 

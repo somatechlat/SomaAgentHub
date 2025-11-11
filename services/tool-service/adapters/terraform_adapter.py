@@ -429,7 +429,9 @@ class TerraformAdapter:
         logger.info(f"Created backend config: {backend_file}")
         return str(backend_file)
 
-    def plan_and_apply(self, variables: dict[str, Any] | None = None, auto_approve: bool = False) -> dict[str, str]:
+    def plan_and_apply(
+        self, variables: dict[str, Any] | None = None, auto_approve: bool = False
+    ) -> dict[str, str]:
         """
         Convenience method: plan and apply in one call.
 

@@ -22,7 +22,9 @@ def test_user_token_flow(client) -> None:
     assert enroll.status_code == status.HTTP_200_OK
     secret = enroll.json()["secret"]
 
-    verify = client.post("/v1/users/alice/mfa/verify", json={"user_id": "alice", "code": secret})
+    verify = client.post(
+        "/v1/users/alice/mfa/verify", json={"user_id": "alice", "code": secret}
+    )
     assert verify.status_code == status.HTTP_200_OK
     assert verify.json()["mfa_enabled"] is True
 

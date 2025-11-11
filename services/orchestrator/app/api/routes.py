@@ -298,21 +298,28 @@ async def _call_policy_engine(payload: dict[str, Any]) -> dict[str, Any]:
         return data if isinstance(data, dict) else {"raw": data}
 
 
-async def _issue_identity_token(user_id: str, tenant_id: str, capabilities: list[str], mfa_code: str | None) -> dict[str, Any]:
+async def _issue_identity_token(
+    user_id: str, tenant_id: str, capabilities: list[str], mfa_code: str | None
+) -> dict[str, Any]:
     endpoint = str(settings.identity_service_url).rstrip("/") + "/v1/tokens/issue"
     async with httpx.AsyncClient(timeout=10.0) as client:
-        r = await client.post(endpoint, json={
-            "user_id": user_id,
-            "tenant_id": tenant_id,
-            "capabilities": capabilities,
-            "mfa_code": mfa_code,
-        })
+        r = await client.post(
+            endpoint,
+            json={
+                "user_id": user_id,
+                "tenant_id": tenant_id,
+                "capabilities": capabilities,
+                "mfa_code": mfa_code,
+            },
+        )
         r.raise_for_status()
         data = r.json()
         return data if isinstance(data, dict) else {"raw": data}
 
 
-async def _llm_chat_completion(prompt: str, model: str, tenant: str, user: str) -> dict[str, Any]:
+async def _llm_chat_completion(
+    prompt: str, model: str, tenant: str, user: str
+) -> dict[str, Any]:
     base = (str(settings.llm_hub_url) or "").rstrip("/")
     if not base:
         raise RuntimeError("LLM_HUB_URL not configured")
@@ -330,22 +337,26 @@ async def _llm_chat_completion(prompt: str, model: str, tenant: str, user: str) 
         r.raise_for_status()
         data = r.json()
         # Normalize
-        content = (
-            (data.get("choices") or [{}])[0].get("message", {}).get("content", "")
-        )
-        return {"model": data.get("model", model), "completion": content, "usage": data.get("usage", {})}
+        content = (data.get("choices") or [{}])[0].get("message", {}).get("content", "")
+        return {
+            "model": data.get("model", model),
+            "completion": content,
+            "usage": data.get("usage", {}),
+        }
 
 
 async def _run_session_task(workflow_id: str, payload: SessionStartRequest) -> None:
     logger = logging.getLogger("orchestrator.session")
     try:
-        policy = await _call_policy_engine({
-            **(payload.metadata or {}),
-            "tenant": payload.tenant,
-            "user": payload.user,
-            "session_id": workflow_id,
-            "prompt": payload.prompt,
-        })
+        policy = await _call_policy_engine(
+            {
+                **(payload.metadata or {}),
+                "tenant": payload.tenant,
+                "user": payload.user,
+                "session_id": workflow_id,
+                "prompt": payload.prompt,
+            }
+        )
         if not policy.get("allowed", True):
             _INPROCESS_TASKS[workflow_id].status = "rejected"
             _INPROCESS_TASKS[workflow_id].result = {"policy": policy}
@@ -391,7 +402,9 @@ async def _run_capsule_task(workflow_id: str, req: CapsuleRunRequest) -> None:
         )
         result = await execute_capsule(payload)
         _INPROCESS_TASKS[workflow_id].status = "completed"
-        _INPROCESS_TASKS[workflow_id].result = result if isinstance(result, dict) else {"value": result}
+        _INPROCESS_TASKS[workflow_id].result = (
+            result if isinstance(result, dict) else {"value": result}
+        )
     except Exception as exc:  # pragma: no cover
         logger.exception("capsule task failed: %s", exc)
         _INPROCESS_TASKS[workflow_id].status = "failed"
@@ -415,13 +428,17 @@ async def _run_mao_task(workflow_id: str, payload: MultiAgentStartRequest) -> No
                 tenant=payload.tenant,
                 user=payload.initiator,
             )
-            results.append({
-                "agent_id": directive.agent_id,
-                "goal": directive.goal,
-                "status": "completed",
-                "token_claims": {k: v for k, v in token.items() if k != "access_token"},
-                "llm": llm,
-            })
+            results.append(
+                {
+                    "agent_id": directive.agent_id,
+                    "goal": directive.goal,
+                    "status": "completed",
+                    "token_claims": {
+                        k: v for k, v in token.items() if k != "access_token"
+                    },
+                    "llm": llm,
+                }
+            )
         _INPROCESS_TASKS[workflow_id].status = "completed"
         _INPROCESS_TASKS[workflow_id].result = {"agents": results}
     except Exception as exc:  # pragma: no cover
@@ -430,7 +447,11 @@ async def _run_mao_task(workflow_id: str, payload: MultiAgentStartRequest) -> No
         _INPROCESS_TASKS[workflow_id].result = {"error": str(exc)}
 
 
-@router.post("/sessions/start", response_model=SessionStartResponse, status_code=status.HTTP_202_ACCEPTED)
+@router.post(
+    "/sessions/start",
+    response_model=SessionStartResponse,
+    status_code=status.HTTP_202_ACCEPTED,
+)
 async def start_session(request: Request) -> SessionStartResponse:
     """Start a session (in‑process async task).
 
@@ -472,7 +493,12 @@ async def start_session(request: Request) -> SessionStartResponse:
         status="started",
         result=None,
     )
-    return SessionStartResponse(workflow_id=workflow_id, run_id="", session_id=session_id, task_queue="inprocess")
+    return SessionStartResponse(
+        workflow_id=workflow_id,
+        run_id="",
+        session_id=session_id,
+        task_queue="inprocess",
+    )
 
 
 @router.get("/sessions/{workflow_id}", response_model=SessionStatusResponse)
@@ -598,9 +624,13 @@ async def start_capsule_run(
             POLICY_FALLBACK_EVENTS.labels(route="capsule.run", reason="opa_none").inc()
     except Exception as exc:
         if settings.allow_on_opa_error:
-            POLICY_FALLBACK_EVENTS.labels(route="capsule.run", reason="opa_exception").inc()
+            POLICY_FALLBACK_EVENTS.labels(
+                route="capsule.run", reason="opa_exception"
+            ).inc()
         else:
-            raise HTTPException(status_code=503, detail="Policy engine unavailable") from exc
+            raise HTTPException(
+                status_code=503, detail="Policy engine unavailable"
+            ) from exc
 
     _INPROCESS_TASKS[workflow_id] = InProcessTaskStatus(
         id=workflow_id,

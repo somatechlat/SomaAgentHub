@@ -7,9 +7,9 @@ from typing import Any
 
 from fastapi import APIRouter, HTTPException, status
 
-from .schemas import (
 from services.common.config.base_settings import resolve_env
-    BillingLedger,
+
+    BillingLedger,
     ModelProfile,
     NotificationPreferences,
     TenantSettings,

@@ -62,7 +62,9 @@ class OpenTelemetryConfig:
         if self.enable_otlp:
             from services.common.config.base_settings import resolve_env
 
-            otlp_endpoint = resolve_env("OTEL_EXPORTER_OTLP_ENDPOINT", default_otlp_grpc_endpoint())
+            otlp_endpoint = resolve_env(
+                "OTEL_EXPORTER_OTLP_ENDPOINT", default_otlp_grpc_endpoint()
+            )
             insecure = str(resolve_env("OTEL_INSECURE", "false")).lower() == "true"
             if insecure:
                 logger.warning(
@@ -93,7 +95,9 @@ class OpenTelemetryConfig:
         if self.enable_otlp:
             from services.common.config.base_settings import resolve_env
 
-            otlp_endpoint = resolve_env("OTEL_EXPORTER_OTLP_ENDPOINT", default_otlp_grpc_endpoint())
+            otlp_endpoint = resolve_env(
+                "OTEL_EXPORTER_OTLP_ENDPOINT", default_otlp_grpc_endpoint()
+            )
             # Note: For metrics export, use PeriodicExportingMetricReader in a full setup
             # Leaving just a log line to indicate configuration for now
             logger.info(f"OTLP metrics exporter configured: {otlp_endpoint}")
@@ -180,7 +184,8 @@ def setup_observability(
         service_version=service_version,
         environment=env,
         enable_prometheus=True,
-        enable_otlp=str(resolve_env("ENABLE_OTLP", "false")).lower() in {"1", "true", "yes", "on"},
+        enable_otlp=str(resolve_env("ENABLE_OTLP", "false")).lower()
+        in {"1", "true", "yes", "on"},
     )
 
     config.setup_all(app)

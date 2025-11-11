@@ -29,14 +29,18 @@ def compute_severity(score: float) -> str:
     return "critical"
 
 
-async def evaluate(tenant: str, prompt: str) -> tuple[bool, float, list[dict[str, str | float]], str]:
+async def evaluate(
+    tenant: str, prompt: str
+) -> tuple[bool, float, list[dict[str, str | float]], str]:
     allowed, score, violations = evaluate_prompt(tenant, prompt)
     constitution_hash = await get_cached_hash(tenant)
     violation_payload = [_violation_to_dict(v) for v in violations]
     return allowed, score, violation_payload, constitution_hash
 
 
-async def score_only(tenant: str, prompt: str) -> tuple[float, list[dict[str, str | float]], str]:
+async def score_only(
+    tenant: str, prompt: str
+) -> tuple[float, list[dict[str, str | float]], str]:
     _, score, violations = evaluate_prompt(tenant, prompt)
     constitution_hash = await get_cached_hash(tenant)
     violation_payload = [_violation_to_dict(v) for v in violations]

@@ -86,7 +86,9 @@ async def get_forecast(req: ForecastRequest) -> ForecastResponse:
         base_tokens = 100_000  # Base daily estimate
         confidence = 0.65  # Lower confidence without real data
 
-    provider_multiplier = {"openai": 1.0, "anthropic": 0.8, "local": 0.5}.get(req.provider, 1.0)
+    provider_multiplier = {"openai": 1.0, "anthropic": 0.8, "local": 0.5}.get(
+        req.provider, 1.0
+    )
     estimated_tokens = int(base_tokens * provider_multiplier * (req.window_hours / 24))
 
     # REAL cost estimation using actual provider pricing
@@ -94,7 +96,9 @@ async def get_forecast(req: ForecastRequest) -> ForecastResponse:
     # - OpenAI: https://openai.com/api/pricing/ (input/output tokens separate)
     # - Anthropic: https://anthropic.com/pricing (input/output tokens separate)
     # For now, use empirical rates but these should be configurable per provider
-    cost_per_1k = {"openai": 0.02, "anthropic": 0.05, "local": 0.0}.get(req.provider, 0.02)
+    cost_per_1k = {"openai": 0.02, "anthropic": 0.05, "local": 0.0}.get(
+        req.provider, 0.02
+    )
     estimated_cost = (estimated_tokens / 1000) * cost_per_1k
 
     elapsed = time.perf_counter() - start_time
@@ -130,13 +134,17 @@ class MultiProviderForecastResponse(BaseModel):
 
 
 @app.get("/v1/forecast/{tenant}", response_model=MultiProviderForecastResponse)
-async def get_multi_provider_forecast(tenant: str, window_hours: int = 24) -> MultiProviderForecastResponse:
+async def get_multi_provider_forecast(
+    tenant: str, window_hours: int = 24
+) -> MultiProviderForecastResponse:
     """Get forecasts for all providers for a tenant."""
     providers = ["openai", "anthropic", "local"]
     forecasts = []
 
     for provider in providers:
-        req = ForecastRequest(tenant=tenant, provider=provider, window_hours=window_hours)
+        req = ForecastRequest(
+            tenant=tenant, provider=provider, window_hours=window_hours
+        )
         result = await get_forecast(req)
         forecasts.append(
             ProviderForecast(
@@ -146,7 +154,9 @@ async def get_multi_provider_forecast(tenant: str, window_hours: int = 24) -> Mu
             )
         )
 
-    return MultiProviderForecastResponse(tenant=tenant, window_hours=window_hours, forecasts=forecasts)
+    return MultiProviderForecastResponse(
+        tenant=tenant, window_hours=window_hours, forecasts=forecasts
+    )
 
 
 @app.get("/health", tags=["system"])

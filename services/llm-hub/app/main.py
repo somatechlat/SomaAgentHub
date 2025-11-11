@@ -16,10 +16,18 @@ app = FastAPI(
     description="Centralized deterministic local LLM capabilities (initial hub bootstrap).",
 )
 
-INFER_REQUESTS = Counter("llm_hub_infer_sync_requests_total", "Number of sync inference requests", ["model"])
-INFER_LATENCY = Histogram("llm_hub_infer_sync_latency_seconds", "Sync inference latency", ["model"])
-EMBED_REQUESTS = Counter("llm_hub_embedding_requests_total", "Embedding requests", ["model"])
-EMBED_LATENCY = Histogram("llm_hub_embedding_latency_seconds", "Embedding latency", ["model"])
+INFER_REQUESTS = Counter(
+    "llm_hub_infer_sync_requests_total", "Number of sync inference requests", ["model"]
+)
+INFER_LATENCY = Histogram(
+    "llm_hub_infer_sync_latency_seconds", "Sync inference latency", ["model"]
+)
+EMBED_REQUESTS = Counter(
+    "llm_hub_embedding_requests_total", "Embedding requests", ["model"]
+)
+EMBED_LATENCY = Histogram(
+    "llm_hub_embedding_latency_seconds", "Embedding latency", ["model"]
+)
 
 MODEL_NAME = "local-markov-v1"
 
@@ -67,7 +75,9 @@ def metrics() -> Response:
 
 
 @app.post("/v1/infer/sync", response_model=InferSyncResponse)
-def infer_sync(request: InferSyncRequest, generator=Depends(get_text_generator)) -> InferSyncResponse:
+def infer_sync(
+    request: InferSyncRequest, generator=Depends(get_text_generator)
+) -> InferSyncResponse:
     start = perf_counter()
     result: GenerationResult = generator.generate(
         request.prompt, max_tokens=request.max_tokens, temperature=request.temperature
@@ -79,17 +89,23 @@ def infer_sync(request: InferSyncRequest, generator=Depends(get_text_generator))
         completion_tokens=result.completion_tokens,
         total_tokens=result.total_tokens,
     )
-    return InferSyncResponse(model=MODEL_NAME, completion=result.text.strip(), usage=usage)
+    return InferSyncResponse(
+        model=MODEL_NAME, completion=result.text.strip(), usage=usage
+    )
 
 
 @app.post("/v1/embeddings", response_model=EmbeddingResponse)
-def create_embeddings(request: EmbeddingRequest, model=Depends(get_embedding_model)) -> EmbeddingResponse:
+def create_embeddings(
+    request: EmbeddingRequest, model=Depends(get_embedding_model)
+) -> EmbeddingResponse:
     start = perf_counter()
     vectors = model.embed(request.input)
     EMBED_REQUESTS.labels(model=model.name).inc()
     EMBED_LATENCY.labels(model=model.name).observe(perf_counter() - start)
     payload = [EmbeddingVector(embedding=[float(x) for x in vec]) for vec in vectors]
-    return EmbeddingResponse(model=model.name, vectors=payload, vector_length=len(payload[0].embedding))
+    return EmbeddingResponse(
+        model=model.name, vectors=payload, vector_length=len(payload[0].embedding)
+    )
 
 
 @app.get("/models")
@@ -97,6 +113,10 @@ def list_models():
     return {
         "models": [
             {"id": MODEL_NAME, "name": "Local Markov Text", "status": "ready"},
-            {"id": "local-tfidf-v1", "name": "Local TF-IDF Embeddings", "status": "ready"},
+            {
+                "id": "local-tfidf-v1",
+                "name": "Local TF-IDF Embeddings",
+                "status": "ready",
+            },
         ]
     }

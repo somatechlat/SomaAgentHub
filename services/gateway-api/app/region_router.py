@@ -90,7 +90,11 @@ class RegionRouter:
                 # Route based on continent
                 for region, config in REGION_CONFIG.items():
                     continents: list[str] = config["continents"]  # type: ignore[assignment]
-                    if continent and continent in continents and bool(config["enabled"]):
+                    if (
+                        continent
+                        and continent in continents
+                        and bool(config["enabled"])
+                    ):
                         logger.info(f"Routing {client_ip} ({continent}) to {region}")
                         return region
         except Exception as e:
@@ -100,7 +104,9 @@ class RegionRouter:
         logger.info(f"Using default region for {client_ip}")
         return Region.US_WEST_2
 
-    def get_region_for_user(self, user_id: str, user_metadata: dict | None = None) -> Region:
+    def get_region_for_user(
+        self, user_id: str, user_metadata: dict | None = None
+    ) -> Region:
         """
         Get region for a user based on their data residency requirements.
 
@@ -143,7 +149,9 @@ class RegionRouter:
         """
         config: dict[str, Any] | None = REGION_CONFIG.get(region)
         if not config or not config["enabled"]:
-            raise HTTPException(status_code=503, detail=f"Region {region} is not available")
+            raise HTTPException(
+                status_code=503, detail=f"Region {region} is not available"
+            )
 
         endpoint_val = config["endpoint"]
         return str(endpoint_val)
@@ -166,8 +174,13 @@ class RegionRouter:
         target_data_zone = REGION_CONFIG[target_region]["data_zone"]
 
         # EU users must stay in EU
-        if user_data_zone == DataResidencyZone.EU and target_data_zone != DataResidencyZone.EU:
-            logger.warning(f"Data residency violation: EU user {user_id} -> {target_region}")
+        if (
+            user_data_zone == DataResidencyZone.EU
+            and target_data_zone != DataResidencyZone.EU
+        ):
+            logger.warning(
+                f"Data residency violation: EU user {user_id} -> {target_region}"
+            )
             return False
 
         return True
@@ -210,7 +223,9 @@ class RegionRouter:
                     healthy.append(region)
                     logger.info(f"Region {region} is healthy")
                 else:
-                    logger.warning(f"Region {region} health check failed: {response.status_code}")
+                    logger.warning(
+                        f"Region {region} health check failed: {response.status_code}"
+                    )
             except Exception as exc:
                 logger.warning(f"Region {region} health check error: {exc}")
 

@@ -56,6 +56,10 @@ class BuildRun(SQLModel, table=True):
     policy_reason: str = Field(default="")
     created_at: datetime = Field(default_factory=datetime.utcnow)
     updated_at: datetime = Field(default_factory=datetime.utcnow)
+    # Optional metadata for status updates (e.g., completion timestamps)
+    # ``metadata`` is a reserved attribute in SQLAlchemy's declarative API, so we
+    # store the JSON payload under a different name.
+    metadata_json: dict = Field(sa_column=Column(JSON), default_factory=dict)
 
 
 """ORM/DTO models for storing project plan artifacts."""

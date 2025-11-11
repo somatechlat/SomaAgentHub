@@ -32,7 +32,9 @@ from services.common.config.base_settings import resolve_env
 logger = logging.getLogger(__name__)
 
 # Database setup
-DATABASE_URL = resolve_env("DATABASE_URL", "postgresql://somagent:somagent@localhost:10004/somagent")
+DATABASE_URL = resolve_env(
+    "DATABASE_URL", "postgresql://somagent:somagent@localhost:10004/somagent"
+)
 engine = create_engine(DATABASE_URL)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
@@ -92,9 +94,13 @@ class CapsuleCreate(BaseModel):
     version: str = Field(..., description="Semantic version (e.g., 1.0.0)")
     description: str = Field(..., description="Package description")
     author: str = Field(..., description="Author name/email")
-    category: str = Field(..., description="Category (analytics, security, devops, etc.)")
+    category: str = Field(
+        ..., description="Category (analytics, security, devops, etc.)"
+    )
     tags: list[str] = Field(default_factory=list, description="Search tags")
-    dependencies: dict[str, str] = Field(default_factory=dict, description="Package dependencies")
+    dependencies: dict[str, str] = Field(
+        default_factory=dict, description="Package dependencies"
+    )
     capsule_data: dict[str, Any] = Field(..., description="Complete capsule definition")
 
 
@@ -178,13 +184,21 @@ def get_db():
 def publish_package(capsule: CapsuleCreate, db: Session = Depends(get_db)):
     """Publish a new capsule package to the marketplace."""
     # Check if package already exists
-    existing = db.query(CapsulePackage).filter(CapsulePackage.name == capsule.name).first()
+    existing = (
+        db.query(CapsulePackage).filter(CapsulePackage.name == capsule.name).first()
+    )
     if existing:
-        raise HTTPException(status_code=400, detail=f"Package '{capsule.name}' already exists")
+        raise HTTPException(
+            status_code=400, detail=f"Package '{capsule.name}' already exists"
+        )
 
     # Generate ID and signature
-    package_id = hashlib.sha256(f"{capsule.name}:{capsule.version}".encode()).hexdigest()[:16]
-    signature = hashlib.sha256(json.dumps(capsule.capsule_data, sort_keys=True).encode()).hexdigest()
+    package_id = hashlib.sha256(
+        f"{capsule.name}:{capsule.version}".encode()
+    ).hexdigest()[:16]
+    signature = hashlib.sha256(
+        json.dumps(capsule.capsule_data, sort_keys=True).encode()
+    ).hexdigest()
 
     # Create package
     package = CapsulePackage(
@@ -211,18 +225,26 @@ def publish_package(capsule: CapsuleCreate, db: Session = Depends(get_db)):
 @app.get("/packages/{package_name}", response_model=CapsuleResponse)
 def get_package(package_name: str, db: Session = Depends(get_db)):
     """Get package by name (latest version)."""
-    package = db.query(CapsulePackage).filter(CapsulePackage.name == package_name).first()
+    package = (
+        db.query(CapsulePackage).filter(CapsulePackage.name == package_name).first()
+    )
     if not package:
-        raise HTTPException(status_code=404, detail=f"Package '{package_name}' not found")
+        raise HTTPException(
+            status_code=404, detail=f"Package '{package_name}' not found"
+        )
     return package
 
 
 @app.get("/packages/{package_name}/download")
 def download_package(package_name: str, db: Session = Depends(get_db)):
     """Download package capsule data and increment download counter."""
-    package = db.query(CapsulePackage).filter(CapsulePackage.name == package_name).first()
+    package = (
+        db.query(CapsulePackage).filter(CapsulePackage.name == package_name).first()
+    )
     if not package:
-        raise HTTPException(status_code=404, detail=f"Package '{package_name}' not found")
+        raise HTTPException(
+            status_code=404, detail=f"Package '{package_name}' not found"
+        )
 
     # Increment downloads
     package.downloads += 1
@@ -247,7 +269,10 @@ def search_packages(query: SearchQuery, db: Session = Depends(get_db)):
     # Text search in name/description
     if query.query:
         search = f"%{query.query}%"
-        q = q.filter((CapsulePackage.name.ilike(search)) | (CapsulePackage.description.ilike(search)))
+        q = q.filter(
+            (CapsulePackage.name.ilike(search))
+            | (CapsulePackage.description.ilike(search))
+        )
 
     # Category filter
     if query.category:
@@ -277,12 +302,16 @@ def search_packages(query: SearchQuery, db: Session = Depends(get_db)):
 def create_rating(rating: RatingCreate, db: Session = Depends(get_db)):
     """Create or update a rating for a package."""
     # Get package
-    package = db.query(CapsulePackage).filter(CapsulePackage.id == rating.package_id).first()
+    package = (
+        db.query(CapsulePackage).filter(CapsulePackage.id == rating.package_id).first()
+    )
     if not package:
         raise HTTPException(status_code=404, detail="Package not found")
 
     # Create rating
-    rating_id = hashlib.sha256(f"{rating.package_id}:{rating.user_id}".encode()).hexdigest()[:16]
+    rating_id = hashlib.sha256(
+        f"{rating.package_id}:{rating.user_id}".encode()
+    ).hexdigest()[:16]
     rating_obj = CapsuleRating(
         id=rating_id,
         package_id=rating.package_id,
@@ -294,7 +323,11 @@ def create_rating(rating: RatingCreate, db: Session = Depends(get_db)):
     db.add(rating_obj)
 
     # Update package rating average
-    all_ratings = db.query(CapsuleRating).filter(CapsuleRating.package_id == rating.package_id).all()
+    all_ratings = (
+        db.query(CapsuleRating)
+        .filter(CapsuleRating.package_id == rating.package_id)
+        .all()
+    )
     avg_rating = sum(r.rating for r in all_ratings) / len(all_ratings)
     package.rating_average = avg_rating
     package.rating_count = len(all_ratings)
@@ -309,11 +342,15 @@ def create_rating(rating: RatingCreate, db: Session = Depends(get_db)):
 @app.get("/packages/{package_name}/ratings")
 def get_package_ratings(package_name: str, db: Session = Depends(get_db)):
     """Get all ratings for a package."""
-    package = db.query(CapsulePackage).filter(CapsulePackage.name == package_name).first()
+    package = (
+        db.query(CapsulePackage).filter(CapsulePackage.name == package_name).first()
+    )
     if not package:
         raise HTTPException(status_code=404, detail="Package not found")
 
-    ratings = db.query(CapsuleRating).filter(CapsuleRating.package_id == package.id).all()
+    ratings = (
+        db.query(CapsuleRating).filter(CapsuleRating.package_id == package.id).all()
+    )
 
     return {
         "package": package_name,
@@ -348,7 +385,12 @@ def list_categories(db: Session = Depends(get_db)):
 @app.get("/popular", response_model=list[CapsuleResponse])
 def get_popular_packages(limit: int = 10, db: Session = Depends(get_db)):
     """Get most popular packages by download count."""
-    packages = db.query(CapsulePackage).order_by(CapsulePackage.downloads.desc()).limit(limit).all()
+    packages = (
+        db.query(CapsulePackage)
+        .order_by(CapsulePackage.downloads.desc())
+        .limit(limit)
+        .all()
+    )
 
     return packages
 

@@ -37,9 +37,13 @@ async def lifespan(app: FastAPI):
     # Startup: initialize SPIFFE early so SVID is ready for downstream calls
     spiffe_identity = init_spiffe(settings.service_name or "sah")
     if spiffe_identity:
-        logger.info("SPIFFE identity loaded", extra={"spiffe_id": spiffe_identity.spiffe_id})
+        logger.info(
+            "SPIFFE identity loaded", extra={"spiffe_id": spiffe_identity.spiffe_id}
+        )
     else:
-        logger.info("SPIFFE identity not initialized; falling back to non-mTLS workload identity")
+        logger.info(
+            "SPIFFE identity not initialized; falling back to non-mTLS workload identity"
+        )
 
     yield
     # Shutdown: ensure Redis client closes cleanly
@@ -116,9 +120,13 @@ def _attach_routes(app: FastAPI) -> None:
             raise HTTPException(status_code=500, detail=str(exc))
 
     @app.post("/v1/wizards/{session_id}/answer", tags=["wizard"])
-    def submit_wizard_answer(session_id: str, answer: WizardAnswerRequest) -> dict[str, Any]:
+    def submit_wizard_answer(
+        session_id: str, answer: WizardAnswerRequest
+    ) -> dict[str, Any]:
         try:
-            return wizard_engine.submit_answer(session_id=session_id, answer={"value": answer.value})
+            return wizard_engine.submit_answer(
+                session_id=session_id, answer={"value": answer.value}
+            )
         except ValueError as exc:
             raise HTTPException(status_code=404, detail=str(exc))
         except Exception as exc:
@@ -128,7 +136,9 @@ def _attach_routes(app: FastAPI) -> None:
     def get_wizard_session(session_id: str) -> dict[str, Any]:
         session = wizard_engine.get_session(session_id)
         if not session:
-            raise HTTPException(status_code=404, detail=f"Session '{session_id}' not found")
+            raise HTTPException(
+                status_code=404, detail=f"Session '{session_id}' not found"
+            )
         return session
 
     @app.post("/v1/wizards/{session_id}/approve", tags=["wizard"])
@@ -158,7 +168,9 @@ async def _check_kafka() -> bool:
         host, _, port_raw = endpoint.partition(":")
         port = int(port_raw or 9092)
         try:
-            _reader, writer = await asyncio.wait_for(asyncio.open_connection(host, port), timeout=3)
+            _reader, writer = await asyncio.wait_for(
+                asyncio.open_connection(host, port), timeout=3
+            )
         except Exception:
             continue
         writer.close()

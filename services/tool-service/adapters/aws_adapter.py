@@ -157,7 +157,9 @@ class AWSAdapter:
 
         return response
 
-    def list_ec2_instances(self, filters: list[dict[str, Any]] | None = None) -> list[dict[str, Any]]:
+    def list_ec2_instances(
+        self, filters: list[dict[str, Any]] | None = None
+    ) -> list[dict[str, Any]]:
         """List EC2 instances."""
         kwargs = {}
         if filters:
@@ -181,14 +183,18 @@ class AWSAdapter:
         logger.warning(f"Terminating EC2 instance: {instance_id}")
         return self.ec2.terminate_instances(InstanceIds=[instance_id])
 
-    def tag_resources(self, resource_ids: list[str], tags: dict[str, str]) -> dict[str, Any]:
+    def tag_resources(
+        self, resource_ids: list[str], tags: dict[str, str]
+    ) -> dict[str, Any]:
         """Tag AWS resources."""
         tag_list = [{"Key": k, "Value": v} for k, v in tags.items()]
         return self.ec2.create_tags(Resources=resource_ids, Tags=tag_list)
 
     # S3 Operations
 
-    def create_s3_bucket(self, bucket_name: str, region: str | None = None) -> dict[str, Any]:
+    def create_s3_bucket(
+        self, bucket_name: str, region: str | None = None
+    ) -> dict[str, Any]:
         """Create S3 bucket."""
         logger.info(f"Creating S3 bucket: {bucket_name}")
 
@@ -236,7 +242,9 @@ class AWSAdapter:
 
         return response
 
-    def download_from_s3(self, bucket_name: str, object_key: str, file_path: str) -> None:
+    def download_from_s3(
+        self, bucket_name: str, object_key: str, file_path: str
+    ) -> None:
         """Download file from S3."""
         logger.info(f"Downloading from S3: s3://{bucket_name}/{object_key}")
         self.s3.download_file(bucket_name, object_key, file_path)
@@ -305,7 +313,9 @@ class AWSAdapter:
         """Update Lambda function code."""
         logger.info(f"Updating Lambda code: {function_name}")
 
-        return self.lambda_client.update_function_code(FunctionName=function_name, ZipFile=zip_file)
+        return self.lambda_client.update_function_code(
+            FunctionName=function_name, ZipFile=zip_file
+        )
 
     def delete_lambda_function(self, function_name: str) -> dict[str, Any]:
         """Delete Lambda function."""
@@ -400,7 +410,9 @@ class AWSAdapter:
 
         return self.dynamodb.create_table(**kwargs)
 
-    def put_dynamodb_item(self, table_name: str, item: dict[str, Any]) -> dict[str, Any]:
+    def put_dynamodb_item(
+        self, table_name: str, item: dict[str, Any]
+    ) -> dict[str, Any]:
         """Put item in DynamoDB table."""
         return self.dynamodb.put_item(TableName=table_name, Item=item)
 
@@ -411,7 +423,9 @@ class AWSAdapter:
 
     # Utility Methods
 
-    def bootstrap_infrastructure(self, project_name: str, environment: str = "dev") -> dict[str, Any]:
+    def bootstrap_infrastructure(
+        self, project_name: str, environment: str = "dev"
+    ) -> dict[str, Any]:
         """
         Bootstrap basic AWS infrastructure for a project.
 
@@ -427,7 +441,9 @@ class AWSAdapter:
         results = {}
 
         # Create S3 bucket for artifacts
-        bucket_name = f"{project_name}-{environment}-artifacts-{self.session.region_name}"
+        bucket_name = (
+            f"{project_name}-{environment}-artifacts-{self.session.region_name}"
+        )
         try:
             results["s3_bucket"] = self.create_s3_bucket(bucket_name)
         except Exception as e:

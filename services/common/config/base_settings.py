@@ -4,6 +4,7 @@ from functools import lru_cache
 from typing import Any, Literal
 
 from pydantic_settings import BaseSettings
+
 # NOTE: Removed circular import of `resolve_env`. The function is defined
 # later in this module, so importing it from the same module caused a
 # circular import error during test collection.
@@ -44,6 +45,7 @@ def resolve_env(name: str, default: Any | None = None) -> Any:
     otherwise returns `default`.
     """
     import os as _os
+
     key = f"SOMA_AGENT_HUB_{name}"
     return _os.environ.get(key, default)
 

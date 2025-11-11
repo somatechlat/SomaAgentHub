@@ -144,6 +144,12 @@ def test_metrics_labels(client: TestClient) -> None:
     metrics_resp = client.get("/metrics")
     content = metrics_resp.text
     assert "policy_evaluations_total" in content
-    assert 'policy_evaluations_total{decision="allow",severity="low",tenant="tenantA"}' in content
-    assert 'policy_evaluation_latency_seconds_bucket{le="0.015",tenant="tenantA"}' in content
+    assert (
+        'policy_evaluations_total{decision="allow",severity="low",tenant="tenantA"}'
+        in content
+    )
+    assert (
+        'policy_evaluation_latency_seconds_bucket{le="0.015",tenant="tenantA"}'
+        in content
+    )
     assert 'policy_evaluation_score_bucket{le="1.0",tenant="tenantA"}' in content

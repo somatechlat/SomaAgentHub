@@ -188,8 +188,7 @@ class LLMHubClient:
 
     def __init__(self):
         self.base_url = str(
-            settings.llm_hub_url
-            or resolve_env("LLM_HUB_URL", "http://llm-hub:10022")
+            settings.llm_hub_url or resolve_env("LLM_HUB_URL", "http://llm-hub:10022")
         )
         self.timeout = httpx.Timeout(120.0, connect=10.0)
 

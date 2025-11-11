@@ -20,7 +20,9 @@ class DummyLogger:
     def info(self, *args: Any, **kwargs: Any) -> None:  # pragma: no cover - simple stub
         pass
 
-    def exception(self, *args: Any, **kwargs: Any) -> None:  # pragma: no cover - simple stub
+    def exception(
+        self, *args: Any, **kwargs: Any
+    ) -> None:  # pragma: no cover - simple stub
         pass
 
 
@@ -44,14 +46,20 @@ class DummyUserProxyAgent:
         self.max_consecutive_auto_reply = max_consecutive_auto_reply
 
     def initiate_chat(self, manager: DummyGroupChatManager, message: str) -> None:
-        manager.groupchat.messages.append({"name": self.name, "role": "user", "content": message})
+        manager.groupchat.messages.append(
+            {"name": self.name, "role": "user", "content": message}
+        )
         for agent in manager.groupchat.agents[1:]:
             response = f"Reply from {agent.name}"
-            manager.groupchat.messages.append({"name": agent.name, "role": "assistant", "content": response})
+            manager.groupchat.messages.append(
+                {"name": agent.name, "role": "assistant", "content": response}
+            )
 
 
 class DummyGroupChat:
-    def __init__(self, agents: list[Any], messages: list[dict[str, Any]], max_round: int):
+    def __init__(
+        self, agents: list[Any], messages: list[dict[str, Any]], max_round: int
+    ):
         self.agents = agents
         self.messages = messages
         self.max_round = max_round
@@ -74,7 +82,9 @@ def patch_autogen(monkeypatch: pytest.MonkeyPatch) -> None:
             DummyUserProxyAgent,
         ),
     )
-    monkeypatch.setattr(autogen_adapter, "activity", SimpleNamespace(logger=DummyLogger()))
+    monkeypatch.setattr(
+        autogen_adapter, "activity", SimpleNamespace(logger=DummyLogger())
+    )
 
 
 @pytest.mark.asyncio
@@ -106,4 +116,6 @@ async def test_autogen_group_chat_basic() -> None:
 @pytest.mark.asyncio
 async def test_autogen_group_chat_validation_error() -> None:
     with pytest.raises(ValueError):
-        await autogen_adapter.run_autogen_group_chat({"agents": [], "task": "Do something"})
+        await autogen_adapter.run_autogen_group_chat(
+            {"agents": [], "task": "Do something"}
+        )

@@ -12,11 +12,13 @@ SERVICE_NAME = "gateway-api"
 SERVICE_PORT = int(resolve_env("SERVICE_PORT", "8080"))
 
 # Database configuration
-DATABASE_URL = resolve_env("DATABASE_URL", "postgresql://postgres:postgres@postgres:5432/soma")
-REDIS_URL = (
-    resolve_env("GATEWAY_REDIS_URL")
-    or resolve_env("REDIS_URL", "redis://redis:6379/0")
+DATABASE_URL = resolve_env(
+    "DATABASE_URL", "postgresql://postgres:postgres@postgres:5432/soma"
 )
+REDIS_URL = resolve_env("GATEWAY_REDIS_URL") or resolve_env(
+    "REDIS_URL", "redis://redis:6379/0"
+)
+
 
 # Service dependencies (using registry for discovery)
 def _svc(name: str, default: str) -> str:
@@ -27,10 +29,12 @@ def _svc(name: str, default: str) -> str:
         or default
     )
 
+
 ORCHESTRATOR_URL = _svc("orchestrator", "http://orchestrator:8000")
 PRICING_SERVICE_URL = _svc("pricing-service", "http://pricing-service:10026")
 AUTH_URL = _svc("identity-service", "http://identity-service:10030")
 ADMIN_API_URL = _svc("settings-service", "http://settings-service:10032")
+
 
 # Security configuration
 def _get_jwt_secret() -> str:
@@ -46,11 +50,14 @@ def _get_jwt_secret() -> str:
         pass
     return resolve_env("JWT_SECRET", "dev-jwt-secret")
 
+
 JWT_SECRET = _get_jwt_secret()
 
 # Feature flags
 DEBUG = (resolve_env("DEBUG", "false") or "false").lower() == "true"
-KILL_SWITCH_ENABLED = (resolve_env("KILL_SWITCH_ENABLED", "false") or "false").lower() == "true"
+KILL_SWITCH_ENABLED = (
+    resolve_env("KILL_SWITCH_ENABLED", "false") or "false"
+).lower() == "true"
 
 # Headers and defaults
 TENANT_HEADER = "X-Tenant-ID"
@@ -74,9 +81,10 @@ TLS_CERTFILE = resolve_env("TLS_CERTFILE")
 TLS_KEYFILE = resolve_env("TLS_KEYFILE")
 TLS_CA_CERT = resolve_env("TLS_CA_CERT")
 
+
 class GatewaySettings:
     """Unified configuration settings for gateway service"""
-    
+
     def __init__(self):
         self.service_name = SERVICE_NAME
         self.debug = DEBUG
@@ -98,13 +106,19 @@ class GatewaySettings:
         self.default_deployment_mode = DEFAULT_DEPLOYMENT_MODE
         self.jwt_secret = JWT_SECRET
         self.kill_switch_enabled = KILL_SWITCH_ENABLED
-    
+
     def moderation_terms(self) -> list[str]:
-        return [term.strip().lower() for term in MODERATION_BLOCKLIST.split(",") if term.strip()]
+        return [
+            term.strip().lower()
+            for term in MODERATION_BLOCKLIST.split(",")
+            if term.strip()
+        ]
+
 
 @lru_cache
 def get_settings() -> GatewaySettings:
     """Return cached settings instance."""
     return GatewaySettings()
+
 
 settings = get_settings()

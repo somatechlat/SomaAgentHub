@@ -31,7 +31,9 @@ class ModerationVerdict:
 class ModerationGuard:
     """Performs lightweight content moderation with strike tracking."""
 
-    def __init__(self, redis_client: Redis, settings: GatewaySettings | None = None) -> None:
+    def __init__(
+        self, redis_client: Redis, settings: GatewaySettings | None = None
+    ) -> None:
         self.redis = redis_client
         self.settings = settings or get_settings()
         self.block_terms = self.settings.moderation_terms()
@@ -59,12 +61,16 @@ class ModerationGuard:
         try:
             strikes = await self.redis.incr(key)
             if self.settings.moderation_strike_ttl_seconds > 0:
-                await self.redis.expire(key, self.settings.moderation_strike_ttl_seconds)
+                await self.redis.expire(
+                    key, self.settings.moderation_strike_ttl_seconds
+                )
         except RedisError as exc:  # noqa: BLE001
             raise ModerationError("failed to increment strike counter") from exc
         return int(strikes)
 
-    async def evaluate(self, ctx: RequestContext, content: str | None) -> ModerationVerdict:
+    async def evaluate(
+        self, ctx: RequestContext, content: str | None
+    ) -> ModerationVerdict:
         """Evaluate content and update strike counters as needed."""
 
         if "moderation:bypass" in ctx.capabilities:
@@ -93,7 +99,9 @@ class ModerationGuard:
             reasons.append(f"flagged terms: {', '.join(flagged)}")
             if strikes >= self.block_after:
                 allowed = False
-                reasons.append(f"strike threshold reached ({strikes}/{self.block_after})")
+                reasons.append(
+                    f"strike threshold reached ({strikes}/{self.block_after})"
+                )
             elif strikes >= self.settings.moderation_warning_strikes:
                 reasons.append(f"warning strike {strikes} of {self.block_after}")
         else:
@@ -118,5 +126,7 @@ def get_moderation_guard() -> ModerationGuard:
     global _moderation_guard
     if _moderation_guard is None:
         client = get_redis_client()
-        _moderation_guard = ModerationGuard(client)  # RedisClient is compatible for our usage
+        _moderation_guard = ModerationGuard(
+            client
+        )  # RedisClient is compatible for our usage
     return _moderation_guard

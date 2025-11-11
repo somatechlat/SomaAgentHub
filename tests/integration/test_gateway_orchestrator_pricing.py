@@ -20,7 +20,9 @@ from typing import Any
 import requests
 from fastapi.testclient import TestClient
 
-BASE = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "services", "gateway-api"))
+BASE = os.path.abspath(
+    os.path.join(os.path.dirname(__file__), "..", "..", "services", "gateway-api")
+)
 if BASE not in sys.path:
     sys.path.insert(0, BASE)
 
@@ -125,15 +127,26 @@ def test_wizard_approval_triggers_pricing_and_orchestrator(monkeypatch):
     monkeypatch.setattr(requests, "post", fake_post)
 
     # Start wizard session
-    start = client.post("/v1/wizards/start", json={"wizard_id": "orch-budget-wiz", "user_id": "tester"})
+    start = client.post(
+        "/v1/wizards/start", json={"wizard_id": "orch-budget-wiz", "user_id": "tester"}
+    )
     assert start.status_code == 200, start.text
     session_id = start.json()["session_id"]
 
     # Provide answers for all steps
-    assert client.post(f"/v1/wizards/{session_id}/answer", json={"value": 100}).status_code == 200  # budget_cap
-    assert client.post(f"/v1/wizards/{session_id}/answer", json={"value": 5}).status_code == 200  # hours_planned
     assert (
-        client.post(f"/v1/wizards/{session_id}/answer", json={"value": "Autumn Launch"}).status_code == 200
+        client.post(f"/v1/wizards/{session_id}/answer", json={"value": 100}).status_code
+        == 200
+    )  # budget_cap
+    assert (
+        client.post(f"/v1/wizards/{session_id}/answer", json={"value": 5}).status_code
+        == 200
+    )  # hours_planned
+    assert (
+        client.post(
+            f"/v1/wizards/{session_id}/answer", json={"value": "Autumn Launch"}
+        ).status_code
+        == 200
     )  # campaign_name completes wizard
 
     # Approve execution (should pass pricing precheck and invoke orchestrator)
@@ -152,4 +165,6 @@ def test_wizard_approval_triggers_pricing_and_orchestrator(monkeypatch):
     assert session.metadata.get("_execution_plan") is not None
     plan = session.metadata["_execution_plan"]
     assert plan["campaign_name"] == "Autumn Launch"
-    assert any(t["action"] == "chat.generate" for m in plan["modules"] for t in m["tasks"])  # directive build
+    assert any(
+        t["action"] == "chat.generate" for m in plan["modules"] for t in m["tasks"]
+    )  # directive build
