@@ -28,6 +28,6 @@ __path__ = pkgutil.extend_path(__path__, __name__)
 # memory‑gateway service.
 service_root = pathlib.Path(__file__).resolve().parents[2]
 if str(service_root) not in sys.path:
-    # Insert at the front so it takes precedence over any other ``app``
-    # packages that might appear earlier on ``sys.path``.
-    sys.path.insert(0, str(service_root))
+# Insert at the front so it takes precedence over any other ``app``
+# packages that might appear earlier on ``sys.path``.
+sys.path.insert(0, str(service_root))

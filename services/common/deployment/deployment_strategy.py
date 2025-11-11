@@ -7,6 +7,6 @@ Importing this module raises to prevent accidental usage.
 """
 
 raise ImportError(
-    "services.common.deployment.deployment_strategy is deprecated. "
-    "Use direct env vars with SOMA_AGENT_HUB_ prefix and resolve_env."
+"services.common.deployment.deployment_strategy is deprecated. "
+"Use direct env vars with SOMA_AGENT_HUB_ prefix and resolve_env."
 )

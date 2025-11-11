@@ -28,56 +28,56 @@ KAFKA_SECURITY_PROTOCOL = resolve_env("KAFKA_SECURITY_PROTOCOL", "PLAINTEXT")
 
 
 class Settings(BaseServiceSettings):
-    """Concrete settings object for the Orchestrator service.
+"""Concrete settings object for the Orchestrator service.
 
-    It extends the canonical ``BaseServiceSettings`` and maps the module level
-    constants to attributes expected throughout the codebase (e.g. ``settings.
-    temporal_target_host``). This replaces the previous pattern where callers
-    attempted to import a ``settings`` instance from this module but none was
-    defined, causing an ``ImportError`` during test collection.
-    """
+It extends the canonical ``BaseServiceSettings`` and maps the module level
+constants to attributes expected throughout the codebase (e.g. ``settings.
+temporal_target_host``). This replaces the previous pattern where callers
+attempted to import a ``settings`` instance from this module but none was
+defined, causing an ``ImportError`` during test collection.
+"""
 
-    # Service identification
-    service_name: str = SERVICE_NAME
+# Service identification
+service_name: str = SERVICE_NAME
 
-    # Temporal configuration
-    temporal_target_host: str = TEMPORAL_TARGET_HOST
-    temporal_namespace: str = TEMPORAL_NAMESPACE
-    temporal_task_queue: str = TEMPORAL_TASK_QUEUE
-    temporal_enabled: bool = TEMPORAL_ENABLED
+# Temporal configuration
+temporal_target_host: str = TEMPORAL_TARGET_HOST
+temporal_namespace: str = TEMPORAL_NAMESPACE
+temporal_task_queue: str = TEMPORAL_TASK_QUEUE
+temporal_enabled: bool = TEMPORAL_ENABLED
 
-    # Kafka configuration
-    kafka_bootstrap_servers: str = KAFKA_BOOTSTRAP_SERVERS
-    kafka_client_id: str = KAFKA_CLIENT_ID
-    kafka_topic_prefix: str = KAFKA_TOPIC_PREFIX
-    kafka_security_protocol: str = KAFKA_SECURITY_PROTOCOL
+# Kafka configuration
+kafka_bootstrap_servers: str = KAFKA_BOOTSTRAP_SERVERS
+kafka_client_id: str = KAFKA_CLIENT_ID
+kafka_topic_prefix: str = KAFKA_TOPIC_PREFIX
+kafka_security_protocol: str = KAFKA_SECURITY_PROTOCOL
 
-    # Additional service URLs (canonical env vars)
-    policy_engine_url: str = resolve_env(
-        "POLICY_ENGINE_URL", "http://policy-engine:10020"
-    )
-    llm_hub_url: str = resolve_env("LLM_HUB_URL", "http://llm-hub:8000")
-    gateway_api_url: str = resolve_env("GATEWAY_API_URL", "http://gateway-api:10000")
+# Additional service URLs (canonical env vars)
+policy_engine_url: str = resolve_env(
+"POLICY_ENGINE_URL", "http://policy-engine:10020"
+)
+llm_hub_url: str = resolve_env("LLM_HUB_URL", "http://llm-hub:8000")
+gateway_api_url: str = resolve_env("GATEWAY_API_URL", "http://gateway-api:10000")
 
-    # Volcano scheduler flags (optional features)
-    enable_volcano_scheduler: bool = (
-        str(resolve_env("ENABLE_VOLCANO_SCHEDULER", "false")).lower() == "true"
-    )
-    volcano_job_timeout_seconds: int = int(
-        resolve_env("VOLCANO_JOB_TIMEOUT_SECONDS", "300")
-    )
+# Volcano scheduler flags (optional features)
+enable_volcano_scheduler: bool = (
+str(resolve_env("ENABLE_VOLCANO_SCHEDULER", "false")).lower() == "true"
+)
+volcano_job_timeout_seconds: int = int(
+resolve_env("VOLCANO_JOB_TIMEOUT_SECONDS", "300")
+)
 
-    # Database configuration (canonical prefix variables)
-    database_url: str = resolve_env(
-        "DATABASE_URL",
-        "postgresql+asyncpg://postgres:postgres@localhost:5432/orchestrator",
-    )
-    # Flags and pool settings – converted to appropriate types
-    database_echo: bool = str(resolve_env("DATABASE_ECHO", "false")).lower() == "true"
-    database_pool_size: int = int(resolve_env("DATABASE_POOL_SIZE", "5"))
-    database_max_overflow: int = int(resolve_env("DATABASE_MAX_OVERFLOW", "10"))
-    database_pool_timeout: int = int(resolve_env("DATABASE_POOL_TIMEOUT", "30"))
-    database_pool_recycle: int = int(resolve_env("DATABASE_POOL_RECYCLE", "1800"))
+# Database configuration (canonical prefix variables)
+database_url: str = resolve_env(
+"DATABASE_URL",
+"postgresql+asyncpg://postgres:postgres@localhost:5432/orchestrator",
+)
+# Flags and pool settings – converted to appropriate types
+database_echo: bool = str(resolve_env("DATABASE_ECHO", "false")).lower() == "true"
+database_pool_size: int = int(resolve_env("DATABASE_POOL_SIZE", "5"))
+database_max_overflow: int = int(resolve_env("DATABASE_MAX_OVERFLOW", "10"))
+database_pool_timeout: int = int(resolve_env("DATABASE_POOL_TIMEOUT", "30"))
+database_pool_recycle: int = int(resolve_env("DATABASE_POOL_RECYCLE", "1800"))
 
 
 # Export a singleton instance for importers
@@ -85,9 +85,9 @@ settings = Settings()
 
 
 def get_settings() -> Settings:
-    """Return the singleton settings instance.
+"""Return the singleton settings instance.
 
-    Many modules import ``get_settings`` for consistency with other services.
-    Providing this thin wrapper maintains the existing import contract.
-    """
-    return settings
+Many modules import ``get_settings`` for consistency with other services.
+Providing this thin wrapper maintains the existing import contract.
+"""
+return settings

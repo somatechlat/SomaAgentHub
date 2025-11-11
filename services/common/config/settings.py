@@ -2,7 +2,7 @@
 
 All services should import the ``settings`` singleton from this module:
 
-    from services.common.config.settings import settings
+from services.common.config.settings import settings
 
 The underlying ``BaseServiceSettings`` (defined in ``base_settings.py``) reads
 environment variables using the canonical ``SOMA_AGENT_HUB_`` prefix via the

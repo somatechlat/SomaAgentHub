@@ -40,20 +40,20 @@ app = FastAPI(title="SOMA Policy Engine")
 # Configuration helpers
 # ---------------------------------------------------------------------------
 def _parse_allowed_actions(env_value: str | None) -> list[tuple[str, str]]:
-    """Parse ``ALLOWED_ACTIONS`` into a list of ``(action, resource)`` tuples.
+"""Parse ``ALLOWED_ACTIONS`` into a list of ``(action, resource)`` tuples.
 
-    The environment variable format is ``action:resource,action:resource``. Empty
-    values result in an empty list which means *deny all*.
-    """
-    if not env_value:
-        return []
-    pairs: list[tuple[str, str]] = []
-    for item in env_value.split(","):
-        if ":" not in item:
-            continue
-        action, resource = item.split(":", 1)
-        pairs.append((action.strip(), resource.strip()))
-    return pairs
+The environment variable format is ``action:resource,action:resource``. Empty
+values result in an empty list which means *deny all*.
+"""
+if not env_value:
+return []
+pairs: list[tuple[str, str]] = []
+for item in env_value.split(","):
+if ":" not in item:
+continue
+action, resource = item.split(":", 1)
+pairs.append((action.strip(), resource.strip()))
+return pairs
 
 
 ALLOWED_ACTIONS = _parse_allowed_actions(resolve_env("ALLOWED_ACTIONS"))
@@ -63,13 +63,13 @@ ALLOWED_ACTIONS = _parse_allowed_actions(resolve_env("ALLOWED_ACTIONS"))
 # Request / response models
 # ---------------------------------------------------------------------------
 class AllowRequest(BaseModel):
-    subject: str = Field(..., description="Identity of the caller")
-    action: str = Field(..., description="Action being requested, e.g. 'read'")
-    resource: str = Field(..., description="Target resource, e.g. 'memory'")
+subject: str = Field(..., description="Identity of the caller")
+action: str = Field(..., description="Action being requested, e.g. 'read'")
+resource: str = Field(..., description="Target resource, e.g. 'memory'")
 
 
 class AllowResponse(BaseModel):
-    allowed: bool
+allowed: bool
 
 
 # ---------------------------------------------------------------------------
@@ -83,33 +83,33 @@ REQUESTS = Counter("policy_engine_requests_total", "Total requests to policy eng
 # ---------------------------------------------------------------------------
 @app.get("/health", tags=["system"])  # pragma: no cover - trivial
 async def health() -> Response:
-    """Simple health check used by Docker/Kubernetes probes."""
-    return Response(content="OK", media_type="text/plain")
+"""Simple health check used by Docker/Kubernetes probes."""
+return Response(content="OK", media_type="text/plain")
 
 
 @app.get("/metrics", response_class=Response)
 async def metrics() -> Response:
-    """Expose Prometheus metrics. The counter increments on each request to
-    ``/v1/allow``.
-    """
-    REQUESTS.inc()
-    data = generate_latest()
-    return Response(content=data, media_type=CONTENT_TYPE_LATEST)
+"""Expose Prometheus metrics. The counter increments on each request to
+``/v1/allow``.
+"""
+REQUESTS.inc()
+data = generate_latest()
+return Response(content=data, media_type=CONTENT_TYPE_LATEST)
 
 
 @app.post("/v1/allow", response_model=AllowResponse)
 async def allow(request: AllowRequest) -> AllowResponse:
-    """Very simple policy evaluation.
+"""Very simple policy evaluation.
 
-    The logic is:
-    * If ``ALLOWED_ACTIONS`` is empty → deny everything.
-    * Otherwise, allow only when the ``action:resource`` pair appears in the
-        configured list.
-    """
-    # In a real implementation we would also evaluate ``subject`` based rules.
-    pair = (request.action, request.resource)
-    is_allowed = pair in ALLOWED_ACTIONS
-    return AllowResponse(allowed=is_allowed)
+The logic is:
+* If ``ALLOWED_ACTIONS`` is empty → deny everything.
+* Otherwise, allow only when the ``action:resource`` pair appears in the
+configured list.
+"""
+# In a real implementation we would also evaluate ``subject`` based rules.
+pair = (request.action, request.resource)
+is_allowed = pair in ALLOWED_ACTIONS
+return AllowResponse(allowed=is_allowed)
 
 
 # ---------------------------------------------------------------------------
@@ -117,13 +117,13 @@ async def allow(request: AllowRequest) -> AllowResponse:
 # ---------------------------------------------------------------------------
 @app.post("/v1/evaluate", response_model=AllowResponse)
 async def evaluate(request: AllowRequest) -> AllowResponse:
-    """Alias for the ``/v1/allow`` endpoint used by legacy orchestrator code.
+"""Alias for the ``/v1/allow`` endpoint used by legacy orchestrator code.
 
-    The orchestrator configuration builds the URL as
-    ``${POLICY_ENGINE_URL}/v1/evaluate``. To avoid breaking existing flows we
-    expose the same logic under this path.
-    """
-    return await allow(request)
+The orchestrator configuration builds the URL as
+``${POLICY_ENGINE_URL}/v1/evaluate``. To avoid breaking existing flows we
+expose the same logic under this path.
+"""
+return await allow(request)
 
 
 """Entry point for policy engine service.

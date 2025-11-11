@@ -5,11 +5,11 @@ from fastapi.testclient import TestClient
 
 BASE = os.path.dirname(os.path.dirname(__file__))
 if BASE not in sys.path:
-    sys.path.insert(0, BASE)
+sys.path.insert(0, BASE)
 
 for name in list(sys.modules.keys()):
-    if name == "app" or name.startswith("app."):
-        del sys.modules[name]
+if name == "app" or name.startswith("app."):
+del sys.modules[name]
 
 from app.main import app  # type: ignore  # noqa: E402
 from services.common.config.base_settings import resolve_env
@@ -18,32 +18,32 @@ client = TestClient(app)
 
 
 def test_live_basic():
-    r = client.get("/v1/pricing/live")
-    assert r.status_code == 200
-    data = r.json()
-    assert "offers" in data
-    assert data["summary"]["count"] >= len(data["offers"])  # simple sanity
+r = client.get("/v1/pricing/live")
+assert r.status_code == 200
+data = r.json()
+assert "offers" in data
+assert data["summary"]["count"] >= len(data["offers"])  # simple sanity
 
 
 def test_filter_gpu_model():
-    r = client.get("/v1/pricing/live", params={"gpu_model": "A100"})
-    assert r.status_code == 200
-    data = r.json()
-    for o in data["offers"]:
-        assert "A100" in o["gpu_model"]
+r = client.get("/v1/pricing/live", params={"gpu_model": "A100"})
+assert r.status_code == 200
+data = r.json()
+for o in data["offers"]:
+assert "A100" in o["gpu_model"]
 
 
 def test_budget_evaluation():
-    r = client.post(
-        "/v1/pricing/evaluate-budget",
-        params={
-            "gpu_model": "A100",
-            "hours_planned": 1.5,
-            "quantity": 2,
-            "budget_cap": 20,
-        },
-    )
-    assert r.status_code == 200
-    payload = r.json()
-    assert "estimated_cost" in payload
-    assert "within_budget" in payload
+r = client.post(
+"/v1/pricing/evaluate-budget",
+params={
+"gpu_model": "A100",
+"hours_planned": 1.5,
+"quantity": 2,
+"budget_cap": 20,
+},
+)
+assert r.status_code == 200
+payload = r.json()
+assert "estimated_cost" in payload
+assert "within_budget" in payload

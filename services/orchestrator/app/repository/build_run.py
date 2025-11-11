@@ -29,63 +29,98 @@ from .interfaces import BuildRunRepository
 
 
 class SQLBuildRunRepository(BuildRunRepository):
-    """Async implementation of the ``BuildRunRepository`` protocol.
+"""Async implementation of the ``BuildRunRepository`` protocol.
 
-    The methods mirror the behaviour of the synchronous version but use the
-    async ``AsyncSession`` API. ``create_build_run`` returns the persisted model
-    with ``created_at`` populated by the database.
-    """
+The methods mirror the behaviour of the synchronous version but use the
+async ``AsyncSession`` API. ``create_build_run`` returns the persisted model
+with ``created_at`` populated by the database.
+"""
 
-    def __init__(self, session: AsyncSession):
-        self.session = session
+def __init__(self, session: AsyncSession):
+self.session = session
 
-    async def create_build_run(
-        self,
-        build_id: str,
-        project_id: str,
-        workflow_type: str,
-        status: str,
-    ) -> BuildRun:
-        br = BuildRun(
-            id=uuid.UUID(build_id) if isinstance(build_id, str) else build_id,
-            project_id=project_id,
-            workflow_type=workflow_type,
-            status=status,
-            created_at=datetime.utcnow(),
-        )
-        self.session.add(br)
-        await self.session.flush()
-        return br
+async def create_build_run(
+self,
+build_id: str,
+project_id: str,
+workflow_type: str,
+status: str,
+emit_event: bool = False,
+) -> BuildRun:
+br = BuildRun(
+id=uuid.UUID(build_id) if isinstance(build_id, str) else build_id,
+project_id=project_id,
+workflow_type=workflow_type,
+status=status,
+created_at=datetime.utcnow(),
+)
+self.session.add(br)
+await self.session.flush()
+if emit_event:
+# Create an orchestration.started outbox event
+from .outbox import OutboxEvent
 
-    async def get_build_run(self, build_id: str) -> Optional[BuildRun]:
-        stmt = select(BuildRun).where(BuildRun.id == uuid.UUID(build_id))
-        result = await self.session.execute(stmt)
-        return result.scalar_one_or_none()
+event = OutboxEvent(
+event_type="orchestration.started",
+aggregate_id=str(br.id),
+event_data={
+    "mao_id": str(br.id),
+    "project_id": project_id,
+    "workflow_type": workflow_type,
+},
+created_at=datetime.utcnow(),
+)
+self.session.add(event)
+await self.session.flush()
+return br
 
-    async def update_build_run_status(
-        self,
-        build_id: str,
-        status: str,
-        metadata: Optional[dict] = None,
-    ) -> Optional[BuildRun]:
-        from sqlalchemy import update
+async def get_build_run(self, build_id: str) -> Optional[BuildRun]:
+stmt = select(BuildRun).where(BuildRun.id == uuid.UUID(build_id))
+result = await self.session.execute(stmt)
+return result.scalar_one_or_none()
 
-        stmt = (
-            update(BuildRun)
-            .where(BuildRun.id == uuid.UUID(build_id))
-            .values(status=status, metadata=metadata)
-            .returning(BuildRun)
-        )
-        result = await self.session.execute(stmt)
-        await self.session.commit()
-        return result.fetchone()
+async def update_build_run_status(
+self,
+build_id: str,
+status: str,
+metadata: Optional[dict] = None,
+emit_event: bool = False,
+) -> Optional[BuildRun]:
+from sqlalchemy import update
 
-    async def get_build_runs_by_project(self, project_id: str) -> List[BuildRun]:
-        stmt = select(BuildRun).where(BuildRun.project_id == project_id)
-        result = await self.session.execute(stmt)
-        return result.scalars().all()
+stmt = (
+update(BuildRun)
+.where(BuildRun.id == uuid.UUID(build_id))
+.values(status=status, metadata=metadata)
+.returning(BuildRun)
+)
+result = await self.session.execute(stmt)
+await self.session.commit()
+updated_br = result.fetchone()
+if emit_event and updated_br:
+from .outbox import OutboxEvent
 
-    async def get_build_runs_by_status(self, status: str) -> List[BuildRun]:
-        stmt = select(BuildRun).where(BuildRun.status == status)
-        result = await self.session.execute(stmt)
-        return result.scalars().all()
+event = OutboxEvent(
+event_type="orchestration.completed",
+aggregate_id=str(build_id),
+event_data={
+    "status": status,
+    "duration": metadata.get("duration") if metadata else None,
+},
+created_at=datetime.utcnow(),
+)
+self.session.add(event)
+await self.session.flush()
+return updated_br
+
+async def get_build_runs_by_project(self, project_id: str, limit: int | None = None, offset: int = 0) -> List[BuildRun]:
+stmt = select(BuildRun).where(BuildRun.project_id == project_id).offset(offset)
+if limit is not None:
+stmt = stmt.limit(limit)
+result = await self.session.execute(stmt)
+return result.scalars().all()
+
+async def get_build_runs_by_status(self, status: str) -> List[BuildRun]:
+stmt = select(BuildRun).where(BuildRun.status == status)
+result = await self.session.execute(stmt)
+return result.scalars().all()

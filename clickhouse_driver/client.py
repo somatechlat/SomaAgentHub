@@ -7,4 +7,4 @@ from services.common.config.base_settings import resolve_env
 
 
 class Client(_Client):
-    """Expose the fallback Client under the canonical submodule import."""
+"""Expose the fallback Client under the canonical submodule import."""

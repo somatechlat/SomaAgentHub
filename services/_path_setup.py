@@ -21,17 +21,17 @@ from services.common.config.base_settings import resolve_env
 # The repository root is the parent of the ``services`` package directory.
 _repo_root = pathlib.Path(__file__).resolve().parents[1]
 if str(_repo_root) not in sys.path:
-    # Append rather than prepend so the service‑specific directory (added by
-    # the test harness at index 0) remains the first entry, preserving the
-    # expected import order for service‑local modules.
-    sys.path.append(str(_repo_root))
+# Append rather than prepend so the service‑specific directory (added by
+# the test harness at index 0) remains the first entry, preserving the
+# expected import order for service‑local modules.
+sys.path.append(str(_repo_root))
 
 
 # Export a no‑op name for ``from services._path_setup import *`` compatibility.
 def ensure_repo_root() -> None:  # pragma: no cover
-    """Explicitly ensure the repository root is on ``sys.path``.
+"""Explicitly ensure the repository root is on ``sys.path``.
 
-    The function is kept for backward compatibility; importing the module is
-    sufficient because the side‑effect runs at import time.
-    """
-    return None
+The function is kept for backward compatibility; importing the module is
+sufficient because the side‑effect runs at import time.
+"""
+return None

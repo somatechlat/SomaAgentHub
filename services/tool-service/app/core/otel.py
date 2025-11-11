@@ -17,21 +17,21 @@ _CONFIGURED = False
 
 
 def configure_otel(
-    app: FastAPI, service_name: str, endpoint: str | None = None
+app: FastAPI, service_name: str, endpoint: str | None = None
 ) -> None:
-    global _CONFIGURED
-    FastAPIInstrumentor.instrument_app(app)
-    if _CONFIGURED:
-        return
+global _CONFIGURED
+FastAPIInstrumentor.instrument_app(app)
+if _CONFIGURED:
+return
 
-    target_endpoint = endpoint or resolve_env("OTEL_EXPORTER_OTLP_ENDPOINT")
-    if not target_endpoint:
-        _CONFIGURED = True
-        return
+target_endpoint = endpoint or resolve_env("OTEL_EXPORTER_OTLP_ENDPOINT")
+if not target_endpoint:
+_CONFIGURED = True
+return
 
-    resource = Resource.create({"service.name": service_name})
-    provider = TracerProvider(resource=resource)
-    exporter = OTLPSpanExporter(endpoint=target_endpoint)
-    provider.add_span_processor(BatchSpanProcessor(exporter))
-    trace.set_tracer_provider(provider)
-    _CONFIGURED = True
+resource = Resource.create({"service.name": service_name})
+provider = TracerProvider(resource=resource)
+exporter = OTLPSpanExporter(endpoint=target_endpoint)
+provider.add_span_processor(BatchSpanProcessor(exporter))
+trace.set_tracer_provider(provider)
+_CONFIGURED = True

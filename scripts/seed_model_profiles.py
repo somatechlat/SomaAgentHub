@@ -21,112 +21,112 @@ from services.common.config.base_settings import resolve_env
 
 
 def load_yaml(path: Path):
-    with path.open("r", encoding="utf-8") as f:
-        return yaml.safe_load(f)
+with path.open("r", encoding="utf-8") as f:
+return yaml.safe_load(f)
 
 
 def validate_schema(data: dict):
-    if not isinstance(data, dict):
-        raise ValueError("Top-level YAML must be a mapping")
-    if "profiles" not in data or not isinstance(data["profiles"], list):
-        raise ValueError("YAML must contain a 'profiles' list")
-    # minimal per-profile checks
-    for p in data["profiles"]:
-        if "role" not in p or "primary" not in p:
-            raise ValueError(f"profile missing required fields: {p}")
+if not isinstance(data, dict):
+raise ValueError("Top-level YAML must be a mapping")
+if "profiles" not in data or not isinstance(data["profiles"], list):
+raise ValueError("YAML must contain a 'profiles' list")
+# minimal per-profile checks
+for p in data["profiles"]:
+if "role" not in p or "primary" not in p:
+raise ValueError(f"profile missing required fields: {p}")
 
 
 def convert_to_seed(data: dict) -> dict:
-    return {
-        "metadata": {"source": "docs/llm_hub_profiles.yaml"},
-        "profiles": data.get("profiles", []),
-    }
+return {
+"metadata": {"source": "docs/llm_hub_profiles.yaml"},
+"profiles": data.get("profiles", []),
+}
 
 
 def write_json(obj: dict, outpath: Path):
-    with outpath.open("w", encoding="utf-8") as f:
-        json.dump(obj, f, indent=2, sort_keys=False)
-    print(f"Wrote JSON seed to {outpath}")
+with outpath.open("w", encoding="utf-8") as f:
+json.dump(obj, f, indent=2, sort_keys=False)
+print(f"Wrote JSON seed to {outpath}")
 
 
 async def upsert_postgres(seed: dict):
-    """
-    Perform a real DB upsert using asyncpg.
-    """
-    import os
+"""
+Perform a real DB upsert using asyncpg.
+"""
+import os
 
-    import asyncpg
+import asyncpg
 
-    # Use the POSTGRES_URL env var if provided; otherwise fall back to localhost defaults.
-    dsn = resolve_env("POSTGRES_URL")
-    if dsn:
-        conn = await asyncpg.connect(dsn)
-    else:
-        conn = await asyncpg.connect(
-            host=resolve_env("POSTGRES_HOST", "localhost"),
-            database="model_profiles",
-            user="postgres",
-            password="password",
-        )
-    for profile in seed["profiles"]:
-        await conn.execute(
-            "INSERT INTO profiles (role, primary) VALUES ($1, $2) ON CONFLICT DO UPDATE SET primary = $2",
-            profile["role"],
-            profile["primary"],
-        )
-    await conn.close()
+# Use the POSTGRES_URL env var if provided; otherwise fall back to localhost defaults.
+dsn = resolve_env("POSTGRES_URL")
+if dsn:
+conn = await asyncpg.connect(dsn)
+else:
+conn = await asyncpg.connect(
+host=resolve_env("POSTGRES_HOST", "localhost"),
+database="model_profiles",
+user="postgres",
+password="password",
+)
+for profile in seed["profiles"]:
+await conn.execute(
+"INSERT INTO profiles (role, primary) VALUES ($1, $2) ON CONFLICT DO UPDATE SET primary = $2",
+profile["role"],
+profile["primary"],
+)
+await conn.close()
 
 
 def main(argv):
-    parser = argparse.ArgumentParser()
-    parser.add_argument(
-        "--yaml", default="docs/llm_hub_profiles.yaml", help="source YAML"
-    )
-    parser.add_argument("--write-json", help="path to write JSON seed file")
-    parser.add_argument(
-        "--dry-run", action="store_true", help="validate and print summary"
-    )
-    parser.add_argument(
-        "--apply",
-        action="store_true",
-        help="(placeholder) post to settings-service API",
-    )
-    args = parser.parse_args(argv)
+parser = argparse.ArgumentParser()
+parser.add_argument(
+"--yaml", default="docs/llm_hub_profiles.yaml", help="source YAML"
+)
+parser.add_argument("--write-json", help="path to write JSON seed file")
+parser.add_argument(
+"--dry-run", action="store_true", help="validate and print summary"
+)
+parser.add_argument(
+"--apply",
+action="store_true",
+help="(placeholder) post to settings-service API",
+)
+args = parser.parse_args(argv)
 
-    yaml_path = Path(args.yaml)
-    if not yaml_path.exists():
-        print(f"YAML file not found: {yaml_path}")
-        return 2
+yaml_path = Path(args.yaml)
+if not yaml_path.exists():
+print(f"YAML file not found: {yaml_path}")
+return 2
 
-    data = load_yaml(yaml_path)
-    try:
-        validate_schema(data)
-    except Exception as e:
-        print(f"Validation error: {e}")
-        return 3
+data = load_yaml(yaml_path)
+try:
+validate_schema(data)
+except Exception as e:
+print(f"Validation error: {e}")
+return 3
 
-    seed = convert_to_seed(data)
+seed = convert_to_seed(data)
 
-    if args.dry_run:
-        print("Dry run OK — profiles:")
-        for p in seed["profiles"]:
-            print(f" - {p.get('role')} (primary={p.get('primary')})")
+if args.dry_run:
+print("Dry run OK — profiles:")
+for p in seed["profiles"]:
+print(f" - {p.get('role')} (primary={p.get('primary')})")
 
-    if args.write_json:
-        outpath = Path(args.write_json)
-        outpath.parent.mkdir(parents=True, exist_ok=True)
-        write_json(seed, outpath)
+if args.write_json:
+outpath = Path(args.write_json)
+outpath.parent.mkdir(parents=True, exist_ok=True)
+write_json(seed, outpath)
 
-    if args.apply:
-        # Perform a real DB upsert using asyncpg.
-        try:
-            asyncio.run(upsert_postgres(seed))
-        except Exception as e:
-            print(f"Error during DB upsert: {e}", file=sys.stderr)
-            return 1
+if args.apply:
+# Perform a real DB upsert using asyncpg.
+try:
+asyncio.run(upsert_postgres(seed))
+except Exception as e:
+print(f"Error during DB upsert: {e}", file=sys.stderr)
+return 1
 
-    return 0
+return 0
 
 
 if __name__ == "__main__":
-    raise SystemExit(main(sys.argv[1:]))
+raise SystemExit(main(sys.argv[1:]))

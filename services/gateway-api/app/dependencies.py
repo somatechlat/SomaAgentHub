@@ -5,18 +5,17 @@ from fastapi import HTTPException, status
 from .core.context import get_request_context
 from .core.moderation import ModerationGuard, get_moderation_guard
 from .models.context import RequestContext
-from services.common.config.base_settings import resolve_env
 
 
 def request_context_dependency() -> RequestContext:
-    ctx = get_request_context()
-    if ctx is None:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Request context missing",
-        )
-    return ctx
+ctx = get_request_context()
+if ctx is None:
+raise HTTPException(
+status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+detail="Request context missing",
+)
+return ctx
 
 
 def moderation_guard_dependency() -> ModerationGuard:
-    return get_moderation_guard()
+return get_moderation_guard()

@@ -15,15 +15,15 @@ from services.common.config.base_settings import resolve_env
 
 
 def main() -> int:
-    raise RuntimeError(
-        "scripts/migration/migrate_service.py is deprecated. Use resolve_env in service configs "
-        "and VaultClient where needed."
-    )
+raise RuntimeError(
+"scripts/migration/migrate_service.py is deprecated. Use resolve_env in service configs "
+"and VaultClient where needed."
+)
 
 
 if __name__ == "__main__":
-    try:
-        main()
-    except Exception as e:
-        print(f"❌ {e}")
-        sys.exit(1)
+try:
+main()
+except Exception as e:
+print(f"❌ {e}")
+sys.exit(1)

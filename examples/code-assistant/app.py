@@ -20,222 +20,222 @@ console = Console()
 
 
 class CodeAssistant:
-    """AI code assistant."""
+"""AI code assistant."""
 
-    def __init__(self, api_key: str):
-        """Initialize code assistant."""
-        self.api_key = api_key
-        self.client = None
-        self.conversation_id = None
+def __init__(self, api_key: str):
+"""Initialize code assistant."""
+self.api_key = api_key
+self.client = None
+self.conversation_id = None
 
-    async def start(self):
-        """Start the code assistant."""
-        async with AsyncSomaAgentClient(api_key=self.api_key) as client:
-            self.client = client
+async def start(self):
+"""Start the code assistant."""
+async with AsyncSomaAgentClient(api_key=self.api_key) as client:
+self.client = client
 
-            # Create specialized agent
-            agent = await client.create_agent(
-                name="Code Assistant",
-                instructions="""
-                You are an expert software engineer. You help with:
-                - Code review and best practices
-                - Debugging and error analysis
-                - Performance optimization
-                - Security vulnerability detection
-                - Documentation and testing
-                
-                Always provide clear, actionable advice with code examples.
-                """,
-                model="gpt-4",
-                tools=[],
-            )
+# Create specialized agent
+agent = await client.create_agent(
+name="Code Assistant",
+instructions="""
+You are an expert software engineer. You help with:
+- Code review and best practices
+- Debugging and error analysis
+- Performance optimization
+- Security vulnerability detection
+- Documentation and testing
 
-            self.agent_id = agent.id
+Always provide clear, actionable advice with code examples.
+""",
+model="gpt-4",
+tools=[],
+)
 
-            # Display welcome
-            self._display_welcome()
+self.agent_id = agent.id
 
-            # Main loop
-            while True:
-                console.print("\n[bold cyan]Choose an action:[/bold cyan]")
-                console.print("1. Review code file")
-                console.print("2. Debug code snippet")
-                console.print("3. Optimize performance")
-                console.print("4. Ask a question")
-                console.print("5. Exit")
+# Display welcome
+self._display_welcome()
 
-                choice = Prompt.ask("Select", choices=["1", "2", "3", "4", "5"])
+# Main loop
+while True:
+console.print("\n[bold cyan]Choose an action:[/bold cyan]")
+console.print("1. Review code file")
+console.print("2. Debug code snippet")
+console.print("3. Optimize performance")
+console.print("4. Ask a question")
+console.print("5. Exit")
 
-                if choice == "1":
-                    await self._review_file()
-                elif choice == "2":
-                    await self._debug_code()
-                elif choice == "3":
-                    await self._optimize_code()
-                elif choice == "4":
-                    await self._ask_question()
-                elif choice == "5":
-                    console.print("\n[yellow]Goodbye! 👋[/yellow]")
-                    break
+choice = Prompt.ask("Select", choices=["1", "2", "3", "4", "5"])
 
-    def _display_welcome(self):
-        """Display welcome message."""
-        console.print(
-            Panel.fit(
-                "[bold blue]👨‍💻 SomaAgent Code Assistant[/bold blue]\n\n"
-                "I can help you with code review, debugging, and optimization.\n",
-                border_style="blue",
-            )
-        )
+if choice == "1":
+    await self._review_file()
+elif choice == "2":
+    await self._debug_code()
+elif choice == "3":
+    await self._optimize_code()
+elif choice == "4":
+    await self._ask_question()
+elif choice == "5":
+    console.print("\n[yellow]Goodbye! 👋[/yellow]")
+    break
 
-    async def _review_file(self):
-        """Review a code file."""
-        file_path = Prompt.ask("\n[cyan]Enter file path[/cyan]")
+def _display_welcome(self):
+"""Display welcome message."""
+console.print(
+Panel.fit(
+"[bold blue]👨‍💻 SomaAgent Code Assistant[/bold blue]\n\n"
+"I can help you with code review, debugging, and optimization.\n",
+border_style="blue",
+)
+)
 
-        if not Path(file_path).exists():
-            console.print("[red]File not found![/red]")
-            return
+async def _review_file(self):
+"""Review a code file."""
+file_path = Prompt.ask("\n[cyan]Enter file path[/cyan]")
 
-        # Read file
-        with open(file_path) as f:
-            code = f.read()
+if not Path(file_path).exists():
+console.print("[red]File not found![/red]")
+return
 
-        # Display code
-        language = Path(file_path).suffix[1:]  # Remove dot
-        syntax = Syntax(code, language, theme="monokai", line_numbers=True)
-        console.print(Panel(syntax, title=file_path))
+# Read file
+with open(file_path) as f:
+code = f.read()
 
-        # Get review
-        console.print("\n[cyan]Analyzing code...[/cyan]")
+# Display code
+language = Path(file_path).suffix[1:]  # Remove dot
+syntax = Syntax(code, language, theme="monokai", line_numbers=True)
+console.print(Panel(syntax, title=file_path))
 
-        prompt = f"""
-        Please review this {language} code and provide:
-        1. Code quality assessment
-        2. Potential bugs or issues
-        3. Best practices violations
-        4. Suggestions for improvement
-        
-        ```{language}
-        {code}
-        ```
-        """
+# Get review
+console.print("\n[cyan]Analyzing code...[/cyan]")
 
-        result = await self.client.run_agent(self.agent_id, prompt)
+prompt = f"""
+Please review this {language} code and provide:
+1. Code quality assessment
+2. Potential bugs or issues
+3. Best practices violations
+4. Suggestions for improvement
 
-        console.print(
-            Panel(result.get("output", ""), title="Code Review", border_style="green")
-        )
+```{language}
+{code}
+```
+"""
 
-    async def _debug_code(self):
-        """Debug code snippet."""
-        console.print("\n[cyan]Paste your code (press Enter twice to finish):[/cyan]")
+result = await self.client.run_agent(self.agent_id, prompt)
 
-        lines = []
-        while True:
-            line = input()
-            if not line:
-                break
-            lines.append(line)
+console.print(
+Panel(result.get("output", ""), title="Code Review", border_style="green")
+)
 
-        code = "\n".join(lines)
+async def _debug_code(self):
+"""Debug code snippet."""
+console.print("\n[cyan]Paste your code (press Enter twice to finish):[/cyan]")
 
-        if not code.strip():
-            console.print("[red]No code provided![/red]")
-            return
+lines = []
+while True:
+line = input()
+if not line:
+break
+lines.append(line)
 
-        error_msg = Prompt.ask(
-            "\n[cyan]What error are you seeing? (optional)[/cyan]", default=""
-        )
+code = "\n".join(lines)
 
-        prompt = f"""
-        Help me debug this code:
-        
-        ```
-        {code}
-        ```
-        
-        Error message: {error_msg if error_msg else "No error message provided"}
-        
-        Please:
-        1. Identify the problem
-        2. Explain why it's happening
-        3. Provide a fixed version
-        """
+if not code.strip():
+console.print("[red]No code provided![/red]")
+return
 
-        console.print("\n[cyan]Analyzing...[/cyan]")
-        result = await self.client.run_agent(self.agent_id, prompt)
+error_msg = Prompt.ask(
+"\n[cyan]What error are you seeing? (optional)[/cyan]", default=""
+)
 
-        console.print(
-            Panel(
-                result.get("output", ""), title="Debug Analysis", border_style="yellow"
-            )
-        )
+prompt = f"""
+Help me debug this code:
 
-    async def _optimize_code(self):
-        """Optimize code for performance."""
-        console.print("\n[cyan]Paste your code (press Enter twice to finish):[/cyan]")
+```
+{code}
+```
 
-        lines = []
-        while True:
-            line = input()
-            if not line:
-                break
-            lines.append(line)
+Error message: {error_msg if error_msg else "No error message provided"}
 
-        code = "\n".join(lines)
+Please:
+1. Identify the problem
+2. Explain why it's happening
+3. Provide a fixed version
+"""
 
-        if not code.strip():
-            console.print("[red]No code provided![/red]")
-            return
+console.print("\n[cyan]Analyzing...[/cyan]")
+result = await self.client.run_agent(self.agent_id, prompt)
 
-        prompt = f"""
-        Optimize this code for better performance:
-        
-        ```
-        {code}
-        ```
-        
-        Please:
-        1. Identify performance bottlenecks
-        2. Suggest optimizations
-        3. Provide optimized version
-        4. Explain the improvements
-        """
+console.print(
+Panel(
+result.get("output", ""), title="Debug Analysis", border_style="yellow"
+)
+)
 
-        console.print("\n[cyan]Optimizing...[/cyan]")
-        result = await self.client.run_agent(self.agent_id, prompt)
+async def _optimize_code(self):
+"""Optimize code for performance."""
+console.print("\n[cyan]Paste your code (press Enter twice to finish):[/cyan]")
 
-        console.print(
-            Panel(
-                result.get("output", ""),
-                title="Optimization Suggestions",
-                border_style="green",
-            )
-        )
+lines = []
+while True:
+line = input()
+if not line:
+break
+lines.append(line)
 
-    async def _ask_question(self):
-        """Ask a coding question."""
-        question = Prompt.ask("\n[cyan]What's your question?[/cyan]")
+code = "\n".join(lines)
 
-        console.print("\n[cyan]Thinking...[/cyan]")
-        result = await self.client.run_agent(self.agent_id, question)
+if not code.strip():
+console.print("[red]No code provided![/red]")
+return
 
-        console.print(
-            Panel(result.get("output", ""), title="Answer", border_style="blue")
-        )
+prompt = f"""
+Optimize this code for better performance:
+
+```
+{code}
+```
+
+Please:
+1. Identify performance bottlenecks
+2. Suggest optimizations
+3. Provide optimized version
+4. Explain the improvements
+"""
+
+console.print("\n[cyan]Optimizing...[/cyan]")
+result = await self.client.run_agent(self.agent_id, prompt)
+
+console.print(
+Panel(
+result.get("output", ""),
+title="Optimization Suggestions",
+border_style="green",
+)
+)
+
+async def _ask_question(self):
+"""Ask a coding question."""
+question = Prompt.ask("\n[cyan]What's your question?[/cyan]")
+
+console.print("\n[cyan]Thinking...[/cyan]")
+result = await self.client.run_agent(self.agent_id, question)
+
+console.print(
+Panel(result.get("output", ""), title="Answer", border_style="blue")
+)
 
 
 async def main():
-    """Main entry point."""
-    api_key = resolve_env("SOMAAGENT_API_KEY")
+"""Main entry point."""
+api_key = resolve_env("SOMAAGENT_API_KEY")
 
-    if not api_key:
-        console.print("[red]Error: SOMAAGENT_API_KEY not set[/red]")
-        return
+if not api_key:
+console.print("[red]Error: SOMAAGENT_API_KEY not set[/red]")
+return
 
-    assistant = CodeAssistant(api_key)
-    await assistant.start()
+assistant = CodeAssistant(api_key)
+await assistant.start()
 
 
 if __name__ == "__main__":
-    asyncio.run(main())
+asyncio.run(main())

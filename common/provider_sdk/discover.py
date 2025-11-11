@@ -13,5 +13,5 @@ from services.common.config.base_settings import resolve_env
 
 
 def discover() -> list[dict[str, Any]]:
-    """Return an empty provider list for now (skeleton)."""
-    return []
+"""Return an empty provider list for now (skeleton)."""
+return []

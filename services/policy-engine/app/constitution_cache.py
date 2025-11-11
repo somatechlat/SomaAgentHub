@@ -11,28 +11,28 @@ _cache: dict[str, tuple[str, datetime]] = {}
 
 
 async def get_cached_hash(tenant: str) -> str:
-    """Return a cached constitution hash for *tenant*.
+"""Return a cached constitution hash for *tenant*.
 
-    If a cached entry exists and is still fresh (within ``_CACHE_TTL``), return it.
-    Otherwise fetch the hash from Redis via ``redis_client.get_constitution_hash`` and
-    store it in the in‑memory cache.
-    """
-    # Use timezone-aware UTC for consistency across services
-    now = datetime.now(UTC)
-    entry = _cache.get(tenant)
-    if entry:
-        value, expiry = entry
-        if now < expiry:
-            return value
-    # Cache miss or expired – fetch from Redis (or placeholder) and cache.
-    value = await _redis_get_hash(tenant)
-    _cache[tenant] = (value, now + timedelta(seconds=_CACHE_TTL))
-    return value
+If a cached entry exists and is still fresh (within ``_CACHE_TTL``), return it.
+Otherwise fetch the hash from Redis via ``redis_client.get_constitution_hash`` and
+store it in the in‑memory cache.
+"""
+# Use timezone-aware UTC for consistency across services
+now = datetime.now(UTC)
+entry = _cache.get(tenant)
+if entry:
+value, expiry = entry
+if now < expiry:
+return value
+# Cache miss or expired – fetch from Redis (or placeholder) and cache.
+value = await _redis_get_hash(tenant)
+_cache[tenant] = (value, now + timedelta(seconds=_CACHE_TTL))
+return value
 
 
 async def invalidate_hash(tenant: str) -> None:
-    """Invalidate the cached constitution hash for *tenant*.
+"""Invalidate the cached constitution hash for *tenant*.
 
-    Used by the Kafka listener when a ``constitution.updated`` event is received.
-    """
-    _cache.pop(tenant, None)
+Used by the Kafka listener when a ``constitution.updated`` event is received.
+"""
+_cache.pop(tenant, None)

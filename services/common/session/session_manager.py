@@ -7,6 +7,6 @@ Importing this module raises to prevent accidental usage.
 """
 
 raise ImportError(
-    "services.common.session.session_manager is deprecated. "
-    "Use service-local JWT handling and resolve_env for configuration."
+"services.common.session.session_manager is deprecated. "
+"Use service-local JWT handling and resolve_env for configuration."
 )

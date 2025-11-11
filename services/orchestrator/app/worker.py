@@ -16,50 +16,50 @@ from .workflows.mao import MultiAgentWorkflow, dispatch_notification
 from services.common.config.base_settings import resolve_env
 
     SessionWorkflow,
-    emit_audit_event,
-    evaluate_policy,
-    issue_identity_token,
-    run_llm_completion,
+emit_audit_event,
+evaluate_policy,
+issue_identity_token,
+run_llm_completion,
 )
 
 logger = logging.getLogger("orchestrator.worker")
 
 
 async def _run_worker() -> None:
-    logger.info(
-        "Connecting Temporal client",
-        extra={
-            "target_host": settings.temporal_target_host,
-            "namespace": settings.temporal_namespace,
-            "task_queue": settings.temporal_task_queue,
-        },
-    )
-    client = await temporal_client.Client.connect(
-        settings.temporal_target_host,
-        namespace=settings.temporal_namespace,
-    )
+logger.info(
+"Connecting Temporal client",
+extra={
+"target_host": settings.temporal_target_host,
+"namespace": settings.temporal_namespace,
+"task_queue": settings.temporal_task_queue,
+},
+)
+client = await temporal_client.Client.connect(
+settings.temporal_target_host,
+namespace=settings.temporal_namespace,
+)
 
-    worker = temporal_worker.Worker(
-        client,
-        task_queue=settings.temporal_task_queue,
-        workflows=[SessionWorkflow, MultiAgentWorkflow, CapsuleRunWorkflow],
-        activities=[
-            evaluate_policy,
-            issue_identity_token,
-            emit_audit_event,
-            run_llm_completion,
-            dispatch_notification,
-            execute_capsule,
-        ],
-    )
+worker = temporal_worker.Worker(
+client,
+task_queue=settings.temporal_task_queue,
+workflows=[SessionWorkflow, MultiAgentWorkflow, CapsuleRunWorkflow],
+activities=[
+evaluate_policy,
+issue_identity_token,
+emit_audit_event,
+run_llm_completion,
+dispatch_notification,
+execute_capsule,
+],
+)
 
-    await worker.run()
+await worker.run()
 
 
 def main() -> None:
-    logging.basicConfig(level=logging.INFO)
-    asyncio.run(_run_worker())
+logging.basicConfig(level=logging.INFO)
+asyncio.run(_run_worker())
 
 
 if __name__ == "__main__":
-    main()
+main()

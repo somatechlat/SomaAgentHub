@@ -17,33 +17,33 @@ ADAPTER_FAILS = Counter("pricing_adapter_fail_total", "Adapter failures", ["adap
 
 
 def fetch_live_offers() -> list[PricingOffer]:
-    """Fetch live offers from all enabled adapters with caching.
+"""Fetch live offers from all enabled adapters with caching.
 
-    On adapter failure, increments a failure counter but continues processing other adapters.
-    """
-    global _CACHE
-    now = time.time()
-    ttl = get_settings().cache_ttl_seconds
-    if _CACHE and (now - _CACHE[0]) < ttl:
-        CACHE_HITS.inc()
-        return _CACHE[1]
+On adapter failure, increments a failure counter but continues processing other adapters.
+"""
+global _CACHE
+now = time.time()
+ttl = get_settings().cache_ttl_seconds
+if _CACHE and (now - _CACHE[0]) < ttl:
+CACHE_HITS.inc()
+return _CACHE[1]
 
-    adapters = [AWS_ADAPTER, RUNPOD_ADAPTER]
-    gpubroker = get_gpubroker_adapter()
-    if gpubroker:
-        adapters.append(gpubroker)
+adapters = [AWS_ADAPTER, RUNPOD_ADAPTER]
+gpubroker = get_gpubroker_adapter()
+if gpubroker:
+adapters.append(gpubroker)
 
-    offers: list[PricingOffer] = []
-    for adapter in adapters:
-        try:
-            for offer in adapter.fetch():
-                offers.append(offer)
-        except Exception:  # noqa: BLE001
-            try:
-                name = adapter.name()
-            except Exception:  # noqa: BLE001
-                name = adapter.__class__.__name__
-            ADAPTER_FAILS.labels(adapter=name).inc()
+offers: list[PricingOffer] = []
+for adapter in adapters:
+try:
+for offer in adapter.fetch():
+offers.append(offer)
+except Exception:  # noqa: BLE001
+try:
+name = adapter.name()
+except Exception:  # noqa: BLE001
+name = adapter.__class__.__name__
+ADAPTER_FAILS.labels(adapter=name).inc()
 
-    _CACHE = (now, offers)
-    return offers
+_CACHE = (now, offers)
+return offers

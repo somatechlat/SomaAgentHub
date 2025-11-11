@@ -8,23 +8,23 @@ SERVICE_NAME = "llm-hub"
 SERVICE_PORT = int(resolve_env("SERVICE_PORT", "8084"))
 
 DATABASE_URL = resolve_env(
-    "DATABASE_URL", "postgresql://postgres:postgres@postgres:5432/soma"
+"DATABASE_URL", "postgresql://postgres:postgres@postgres:5432/soma"
 )
 
 
 def _get_api_key(env_name: str, vault_key: str) -> str:
-    # Prefer env variable; fallback to Vault path services/llm-hub
-    val = resolve_env(env_name)
-    if val:
-        return val
-    try:
-        client = init_vault(role=SERVICE_NAME)
-        secret = client.read_secret("services/llm-hub").data.get(vault_key)
-        if secret:
-            return secret
-    except Exception:
-        pass
-    return ""
+# Prefer env variable; fallback to Vault path services/llm-hub
+val = resolve_env(env_name)
+if val:
+return val
+try:
+client = init_vault(role=SERVICE_NAME)
+secret = client.read_secret("services/llm-hub").data.get(vault_key)
+if secret:
+return secret
+except Exception:
+pass
+return ""
 
 
 OPENAI_API_KEY = _get_api_key("OPENAI_API_KEY", "openai_api_key")
@@ -44,18 +44,18 @@ DEPLOYMENT_MODE = (resolve_env("DEPLOYMENT_MODE", "DEV") or "DEV").upper()
 
 
 class LLMHubConfig:
-    @classmethod
-    def from_env(cls):
-        return cls()
+@classmethod
+def from_env(cls):
+return cls()
 
-    def __init__(self):
-        self.database_url = DATABASE_URL
-        self.openai_api_key = OPENAI_API_KEY
-        self.anthropic_api_key = ANTHROPIC_API_KEY
-        self.google_api_key = GOOGLE_API_KEY
-        self.default_model_provider = DEFAULT_MODEL_PROVIDER
-        self.default_model = DEFAULT_MODEL
-        self.max_tokens = MAX_TOKENS
-        self.temperature = TEMPERATURE
-        self.requests_per_minute = REQUESTS_PER_MINUTE
-        self.tokens_per_minute = TOKENS_PER_MINUTE
+def __init__(self):
+self.database_url = DATABASE_URL
+self.openai_api_key = OPENAI_API_KEY
+self.anthropic_api_key = ANTHROPIC_API_KEY
+self.google_api_key = GOOGLE_API_KEY
+self.default_model_provider = DEFAULT_MODEL_PROVIDER
+self.default_model = DEFAULT_MODEL
+self.max_tokens = MAX_TOKENS
+self.temperature = TEMPERATURE
+self.requests_per_minute = REQUESTS_PER_MINUTE
+self.tokens_per_minute = TOKENS_PER_MINUTE

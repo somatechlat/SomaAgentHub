@@ -7,6 +7,6 @@ Importing this module raises to prevent accidental usage.
 """
 
 raise ImportError(
-    "services.common.secrets.vault_manager is deprecated. "
-    "Use services.common.vault_client.VaultClient and resolve_env."
+"services.common.secrets.vault_manager is deprecated. "
+"Use services.common.vault_client.VaultClient and resolve_env."
 )

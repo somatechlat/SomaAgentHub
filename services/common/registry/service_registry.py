@@ -7,6 +7,6 @@ This module is deprecated. Use explicit service URLs resolved via
 simple. Importing this module will raise to prevent accidental usage.
 """
 raise ImportError(
-    "services.common.registry.service_registry is deprecated and disabled. "
-    "Use explicit service URLs via resolve_env."
+"services.common.registry.service_registry is deprecated and disabled. "
+"Use explicit service URLs via resolve_env."
 )

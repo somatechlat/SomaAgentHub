@@ -22,9 +22,9 @@ import sys
 _this_dir = pathlib.Path(__file__).resolve().parent
 _sibling = _this_dir.parent / "gateway-api"
 if _sibling.is_dir():
-    # ``extend_path`` merges any existing namespace packages.
-    __path__ = pkgutil.extend_path(__path__, __name__)  # type: ignore[assignment]
-    __path__.append(str(_sibling))
+# ``extend_path`` merges any existing namespace packages.
+__path__ = pkgutil.extend_path(__path__, __name__)  # type: ignore[assignment]
+__path__.append(str(_sibling))
 
 # Export a placeholder ``app`` attribute for completeness; actual submodules
 # will be imported lazily by Python when accessed.

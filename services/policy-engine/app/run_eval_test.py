@@ -22,32 +22,32 @@ from services.common.config.base_settings import resolve_env
 
 
 def main() -> None:
-    req = EvalRequest(
-        session_id="s1",
-        tenant="t1",
-        user="u1",
-        prompt="Hello world",
-        role="dialogue_reasoning",
-    )
-    try:
-        res = evaluate_sync(req)
-        logging.getLogger(__name__).info(res.model_dump_json(indent=2))
-    except Exception as exc:  # pragma: no cover - manual harness
-        logging.getLogger(__name__).error("Evaluation failed: %s", exc)
+req = EvalRequest(
+session_id="s1",
+tenant="t1",
+user="u1",
+prompt="Hello world",
+role="dialogue_reasoning",
+)
+try:
+res = evaluate_sync(req)
+logging.getLogger(__name__).info(res.model_dump_json(indent=2))
+except Exception as exc:  # pragma: no cover - manual harness
+logging.getLogger(__name__).error("Evaluation failed: %s", exc)
 
-    req2 = EvalRequest(
-        session_id="s2",
-        tenant="t1",
-        user="u2",
-        prompt="This is forbidden content",
-        role="dialogue_reasoning",
-    )
-    try:  # pragma: no cover - manual harness
-        res2 = evaluate_sync(req2)
-        logging.getLogger(__name__).info(res2.model_dump_json(indent=2))
-    except Exception as exc:
-        logging.getLogger(__name__).error("Evaluation failed: %s", exc)
+req2 = EvalRequest(
+session_id="s2",
+tenant="t1",
+user="u2",
+prompt="This is forbidden content",
+role="dialogue_reasoning",
+)
+try:  # pragma: no cover - manual harness
+res2 = evaluate_sync(req2)
+logging.getLogger(__name__).info(res2.model_dump_json(indent=2))
+except Exception as exc:
+logging.getLogger(__name__).error("Evaluation failed: %s", exc)
 
 
 if __name__ == "__main__":  # pragma: no cover - manual harness
-    main()
+main()

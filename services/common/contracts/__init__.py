@@ -8,6 +8,6 @@ from __future__ import annotations
 from services.common.config.base_settings import resolve_env
 
 __all__ = [
-    "pricing",
-    "orchestrator",
+"pricing",
+"orchestrator",
 ]
