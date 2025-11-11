@@ -48,6 +48,7 @@ services:
       - TEMPORAL_TASK_QUEUE=${TEMPORAL_TASK_QUEUE:-somagent.session.workflows}
       - TEMPORAL_ENABLED=${TEMPORAL_ENABLED:-true}
       - DATABASE_URL=postgresql+asyncpg://${APP_POSTGRES_USER:-somaagent}:${APP_POSTGRES_PASSWORD:-somaagent}@app-postgres:5432/${APP_POSTGRES_DB:-somaagent}
+      - CAPSULE_REPO_URL=http://capsule-repo:8002/v1/capsules
       - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4317
     depends_on:
       temporal-server:

@@ -24,3 +24,6 @@ langgraph>=0.0.39
 PyYAML>=6.0
 cryptography>=42.0.0
 requests>=2.31.0
+
+# Centralized configuration
+-e ../common

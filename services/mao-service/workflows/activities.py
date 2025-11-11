@@ -196,7 +196,7 @@ async def execute_capsule(task_config: dict[str, Any]) -> dict[str, Any]:
 
         # Call capsule execution API
         response = requests.post(
-            f"{os.getenv('TASK_CAPSULE_REPO_URL', 'http://task-capsule-repo:8000')}/v1/capsules/execute",
+            f"{os.getenv('TASK_CAPSULE_REPO_URL', 'http://capsule-repo:8002')}/v1/capsules/execute",
             json={
                 "capsule_id": capsule_id,
                 "persona_id": task_config.get("persona_id"),

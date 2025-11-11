@@ -10,3 +10,6 @@ opentelemetry-sdk>=1.25.0
 opentelemetry-exporter-otlp>=1.25.0
 opentelemetry-exporter-prometheus
 pyyaml>=6.0
+
+# Centralized configuration
+-e ../common
