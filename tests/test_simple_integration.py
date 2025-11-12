@@ -92,7 +92,7 @@ print(f"\n📊 Final Test Results: {passed}/{total} tests passed")
 if passed >= 5:
 print("🎉 SUCCESS: Unified configuration system is operational!")
 print("\n✅ Achievements:")
-print("   • Unified settings with SOMASTACK_ prefix")
+print("   • Unified settings with SOMA_AGENT_HUB_ prefix")
 print("   • Service registry with discovery")
 print("   • Secrets management with development fallback")
 print("   • Session management with JWT tokens")

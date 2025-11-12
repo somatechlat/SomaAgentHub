@@ -42,12 +42,12 @@ description="Run the marketing campaign wizard against a live SomaAgentHub stack
 )
 parser.add_argument(
 "--api-url",
-default=resolve_env("SOMAGENT_GATEWAY_URL", "http://localhost:10000"),
-help="Gateway API base URL (default: %(default)s or env SOMAGENT_GATEWAY_URL).",
+default=resolve_env("SOMA_AGENT_HUB_GATEWAY_URL", "http://localhost:10000"),
+help="Gateway API base URL (default: %(default)s or env SOMA_AGENT_HUB_GATEWAY_URL).",
 )
 parser.add_argument(
 "--user-id",
-default=resolve_env("SOMAGENT_DEMO_USER", "demo-agent"),
+default=resolve_env("SOMA_AGENT_HUB_DEMO_USER", "demo-agent"),
 help="User ID to associate with the wizard session (default: %(default)s).",
 )
 parser.add_argument(
@@ -67,7 +67,7 @@ help="Automatically approve the generated execution plan.",
 )
 parser.add_argument(
 "--orchestrator-url",
-default=resolve_env("SOMAGENT_GATEWAY_ORCHESTRATOR_URL")
+default=resolve_env("SOMA_AGENT_HUB_GATEWAY_ORCHESTRATOR_URL")
 or resolve_env("ORCHESTRATOR_URL")
 or "http://localhost:10001",
 help="Orchestrator base URL for status polling (default: %(default)s).",

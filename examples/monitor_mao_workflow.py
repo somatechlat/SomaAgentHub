@@ -26,7 +26,7 @@ help="Workflow ID returned by the wizard approval step (e.g. mao-mao-xxxx).",
 )
 parser.add_argument(
 "--orchestrator-url",
-default=resolve_env("SOMAGENT_GATEWAY_ORCHESTRATOR_URL")
+default=resolve_env("SOMA_AGENT_HUB_GATEWAY_ORCHESTRATOR_URL")
 or resolve_env("ORCHESTRATOR_URL")
 or "http://localhost:10001",
 help="Base URL for the orchestrator service (default: %(default)s).",

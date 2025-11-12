@@ -16,7 +16,7 @@ billing_alert_threshold: float = 500.0  # cost alert in default currency
 benchmark_latency_target_ms: float = 1500.0
 benchmark_throughput_target_rps: float = 50.0
 benchmark_error_budget: float = 0.02
-model_config = SettingsConfigDict(env_prefix="SOMAGENT_ANALYTICS_", extra="allow")
+model_config = SettingsConfigDict(env_prefix="SOMA_AGENT_HUB_ANALYTICS_", extra="allow")
 
 
 @lru_cache

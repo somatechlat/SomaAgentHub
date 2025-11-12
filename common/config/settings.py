@@ -1,7 +1,7 @@
 """Centralised settings object for services running inside SomaStack.
 
 The Settings class is the single source of truth for environment variables. It
-supports both the legacy ``SOMAGENT_*`` names and the new ``SOMASTACK_*``
+supports both the legacy ``SOMA_AGENT_HUB_*`` names and the new ``SOMA_AGENT_HUB_*``
 prefix so we can migrate services incrementally without breaking existing
 deployments.
 """
@@ -72,24 +72,24 @@ class Settings(BaseSettings):
 service_name: str = Field(
 default="service",
 validation_alias=AliasChoices(
-"SOMASTACK_SERVICE_NAME",
-"SOMAGENT_SERVICE_NAME",
+"SOMA_AGENT_HUB_SERVICE_NAME",
+"SOMA_AGENT_HUB_SERVICE_NAME",
 "SERVICE_NAME",
 ),
 )
 service_version: str = Field(
 default="0.1.0",
 validation_alias=AliasChoices(
-"SOMASTACK_SERVICE_VERSION",
-"SOMAGENT_SERVICE_VERSION",
+"SOMA_AGENT_HUB_SERVICE_VERSION",
+"SOMA_AGENT_HUB_SERVICE_VERSION",
 "SERVICE_VERSION",
 ),
 )
 environment: str = Field(
 default="development",
 validation_alias=AliasChoices(
-"SOMASTACK_ENV",
-"SOMAGENT_ENV",
+"SOMA_AGENT_HUB_ENV",
+"SOMA_AGENT_HUB_ENV",
 "ENVIRONMENT",
 ),
 )
@@ -98,64 +98,64 @@ validation_alias=AliasChoices(
 redis_url: str | None = Field(
 default=None,
 validation_alias=AliasChoices(
-"SOMASTACK_REDIS_URL",
-"SOMAGENT_REDIS_URL",
+"SOMA_AGENT_HUB_REDIS_URL",
+"SOMA_AGENT_HUB_REDIS_URL",
 "REDIS_URL",
 ),
 )
 kafka_bootstrap_servers_raw: str | None = Field(
 default=None,
 validation_alias=AliasChoices(
-"SOMASTACK_KAFKA_BOOTSTRAP_SERVERS",
-"SOMAGENT_KAFKA_BOOTSTRAP_SERVERS",
+"SOMA_AGENT_HUB_KAFKA_BOOTSTRAP_SERVERS",
+"SOMA_AGENT_HUB_KAFKA_BOOTSTRAP_SERVERS",
 "KAFKA_BOOTSTRAP_SERVERS",
 ),
 )
 auth_url_raw: str | None = Field(
 default=None,
 validation_alias=AliasChoices(
-"SOMASTACK_AUTH_URL",
-"SOMAGENT_AUTH_URL",
+"SOMA_AGENT_HUB_AUTH_URL",
+"SOMA_AGENT_HUB_AUTH_URL",
 "AUTH_URL",
 ),
 )
 opa_url_raw: str | None = Field(
 default=None,
 validation_alias=AliasChoices(
-"SOMASTACK_OPA_URL",
-"SOMAGENT_OPA_URL",
+"SOMA_AGENT_HUB_OPA_URL",
+"SOMA_AGENT_HUB_OPA_URL",
 "OPA_URL",
 ),
 )
 vault_addr_raw: str | None = Field(
 default=None,
 validation_alias=AliasChoices(
-"SOMASTACK_VAULT_ADDR",
-"SOMAGENT_VAULT_ADDR",
+"SOMA_AGENT_HUB_VAULT_ADDR",
+"SOMA_AGENT_HUB_VAULT_ADDR",
 "VAULT_ADDR",
 ),
 )
 vault_role: str | None = Field(
 default=None,
 validation_alias=AliasChoices(
-"SOMASTACK_VAULT_ROLE",
-"SOMAGENT_VAULT_ROLE",
+"SOMA_AGENT_HUB_VAULT_ROLE",
+"SOMA_AGENT_HUB_VAULT_ROLE",
 "VAULT_ROLE",
 ),
 )
 vault_secret_path: str | None = Field(
 default=None,
 validation_alias=AliasChoices(
-"SOMASTACK_VAULT_SECRET_PATH",
-"SOMAGENT_VAULT_SECRET_PATH",
+"SOMA_AGENT_HUB_VAULT_SECRET_PATH",
+"SOMA_AGENT_HUB_VAULT_SECRET_PATH",
 "VAULT_SECRET_PATH",
 ),
 )
 etcd_endpoint_raw: str | None = Field(
 default=None,
 validation_alias=AliasChoices(
-"SOMASTACK_ETCD_ENDPOINT",
-"SOMAGENT_ETCD_ENDPOINT",
+"SOMA_AGENT_HUB_ETCD_ENDPOINT",
+"SOMA_AGENT_HUB_ETCD_ENDPOINT",
 "ETCD_ENDPOINT",
 ),
 )
@@ -164,40 +164,40 @@ default=runtime_default(
 "clickhouse", "clickhouse.soma-infra.svc.cluster.local"
 ),
 validation_alias=AliasChoices(
-"SOMASTACK_CLICKHOUSE_HOST",
-"SOMAGENT_CLICKHOUSE_HOST",
+"SOMA_AGENT_HUB_CLICKHOUSE_HOST",
+"SOMA_AGENT_HUB_CLICKHOUSE_HOST",
 "CLICKHOUSE_HOST",
 ),
 )
 clickhouse_port_raw: str | None = Field(
 default="9000",
 validation_alias=AliasChoices(
-"SOMASTACK_CLICKHOUSE_PORT",
-"SOMAGENT_CLICKHOUSE_PORT",
+"SOMA_AGENT_HUB_CLICKHOUSE_PORT",
+"SOMA_AGENT_HUB_CLICKHOUSE_PORT",
 "CLICKHOUSE_PORT",
 ),
 )
 clickhouse_database: str | None = Field(
 default="somastack_audit",
 validation_alias=AliasChoices(
-"SOMASTACK_CLICKHOUSE_DATABASE",
-"SOMAGENT_CLICKHOUSE_DATABASE",
+"SOMA_AGENT_HUB_CLICKHOUSE_DATABASE",
+"SOMA_AGENT_HUB_CLICKHOUSE_DATABASE",
 "CLICKHOUSE_DATABASE",
 ),
 )
 clickhouse_username: str | None = Field(
 default="default",
 validation_alias=AliasChoices(
-"SOMASTACK_CLICKHOUSE_USERNAME",
-"SOMAGENT_CLICKHOUSE_USERNAME",
+"SOMA_AGENT_HUB_CLICKHOUSE_USERNAME",
+"SOMA_AGENT_HUB_CLICKHOUSE_USERNAME",
 "CLICKHOUSE_USERNAME",
 ),
 )
 clickhouse_password: str | None = Field(
 default=None,
 validation_alias=AliasChoices(
-"SOMASTACK_CLICKHOUSE_PASSWORD",
-"SOMAGENT_CLICKHOUSE_PASSWORD",
+"SOMA_AGENT_HUB_CLICKHOUSE_PASSWORD",
+"SOMA_AGENT_HUB_CLICKHOUSE_PASSWORD",
 "CLICKHOUSE_PASSWORD",
 ),
 )
@@ -206,23 +206,21 @@ validation_alias=AliasChoices(
 enable_otlp: bool = Field(
 default=False,
 validation_alias=AliasChoices(
-"SOMASTACK_ENABLE_OTLP",
-"SOMAGENT_ENABLE_OTLP",
+"SOMA_AGENT_HUB_ENABLE_OTLP",
+"SOMA_AGENT_HUB_ENABLE_OTLP",
 "ENABLE_OTLP",
 ),
 )
 otel_exporter_otlp_endpoint: str | None = Field(
 default=None,
 validation_alias=AliasChoices(
-"SOMASTACK_OTEL_EXPORTER_OTLP_ENDPOINT",
-"SOMAGENT_OTEL_EXPORTER_OTLP_ENDPOINT",
+"SOMA_AGENT_HUB_OTEL_EXPORTER_OTLP_ENDPOINT",
+"SOMA_AGENT_HUB_OTEL_EXPORTER_OTLP_ENDPOINT",
 "OTEL_EXPORTER_OTLP_ENDPOINT",
 ),
 )
 
-model_config = SettingsConfigDict(env_prefix="SOMASTACK_", extra="allow")
-
-@cached_property
+    model_config = SettingsConfigDict(env_prefix="SOMA_AGENT_HUB_", extra="allow")@cached_property
 def redis(self) -> RedisConfig:
 url = self.redis_url
 if not url:

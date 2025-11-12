@@ -7,15 +7,15 @@ from airflow.operators.python import PythonOperator
 from services.common.config.base_settings import resolve_env
 
 GATEWAY_URL = resolve_env("GATEWAY_URL", "http://gateway-api:8000")
-STATIC_TOKEN = resolve_env("SOMAGENT_AIRFLOW_JWT") or resolve_env(
-"SOMAGENT_BEARER_TOKEN"
+STATIC_TOKEN = resolve_env("SOMA_AGENT_HUB_AIRFLOW_JWT") or resolve_env(
+"SOMA_AGENT_HUB_BEARER_TOKEN"
 )
 
 
 def _build_token() -> str:
 if not STATIC_TOKEN:
 raise RuntimeError(
-"Missing bearer token. Set SOMAGENT_AIRFLOW_JWT (or SOMAGENT_BEARER_TOKEN)."
+"Missing bearer token. Set SOMA_AGENT_HUB_AIRFLOW_JWT (or SOMA_AGENT_HUB_BEARER_TOKEN)."
 )
 return STATIC_TOKEN
 

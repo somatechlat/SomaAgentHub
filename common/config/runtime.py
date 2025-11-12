@@ -7,8 +7,8 @@ from functools import lru_cache
 from services.common.config.base_settings import resolve_env
 
 _RUNTIME_ENV_VARS = (
-"SOMASTACK_RUNTIME_TARGET",
-"SOMAGENT_RUNTIME_TARGET",
+"SOMA_AGENT_HUB_RUNTIME_TARGET",
+"SOMA_AGENT_HUB_RUNTIME_TARGET",
 "RUNTIME_TARGET",
 )
 

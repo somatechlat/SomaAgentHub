@@ -11,7 +11,7 @@ This directory contains runnable demonstrations that exercise different parts of
   source .venv/bin/activate
   python examples/marketing_campaign_wizard.py --approve --poll-orchestrator --plan-output plans/marketing-plan.json
   ```
-- **Real orchestration**: Ensure the Orchestrator service and Temporal backend are running (`make dev-up orchestrator` or your deployment pipeline) and export `SOMAGENT_GATEWAY_ORCHESTRATOR_URL=http://localhost:10001` so the Gateway can reach it.
+- **Real orchestration**: Ensure the Orchestrator service and Temporal backend are running (`make dev-up orchestrator` or your deployment pipeline) and export `SOMA_AGENT_HUB_GATEWAY_ORCHESTRATOR_URL=http://localhost:10001` so the Gateway can reach it.
 - **Test Data**:
   - Campaign name: `Fall 2025 AI Platform Launch`
   - Campaign type: `product_launch`

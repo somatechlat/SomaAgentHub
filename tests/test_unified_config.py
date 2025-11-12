@@ -100,7 +100,7 @@ return False
 def test_environment_variables():
 """Test that the canonical ``SOMA_AGENT_HUB_`` prefix works.
 
-The legacy ``SOMASTACK_`` variables have been removed; this test now
+The legacy ``SOMA_AGENT_HUB_`` variables have been removed; this test now
 verifies that ``resolve_env`` correctly reads variables with the new
 prefix and returns ``None`` (or a default) when they are absent.
 """

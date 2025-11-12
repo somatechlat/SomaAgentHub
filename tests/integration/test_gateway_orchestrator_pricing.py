@@ -88,7 +88,7 @@ def test_wizard_approval_triggers_pricing_and_orchestrator(monkeypatch):
 _register_test_wizard()
 
 # Ensure env directs wizard to mock endpoints (values arbitrary; we match on suffix).
-monkeypatch.setenv("SOMAGENT_GATEWAY_ORCHESTRATOR_URL", "http://mock-orchestrator")
+monkeypatch.setenv("SOMA_AGENT_HUB_GATEWAY_ORCHESTRATOR_URL", "http://mock-orchestrator")
 monkeypatch.setenv("PRICING_SERVICE_URL", "http://mock-pricing")
 
 # Monkeypatch requests.post used by approve_execution for pricing & orchestrator.

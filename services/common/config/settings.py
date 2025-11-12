@@ -7,8 +7,8 @@ from services.common.config.settings import settings
 The underlying ``BaseServiceSettings`` (defined in ``base_settings.py``) reads
 environment variables using the canonical ``SOMA_AGENT_HUB_`` prefix via the
 ``resolve_env`` helper.  This file provides a single source of truth – there are
-no per‑service config wrappers, no backup files, and no legacy ``SOMASTACK_``
-or ``SOMAGENT_`` prefixes.
+no per‑service config wrappers, no backup files, and no legacy ``SOMA_AGENT_HUB_``
+or ``SOMA_AGENT_HUB_`` prefixes.
 """
 
 from __future__ import annotations

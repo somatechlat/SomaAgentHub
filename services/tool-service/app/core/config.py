@@ -20,7 +20,7 @@ analytics_url: str | None = resolve_env(
 "ANALYTICS_SERVICE_URL", "http://analytics-service:10023"
 )
 billing_default_currency: str = "USD"
-model_config = SettingsConfigDict(env_prefix="SOMAGENT_TOOL_", extra="allow")
+model_config = SettingsConfigDict(env_prefix="SOMA_AGENT_HUB_TOOL_", extra="allow")
 
 
 @lru_cache

@@ -17,13 +17,13 @@ from services.common.config.base_settings import resolve_env
 def _load_bearer_token() -> str:
 """Load a bearer token for service-to-service calls.
 
-Requires a real token set via `SOMAGENT_AIRFLOW_JWT` (or `SOMAGENT_BEARER_TOKEN`).
+Requires a real token set via `SOMA_AGENT_HUB_AIRFLOW_JWT` (or `SOMA_AGENT_HUB_BEARER_TOKEN`).
 Generate one via the Identity Service `/v1/tokens/issue` endpoint.
 """
-token = resolve_env("SOMAGENT_AIRFLOW_JWT") or resolve_env("SOMAGENT_BEARER_TOKEN")
+token = resolve_env("SOMA_AGENT_HUB_AIRFLOW_JWT") or resolve_env("SOMA_AGENT_HUB_BEARER_TOKEN")
 if not token:
 raise AirflowException(
-"Missing bearer token. Set SOMAGENT_AIRFLOW_JWT (or SOMAGENT_BEARER_TOKEN)."
+"Missing bearer token. Set SOMA_AGENT_HUB_AIRFLOW_JWT (or SOMA_AGENT_HUB_BEARER_TOKEN)."
 )
 return token
 
@@ -62,7 +62,7 @@ self.user = user
 self.metadata = metadata or {}
 self.capsule_id = capsule_id
 self.gateway_url = gateway_url or resolve_env(
-"SOMAGENT_GATEWAY_URL", "http://gateway-api:8000"
+"SOMA_AGENT_HUB_GATEWAY_URL", "http://gateway-api:8000"
 )
 self.timeout_seconds = timeout_seconds
 

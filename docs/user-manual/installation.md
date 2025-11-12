@@ -142,8 +142,8 @@ spec:
 ### Environment Variables
 
 #### Gateway API
-- `SOMAGENT_GATEWAY_REDIS_URL`: Redis connection string
-- `SOMAGENT_GATEWAY_ORCHESTRATOR_URL`: Orchestrator service URL
+- `SOMA_AGENT_HUB_REDIS_URL`: Redis connection string
+- `SOMA_AGENT_HUB_GATEWAY_ORCHESTRATOR_URL`: Orchestrator service URL
 - `AUTH_URL`: Identity service URL
 - `PRICING_SERVICE_URL`: Pricing service URL (optional)
 

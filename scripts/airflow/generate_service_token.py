@@ -3,7 +3,7 @@
 
 This script requests a real token from the Identity Service `/v1/tokens/issue`
 endpoint instead of generating an HS256 token locally. It prints the token to
-stdout for use in `SOMAGENT_AIRFLOW_JWT`.
+stdout for use in `SOMA_AGENT_HUB_AIRFLOW_JWT`.
 """
 
 from __future__ import annotations
@@ -38,18 +38,18 @@ default=resolve_env("IDENTITY_SERVICE_URL", "http://localhost:10002"),
 help="Identity Service base URL",
 )
 parser.add_argument(
-"--tenant", default=resolve_env("SOMAGENT_AIRFLOW_TENANT", "demo")
+"--tenant", default=resolve_env("SOMA_AGENT_HUB_AIRFLOW_TENANT", "demo")
 )
 parser.add_argument(
 "--user",
 dest="user",
-default=resolve_env("SOMAGENT_AIRFLOW_SUBJECT", "airflow-service"),
+default=resolve_env("SOMA_AGENT_HUB_AIRFLOW_SUBJECT", "airflow-service"),
 help="User ID for the token",
 )
 parser.add_argument(
 "--mfa",
 dest="mfa",
-default=resolve_env("SOMAGENT_AIRFLOW_MFA_CODE", ""),
+default=resolve_env("SOMA_AGENT_HUB_AIRFLOW_MFA_CODE", ""),
 help="MFA code if required",
 )
 parser.add_argument(
