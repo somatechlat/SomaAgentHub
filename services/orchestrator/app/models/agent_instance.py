@@ -8,7 +8,7 @@ from datetime import datetime
 from typing import Optional
 
 from sqlalchemy.dialects.postgresql import JSONB
-from sqlalchemy import Column
+from sqlalchemy import Column, DateTime, func
 from sqlmodel import Field, SQLModel
 
 
@@ -76,34 +76,28 @@ class AgentInstance(SQLModel, table=True):
         description="Kubernetes deployment name (for long-running agents)"
     )
     
-    metadata: dict = Field(
+    # Avoid using attribute name `metadata` which is reserved by SQLAlchemy.
+    meta: dict = Field(
         default_factory=dict,
-        sa_column=Column(JSONB),
-        description="Additional Kubernetes metadata"
+        sa_column=Column("metadata", JSONB),
+        description="Additional Kubernetes metadata",
     )
     
     resource_requests: dict = Field(
         default_factory=dict,
-        sa_column=Column(JSONB),
-        description="CPU/memory resource requests"
+        sa_column=Column("resource_requests", JSONB),
+        description="CPU/memory resource requests",
     )
-    
+
     resource_limits: dict = Field(
         default_factory=dict,
-        sa_column=Column(JSONB),
-        description="CPU/memory resource limits"
+        sa_column=Column("resource_limits", JSONB),
+        description="CPU/memory resource limits",
     )
     
-    created_at: datetime = Field(
-        default_factory=datetime.utcnow,
-        index=True
-    )
-    
-    updated_at: datetime = Field(
-        default_factory=datetime.utcnow,
-        onupdate=datetime.utcnow,
-        index=True
-    )
+    created_at: datetime = Field(sa_column=Column(DateTime, server_default=func.now()))
+
+    updated_at: datetime = Field(sa_column=Column(DateTime, server_default=func.now(), onupdate=func.now()))
     
     started_at: Optional[datetime] = Field(
         default=None,
@@ -120,6 +114,4 @@ class AgentInstance(SQLModel, table=True):
         description="Error details if agent failed"
     )
     
-    class Config:
-        table = True
-        schema = "public"
+    # Keep default SQLModel behavior; explicit Config not required here.
