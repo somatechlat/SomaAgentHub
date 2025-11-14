@@ -13,129 +13,133 @@ from fastapi.testclient import TestClient
 
 ROOT = Path(__file__).resolve().parents[3]
 if str(ROOT) not in sys.path:
-    sys.path.insert(0, str(ROOT))
+sys.path.insert(0, str(ROOT))
 
 os.environ.setdefault("ENABLE_SPIFFE", "false")
 
 from temporalio.client import RPCError, RPCStatusCode  # noqa: E402
 
 from services.orchestrator.app.main import create_app  # noqa: E402
-from services.orchestrator.app.workflows.mao import AgentExecutionResult, MAOResult  # noqa: E402
+from services.orchestrator.app.workflows.mao import (
+AgentExecutionResult,
+MAOResult,
+)  # noqa: E402
 from services.orchestrator.app.workflows.session import SessionStartResult  # noqa: E402
+from services.common.config.base_settings import resolve_env
 
 
 class FakeWorkflowHandle:
-    def __init__(
-        self,
-        workflow_id: str,
-        run_id: str,
-        result: SessionStartResult,
-        history_length: int = 3,
-        status: str = "COMPLETED",
-    ) -> None:
-        self.id = workflow_id
-        self.run_id = run_id
-        self._result = result
-        self._history_length = history_length
-        self._status = status
+def __init__(
+self,
+workflow_id: str,
+run_id: str,
+result: SessionStartResult,
+history_length: int = 3,
+status: str = "COMPLETED",
+) -> None:
+self.id = workflow_id
+self.run_id = run_id
+self._result = result
+self._history_length = history_length
+self._status = status
 
-    async def describe(self) -> SimpleNamespace:
-        return SimpleNamespace(
-            status=SimpleNamespace(name=self._status),
-            execution=SimpleNamespace(run_id=self.run_id),
-            history_length=self._history_length,
-        )
+async def describe(self) -> SimpleNamespace:
+return SimpleNamespace(
+status=SimpleNamespace(name=self._status),
+execution=SimpleNamespace(run_id=self.run_id),
+history_length=self._history_length,
+)
 
-    async def result(self) -> SessionStartResult:
-        return self._result
+async def result(self) -> SessionStartResult:
+return self._result
 
 
 class FakeTemporalClient:
-    def __init__(self) -> None:
-        self.workflows: dict[str, FakeWorkflowHandle] = {}
-        self.closed = False
+def __init__(self) -> None:
+self.workflows: dict[str, FakeWorkflowHandle] = {}
+self.closed = False
 
-    async def start_workflow(
-        self, workflow: str, payload: Any, *, id: str, **kwargs: Any
-    ) -> FakeWorkflowHandle:  # noqa: D417
-        run_id = str(uuid4())
-        if workflow == "multi-agent-orchestration-workflow":
-            agent_results = [
-                AgentExecutionResult(
-                    agent_id=directive.agent_id,
-                    goal=directive.goal,
-                    status="completed",
-                    slm_response={"completion": f"ok:{directive.prompt[:15]}"},
-                    token={"access_token": f"token-{directive.agent_id}"},
-                    started_at=datetime.now(UTC),
-                    completed_at=datetime.now(UTC),
-                )
-                for directive in payload.directives
-            ]
-            result = MAOResult(
-                orchestration_id=payload.orchestration_id,
-                tenant=payload.tenant,
-                initiator=payload.initiator,
-                status="completed",
-                agent_results=agent_results,
-                audit_event_id=str(uuid4()),
-                notifications_sent=[],
-                completed_at=datetime.now(UTC),
-                policy={"allowed": True, "workflow": workflow},
-            )
-        else:
-            result = SessionStartResult(
-                session_id=payload.session_id,
-                tenant=payload.tenant,
-                user=payload.user,
-                status="completed",
-                policy={"allowed": True, "workflow": workflow},
-                token={"access_token": "fake-token", "user": payload.user},
-                slm_response={"completion": f"ok:{payload.prompt[:10]}"},
-                audit_event_id=str(uuid4()),
-                completed_at=datetime.now(UTC),
-            )
-        handle = FakeWorkflowHandle(workflow_id=id, run_id=run_id, result=result)
-        handle.input_payload = payload  # type: ignore[attr-defined]
-        self.workflows[id] = handle
-        return handle
+async def start_workflow(
+self, workflow: str, payload: Any, *, id: str, **kwargs: Any
+) -> FakeWorkflowHandle:  # noqa: D417
+run_id = str(uuid4())
+if workflow == "multi-agent-orchestration-workflow":
+agent_results = [
+AgentExecutionResult(
+    agent_id=directive.agent_id,
+    goal=directive.goal,
+    status="completed",
+    slm_response={"completion": f"ok:{directive.prompt[:15]}"},
+    token={"access_token": f"token-{directive.agent_id}"},
+    started_at=datetime.now(UTC),
+    completed_at=datetime.now(UTC),
+)
+for directive in payload.directives
+]
+result = MAOResult(
+orchestration_id=payload.orchestration_id,
+tenant=payload.tenant,
+initiator=payload.initiator,
+status="completed",
+agent_results=agent_results,
+audit_event_id=str(uuid4()),
+notifications_sent=[],
+completed_at=datetime.now(UTC),
+policy={"allowed": True, "workflow": workflow},
+)
+else:
+result = SessionStartResult(
+session_id=payload.session_id,
+tenant=payload.tenant,
+user=payload.user,
+status="completed",
+policy={"allowed": True, "workflow": workflow},
+token={"access_token": "fake-token", "user": payload.user},
+slm_response={"completion": f"ok:{payload.prompt[:10]}"},
+audit_event_id=str(uuid4()),
+completed_at=datetime.now(UTC),
+)
+handle = FakeWorkflowHandle(workflow_id=id, run_id=run_id, result=result)
+handle.input_payload = payload  # type: ignore[attr-defined]
+self.workflows[id] = handle
+return handle
 
-    def get_workflow_handle(self, workflow_id: str) -> FakeWorkflowHandle:
-        try:
-            return self.workflows[workflow_id]
-        except KeyError as exc:
-            raise RPCError(
-                f"Workflow {workflow_id} not found",
-                RPCStatusCode.NOT_FOUND,
-                b"",
-            ) from exc
+def get_workflow_handle(self, workflow_id: str) -> FakeWorkflowHandle:
+try:
+return self.workflows[workflow_id]
+except KeyError as exc:
+raise RPCError(
+f"Workflow {workflow_id} not found",
+RPCStatusCode.NOT_FOUND,
+b"",
+) from exc
 
-    async def close(self) -> None:
-        self.closed = True
+async def close(self) -> None:
+self.closed = True
 
 
 @pytest.fixture
 def api_client(
-    monkeypatch: pytest.MonkeyPatch,
+monkeypatch: pytest.MonkeyPatch,
 ) -> tuple[TestClient, FakeTemporalClient]:
-    fake_client = FakeTemporalClient()
+fake_client = FakeTemporalClient()
 
-    # Ensure the in-memory settings object enables Temporal so create_app
-    # initialises the temporal client in startup handlers. Setting the
-    # environment variable here is too late because Settings is cached.
-    monkeypatch.setattr(
-        "services.orchestrator.app.core.config.settings.temporal_enabled",
-        True,
-    )
+# Ensure the in-memory settings object enables Temporal so create_app
+# initialises the temporal client in startup handlers. Setting the
+# environment variable here is too late because Settings is cached.
+monkeypatch.setattr(
+"services.orchestrator.app.core.config.settings.temporal_enabled",
+True,
+)
 
-    async def _connect(*args: Any, **kwargs: Any) -> FakeTemporalClient:
-        return fake_client
+async def _connect(*args: Any, **kwargs: Any) -> FakeTemporalClient:
+return fake_client
 
-    monkeypatch.setattr(
-        "services.orchestrator.app.main.temporal_client.Client.connect",
-        _connect,
-    )
+monkeypatch.setattr(
+"services.orchestrator.app.main.temporal_client.Client.connect",
+_connect,
+)
 
-    app = create_app()
-    with TestClient(app) as client:
-        yield client, fake_client
+app = create_app()
+with TestClient(app) as client:
+yield client, fake_client

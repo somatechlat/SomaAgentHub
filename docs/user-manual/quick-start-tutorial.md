@@ -1,261 +1,206 @@
 # Quick Start Tutorial
 
-**Your first autonomous agent workflow in 15 minutes**
+![Version](https://img.shields.io/badge/version-1.0.0-blue)
 
-> This tutorial walks you through creating and executing your first multi-agent workflow using SomaAgentHub's wizard interface.
+## Overview
 
----
+This tutorial walks you through deploying SomaAgentHub locally and running your first agent workflow in under 10 minutes.
 
-## 🎯 What You'll Learn
+## Step 1: Deploy Local Cluster
 
-By the end of this tutorial, you'll have:
-- ✅ Created your first agent workflow
-- ✅ Monitored workflow execution in real-time  
-- ✅ Understood approval and governance processes
-- ✅ Reviewed workflow results and artifacts
+```bash
+# Clone the repository
+git clone https://github.com/somatechlat/somaAgentHub.git
+cd somaAgentHub
 
-**Time Required:** 15 minutes  
-**Difficulty:** Beginner
-
----
-
-## 📋 Prerequisites
-
-- ✅ Access to SomaAgentHub web interface
-- ✅ Valid user account with workflow creation permissions
-- ✅ Completed [Installation & Access](installation.md) setup
-
----
-
-## 🚀 Step 1: Access the Wizard Interface
-
-### Login to SomaAgentHub
-
-1. **Open your browser** and navigate to your SomaAgentHub instance
-2. **Login** with your credentials
-3. **Verify** you see the main dashboard
-
-### Navigate to Wizards
-
-1. **Click "Wizards"** in the main navigation
-2. **View available wizards** - you should see several options:
-   - 📝 **Document Analysis Wizard**
-   - 🏗️ **Project Creation Wizard** 
-   - 📊 **Data Processing Wizard**
-   - 🔍 **Research Assistant Wizard**
-
----
-
-## 🏗️ Step 2: Start Your First Workflow
-
-### Select the Document Analysis Wizard
-
-1. **Click "Document Analysis Wizard"**
-2. **Read the description**: "Analyze documents using multiple AI agents for comprehensive insights"
-3. **Click "Start Wizard"**
-
-### Configure Your Workflow
-
-**Step 1 - Basic Information:**
-```
-Workflow Name: My First Analysis
-Description: Tutorial workflow for document analysis
-Priority: Normal
+# Create and deploy to Kind cluster
+make start-cluster
 ```
 
-**Step 2 - Document Upload:**
-1. **Upload a sample document** (PDF, Word, or text file)
-2. **Or use the provided sample**: "Sample Business Report.pdf"
-3. **Specify analysis type**: "Comprehensive Analysis"
+**What happens:**
+- Creates Kind cluster `soma-agent-hub`
+- Builds service images
+- Deploys via Helm chart
+- Sets up monitoring and observability
 
-**Step 3 - Agent Configuration:**
-```
-✅ Content Summarizer Agent
-✅ Sentiment Analysis Agent  
-✅ Key Insights Extractor Agent
-✅ Recommendation Generator Agent
-```
+## Step 2: Verify Services
 
-**Step 4 - Output Preferences:**
-```
-Format: Executive Summary + Detailed Report
-Delivery: Email notification + Dashboard
-Approval Required: Yes (for tutorial purposes)
-```
+```bash
+# Check pod status
+kubectl get pods -n soma-agent-hub
 
-### Launch the Workflow
-
-1. **Review your configuration** in the summary screen
-2. **Click "Launch Workflow"**
-3. **Note your Workflow ID**: `workflow-abc123` (save this!)
-
----
-
-## 📊 Step 3: Monitor Workflow Execution
-
-### Real-Time Dashboard
-
-1. **Navigate to "Active Workflows"** from the main menu
-2. **Find your workflow** in the list
-3. **Click to view details**
-
-### Workflow Progress
-
-You'll see the workflow progressing through stages:
-
-```
-🟢 Stage 1: Document Processing (Complete)
-🟡 Stage 2: Content Analysis (In Progress)
-⚪ Stage 3: Sentiment Analysis (Queued)
-⚪ Stage 4: Insights Extraction (Queued)  
-⚪ Stage 5: Report Generation (Queued)
-⚪ Stage 6: Human Approval (Pending)
+# Expected output:
+# NAME                              READY   STATUS    RESTARTS   AGE
+# gateway-api-xxx                   1/1     Running   0          2m
+# orchestrator-xxx                  1/1     Running   0          2m
+# identity-service-xxx              1/1     Running   0          2m
+# memory-gateway-xxx                1/1     Running   0          2m
+# policy-engine-xxx                 1/1     Running   0          2m
 ```
 
-### Agent Activity
+## Step 3: Access Gateway API
 
-**Monitor individual agents:**
-- **Content Summarizer**: Processing document sections
-- **Sentiment Analyzer**: Analyzing tone and sentiment
-- **Insights Extractor**: Identifying key themes
-- **Report Generator**: Compiling final output
-
-**Estimated completion time:** 5-8 minutes
-
----
-
-## ✋ Step 4: Handle Approval Workflow
-
-### Approval Notification
-
-After ~5 minutes, you'll receive:
-- 📧 **Email notification**: "Workflow approval required"
-- 🔔 **Dashboard alert**: Red notification badge
-- 📱 **Mobile push** (if configured)
-
-### Review and Approve
-
-1. **Click the notification** or navigate to "Pending Approvals"
-2. **Review the generated analysis**:
-   - Executive summary
-   - Key findings
-   - Sentiment analysis results
-   - Recommended actions
-
-3. **Approve or Request Changes**:
-   ```
-   ✅ Approve: Continue to final report generation
-   🔄 Request Changes: Specify modifications needed
-   ❌ Reject: Cancel workflow with reason
-   ```
-
-4. **For this tutorial, click "Approve"**
-
----
-
-## 📋 Step 5: Review Results
-
-### Final Report Generation
-
-After approval, the workflow completes:
-```
-🟢 All Stages Complete
-📊 Final Report Generated
-📧 Notification Sent
-💾 Artifacts Stored
+```bash
+# Port forward to local machine
+make port-forward-gateway LOCAL=8080 REMOTE=10000
 ```
 
-### Access Your Results
+Gateway now available at: http://localhost:8080
 
-**Dashboard View:**
-1. **Navigate to "Completed Workflows"**
-2. **Click your workflow ID**
-3. **View the executive summary**
+## Step 4: Check Health Status
 
-**Detailed Report:**
-1. **Click "Download Full Report"** (PDF format)
-2. **Review sections**:
-   - Document overview
-   - Content analysis
-   - Sentiment insights  
-   - Key recommendations
-   - Agent execution logs
+```bash
+# Test health endpoint
+curl http://localhost:8080/healthz
 
-**Artifacts:**
-- 📄 **Original document** (with annotations)
-- 📊 **Analysis charts** (sentiment trends, key themes)
-- 📝 **Executive summary** (1-page overview)
-- 🔍 **Detailed findings** (multi-page report)
+# Expected response:
+# {
+#   "status": "healthy",
+#   "services": {
+#     "redis": "connected",
+#     "identity": "available",
+#     "orchestrator": "available"
+#   }
+# }
+```
 
----
+## Step 5: List Available Wizards
 
-## 🎉 Congratulations!
+```bash
+# Get available wizard flows
+curl http://localhost:8080/v1/wizards
 
-You've successfully:
-- ✅ **Created** your first multi-agent workflow
-- ✅ **Monitored** real-time execution across multiple agents
-- ✅ **Participated** in the approval process
-- ✅ **Received** comprehensive analysis results
+# Expected response:
+# {
+#   "wizards": [
+#     {
+#       "id": "project-bootstrap",
+#       "name": "Project Bootstrap Wizard",
+#       "description": "Create and configure a new project"
+#     }
+#   ]
+# }
+```
 
----
+## Step 6: Start a Wizard Session
 
-## 🔄 What Happened Behind the Scenes?
+```bash
+# Start a new wizard session
+curl -X POST http://localhost:8080/v1/wizards/start \
+  -H "Content-Type: application/json" \
+  -d '{
+    "wizard_id": "project-bootstrap",
+    "user_id": "tutorial-user"
+  }'
 
-### Agent Orchestration
-1. **Gateway API** received your wizard request
-2. **Orchestrator** launched a Temporal workflow
-3. **Multiple agents** executed in parallel and sequence
-4. **Policy Engine** enforced approval requirements
-5. **Memory Gateway** stored context between steps
+# Response includes session_id:
+# {
+#   "session_id": "sess_abc123",
+#   "status": "active",
+#   "current_step": "project_details"
+# }
+```
 
-### Infrastructure
-- **Kubernetes pods** scaled automatically for agent workloads
-- **Redis** maintained session state across interactions
-- **PostgreSQL** stored workflow metadata and results
-- **Qdrant** provided vector storage for document embeddings
+## Step 7: Interact with Wizard
 
----
+```bash
+# Provide wizard input
+curl -X POST http://localhost:8080/v1/wizards/sess_abc123/answer \
+  -H "Content-Type: application/json" \
+  -d '{
+    "project_name": "my-first-project",
+    "project_type": "web-app",
+    "framework": "fastapi"
+  }'
 
-## 🚀 Next Steps
+# Check session status
+curl http://localhost:8080/v1/wizards/sess_abc123
+```
 
-### Explore More Features
+## Step 8: Monitor Workflow Execution
 
-**Try Different Wizards:**
-- 🏗️ **Project Creation**: Build a complete software project
-- 📊 **Data Processing**: Analyze datasets with multiple agents
-- 🔍 **Research Assistant**: Comprehensive research workflows
+```bash
+# View orchestrator logs
+kubectl logs -f -l app=orchestrator -n soma-agent-hub --tail=50
 
-**Advanced Capabilities:**
-- **Custom Agent Configurations**: Modify agent parameters
-- **Integration Workflows**: Connect external systems
-- **Scheduled Workflows**: Automate recurring tasks
+# View gateway logs
+kubectl logs -f -l app=gateway-api -n soma-agent-hub --tail=50
+```
 
-### Learn More
+## Step 9: Run Smoke Tests
 
-1. **Read [Core Features](features/index.md)** for detailed capabilities
-2. **Explore [Workflow Management](features/workflow-management.md)** for advanced patterns
-3. **Check [FAQ](faq.md)** for common questions
-4. **Join training sessions** offered by your organization
+```bash
+# Validate full system functionality
+make k8s-smoke
+```
 
----
+**Tests validate:**
+- Service health endpoints
+- Inter-service communication
+- Workflow execution
+- Memory and policy integration
 
-## 🔧 Troubleshooting
+## Understanding the Flow
 
-**Workflow Stuck?**
-- Check the "Agent Logs" tab for error details
-- Verify document format is supported
-- Contact administrator if issues persist
+```mermaid
+sequenceDiagram
+    participant User
+    participant Gateway
+    participant Orchestrator
+    participant Temporal
+    participant Agent
 
-**Approval Not Received?**
-- Check email spam folder
-- Verify notification preferences in your profile
-- Use dashboard "Pending Approvals" section
+    User->>Gateway: POST /v1/wizards/start
+    Gateway->>Orchestrator: Create session
+    Orchestrator->>Temporal: Start workflow
+    Temporal->>Agent: Execute tasks
+    Agent-->>Temporal: Task results
+    Temporal-->>Orchestrator: Workflow status
+    Orchestrator-->>Gateway: Session update
+    Gateway-->>User: Response
+```
 
-**Results Missing?**
-- Workflows are retained for 90 days by default
-- Check "Archived Workflows" for older results
-- Contact support for data recovery
+## Next Steps
 
----
+### Explore Features
+- [Multi-Agent Orchestration](features/multi-agent-orchestration.md)
+- [Memory & Context](features/intelligent-memory.md)
+- [Policy & Governance](features/policy-governance.md)
 
-**Ready to orchestrate more complex workflows? Explore the [Core Features](features/index.md) to unlock the full power of SomaAgentHub!**
+### Development
+- [Local Development Setup](../development-manual/local-setup.md)
+- [API Reference](../development-manual/api-reference.md)
+
+### Production
+- [Deployment Guide](../technical-manual/deployment.md)
+- [Monitoring Setup](../technical-manual/monitoring.md)
+
+## Troubleshooting
+
+### Services Not Starting
+```bash
+# Check pod events
+kubectl describe pods -n soma-agent-hub
+
+# Check service logs
+kubectl logs -l app=gateway-api -n soma-agent-hub
+```
+
+### Port Forward Issues
+```bash
+# Kill existing port forwards
+pkill -f "kubectl.*port-forward"
+
+# Restart port forward
+make port-forward-gateway LOCAL=8080 REMOTE=10000
+```
+
+### Temporal Connection
+```bash
+# Check Temporal server status
+kubectl get pods -n soma-agent-hub | grep temporal
+
+# Test Temporal connectivity from orchestrator
+kubectl exec -it deployment/orchestrator -n soma-agent-hub -- \
+  python -c "from temporal import Client; print('Connected')"
+```

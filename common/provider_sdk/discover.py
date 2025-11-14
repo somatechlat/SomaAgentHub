@@ -9,8 +9,9 @@ Future design:
 from __future__ import annotations
 
 from typing import Any
+from services.common.config.base_settings import resolve_env
 
 
 def discover() -> list[dict[str, Any]]:
-    """Return an empty provider list for now (skeleton)."""
-    return []
+"""Return an empty provider list for now (skeleton)."""
+return []

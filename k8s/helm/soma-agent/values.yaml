@@ -40,7 +40,7 @@ ports:
   identity-service: 10002
   policy-engine: 10003
   memory-gateway: 10021
-  slm-service: 10005
+  llm-hub: 10005
   tool-service: 10006
   analytics-service: 10007
   settings-service: 10008
@@ -121,10 +121,10 @@ defaultKafka:
 services:
   jobs:
     enabled: false
-  slm-service:
-    enabled: false
+  llm-hub:
+    enabled: true
     replicaCount: 1
-    image: "somaagent/soma-slm-service"
+    image: "somaagent/llm-hub"
   policy-engine:
     enabled: true
     image: "somaagent/soma-policy-engine"

@@ -1,26 +1,31 @@
-"""Simple replacement for somagent_secrets module."""
+"""Strict secret loader.
 
-import os
+All secret values must be provided via the canonical ``SOMA_AGENT_HUB_``
+environment variables. No file‑based fallbacks, default values, or silent
+silencing of missing secrets are allowed. If a secret cannot be resolved the
+function raises a ``RuntimeError`` to fail fast and surface the configuration
+issue.
+"""
+
+import logging
+from services.common.config.base_settings import resolve_env
+
+logger = logging.getLogger("gateway.secrets")
 
 
-def load_secret(
-    env_var: str, file_env: str | None = None, default: str | None = None
-) -> str | None:
-    """Load a secret from environment variable or file."""
-    # Try environment variable first
-    value = os.getenv(env_var)
-    if value:
-        return value
+def load_secret(env_var: str) -> str:
+"""Load a secret strictly from an environment variable.
 
-    # Try file path from file_env
-    if file_env:
-        file_path = os.getenv(file_env)
-        if file_path and os.path.exists(file_path):
-            try:
-                with open(file_path) as f:
-                    return f.read().strip()
-            except Exception:
-                pass
+Args:
+env_var: The canonical ``SOMA_AGENT_HUB_`` variable name.
 
-    # Return default
-    return default
+Returns:
+The secret value.
+
+Raises:
+RuntimeError: If the variable is not set.
+"""
+value = resolve_env(env_var)
+if not value:
+raise RuntimeError(f"Required secret '{env_var}' is not set in the environment")
+return value

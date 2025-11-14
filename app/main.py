@@ -13,3 +13,4 @@ relevant ``app`` object here.
 
 # Re‑export the FastAPI ``app`` defined in the memory‑gateway service.
 from services.memory_gateway.app.main import app  # noqa: F401
+from services.common.config.base_settings import resolve_env

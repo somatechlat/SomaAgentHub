@@ -19,7 +19,6 @@ jobs:
       matrix:
         service:
           - gateway-api
-          - slm-service
           - memory-gateway
           - constitution-service
           - identity-service
@@ -100,7 +99,6 @@ jobs:
       matrix:
         service:
           - gateway-api
-          - slm-service
           - memory-gateway
           - constitution-service
     
@@ -163,12 +161,9 @@ jobs:
             gateway-api=${{ env.REGISTRY }}/${{ github.repository }}/gateway-api:develop \
             -n somaagent-staging
           
-          kubectl set image deployment/slm-service \
-            slm-service=${{ env.REGISTRY }}/${{ github.repository }}/slm-service:develop \
             -n somaagent-staging
           
           kubectl rollout status deployment/gateway-api -n somaagent-staging
-          kubectl rollout status deployment/slm-service -n somaagent-staging
       
       - name: Run smoke tests
         run: |

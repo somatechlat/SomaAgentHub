@@ -52,7 +52,7 @@
 
 ### Specialized Services
 - **`mao-service/`** - Multi-Agent Orchestrator workflows
-- **`slm-service/`** - Small Language Model management
+- **`llm-hub/`** - Centralized multi-provider LLM gateway
 - **`tool-service/`** - External tool integration and adapters
 - **`analytics-service/`** - Metrics collection and analysis
 - **`billing-service/`** - Usage tracking and cost management

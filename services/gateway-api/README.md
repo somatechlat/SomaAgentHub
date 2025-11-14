@@ -51,8 +51,8 @@ cd services/gateway-api
 python -m venv .venv
 source .venv/bin/activate
 pip install -e .[dev]
-export SOMAGENT_GATEWAY_REDIS_URL="redis://localhost:6379/0"
-export SOMAGENT_GATEWAY_ORCHESTRATOR_URL="http://localhost:10001"
+export SOMA_AGENT_HUB_REDIS_URL="redis://localhost:6379/0"
+export SOMA_AGENT_HUB_GATEWAY_ORCHESTRATOR_URL="http://localhost:10001"
 uvicorn app.main:app --reload --host 0.0.0.0 --port 10000
 ```
 
@@ -69,8 +69,8 @@ Environment variables (see `app/core/config.py`):
 
 | Variable | Description | Default |
 | --- | --- | --- |
-| `SOMAGENT_GATEWAY_REDIS_URL` | Redis connection string for session state | `redis://redis:6379/0` |
-| `SOMAGENT_GATEWAY_ORCHESTRATOR_URL` | Base URL for orchestrator service | `http://orchestrator:10001` |
+| `SOMA_AGENT_HUB_REDIS_URL` | Redis connection string for session state | `redis://redis:6379/0` |
+| `SOMA_AGENT_HUB_GATEWAY_ORCHESTRATOR_URL` | Base URL for orchestrator service | `http://orchestrator:10001` |
 | `AUTH_URL` / `IDENTITY_SERVICE_URL` | Identity service base URL | `http://identity-service:10002` |
 | `PRICING_SERVICE_URL` | Base URL for pricing service (budget precheck) | `http://pricing-service:10026` |
 | `KAFKA_BOOTSTRAP_SERVERS` | Optional connection for stream integrations | unset |

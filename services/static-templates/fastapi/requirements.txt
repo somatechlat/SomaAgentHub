@@ -1,0 +1,2 @@
+# Static Templates FastAPI requirements (empty - uses base Python environment)
+# Add specific dependencies here when needed

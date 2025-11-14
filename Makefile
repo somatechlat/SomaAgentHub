@@ -183,6 +183,37 @@ verify-observability:
 	./scripts/verify-instrumentation.sh
 
 .PHONY: docker-cluster-up docker-cluster-down
+
+## Sprint 1 Development Targets
+sprint-1-up:
+	@echo "🚀 Starting Sprint 1 development..."
+	docker-compose -f docker-compose.sprint1.yml up -d
+	@sleep 5
+	@echo "✅ Sprint 1 environment ready!"
+	@echo "   Capsule Registry: http://localhost:8000"
+	@echo "   Agent Spawner: http://localhost:8001"
+
+sprint-1-down:
+	@echo "🛑 Stopping Sprint 1..."
+	docker-compose -f docker-compose.sprint1.yml down
+
+sprint-1-logs:
+	docker-compose -f docker-compose.sprint1.yml logs -f
+
+sprint-1-test-capsule:
+	@curl -s -X POST "http://localhost:8000/v1/capsules" \
+		-G -d "capsule_id=$$(uuidgen)" \
+		-d "version=1.0.0" \
+		-d "type=static" \
+		-d "manifest_yaml=apiVersion: v1\\nkind: ConfigMap\\nmetadata:\\n  name: test-capsule" \
+		| jq .
+
+sprint-1-test-agent:
+	@curl -s -X POST "http://localhost:8001/v1/spawn" \
+		-H "Content-Type: application/json" \
+		-d '{"agent_type": "code-generator", "tenant_id": "550e8400-e29b-41d4-a716-446655440000", "user_id": "550e8400-e29b-41d4-a716-446655440001", "image": "soma-agent:latest", "execution_mode": "batch"}' \
+		| jq .
+
 docker-cluster-up:
 	./scripts/docker-cluster.sh
 
@@ -363,6 +394,22 @@ check: ## Run lint + type + focused tests with OTEL disabled
 
 quality: lint type
 	@echo "Quality gate completed (lint + type)."
+
+# ---------------------------------------------------------------------------
+# Mandatory formatting after each sprint
+# ---------------------------------------------------------------------------
+.PHONY: format format-check
+format:  ## Run black and ruff formatting (mandatory after each sprint)
+	@echo "Running mandatory formatting with black and ruff..."
+	@$(PY) -m black services/ tests/ --line-length 88
+	@$(PY) -m ruff format services/ tests/
+	@echo "Formatting complete!"
+
+format-check:  ## Check formatting without applying changes
+	@echo "Checking formatting compliance..."
+	@$(PY) -m black services/ tests/ --line-length 88 --check
+	@$(PY) -m ruff format services/ tests/ --check
+	@echo "All files properly formatted."
 
 # E2E test hits Gateway and polls Orchestrator
 # Optionally override E2E_GATEWAY_URL and E2E_ORCHESTRATOR_URL

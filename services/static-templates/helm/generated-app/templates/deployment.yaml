@@ -1,0 +1,37 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{APP_NAME}}-deployment
+  labels:
+    app: {{APP_NAME}}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: {{APP_NAME}}
+  template:
+    metadata:
+      labels:
+        app: {{APP_NAME}}
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "{{SERVICE_PORT}}"
+    spec:
+      containers:
+        - name: {{APP_NAME}}
+          image: {{IMAGE}}:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: {{SERVICE_PORT}}
+          readinessProbe:
+            httpGet:
+              path: /health/ready
+              port: {{SERVICE_PORT}}
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /health/live
+              port: {{SERVICE_PORT}}
+            initialDelaySeconds: 5
+            periodSeconds: 10

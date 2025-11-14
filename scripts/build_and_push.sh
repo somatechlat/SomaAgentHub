@@ -17,7 +17,6 @@ SERVICES=(
     "policy-engine"
     "settings-service"
     "task-capsule-repo"
-    "slm-service"
     "gateway-api"
     "identity-service"
     "constitution-service"
@@ -37,7 +36,7 @@ build_service() {
     
     echo "🔨 Building ${service}..."
 
-    # Collect image tags (primary registry + dockerhub mirror + legacy aliases)
+    # Collect image tags (primary registry + dockerhub mirror)
     local image_tags=(
         "${REGISTRY}/soma-${service}:${TAG}"
         "${REGISTRY}/soma-${service}:latest"
@@ -45,14 +44,7 @@ build_service() {
         "somaagent/soma-${service}:latest"
     )
 
-    if [ "$service" = "slm-service" ]; then
-        image_tags+=(
-            "${REGISTRY}/soma-somallm-provider:${TAG}"
-            "${REGISTRY}/soma-somallm-provider:latest"
-            "somaagent/soma-somallm-provider:${TAG}"
-            "somaagent/soma-somallm-provider:latest"
-        )
-    fi
+    # Legacy alias handling removed
     
     # Create Dockerfile if it doesn't exist
     if [ ! -f "${service_dir}/Dockerfile" ]; then

@@ -26,8 +26,8 @@ services:
     replicaCount: 1
   policy-engine:
     replicaCount: 1
-  slm-service:
-    enabled: true # Explicitly enable slm-service for dev
+  llm-hub:
+    enabled: true # Enable LLM Hub for dev
     replicaCount: 1
 
 # Disable Kafka for local development to conserve resources.

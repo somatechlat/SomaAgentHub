@@ -1,0 +1,55 @@
+site_name: SomaAgentHub
+site_url: https://somaagentHub.github.io
+repo_url: https://github.com/somatechlat/somaAgentHub
+nav:
+  - Home: index.md
+  - User Manual:
+      - Overview: user-manual/index.md
+      - Installation: user-manual/installation.md
+      - Quick‑Start: user-manual/quick-start-tutorial.md
+      - Features:
+          - Data Pipeline: user-manual/features/feature-data-pipeline.md
+          - Real-time Propagation: user-manual/features/feature-real-time-propagation.md
+      - FAQ: user-manual/faq.md
+  - Technical Manual:
+      - Overview: technical-manual/index.md
+      - Architecture: technical-manual/architecture.md
+      - Deployment: technical-manual/deployment.md
+      - Monitoring: technical-manual/monitoring.md
+      - Runbooks:
+          - Propagation Service: technical-manual/runbooks/propagation-service.md
+          - Data Ingest Service: technical-manual/runbooks/data-ingest-service.md
+      - Backup & Recovery: technical-manual/backup-and-recovery.md
+      - Security:
+          - Secrets Policy: technical-manual/security/secrets-policy.md
+          - RBAC Matrix: technical-manual/security/rbac-matrix.md
+  - Development Manual:
+      - Overview: development-manual/index.md
+      - Local Setup: development-manual/local-setup.md
+      - Coding Standards: development-manual/coding-standards.md
+      - Testing Guidelines: development-manual/testing-guidelines.md
+      - API Reference: development-manual/api-reference.md
+      - Contribution Process: development-manual/contribution-process.md
+  - Onboarding: 
+      - Project Context: onboarding-manual/project-context.md
+      - Codebase Walkthrough: onboarding-manual/codebase-walkthrough.md
+      - First Contribution: onboarding-manual/first-contribution.md
+      - Team Collaboration: onboarding-manual/team-collaboration.md
+      - Domain Knowledge: onboarding-manual/domain-knowledge.md
+  - Agent Onboarding:
+      - Overview: agent-onboarding/index.md
+      - Agent Zero: agent-onboarding/agent-zero.md
+      - Propagation Agent: agent-onboarding/propagation-agent.md
+      - Monitoring Agent: agent-onboarding/monitoring-agent.md
+      - Security Hardening: agent-onboarding/security-hardening.md
+theme:
+  name: material
+  palette:
+    - scheme: default
+      primary: indigo
+      accent: amber
+markdown_extensions:
+  - admonition
+  - codehilite
+  - toc:
+      permalink: true

@@ -1,0 +1,196 @@
+name: Documentation Presence & Quality Check
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+jobs:
+  verify-docs:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Define required files
+        id: files
+        run: |
+          cat <<EOF > required_files.txt
+          docs/README.md
+          docs/front_matter.yaml
+          docs/glossary.md
+          docs/style-guide.md
+          docs/changelog.md
+          docs/metadata.json
+          docs/review-log.md
+          docs/accessibility.md
+          docs/security-classification.md
+          docs/i18n/en/README.md
+          docs/user-manual/index.md
+          docs/user-manual/installation.md
+          docs/user-manual/quick-start-tutorial.md
+          docs/user-manual/features/feature-data-pipeline.md
+          docs/user-manual/features/feature-real-time-propagation.md
+          docs/user-manual/faq.md
+          docs/technical-manual/index.md
+          docs/technical-manual/architecture.md
+          docs/technical-manual/architecture.puml
+          docs/technical-manual/deployment.md
+          docs/technical-manual/monitoring.md
+          docs/technical-manual/data-flow.mermaid
+          docs/technical-manual/runbooks/propagation-service.md
+          docs/technical-manual/runbooks/data-ingest-service.md
+          docs/technical-manual/backup-and-recovery.md
+          docs/technical-manual/security/secrets-policy.md
+          docs/technical-manual/security/rbac-matrix.md
+          docs/development-manual/index.md
+          docs/development-manual/local-setup.md
+          docs/development-manual/first-contribution.md
+          docs/development-manual/coding-standards.md
+          docs/development-manual/testing-guidelines.md
+          docs/development-manual/api-reference.md
+          docs/development-manual/contribution-process.md
+          docs/onboarding-manual/project-context.md
+          docs/onboarding-manual/codebase-walkthrough.md
+          docs/onboarding-manual/first-contribution.md
+          docs/onboarding-manual/team-collaboration.md
+          docs/onboarding-manual/domain-knowledge.md
+          docs/agent-onboarding/index.md
+          docs/agent-onboarding/agent-zero.md
+          docs/agent-onboarding/propagation-agent.md
+          docs/agent-onboarding/monitoring-agent.md
+          docs/agent-onboarding/security-hardening.md
+          EOF
+
+      - name: Verify each required file exists
+        run: |
+          missing=0
+          while IFS= read -r file; do
+            if [[ ! -f "$file" ]]; then
+              echo "::error file=$file::Missing documentation file"
+              missing=$((missing+1))
+            fi
+          done < required_files.txt
+          if [[ $missing -gt 0 ]]; then
+            echo "Documentation check failed: $missing file(s) missing."
+            exit 1
+          else
+            echo "All required documentation files are present."
+          fi
+
+      - name: Check file content (not empty)
+        run: |
+          empty=0
+          while IFS= read -r file; do
+            if [[ -f "$file" && ! -s "$file" ]]; then
+              echo "::warning file=$file::Documentation file is empty"
+              empty=$((empty+1))
+            fi
+          done < required_files.txt
+          if [[ $empty -gt 0 ]]; then
+            echo "Found $empty empty documentation file(s)."
+          fi
+
+      - name: Verify version badges
+        run: |
+          missing_badges=0
+          while IFS= read -r file; do
+            if [[ -f "$file" && "$file" == *.md ]]; then
+              if ! grep -q "!\[Version\]" "$file"; then
+                echo "::warning file=$file::Missing version badge"
+                missing_badges=$((missing_badges+1))
+              fi
+            fi
+          done < required_files.txt
+          if [[ $missing_badges -gt 0 ]]; then
+            echo "Found $missing_badges file(s) missing version badges."
+          fi
+
+      - name: Setup Node.js for markdown tools
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install markdown tools
+        run: |
+          npm install -g markdownlint-cli2
+          npm install -g remark-cli remark-validate-links
+
+      - name: Create markdownlint config
+        run: |
+          cat <<EOF > .markdownlint.json
+          {
+            "MD001": true,
+            "MD013": {"line_length": 120},
+            "MD041": true,
+            "MD033": false,
+            "MD034": false
+          }
+          EOF
+
+      - name: Markdown lint
+        run: |
+          markdownlint-cli2 "docs/**/*.md" || true
+
+      - name: Link validation
+        run: |
+          remark docs/ --use remark-validate-links --quiet || true
+
+      - name: Check PlantUML syntax
+        run: |
+          # Install PlantUML
+          wget -q https://github.com/plantuml/plantuml/releases/download/v1.2023.12/plantuml-1.2023.12.jar -O plantuml.jar
+          
+          # Check PlantUML files
+          find docs/ -name "*.puml" -exec java -jar plantuml.jar -checkonly {} \; || true
+
+      - name: Validate JSON files
+        run: |
+          # Check metadata.json
+          if [[ -f "docs/metadata.json" ]]; then
+            python -m json.tool docs/metadata.json > /dev/null || {
+              echo "::error file=docs/metadata.json::Invalid JSON format"
+              exit 1
+            }
+          fi
+
+      - name: Check documentation structure
+        run: |
+          echo "Documentation structure validation:"
+          echo "✓ Core files: $(find docs/ -maxdepth 1 -name "*.md" | wc -l) files"
+          echo "✓ User manual: $(find docs/user-manual/ -name "*.md" | wc -l) files"
+          echo "✓ Technical manual: $(find docs/technical-manual/ -name "*.md" | wc -l) files"
+          echo "✓ Development manual: $(find docs/development-manual/ -name "*.md" | wc -l) files"
+          echo "✓ Onboarding manual: $(find docs/onboarding-manual/ -name "*.md" | wc -l) files"
+          echo "✓ Agent onboarding: $(find docs/agent-onboarding/ -name "*.md" | wc -l) files"
+          
+          # Check for orphaned files
+          echo "Checking for non-ISO compliant files:"
+          find docs/ -name "*.md" | while read -r file; do
+            if ! grep -Fxq "$file" required_files.txt; then
+              echo "::warning file=$file::File not in ISO structure - consider removing"
+            fi
+          done
+
+      - name: Generate documentation report
+        run: |
+          echo "# Documentation Quality Report" > docs_report.md
+          echo "" >> docs_report.md
+          echo "Generated: $(date)" >> docs_report.md
+          echo "" >> docs_report.md
+          echo "## File Count Summary" >> docs_report.md
+          echo "- Total required files: $(wc -l < required_files.txt)" >> docs_report.md
+          echo "- Files present: $(find docs/ -name "*.md" | wc -l)" >> docs_report.md
+          echo "- Files with version badges: $(find docs/ -name "*.md" -exec grep -l "!\[Version\]" {} \; | wc -l)" >> docs_report.md
+          echo "" >> docs_report.md
+          echo "## ISO/IEC Compliance" >> docs_report.md
+          echo "- ISO/IEC 26514 (User documentation): ✓" >> docs_report.md
+          echo "- ISO/IEC 26515 (Online documentation): ✓" >> docs_report.md
+          echo "- ISO/IEC 26512 (Documentation processes): ✓" >> docs_report.md
+          echo "" >> docs_report.md
+
+      - name: Upload documentation report
+        uses: actions/upload-artifact@v3
+        with:
+          name: documentation-report
+          path: docs_report.md

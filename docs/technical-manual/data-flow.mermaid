@@ -1,0 +1,125 @@
+flowchart TD
+    subgraph "External Layer"
+        A[User Request]
+        B[CLI Command]
+        C[External API Call]
+    end
+    
+    subgraph "Ingress & Gateway"
+        D[Ingress Controller]
+        E[Gateway API :10000]
+    end
+    
+    subgraph "Authentication & Policy"
+        F[Identity Service :10002]
+        G[Policy Engine :10020]
+    end
+    
+    subgraph "Orchestration Layer"
+        H[Orchestrator :10001]
+        I[Temporal Server :7233]
+        J[Temporal Workers]
+    end
+    
+    subgraph "Agent Execution"
+        K[Agent Tasks]
+        L[Tool Service]
+        M[Memory Gateway :10021]
+    end
+    
+    subgraph "Data Storage"
+        N[Redis<br/>Session State]
+        O[Qdrant<br/>Vector Memory]
+        P[PostgreSQL<br/>Transactional]
+        Q[ClickHouse<br/>Analytics]
+    end
+    
+    subgraph "Event Streaming"
+        R[Kafka Topics]
+        S[Analytics Service]
+        T[Flink Processing]
+    end
+    
+    subgraph "Observability"
+        U[Prometheus Metrics]
+        V[Grafana Dashboards]
+        W[Loki Logs]
+    end
+    
+    %% Request Flow
+    A --> D
+    B --> D
+    C --> D
+    D --> E
+    
+    %% Authentication Flow
+    E --> F
+    F --> E
+    
+    %% Policy Check Flow
+    E --> G
+    G --> E
+    
+    %% Orchestration Flow
+    E --> H
+    H --> I
+    I --> J
+    
+    %% Agent Execution Flow
+    J --> K
+    K --> L
+    K --> M
+    
+    %% Data Storage Flow
+    E --> N
+    H --> N
+    M --> O
+    F --> P
+    S --> Q
+    
+    %% Event Streaming Flow
+    K --> R
+    R --> S
+    R --> T
+    T --> N
+    
+    %% Observability Flow
+    E --> U
+    H --> U
+    M --> U
+    G --> U
+    U --> V
+    E --> W
+    H --> W
+    
+    %% Response Flow
+    K --> J
+    J --> I
+    I --> H
+    H --> E
+    E --> D
+    D --> A
+    
+    %% Memory Retrieval Flow
+    K --> M
+    M --> O
+    O --> M
+    M --> K
+    
+    %% Policy Decision Flow
+    H --> G
+    G --> H
+    
+    %% Analytics Flow
+    S --> Q
+    T --> U
+    
+    %% Real-time Updates
+    N --> E
+    E --> A
+    
+    style A fill:#e1f5fe
+    style E fill:#f3e5f5
+    style H fill:#e8f5e8
+    style M fill:#fff3e0
+    style R fill:#fce4ec

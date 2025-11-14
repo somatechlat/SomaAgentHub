@@ -1,870 +1,566 @@
 # Deployment Guide
 
-**Comprehensive procedures for deploying SomaAgentHub across local development, staging, and production Kubernetes environments.**
+![Version](https://img.shields.io/badge/version-1.0.0-blue)
 
----
+## Overview
 
-## 📋 Table of Contents
+This guide covers production deployment of SomaAgentHub on Kubernetes clusters with high availability, security, and observability configurations.
 
-1. [Quick Start](#quick-start-docker-compose)
-2. [Local Development (Docker Compose)](#local-development-docker-compose)
-3. [Kubernetes Deployment](#kubernetes-deployment)
-4. [Production Configuration](#production-configuration)
-5. [Health Checks & Monitoring](#health-checks--monitoring)
-6. [Troubleshooting](#troubleshooting)
+## Prerequisites
 
----
+### Infrastructure Requirements
+- **Kubernetes**: 1.24+ with RBAC enabled
+- **Helm**: 3.8+ for package management
+- **Storage**: Persistent volumes for databases
+- **Networking**: Ingress controller (nginx, traefik, etc.)
+- **Monitoring**: Prometheus operator (optional but recommended)
 
-## Quick Start (Docker Compose)
+### Resource Requirements
+| Component | CPU | Memory | Storage | Replicas |
+|-----------|-----|--------|---------|----------|
+| Gateway API | 500m | 512Mi | - | 3+ |
+| Orchestrator | 1000m | 1Gi | - | 2+ |
+| Identity Service | 500m | 512Mi | - | 2+ |
+| Memory Gateway | 500m | 1Gi | - | 2+ |
+| Policy Engine | 300m | 256Mi | - | 2+ |
+| Redis | 500m | 1Gi | 10Gi | 1-3 |
+| PostgreSQL | 1000m | 2Gi | 50Gi | 1-3 |
+| Qdrant | 1000m | 2Gi | 100Gi | 1-3 |
 
-### Prerequisites
+## Deployment Methods
 
-```bash
-# Verify installed tools
-docker --version       # 24.0+
-docker-compose --version  # 2.20+
-git --version         # 2.40+
-make --version        # GNU Make 3.81+
-```
+### Method 1: Helm Chart (Recommended)
 
-### Deploy in 3 Steps
-
-```bash
-# 1. Clone and setup
-git clone https://github.com/somatechlat/SomaAgentHub.git
-cd SomaAgentHub
-python -m venv .venv
-source .venv/bin/activate
-pip install -r requirements-dev.txt
-
-# 2. Create local developer network
-make dev-network
-
-# 3. Start Temporal + Redis infrastructure
-make dev-up
-
-# 4. Start application services
-make dev-start-services
-
-# 5. Verify health
-curl http://localhost:10000/ready
-curl http://localhost:10001/ready
-curl http://localhost:10002/ready
-```
-
-**Expected result: Gateway (10000), Orchestrator (10001), Identity (10002) all ready ✅**
-
----
-
-## Local Development (Docker Compose)
-
-### Architecture
-
-```
-┌─────────────────────────────────────────────┐
-│      Local Machine (macOS/Linux)            │
-├─────────────────────────────────────────────┤
-│                                             │
-│  Docker Engine (24.0+)                     │
-│  ├─ Gateway API (10000)                   │
-│  ├─ Orchestrator (10001)                  │
-│  ├─ Identity Service (10002)              │
-│  │                                        │
-│  ├─ PostgreSQL (10004→5432)              │
-│  ├─ Redis (10003→6379)                   │
-│  ├─ Qdrant (10005→6333)                  │
-│  ├─ ClickHouse (10006→8123)              │
-│  ├─ MinIO (10007→9000, 10008→9001)       │
-│  ├─ Temporal (10009)                     │
-│  │                                        │
-│  ├─ Vault (10030→8200)                   │
-│  ├─ Prometheus (10010→9090)              │
-│  ├─ Grafana (10011→3000)                 │
-│  ├─ Loki (10012→3100)                    │
-│  ├─ Tempo (10013/10014→4317/4318)        │
-│  └─ OTEL Collector (10015/10016/10017→4317/4318/8888) │
-│                                             │
-│  Volumes: 8+ persistent data volumes        │
-│                                             │
-└─────────────────────────────────────────────┘
-```
-
-### Configuration Files
-
-#### `.env` - Environment Variables
-
-```bash
-# Application
-GATEWAY_API_PORT=10000
-ORCHESTRATOR_PORT=10001
-IDENTITY_SERVICE_PORT=10002
-
-# Infrastructure
-POSTGRES_USER=somaagent
-POSTGRES_PASSWORD=somaagent
-POSTGRES_DB=somaagent
-REDIS_URL=redis://redis:6379/0
-TEMPORAL_HOST=temporal-server:7233
-
-# Observability
-PROMETHEUS_PORT=10010
-GRAFANA_PORT=10011
-LOKI_PORT=10012
-TEMPO_OTLP_GRPC_PORT=10013
-TEMPO_OTLP_HTTP_PORT=10014
-OTEL_GRPC_PORT=10015
-OTEL_HTTP_PORT=10016
-OTEL_PROMETHEUS_PORT=10017
-
-# Secrets (dev only - use Vault in production)
-SOMAGENT_IDENTITY_JWT_SECRET=dev-secret
-VAULT_TOKEN=dev-token
-
-# Performance tuning (adjust for your hardware)
-POSTGRES_SHARED_BUFFERS=256MB
-REDIS_MAXMEMORY=512MB
-```
-
-### Production-Grade Features in docker-compose.yml
-
-**File location:** `/docker-compose.yml`
-
-**Features:**
-- Health checks for every service (10s intervals, 6 retries)
-- Resource limits and requests
-- Restart policies (`unless-stopped`)
-- Named volumes for data persistence
-- Internal networking (no external exposure)
-- Logging configuration (JSON format)
-
-### Lifecycle Commands
-
-```bash
-# Start all services (detached)
-docker-compose up -d
-
-# Start specific service
-docker-compose up -d postgres redis
-
-# View service logs
-docker-compose logs -f gateway-api
-
-# Stop all services (preserve data)
-docker-compose down
-
-# Stop and remove volumes (DESTRUCTIVE)
-docker-compose down -v
-
-# Restart a service
-docker-compose restart postgres
-
-# Execute command in container
-docker-compose exec gateway-api bash
-docker-compose exec app-postgres psql -U somaagent -d somaagent
-
-# View resource usage
-docker stats --no-stream
-
-# Check service status
-docker-compose ps
-```
-
-### Networking
-
-All services are on internal Docker bridge network `somaagenthub-network`:
-
-```bash
-# Inspect network
-docker network inspect somaagenthub-network
-
-# Services accessible by hostname
-# Example: from gateway-api container:
-#   curl http://orchestrator:10001/ready
-#   curl http://redis:6379
-```
-
-### Volume Persistence
-
-Data is persisted in Docker volumes:
-
-```bash
-# List volumes
-docker volume ls | grep somaagenthub
-
-# Inspect volume location
-docker volume inspect somaagenthub-app-postgres-data
-# Output includes: "Mountpoint": "/var/lib/docker/volumes/..."
-
-# Backup volume data
-docker run --rm -v somaagenthub-app-postgres-data:/data \
-  -v $(pwd):/backup alpine tar czf /backup/postgres-backup.tar.gz /data
-
-# Restore volume data
-docker run --rm -v somaagenthub-app-postgres-data:/data \
-  -v $(pwd):/backup alpine tar xzf /backup/postgres-backup.tar.gz -C /data
-```
-
----
-
-## Kubernetes Deployment
-
-### Prerequisites
-
-```bash
-# Local K8s cluster (Kind)
-kind --version              # 0.20.0+
-
-# Kubernetes client
-kubectl --version           # 1.28+
-
-# Package manager
-helm --version              # 3.13+
-
-# Create local cluster
-kind create cluster --name soma-dev --config infra/kind/cluster-config.yaml
-kubectl cluster-info
-```
-
-### Create Kubernetes Cluster (Kind)
-
-```bash
-# Create single-node cluster
-kind create cluster --name soma-dev
-
-# Or multi-node with custom config
-kind create cluster --config - <<EOF
-kind: Cluster
-apiVersion: kind.x-k8s.io/v1alpha4
-name: soma-dev
-nodes:
-- role: control-plane
-  extraPortMappings:
-  - containerPort: 30000
-    hostPort: 10000
-    protocol: TCP
-  - containerPort: 30001
-    hostPort: 10001
-    protocol: TCP
-  - containerPort: 30002
-    hostPort: 10002
-    protocol: TCP
-EOF
-
-# Verify cluster
-kubectl get nodes
-# Expected: soma-dev-control-plane   Ready    control-plane
-```
-
-### Namespace & RBAC Setup
-
+#### 1. Prepare Environment
 ```bash
 # Create namespace
-kubectl apply -f k8s/namespace.yaml
+kubectl create namespace soma-agent-hub
 
-# Create service account
-kubectl create serviceaccount soma-deployer -n soma-agent-hub
-kubectl create clusterrolebinding soma-deployer \
-  --clusterrole=cluster-admin --serviceaccount=soma-agent-hub:soma-deployer
-
-# Verify
-kubectl get sa -n soma-agent-hub
-kubectl get rolebindings -n soma-agent-hub
+# Add any required secrets
+kubectl create secret generic soma-secrets \
+  --from-literal=jwt-secret="your-jwt-secret" \
+  --from-literal=redis-password="your-redis-password" \
+  --namespace soma-agent-hub
 ```
 
-### Deploy Core Services
-
-```bash
-# 1. Deploy infrastructure (PostgreSQL, Redis, etc.)
-kubectl apply -f k8s/postgres-deployment.yaml
-kubectl apply -f k8s/redis-deployment.yaml
-kubectl apply -f k8s/qdrant-deployment.yaml
-
-# 2. Wait for data services to be healthy
-kubectl wait --for=condition=ready pod \
-  -l app=postgres -n soma-agent-hub --timeout=300s
-
-# 3. Deploy application services
-kubectl apply -f k8s/gateway-api-deployment.yaml
-kubectl apply -f k8s/orchestrator-deployment.yaml
-kubectl apply -f k8s/identity-service-deployment.yaml
-
-# 4. Deploy observability
-kubectl apply -f k8s/prometheus-deployment.yaml
-kubectl apply -f k8s/grafana-deployment.yaml
-
-# 5. Deploy security (Vault, policy engine)
-kubectl apply -f k8s/vault-deployment.yaml
-kubectl apply -f k8s/openfga-deployment.yaml
-
-# 6. Deploy mesh (Istio, if applicable)
-kubectl apply -f k8s/istio-peer-auth.yaml
-kubectl apply -f k8s/istio-virtual-services.yaml
-```
-
-### Helm Chart Deployment (Recommended for Production)
-
-```bash
-# 1. Add SomaAgentHub Helm repo
-helm repo add somaagenthub https://charts.somaagenthub.io
-helm repo update
-
-# 2. Create values override file
-cat > my-values.yaml <<EOF
-replicaCount: 3
-resources:
-  requests:
-    memory: "512Mi"
-    cpu: "250m"
-  limits:
-    memory: "1Gi"
-    cpu: "500m"
-environment: production
-EOF
-
-# 3. Install release
-helm install soma-release somaagenthub/somagenthub \
-  -f my-values.yaml \
-  -n soma-agent-hub \
-  --create-namespace
-
-# 4. Check status
-helm status soma-release -n soma-agent-hub
-
-# 5. Upgrade release
-helm upgrade soma-release somaagenthub/somagenthub \
-  -f my-values.yaml \
-  -n soma-agent-hub
-
-# 6. Rollback on issue
-helm rollback soma-release 1 -n soma-agent-hub
-```
-
-### Verify Deployment
-
-```bash
-# Check all pods running
-kubectl get pods -n soma-agent-hub
-# Expected: All pods with status Running, Ready 1/1
-
-# Check services
-kubectl get svc -n soma-agent-hub
-# Expected: IP addresses assigned, ports open
-
-# Check logs
-kubectl logs -f deployment/gateway-api -n soma-agent-hub
-
-# Port forward for local testing
-kubectl port-forward svc/gateway-api 10000:10000 -n soma-agent-hub
-curl http://localhost:10000/healthz
-```
-
----
-
-## Production Configuration
-
-### Resource Allocation
-
-**Per-service resource requests & limits:**
-
+#### 2. Configure Values
+Create `values-production.yaml`:
 ```yaml
-# Example service deployment
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: gateway-api
-  namespace: soma-agent-hub
-spec:
-  replicas: 3  # High availability
-  template:
-    spec:
-      containers:
-      - name: gateway-api
-        image: somaagenthub/gateway-api:v1.0.0
-        resources:
-          requests:
-            memory: "512Mi"    # Reserved
-            cpu: "250m"        # Reserved
-          limits:
-            memory: "1Gi"      # Max allowed
-            cpu: "500m"        # Max allowed
+global:
+  imageRegistry: "your-registry.com"
+  imageTag: "v1.0.0"
+  namespace: "soma-agent-hub"
+  environment: "production"
+
+services:
+  gateway:
+    enabled: true
+    replicas: 3
+    resources:
+      requests:
+        cpu: 500m
+        memory: 512Mi
+      limits:
+        cpu: 1000m
+        memory: 1Gi
+    ingress:
+      enabled: true
+      host: "api.somaagent.com"
+      tls:
+        enabled: true
+        secretName: "soma-tls-cert"
+
+  orchestrator:
+    enabled: true
+    replicas: 2
+    resources:
+      requests:
+        cpu: 1000m
+        memory: 1Gi
+      limits:
+        cpu: 2000m
+        memory: 2Gi
+
+  identityService:
+    enabled: true
+    replicas: 2
+    database:
+      host: "postgres.example.com"
+      port: 5432
+      name: "soma_identity"
+      existingSecret: "postgres-credentials"
+
+  memoryGateway:
+    enabled: true
+    replicas: 2
+    qdrant:
+      persistence:
+        enabled: true
+        size: 100Gi
+        storageClass: "fast-ssd"
+
+  policyEngine:
+    enabled: true
+    replicas: 2
+
+external:
+  redis:
+    enabled: true
+    host: "redis.example.com"
+    port: 6379
+    auth:
+      enabled: true
+      existingSecret: "redis-credentials"
+
+  temporal:
+    enabled: true
+    host: "temporal.example.com"
+    port: 7233
+    namespace: "default"
+
+monitoring:
+  prometheus:
+    enabled: true
+    serviceMonitor: true
+  grafana:
+    enabled: true
+    dashboards: true
 ```
 
-**Summary for all services:**
-
-| Service | Memory Request | Memory Limit | CPU Request | CPU Limit |
-|---------|---|---|---|---|
-| Gateway API | 512Mi | 1Gi | 250m | 500m |
-| Orchestrator | 512Mi | 1Gi | 250m | 500m |
-| Identity Service | 256Mi | 512Mi | 100m | 250m |
-| PostgreSQL | 1Gi | 2Gi | 500m | 1000m |
-| Redis | 512Mi | 1Gi | 250m | 500m |
-| Qdrant | 1Gi | 2Gi | 500m | 1000m |
-| ClickHouse | 1Gi | 2Gi | 500m | 1000m |
-| Temporal | 512Mi | 1Gi | 500m | 1000m |
-
-### High Availability Configuration
-
+#### 3. Deploy with Helm
 ```bash
-# 1. Multi-replica deployment
-kubectl scale deployment gateway-api --replicas=3 -n soma-agent-hub
+# Install/upgrade the release
+helm upgrade --install soma-agent-hub ./k8s/helm/soma-agent \
+  --namespace soma-agent-hub \
+  --values values-production.yaml \
+  --timeout 10m \
+  --wait
 
-# 2. Pod Disruption Budget (prevent simultaneous evictions)
-kubectl apply -f - <<EOF
+# Verify deployment
+kubectl get pods -n soma-agent-hub
+kubectl get svc -n soma-agent-hub
+```
+
+### Method 2: Kustomize
+
+#### 1. Prepare Kustomization
+Create `k8s/overlays/production/kustomization.yaml`:
+```yaml
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: soma-agent-hub
+
+resources:
+- ../../base
+
+patchesStrategicMerge:
+- gateway-production.yaml
+- orchestrator-production.yaml
+
+configMapGenerator:
+- name: soma-config
+  literals:
+  - ENVIRONMENT=production
+  - LOG_LEVEL=INFO
+
+secretGenerator:
+- name: soma-secrets
+  literals:
+  - JWT_SECRET=your-jwt-secret
+  - REDIS_PASSWORD=your-redis-password
+
+images:
+- name: somaagent/gateway-api
+  newTag: v1.0.0
+- name: somaagent/orchestrator
+  newTag: v1.0.0
+```
+
+#### 2. Deploy with Kustomize
+```bash
+kubectl apply -k k8s/overlays/production
+```
+
+## High Availability Configuration
+
+### Database High Availability
+
+#### PostgreSQL HA
+```yaml
+# Using PostgreSQL operator or external managed service
+postgresql:
+  enabled: false
+  
+external:
+  postgresql:
+    host: "postgres-primary.example.com"
+    replicaHosts:
+      - "postgres-replica-1.example.com"
+      - "postgres-replica-2.example.com"
+    port: 5432
+    database: "somaagent"
+    auth:
+      existingSecret: "postgres-ha-credentials"
+```
+
+#### Redis HA
+```yaml
+redis:
+  enabled: false
+
+external:
+  redis:
+    mode: "sentinel"
+    sentinels:
+      - host: "redis-sentinel-1.example.com"
+        port: 26379
+      - host: "redis-sentinel-2.example.com"
+        port: 26379
+      - host: "redis-sentinel-3.example.com"
+        port: 26379
+    masterName: "soma-redis"
+```
+
+#### Qdrant Clustering
+```yaml
+qdrant:
+  cluster:
+    enabled: true
+    replicas: 3
+    persistence:
+      enabled: true
+      size: 100Gi
+      storageClass: "fast-ssd"
+  resources:
+    requests:
+      cpu: 1000m
+      memory: 2Gi
+    limits:
+      cpu: 2000m
+      memory: 4Gi
+```
+
+### Service High Availability
+
+#### Pod Disruption Budgets
+```yaml
 apiVersion: policy/v1
 kind: PodDisruptionBudget
 metadata:
   name: gateway-api-pdb
-  namespace: soma-agent-hub
 spec:
   minAvailable: 2
   selector:
     matchLabels:
       app: gateway-api
-EOF
-
-# 3. Horizontal Pod Autoscaler
-kubectl apply -f - <<EOF
-apiVersion: autoscaling/v2
-kind: HorizontalPodAutoscaler
-metadata:
-  name: gateway-api-hpa
-  namespace: soma-agent-hub
-spec:
-  scaleTargetRef:
-    apiVersion: apps/v1
-    kind: Deployment
-    name: gateway-api
-  minReplicas: 2
-  maxReplicas: 10
-  metrics:
-  - type: Resource
-    resource:
-      name: cpu
-      target:
-        type: Utilization
-        averageUtilization: 70
-  - type: Resource
-    resource:
-      name: memory
-      target:
-        type: Utilization
-        averageUtilization: 80
-EOF
-```
-
-### Storage Configuration
-
-```bash
-# 1. Create PersistentVolume for PostgreSQL
-kubectl apply -f - <<EOF
-apiVersion: v1
-kind: PersistentVolumeClaim
-metadata:
-  name: postgres-pvc
-  namespace: soma-agent-hub
-spec:
-  accessModes:
-    - ReadWriteOnce
-  resources:
-    requests:
-      storage: 50Gi
-  storageClassName: standard
-EOF
-
-# 2. Mount in deployment
-# (Already configured in postgres-deployment.yaml)
-# volumeMounts:
-# - name: postgres-storage
-#   mountPath: /var/lib/postgresql/data
-# volumes:
-# - name: postgres-storage
-#   persistentVolumeClaim:
-#     claimName: postgres-pvc
-```
-
-### Secrets Management (Vault Integration)
-
-```bash
-# 1. Deploy Vault
-kubectl apply -f k8s/vault-deployment.yaml
-
-# 2. Unseal Vault (development only!)
-kubectl exec -it vault-0 -n soma-agent-hub -- vault operator init
-kubectl exec -it vault-0 -n soma-agent-hub -- vault operator unseal
-
-# 3. Create secrets
-kubectl exec vault-0 -n soma-agent-hub -- vault kv put secret/somaagent \
-  db_user=somaagent \
-  db_password=$(openssl rand -base64 32) \
-  jwt_secret=$(openssl rand -base64 32)
-
-# 4. Reference in pod spec
-# env:
-# - name: POSTGRES_PASSWORD
-#   valueFrom:
-#     secretKeyRef:
-#       name: vault-secret
-#       key: db_password
-```
-
 ---
-
-## Health Checks & Monitoring
-
-### Readiness & Liveness Probes
-
-```yaml
-# Example service deployment
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: orchestrator-pdb
 spec:
-  containers:
-  - name: gateway-api
-    livenessProbe:
-      httpGet:
-        path: /healthz
-        port: 10000
-      initialDelaySeconds: 30
-      periodSeconds: 10
-      failureThreshold: 3
-    readinessProbe:
-      httpGet:
-        path: /ready
-        port: 10000
-      initialDelaySeconds: 10
-      periodSeconds: 5
-      failureThreshold: 3
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: orchestrator
 ```
 
-### Manual Health Verification
-
-```bash
-# Check Gateway API
-curl -v http://localhost:10000/healthz
-# Expected: 200 OK, {"status": "ok"|"degraded"}
-
-# Check Orchestrator
-curl http://localhost:10001/ready
-# Expected: 200 OK
-
-# Check Identity Service
-curl http://localhost:10002/health
-# Expected: 200 OK, status field present
-
-# Check PostgreSQL connectivity
-docker-compose exec app-postgres pg_isready -U somaagent -d somaagent
-# Expected: accepting connections
-
-# Check Redis
-redis-cli -h localhost ping
-# Expected: PONG
-
-# Check Qdrant
-curl http://localhost:6333/health
-# Expected: 200 OK
-
-# Check Temporal
-grpcurl -plaintext localhost:10009 temporal.api.workflowservice.v1.WorkflowService/DescribeNamespace
-# Expected: (namespace description)
+#### Anti-Affinity Rules
+```yaml
+spec:
+  template:
+    spec:
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            podAffinityTerm:
+              labelSelector:
+                matchExpressions:
+                - key: app
+                  operator: In
+                  values:
+                  - gateway-api
+              topologyKey: kubernetes.io/hostname
 ```
 
-### Prometheus Metrics
+## Security Configuration
 
-```bash
-# Access Prometheus
-curl http://localhost:10010/api/v1/query?query=up
+### Network Policies
+```yaml
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: soma-network-policy
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/part-of: soma-agent-hub
+  policyTypes:
+  - Ingress
+  - Egress
+  ingress:
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          name: ingress-nginx
+  - from:
+    - podSelector:
+        matchLabels:
+          app.kubernetes.io/part-of: soma-agent-hub
+  egress:
+  - to: []
+    ports:
+    - protocol: TCP
+      port: 53
+    - protocol: UDP
+      port: 53
+  - to:
+    - podSelector:
+        matchLabels:
+          app.kubernetes.io/part-of: soma-agent-hub
+```
 
-# Query active targets
-curl http://localhost:10010/api/v1/targets
+### RBAC Configuration
+```yaml
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: soma-orchestrator
+  namespace: soma-agent-hub
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: soma-orchestrator-role
+rules:
+- apiGroups: [""]
+  resources: ["pods", "configmaps", "secrets"]
+  verbs: ["get", "list", "create", "update", "patch"]
+- apiGroups: ["batch"]
+  resources: ["jobs"]
+  verbs: ["create", "get", "list", "delete"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: soma-orchestrator-binding
+subjects:
+- kind: ServiceAccount
+  name: soma-orchestrator
+roleRef:
+  kind: Role
+  name: soma-orchestrator-role
+  apiGroup: rbac.authorization.k8s.io
+```
 
-# Query service latency
-curl 'http://localhost:10010/api/v1/query?query=histogram_quantile(0.95,rate(request_duration_seconds_bucket[5m]))'
+### TLS Configuration
+```yaml
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: soma-ingress
+  annotations:
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+spec:
+  tls:
+  - hosts:
+    - api.somaagent.com
+    secretName: soma-tls-cert
+  rules:
+  - host: api.somaagent.com
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: gateway-api
+            port:
+              number: 8000
+```
+
+## Monitoring & Observability
+
+### Prometheus Configuration
+```yaml
+monitoring:
+  prometheus:
+    enabled: true
+    serviceMonitor:
+      enabled: true
+      interval: 30s
+      scrapeTimeout: 10s
+    rules:
+      enabled: true
+      groups:
+      - name: soma-agent-hub
+        rules:
+        - alert: SomaServiceDown
+          expr: up{job=~"soma-.*"} == 0
+          for: 5m
+          labels:
+            severity: critical
+          annotations:
+            summary: "SomaAgentHub service is down"
 ```
 
 ### Grafana Dashboards
-
-```bash
-# Access Grafana UI
-open http://localhost:10011
-
-# Default credentials (change immediately in production!)
-# Email: admin
-# Password: admin
-
-# Pre-built dashboards:
-# - SomaAgentHub Overview
-# - Service Metrics
-# - Database Performance
-# - API Latency
+```yaml
+grafana:
+  enabled: true
+  dashboards:
+    enabled: true
+    configMaps:
+    - soma-dashboards
+  datasources:
+    prometheus:
+      url: http://prometheus:9090
 ```
 
----
+## Backup & Recovery
+
+### Database Backups
+```bash
+# PostgreSQL backup
+kubectl create job postgres-backup-$(date +%Y%m%d) \
+  --image=postgres:15 \
+  -- pg_dump -h postgres.example.com -U soma_user soma_db > backup.sql
+
+# Redis backup
+kubectl exec redis-0 -- redis-cli BGSAVE
+kubectl cp redis-0:/data/dump.rdb ./redis-backup-$(date +%Y%m%d).rdb
+
+# Qdrant backup
+kubectl exec qdrant-0 -- tar -czf /tmp/qdrant-backup.tar.gz /qdrant/storage
+kubectl cp qdrant-0:/tmp/qdrant-backup.tar.gz ./qdrant-backup-$(date +%Y%m%d).tar.gz
+```
+
+### Configuration Backup
+```bash
+# Backup Helm values and secrets
+helm get values soma-agent-hub -n soma-agent-hub > values-backup.yaml
+kubectl get secrets -n soma-agent-hub -o yaml > secrets-backup.yaml
+```
+
+## Scaling Guidelines
+
+### Horizontal Scaling
+```bash
+# Scale based on load
+kubectl scale deployment gateway-api --replicas=5 -n soma-agent-hub
+kubectl scale deployment orchestrator --replicas=3 -n soma-agent-hub
+
+# Auto-scaling with HPA
+kubectl autoscale deployment gateway-api \
+  --cpu-percent=70 \
+  --min=3 \
+  --max=10 \
+  -n soma-agent-hub
+```
+
+### Vertical Scaling
+```bash
+# Increase resource limits
+kubectl patch deployment gateway-api -n soma-agent-hub -p '
+{
+  "spec": {
+    "template": {
+      "spec": {
+        "containers": [{
+          "name": "gateway-api",
+          "resources": {
+            "requests": {"cpu": "1000m", "memory": "1Gi"},
+            "limits": {"cpu": "2000m", "memory": "2Gi"}
+          }
+        }]
+      }
+    }
+  }
+}'
+```
 
 ## Troubleshooting
 
 ### Common Deployment Issues
 
-#### Services failing to start
-
+#### Image Pull Errors
 ```bash
-# Check pod status
-kubectl describe pod <pod-name> -n soma-agent-hub
+# Check image availability
+docker pull your-registry.com/somaagent/gateway-api:v1.0.0
 
-# View logs
-kubectl logs <pod-name> -n soma-agent-hub
-kubectl logs <pod-name> -c <container-name> -n soma-agent-hub
-
-# Common causes:
-# 1. Image not available
-#    → Fix: docker pull <image>, or check image name/tag
-# 2. Resource limits exceeded
-#    → Fix: Increase memory/CPU limits, or reduce replica count
-# 3. Dependency not ready
-#    → Fix: Check postgres/redis health first
+# Verify registry credentials
+kubectl get secret regcred -n soma-agent-hub -o yaml
 ```
 
-#### Database connection failures
-
+#### Resource Constraints
 ```bash
-# Test PostgreSQL connectivity
-kubectl run -it --rm debug --image=postgres:16 --restart=Never -- \
-  psql -h postgres -U somaagent -d somaagent -c "SELECT 1;"
-
-# Check postgres pod logs
-kubectl logs -f postgres-0 -n soma-agent-hub
-
-# Verify environment variables
-kubectl exec gateway-api-0 -n soma-agent-hub -- env | grep POSTGRES
-```
-
-#### Out of memory errors
-
-```bash
-# Check pod resource usage
-kubectl top pod -n soma-agent-hub
-
 # Check node resources
+kubectl describe nodes
 kubectl top nodes
 
-# Increase memory limit
-kubectl set resources deployment gateway-api \
-  --limits=memory=2Gi --requests=memory=1Gi \
-  -n soma-agent-hub
-
-# Or scale down replicas
-kubectl scale deployment gateway-api --replicas=1 -n soma-agent-hub
+# Check resource quotas
+kubectl describe resourcequota -n soma-agent-hub
 ```
 
-#### Networking issues
-
+#### Network Connectivity
 ```bash
-# Test internal DNS
-kubectl exec -it <pod> -n soma-agent-hub -- nslookup postgres
-
 # Test service connectivity
-kubectl exec -it <pod> -n soma-agent-hub -- \
-  curl http://postgres:5432 -v
+kubectl exec -it gateway-api-xxx -n soma-agent-hub -- \
+  curl http://orchestrator:8000/health
 
-# Check network policies
-kubectl get networkpolicies -n soma-agent-hub
-
-# Check service endpoints
-kubectl get endpoints -n soma-agent-hub
+# Check DNS resolution
+kubectl exec -it gateway-api-xxx -n soma-agent-hub -- \
+  nslookup orchestrator.soma-agent-hub.svc.cluster.local
 ```
 
----
-
-## Rollback Procedures
-
-### Docker Compose Rollback
-
+### Health Checks
 ```bash
-# Keep old compose file version-controlled in git
-git log --oneline docker-compose.yml
+# Verify all services are healthy
+kubectl get pods -n soma-agent-hub
+kubectl get svc -n soma-agent-hub
 
-# Checkout old version
-git checkout <commit-hash> -- docker-compose.yml
+# Run smoke tests
+make k8s-smoke
 
-# Restart services with old config
-docker-compose down
-docker-compose up -d
+# Check ingress
+curl -k https://api.somaagent.com/healthz
 ```
 
-### Kubernetes Rollback
+## Maintenance
 
+### Rolling Updates
 ```bash
-# View rollout history
-kubectl rollout history deployment/gateway-api -n soma-agent-hub
+# Update image tags
+helm upgrade soma-agent-hub ./k8s/helm/soma-agent \
+  --namespace soma-agent-hub \
+  --set global.imageTag=v1.1.0 \
+  --reuse-values
 
-# Rollback to previous revision
-kubectl rollout undo deployment/gateway-api -n soma-agent-hub
-
-# Rollback to specific revision
-kubectl rollout undo deployment/gateway-api --to-revision=2 -n soma-agent-hub
-
-# Check rollback status
+# Monitor rollout
 kubectl rollout status deployment/gateway-api -n soma-agent-hub
 ```
 
----
-
-## Next Steps
-
-- **[Monitoring & Observability](./monitoring.md)** - Setup dashboards and alerts
-- **[Security & Hardening](./security/)** - Production security configuration
-- **[Runbooks](./runbooks/)** - Operational procedures
-
----
-
-**✅ Deployment complete! Services are live and ready for use.**
-
-1.  **Copy the production template:**
-    ```bash
-    cp k8s/helm/soma-agent/values.prod.yaml k8s/helm/soma-agent/my-production-values.yaml
-    ```
-
-2.  **Edit `my-production-values.yaml`:**
-    Update the following critical sections:
-    - `global.domain`: Set your public-facing domain (e.g., `soma.mycompany.com`).
-    - `ingress.className`: Specify your Ingress controller class.
-    - `persistence`: Configure database sizes and storage classes.
-    - `resources`: Adjust CPU and memory requests/limits for each service based on expected load.
-    - `secrets`: Provide production-grade secrets for JWT, database passwords, and API keys. **Do not use defaults.**
-
-### Step 3: Create Namespace and Secrets
-It's best practice to run the application in its own namespace and manage secrets securely.
-
-1.  **Create the namespace:**
-    ```bash
-    kubectl create namespace soma-agent-hub
-    ```
-
-2.  **Create Kubernetes Secrets:**
-    Create a `secrets.yaml` file (and add it to `.gitignore`):
-    ```yaml
-    apiVersion: v1
-    kind: Secret
-    metadata:
-      name: soma-platform-secrets
-      namespace: soma-agent-hub
-    type: Opaque
-    stringData:
-      JWT_SECRET: "your-super-strong-jwt-secret"
-      POSTGRES_PASSWORD: "your-secure-db-password"
-      REDIS_PASSWORD: "your-secure-redis-password"
-      OPENAI_API_KEY: "your-openai-api-key"
-    ```
-    Apply it:
-    ```bash
-    kubectl apply -f secrets.yaml
-    ```
-
-### Step 4: Deploy with Helm
-Use the provided `Makefile` target for a streamlined installation or run the `helm` command directly.
-
+### Certificate Renewal
 ```bash
-# Recommended: Use the Makefile
-make helm-install VALUES_FILE=k8s/helm/soma-agent/my-production-values.yaml
+# Check certificate expiry
+kubectl describe certificate soma-tls-cert -n soma-agent-hub
 
-# Or, run Helm directly
-helm install soma-agent-hub k8s/helm/soma-agent/ \
-  --namespace soma-agent-hub \
-  --values k8s/helm/soma-agent/my-production-values.yaml
+# Force renewal if needed
+kubectl delete certificate soma-tls-cert -n soma-agent-hub
+kubectl apply -f ingress.yaml
 ```
 
-### Step 5: Verify the Deployment
-After the Helm chart is deployed, verify that all components are running correctly.
+### Database Maintenance
+```bash
+# PostgreSQL maintenance
+kubectl exec postgres-0 -- psql -c "VACUUM ANALYZE;"
 
-1.  **Check Pod Status:**
-    ```bash
-    kubectl get pods -n soma-agent-hub -w
-    # Wait for all pods to be in the 'Running' state.
-    ```
+# Redis maintenance
+kubectl exec redis-0 -- redis-cli BGREWRITEAOF
 
-2.  **Check Service Status:**
-    ```bash
-    kubectl get services -n soma-agent-hub
-    ```
-
-3.  **Check Ingress:**
-    ```bash
-    kubectl get ingress -n soma-agent-hub
-    # Ensure the ADDRESS field is populated with your load balancer's IP.
-    ```
-
-4.  **Run Smoke Tests:**
-    The repository includes a smoke test script to verify core functionality.
-    ```bash
-    make k8s-smoke HOST="soma.mycompany.com"
-    ```
-
----
-
-## 🎛️ Configuration Deep Dive
-
-### Resource Management
-It is critical to configure resource requests and limits for each microservice in your `values.yaml` to ensure cluster stability.
-
-```yaml
-# Example for gateway-api in my-production-values.yaml
-gateway-api:
-  replicaCount: 2
-  resources:
-    requests:
-      cpu: "250m"
-      memory: "512Mi"
-    limits:
-      cpu: "1000m"
-      memory: "1Gi"
-```
-
-### Scaling
-The platform can be scaled horizontally by adjusting the `replicaCount` for each service.
-
--   **Stateless Services**: `gateway-api`, `policy-engine`, `slm-service` can be scaled freely.
--   **Stateful Services**: `orchestrator` (via Temporal workers), `memory-gateway` require careful scaling.
--   **Databases**: Scale PostgreSQL, Redis, and Qdrant according to their specific documentation.
-
-### High Availability (HA)
-For a high-availability setup:
-- Run at least 2 replicas for each stateless service.
-- Deploy your Kubernetes cluster across multiple availability zones.
-- Use a managed, multi-AZ database service (e.g., AWS RDS, Google Cloud SQL).
-- Configure Pod Anti-Affinity to ensure replicas are scheduled on different nodes.
-
----
-
-## 🔄 Upgrades and Rollbacks
-
-### Upgrading the Platform
-To upgrade to a new version of SomaAgentHub:
-
-1.  **Update the repository:**
-    ```bash
-    git pull origin main
-    ```
-2.  **Review `values.yaml` changes:** Check for any new configuration options.
-3.  **Perform the upgrade:**
-    ```bash
-    helm upgrade soma-agent-hub k8s/helm/soma-agent/ \
-      --namespace soma-agent-hub \
-      --values k8s/helm/soma-agent/my-production-values.yaml
-    ```
-
-### Rolling Back a Deployment
-If an upgrade fails, you can easily roll back to a previous revision with Helm.
-
-1.  **List release history:**
-    ```bash
-    helm history soma-agent-hub -n soma-agent-hub
-    ```
-2.  **Roll back to the previous version (e.g., revision 1):**
-    ```bash
-    helm rollback soma-agent-hub 1 -n soma-agent-hub
-    ```
-
----
-
-## 🔗 Related Documentation
-- **[System Architecture](architecture.md)**: To understand the components you are deploying.
-- **[Monitoring Guide](monitoring.md)**: To configure observability for your new deployment.
-- **[Backup and Recovery](backup-and-recovery.md)**: To set up data protection for your stateful services.
+# Qdrant optimization
+kubectl exec qdrant-0 -- curl -X POST http://localhost:6333/collections/optimize
 ```

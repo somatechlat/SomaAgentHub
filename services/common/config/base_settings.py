@@ -5,40 +5,65 @@ from typing import Any, Literal
 
 from pydantic_settings import BaseSettings
 
+# NOTE: Removed circular import of `resolve_env`. The function is defined
+# later in this module, so importing it from the same module caused a
+# circular import error during test collection.
+
 
 class BaseServiceSettings(BaseSettings):
-    """Common base settings for all SomaAgent services.
+"""Canonical base settings (no duplication, no mocks).
 
-    Provides shared environment fields (environment, log level, tracing flags) that
-    each service can extend. Centralizing here reduces duplication and drift.
-    """
+Only two deployment modes: DEV and PROD. All environment-derived values
+must use the standardized prefix `SOMA_AGENT_HUB_`.
+"""
 
-    environment: str = "development"
-    log_level: Literal["DEBUG", "INFO", "WARNING", "ERROR"] = "INFO"
-    enable_tracing: bool = True
-    enable_metrics: bool = True
-    enable_prometheus: bool = True
-    enable_otlp: bool = False  # overridable per environment
+environment: str = "development"
+deployment_mode: Literal["DEV", "PROD"] = "DEV"
+log_level: Literal["DEBUG", "INFO", "WARNING", "ERROR"] = "INFO"
+enable_tracing: bool = True
+enable_metrics: bool = True
+enable_prometheus: bool = True
+enable_otlp: bool = False  # overridable per environment
 
-    class Config:
-        env_prefix = "SOMAGENT_"
-        case_sensitive = False
+class Config:
+env_prefix = "SOMA_AGENT_HUB_"
+case_sensitive = False
+
+@property
+def is_dev(self) -> bool:
+return self.deployment_mode == "DEV"
+
+@property
+def is_prod(self) -> bool:
+return self.deployment_mode == "PROD"
+
+
+def resolve_env(name: str, default: Any | None = None) -> Any:
+"""Resolve an environment variable using ONLY the canonical prefix.
+
+Reads `SOMA_AGENT_HUB_<NAME>` and returns its value if present,
+otherwise returns `default`.
+"""
+import os as _os
+
+key = f"SOMA_AGENT_HUB_{name}"
+return _os.environ.get(key, default)
 
 
 @lru_cache(maxsize=32)
 def load_settings(cls: type[BaseServiceSettings]) -> BaseServiceSettings:
-    """Load and cache a settings class instance.
+"""Load and cache a settings class instance.
 
-    Services call: `settings = load_settings(MyServiceSettings)`.
-    """
-    # pydantic BaseSettings subclasses are callable with no args to read env.
-    instance: BaseServiceSettings = cls()  # construct
-    return instance
+Services call: `settings = load_settings(MyServiceSettings)`.
+"""
+# pydantic BaseSettings subclasses are callable with no args to read env.
+instance: BaseServiceSettings = cls()  # construct
+return instance
 
 
 def apply_log_level(logger_name: str, level: str) -> None:
-    import logging
+import logging
 
-    lvl = getattr(logging, level.upper(), logging.INFO)
-    logging.getLogger(logger_name).setLevel(lvl)
-    logging.getLogger().setLevel(lvl)
+lvl = getattr(logging, level.upper(), logging.INFO)
+logging.getLogger(logger_name).setLevel(lvl)
+logging.getLogger().setLevel(lvl)

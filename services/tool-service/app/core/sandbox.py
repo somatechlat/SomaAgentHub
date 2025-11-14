@@ -7,45 +7,46 @@ import time
 import uuid
 from dataclasses import dataclass
 from typing import Any
+from services.common.config.base_settings import resolve_env
 
 
 @dataclass
 class SandboxResult:
-    """Represents the outcome of a sandboxed tool execution."""
+"""Represents the outcome of a sandboxed tool execution."""
 
-    job_id: str
-    status: str
-    duration_ms: float
-    output: dict[str, Any]
-    sandbox: dict[str, Any]
+job_id: str
+status: str
+duration_ms: float
+output: dict[str, Any]
+sandbox: dict[str, Any]
 
 
 class SandboxRunner:
-    """Executes tool actions inside an isolated sandbox (simulated)."""
+"""Executes tool actions inside an isolated sandbox (simulated)."""
 
-    def __init__(self, base_path: str) -> None:
-        self.base_path = base_path
+def __init__(self, base_path: str) -> None:
+self.base_path = base_path
 
-    async def run(
-        self, adapter: dict, action: str, arguments: dict[str, Any]
-    ) -> SandboxResult:
-        start = time.perf_counter()
-        await asyncio.sleep(0)  # Yield control; replace with real sandbox call later.
-        job_id = str(uuid.uuid4())
-        duration_ms = (time.perf_counter() - start) * 1000
-        sandbox_meta = {
-            "working_dir": f"{self.base_path}/{adapter['id']}/{job_id}",
-            "adapter_version": adapter.get("version"),
-        }
-        output = {
-            "action": action,
-            "arguments": arguments,
-            "adapter": adapter.get("id"),
-        }
-        return SandboxResult(
-            job_id=job_id,
-            status="completed",
-            duration_ms=duration_ms,
-            output=output,
-            sandbox=sandbox_meta,
-        )
+async def run(
+self, adapter: dict, action: str, arguments: dict[str, Any]
+) -> SandboxResult:
+start = time.perf_counter()
+await asyncio.sleep(0)  # Yield control; replace with real sandbox call later.
+job_id = str(uuid.uuid4())
+duration_ms = (time.perf_counter() - start) * 1000
+sandbox_meta = {
+"working_dir": f"{self.base_path}/{adapter['id']}/{job_id}",
+"adapter_version": adapter.get("version"),
+}
+output = {
+"action": action,
+"arguments": arguments,
+"adapter": adapter.get("id"),
+}
+return SandboxResult(
+job_id=job_id,
+status="completed",
+duration_ms=duration_ms,
+output=output,
+sandbox=sandbox_meta,
+)

@@ -18,7 +18,7 @@ Fill in each section during Sprint 0 discovery. Update the "Last Updated" field 
 |----------|---------------------------|------------------|------------------|---------|
 | `session-start-workflow` (Temporal) | Activities run inside orchestrator pod; Ray tasks scheduled via `ray.init(address="auto")` | 20 concurrent sessions per pod (bounded by worker count) | Each Ray task holds ~1 vCPU / 512 MiB for ~1 min | Session completion p95 < 2 min |
 | `unified-multi-agent-workflow` | Temporal activities invoking CrewAI/Autogen/LangGraph libraries within worker pod | 10 concurrent per worker | CPU-bound spikes (3–4 vCPU) with bursty memory usage (~1 GiB) | Response p95 < 5 min |
-| `multi-agent-orchestration` (MAO) | Sequential directives executed inline; heavy use of SLM completions and notifications | Depends on directives count (typically 3–5) | Sustained SLM requests (~1 CPU per directive) with external HTTP calls | Must complete orchestrations in <10 min |
+| `multi-agent-orchestration` (MAO) | Sequential directives executed inline; heavy use of LLM Hub completions and notifications | Depends on directives count (typically 3–5) | Sustained LLM Hub requests (~1 CPU per directive) with external HTTP calls | Must complete orchestrations in <10 min |
 | `marketing-campaign` | Long-running saga with 6 phases; all activities executed inline via HTTP integrations | 4 concurrent campaigns (approval gates slow throughput) | Mix of I/O heavy HTTP calls + bursts of content generation (up to 2 vCPU, 2 GiB) over 15–25 min | Completion within business day; approval gating manual |
 | `kamachiq` project workflows | Temporal orchestrates parallel task waves; activities spawn agents inline | Worker count currently 1–2 per pod | Potentially high parallel fan-out; tasks share orchestrator CPU/memory | Pilot SLA TBD |
 | Jobs service background tasks | FastAPI endpoint spawns asyncio background coroutines | Tens of short-lived async jobs | Lightweight CPU usage, relies on Redis pub/sub | Best-effort |
@@ -84,7 +84,7 @@ Fill in each section during Sprint 0 discovery. Update the "Last Updated" field 
 ## Observability & Telemetry Sources
 
 - Prometheus scrapes `temporal:9090`, `orchestrator:8001`, `mao-service:8002`, Tool Service, and all monitoring-labeled pods (`infra/monitoring/prometheus.yml`).
-- ServiceMonitors exist for orchestrator, gateway, policy, identity, and somallm providers (`k8s/monitoring/servicemonitors.yaml`); extend with Volcano scheduler and queue exporters.
+- ServiceMonitors exist for orchestrator, gateway, policy, identity, and hub providers (`k8s/monitoring/servicemonitors.yaml`); extend with Volcano scheduler and queue exporters.
 - Temporal workflow histories provide concurrency/backlog metrics—coordinate with Temporal dashboards once scraped metrics are catalogued.
 - Ray usage currently local to orchestrator pods; enable Ray metrics endpoints when migrating workloads to dedicated workers.
 

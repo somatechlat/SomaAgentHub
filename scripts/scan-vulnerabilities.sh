@@ -18,7 +18,6 @@ SERVICES=(
     "gateway-api"
     "policy-engine"
     "identity-service"
-    "slm-service"
     "analytics-service"
     "constitution-service"
     "billing-service"

@@ -45,8 +45,7 @@ echo "🔑 Rotating API keys..."
 
 API_KEYS=(
     "somaagent/gateway/api-key"
-    "somaagent/slm/anthropic-key"
-    "somaagent/slm/openai-key"
+    # Removed legacy slm provider keys; llm-hub centralizes external model keys
     "somaagent/billing/stripe-key"
 )
 

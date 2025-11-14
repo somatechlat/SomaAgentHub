@@ -3,24 +3,25 @@
 from functools import lru_cache
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
+from services.common.config.base_settings import resolve_env
 
 
 class Settings(BaseSettings):
-    service_name: str = "notification-service"
-    kafka_bootstrap_servers: str | None = None
-    produce_topic: str = "agent.notifications"
-    consume_topic: str | None = None
-    consumer_group: str = "notification-orchestrator"
-    cache_limit: int = 500
-    use_kafka: bool = True
-    model_config = SettingsConfigDict(
-        env_prefix="SOMAGENT_NOTIFICATION_", extra="allow"
-    )
+service_name: str = "notification-service"
+kafka_bootstrap_servers: str | None = None
+produce_topic: str = "agent.notifications"
+consume_topic: str | None = None
+consumer_group: str = "notification-orchestrator"
+cache_limit: int = 500
+use_kafka: bool = True
+model_config = SettingsConfigDict(
+env_prefix="SOMA_AGENT_HUB_NOTIFICATION_", extra="allow"
+)
 
 
 @lru_cache
 def get_settings() -> Settings:
-    return Settings()
+return Settings()
 
 
 settings = get_settings()

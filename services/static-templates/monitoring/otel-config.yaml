@@ -1,0 +1,7 @@
+exporters:
+  otlp:
+    endpoint: {{OTEL_EXPORTER_ENDPOINT}}
+    protocol: http/protobuf
+
+service:
+  name: {{APP_NAME}}

@@ -9,9 +9,9 @@ from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from httpx import AsyncClient, HTTPError
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
-from ..config import GatewaySettings, get_sah_settings
+from ..config import GatewaySettings, get_settings
 from ..dependencies import request_context_dependency
 from ..models.context import RequestContext
 
@@ -19,8 +19,8 @@ router = APIRouter(tags=["capsules"])
 
 
 class CapsuleRunRequest(BaseModel):
-    params: dict[str, Any] = {}
-    metadata: dict[str, Any] = {}
+    params: dict[str, Any] = Field(default_factory=dict)
+    metadata: dict[str, Any] = Field(default_factory=dict)
 
 
 class CapsuleRunResponse(BaseModel):
@@ -41,13 +41,10 @@ async def start_capsule_run(
     version: str,
     payload: CapsuleRunRequest,
     ctx: RequestContext = Depends(request_context_dependency),
-    settings: GatewaySettings = Depends(get_sah_settings),
+    settings: GatewaySettings = Depends(get_settings),
 ) -> CapsuleRunResponse:
-    """Forward a capsule run request to the orchestrator.
+    """Forward a capsule run request to the orchestrator."""
 
-    The tenant and user are taken from the request context propagated by
-    the gateway middleware.
-    """
     forward = {
         "tenant": ctx.tenant_id,
         "user": ctx.user_id or "anonymous",
@@ -74,5 +71,4 @@ async def start_capsule_run(
             detail=f"Orchestrator error: {resp.text}",
         )
 
-    data = resp.json()
-    return CapsuleRunResponse(**data)
+    return CapsuleRunResponse(**resp.json())

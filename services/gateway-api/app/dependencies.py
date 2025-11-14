@@ -8,14 +8,14 @@ from .models.context import RequestContext
 
 
 def request_context_dependency() -> RequestContext:
-    ctx = get_request_context()
-    if ctx is None:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Request context missing",
-        )
-    return ctx
+ctx = get_request_context()
+if ctx is None:
+raise HTTPException(
+status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+detail="Request context missing",
+)
+return ctx
 
 
 def moderation_guard_dependency() -> ModerationGuard:
-    return get_moderation_guard()
+return get_moderation_guard()

@@ -6,7 +6,6 @@ Sprint-5: HTTP service integrations for autonomous execution.
 from __future__ import annotations
 
 import asyncio
-import os
 from collections.abc import Mapping, Sequence
 from datetime import UTC, datetime
 from typing import Any
@@ -19,535 +18,588 @@ from common.config.runtime import runtime_default
 from ..app.core.config import settings
 
 try:  # pragma: no cover - optional dependency during spike
-    from ..app.workflows.volcano_launcher import (
-        VolcanoJobLauncher,
-        VolcanoJobSpec,
-        VolcanoLauncherError,
-        default_session_spec,
-    )
+from ..app.workflows.volcano_launcher import (
+VolcanoJobLauncher,
+VolcanoJobSpec,
+VolcanoLauncherError,
+default_session_spec,
+)
 except Exception:  # pragma: no cover - kubectl/PyYAML missing locally
-    VolcanoJobLauncher = None  # type: ignore[assignment]
-    VolcanoJobSpec = None  # type: ignore[assignment]
-    VolcanoLauncherError = RuntimeError  # type: ignore[assignment]
-    default_session_spec = None  # type: ignore[assignment]
+VolcanoJobLauncher = None  # type: ignore[assignment]
+VolcanoJobSpec = None  # type: ignore[assignment]
+VolcanoLauncherError = RuntimeError  # type: ignore[assignment]
+default_session_spec = None  # type: ignore[assignment]
 
 
 def _ensure_endpoint(url: str, expected_path: str) -> str:
-    """Ensure *url* includes *expected_path* at the end."""
+"""Ensure *url* includes *expected_path* at the end."""
 
-    normalized = url.rstrip("/")
-    suffix = expected_path if expected_path.startswith("/") else f"/{expected_path}"
-    return normalized if normalized.endswith(suffix) else f"{normalized}{suffix}"
+normalized = url.rstrip("/")
+suffix = expected_path if expected_path.startswith("/") else f"/{expected_path}"
+return normalized if normalized.endswith(suffix) else f"{normalized}{suffix}"
 
 
 def _coerce_positive_int(value: Any, field_name: str) -> int:
-    try:
-        coerced = int(value)
-    except (TypeError, ValueError) as exc:  # pragma: no cover - defensive branch
-        raise ValueError(
-            f"{field_name} must be a positive integer (got {value!r})"
-        ) from exc
-    if coerced < 1:
-        raise ValueError(f"{field_name} must be >= 1 (got {coerced})")
-    return coerced
+try:
+coerced = int(value)
+except (TypeError, ValueError) as exc:  # pragma: no cover - defensive branch
+raise ValueError(
+f"{field_name} must be a positive integer (got {value!r})"
+) from exc
+if coerced < 1:
+raise ValueError(f"{field_name} must be >= 1 (got {coerced})")
+return coerced
 
 
 def _coerce_non_negative_int(value: Any, field_name: str) -> int:
-    try:
-        coerced = int(value)
-    except (TypeError, ValueError) as exc:  # pragma: no cover - defensive branch
-        raise ValueError(
-            f"{field_name} must be a non-negative integer (got {value!r})"
-        ) from exc
-    if coerced < 0:
-        raise ValueError(f"{field_name} must be >= 0 (got {coerced})")
-    return coerced
+try:
+coerced = int(value)
+except (TypeError, ValueError) as exc:  # pragma: no cover - defensive branch
+raise ValueError(
+f"{field_name} must be a non-negative integer (got {value!r})"
+) from exc
+if coerced < 0:
+raise ValueError(f"{field_name} must be >= 0 (got {coerced})")
+return coerced
 
 
 def _normalize_command(command: Any) -> list[str]:
-    """Return a shell-safe command list from the payload override."""
+"""Return a shell-safe command list from the payload override."""
 
-    if isinstance(command, str):
-        stripped = command.strip()
-        if not stripped:
-            raise ValueError("command override cannot be empty")
-        return ["/bin/sh", "-c", stripped]
+if isinstance(command, str):
+stripped = command.strip()
+if not stripped:
+raise ValueError("command override cannot be empty")
+return ["/bin/sh", "-c", stripped]
 
-    if isinstance(command, Sequence) and not isinstance(command, (bytes, bytearray)):
-        command_list = list(command)
-        if not command_list:
-            raise ValueError("command override cannot be empty")
-        if not all(isinstance(item, str) for item in command_list):
-            raise ValueError("command sequence must only contain strings")
-        return command_list
+if isinstance(command, Sequence) and not isinstance(command, (bytes, bytearray)):
+command_list = list(command)
+if not command_list:
+raise ValueError("command override cannot be empty")
+if not all(isinstance(item, str) for item in command_list):
+raise ValueError("command sequence must only contain strings")
+return command_list
 
-    raise ValueError("command override must be a string or sequence of strings")
+raise ValueError("command override must be a string or sequence of strings")
 
 
 def _normalize_env(env_mapping: Mapping[Any, Any]) -> dict[str, str]:
-    normalized: dict[str, str] = {}
-    for key, value in env_mapping.items():
-        if not isinstance(key, str):
-            raise ValueError("environment variable names must be strings")
-        normalized[key] = str(value)
-    return normalized
+normalized: dict[str, str] = {}
+for key, value in env_mapping.items():
+if not isinstance(key, str):
+raise ValueError("environment variable names must be strings")
+normalized[key] = str(value)
+return normalized
 
 
 # Real service endpoints (configured via environment)
 POLICY_ENGINE_URL = _ensure_endpoint(str(settings.policy_engine_url), "/v1/evaluate")
-SOMALLM_PROVIDER_URL = str(settings.somallm_provider_url)
-GATEWAY_API_URL = os.getenv(
-    "GATEWAY_API_URL",
-    runtime_default(
-        os.getenv("GATEWAY_API_URL", "http://gateway-api:10000"),
-        "http://gateway-api:8080",
-    ),
-)
+LLM_HUB_URL = str(settings.llm_hub_url)
+from services.common.config.base_settings import resolve_env
+
+# Resolve the gateway API URL using the canonical resolver. The default points to the
+# standard development endpoint; runtime‑specific overrides are handled elsewhere via
+# the `runtime_default` helper when needed.
+GATEWAY_API_URL = resolve_env("GATEWAY_API_URL", "http://gateway-api:10000")
 
 
 @activity.defn(name="launch-volcano-session-job")
 async def launch_volcano_session_job(payload: dict[str, Any]) -> dict[str, Any]:
-    """Submit a Volcano job for the session workflow (feature-flagged)."""
+"""Submit a Volcano job for the session workflow (feature-flagged)."""
 
-    if not settings.enable_volcano_scheduler:
-        activity.logger.info("Volcano scheduler disabled; skipping job launch")
-        return {"status": "disabled"}
+if not settings.enable_volcano_scheduler:
+activity.logger.info("Volcano scheduler disabled; skipping job launch")
+return {"status": "disabled"}
 
-    if default_session_spec is None or VolcanoJobLauncher is None:
-        raise RuntimeError(
-            "Volcano launcher not available. Ensure PyYAML/kubectl are installed in the worker image."
-        )
+if default_session_spec is None or VolcanoJobLauncher is None:
+raise RuntimeError(
+"Volcano launcher not available. Ensure PyYAML/kubectl are installed in the worker image."
+)
 
-    session_id: str = (
-        payload.get("session_id")
-        or payload.get("workflow_id")
-        or payload.get("job_name")
-        or "session"
-    )
-    spec: VolcanoJobSpec = default_session_spec(session_id)
+session_id: str = (
+payload.get("session_id")
+or payload.get("workflow_id")
+or payload.get("job_name")
+or "session"
+)
+spec: VolcanoJobSpec = default_session_spec(session_id)
 
-    if queue := payload.get("queue"):
-        spec.queue = str(queue)
-    if "command" in payload:
-        spec.command = _normalize_command(payload.get("command"))
-    if image := payload.get("image"):
-        spec.image = str(image)
-    if "env" in payload:
-        env_override = payload.get("env")
-        if not isinstance(env_override, Mapping):
-            raise ValueError("env override must be a mapping of string keys to values")
-        spec.env = {**spec.env, **_normalize_env(env_override)}
-    if cpu := payload.get("cpu"):
-        spec.cpu = str(cpu)
-    if memory := payload.get("memory"):
-        spec.memory = str(memory)
-    if "min_member" in payload:
-        spec.min_member = _coerce_positive_int(payload.get("min_member"), "min_member")
-    if "parallelism" in payload:
-        spec.parallelism = _coerce_positive_int(
-            payload.get("parallelism"), "parallelism"
-        )
-    if "completions" in payload:
-        spec.completions = _coerce_positive_int(
-            payload.get("completions"), "completions"
-        )
-    if "ttl_seconds_after_finished" in payload:
-        spec.ttl_seconds_after_finished = _coerce_non_negative_int(
-            payload.get("ttl_seconds_after_finished"), "ttl_seconds_after_finished"
-        )
+if queue := payload.get("queue"):
+spec.queue = str(queue)
+if "command" in payload:
+spec.command = _normalize_command(payload.get("command"))
+if image := payload.get("image"):
+spec.image = str(image)
+if "env" in payload:
+env_override = payload.get("env")
+if not isinstance(env_override, Mapping):
+raise ValueError("env override must be a mapping of string keys to values")
+spec.env = {**spec.env, **_normalize_env(env_override)}
+if cpu := payload.get("cpu"):
+spec.cpu = str(cpu)
+if memory := payload.get("memory"):
+spec.memory = str(memory)
+if "min_member" in payload:
+spec.min_member = _coerce_positive_int(payload.get("min_member"), "min_member")
+if "parallelism" in payload:
+spec.parallelism = _coerce_positive_int(
+payload.get("parallelism"), "parallelism"
+)
+if "completions" in payload:
+spec.completions = _coerce_positive_int(
+payload.get("completions"), "completions"
+)
+if "ttl_seconds_after_finished" in payload:
+spec.ttl_seconds_after_finished = _coerce_non_negative_int(
+payload.get("ttl_seconds_after_finished"), "ttl_seconds_after_finished"
+)
 
-    spec.min_member = max(spec.min_member, spec.parallelism)
+spec.min_member = max(spec.min_member, spec.parallelism)
 
-    try:
-        launcher = VolcanoJobLauncher()
-    except VolcanoLauncherError as exc:  # type: ignore[misc]
-        raise RuntimeError(f"Volcano launcher unavailable: {exc}") from exc
+try:
+launcher = VolcanoJobLauncher()
+except VolcanoLauncherError as exc:  # type: ignore[misc]
+raise RuntimeError(f"Volcano launcher unavailable: {exc}") from exc
 
-    job_name = await asyncio.to_thread(launcher.submit, spec)
-    activity.logger.info("Submitted Volcano job %s", job_name)
+job_name = await asyncio.to_thread(launcher.submit, spec)
+activity.logger.info("Submitted Volcano job %s", job_name)
 
-    should_wait = payload.get("wait", True)
-    timeout_seconds = int(
-        payload.get("timeout_seconds", settings.volcano_job_timeout_seconds)
-    )
-    logs: str | None = None
+should_wait = payload.get("wait", True)
+timeout_seconds = int(
+payload.get("timeout_seconds", settings.volcano_job_timeout_seconds)
+)
+logs: str | None = None
 
-    wait_error: Exception | None = None
-    if should_wait:
-        try:
-            await asyncio.to_thread(
-                launcher.wait_for_completion, job_name, timeout_seconds
-            )
-        except VolcanoLauncherError as exc:  # type: ignore[misc]
-            wait_error = exc
-        try:
-            logs = await asyncio.to_thread(launcher.fetch_logs, job_name)
-        except VolcanoLauncherError as exc:  # type: ignore[misc]
-            activity.logger.warning(
-                "Failed to stream Volcano logs for %s: %s", job_name, exc
-            )
-        if wait_error is not None:
-            raise RuntimeError(
-                f"Volcano job {job_name} failed to complete: {wait_error}"
-            ) from wait_error
+wait_error: Exception | None = None
+if should_wait:
+try:
+await asyncio.to_thread(
+launcher.wait_for_completion, job_name, timeout_seconds
+)
+except VolcanoLauncherError as exc:  # type: ignore[misc]
+wait_error = exc
+try:
+logs = await asyncio.to_thread(launcher.fetch_logs, job_name)
+except VolcanoLauncherError as exc:  # type: ignore[misc]
+activity.logger.warning(
+"Failed to stream Volcano logs for %s: %s", job_name, exc
+)
+if wait_error is not None:
+raise RuntimeError(
+f"Volcano job {job_name} failed to complete: {wait_error}"
+) from wait_error
 
-    return {
-        "status": "submitted",
-        "job_name": job_name,
-        "waited": should_wait,
-        "logs": logs,
-    }
+return {
+"status": "submitted",
+"job_name": job_name,
+"waited": should_wait,
+"logs": logs,
+}
 
 
 @activity.defn
 async def decompose_project(
-    project_description: str, user_id: str
+project_description: str, user_id: str
 ) -> list[dict[str, Any]]:
-    """
-    Decompose project into executable tasks.
+"""
+Decompose project into executable tasks.
 
-    Calls the SLM service (formerly SomaLLMProvider) to analyze the project description
-    and generate a task breakdown.
+Calls the LLM Hub to analyze the project description
+and generate a task breakdown.
 
-    Args:
-        project_description: Natural language project requirements
-        user_id: User initiating the project
+Args:
+project_description: Natural language project requirements
+user_id: User initiating the project
 
-    Returns:
-        List of task dictionaries with dependencies
-    """
-    activity.logger.info(f"Decomposing project for user {user_id}")
+Returns:
+List of task dictionaries with dependencies
+"""
+activity.logger.info(f"Decomposing project for user {user_id}")
 
-    # Prompt for project decomposition
-    decomposition_prompt = f"""
-    Analyze this project and break it down into concrete, executable tasks:
+# Prompt for project decomposition
+decomposition_prompt = f"""
+Analyze this project and break it down into concrete, executable tasks:
 
-    Project: {project_description}
+Project: {project_description}
 
-    For each task, provide:
-    1. Task name
-    2. Task type (code, research, design, test, etc.)
-    3. Requirements/specifications
-    4. Dependencies (which tasks must complete first)
-    5. Estimated complexity (simple/medium/complex)
+For each task, provide:
+1. Task name
+2. Task type (code, research, design, test, etc.)
+3. Requirements/specifications
+4. Dependencies (which tasks must complete first)
+5. Estimated complexity (simple/medium/complex)
 
-    Output as structured JSON.
-    """
+Output as structured JSON.
+"""
 
-    # HTTP call to SLM service
-    async with httpx.AsyncClient(
-        timeout=httpx.Timeout(10.0, connect=5.0),
-        limits=httpx.Limits(max_connections=200, max_keepalive_connections=50),
-    ) as client:
-        try:
-            response = await client.post(
-                f"{SOMALLM_PROVIDER_URL}/v1/infer/sync",
-                json={
-                    "prompt": decomposition_prompt,
-                    "max_tokens": 200,
-                    "temperature": 0.7,
-                },
-                timeout=30.0,
-            )
-            response.raise_for_status()
+# HTTP call to LLM Hub
+async with httpx.AsyncClient(
+timeout=httpx.Timeout(10.0, connect=5.0),
+limits=httpx.Limits(max_connections=200, max_keepalive_connections=50),
+) as client:
+try:
+response = await client.post(
+f"{LLM_HUB_URL}/v1/infer/sync",
+json={
+    "prompt": decomposition_prompt,
+    "max_tokens": 200,
+    "temperature": 0.7,
+},
+timeout=30.0,
+)
+response.raise_for_status()
 
-            result = response.json()
-            activity.logger.info(f"SLM decomposition completed: {result['model']}")
+result = response.json()
+activity.logger.info(f"LLM decomposition completed: {result['model']}")
 
-            # Parse the completion into structured tasks
-            # In production, this would use proper JSON parsing
-            # For now, create a simple task structure
-            tasks = [
-                {
-                    "id": "task_1",
-                    "name": "Setup project structure",
-                    "type": "code",
-                    "description": f"Initialize project based on: {project_description[:100]}",
-                    "requirements": ["Create file structure", "Setup dependencies"],
-                    "dependencies": [],
-                    "complexity": "simple",
-                },
-                {
-                    "id": "task_2",
-                    "name": "Implement core logic",
-                    "type": "code",
-                    "description": "Core implementation based on requirements",
-                    "requirements": ["Follow best practices", "Add error handling"],
-                    "dependencies": ["task_1"],
-                    "complexity": "medium",
-                },
-                {
-                    "id": "task_3",
-                    "name": "Add tests",
-                    "type": "test",
-                    "description": "Unit and integration tests",
-                    "requirements": ["Test all core functions", "Edge cases"],
-                    "dependencies": ["task_2"],
-                    "complexity": "medium",
-                },
-            ]
+# Parse the completion into structured tasks
+# In production, this would use proper JSON parsing
+# For now, create a simple task structure
+tasks = [
+{
+    "id": "task_1",
+    "name": "Setup project structure",
+    "type": "code",
+    "description": f"Initialize project based on: {project_description[:100]}",
+    "requirements": ["Create file structure", "Setup dependencies"],
+    "dependencies": [],
+    "complexity": "simple",
+},
+{
+    "id": "task_2",
+    "name": "Implement core logic",
+    "type": "code",
+    "description": "Core implementation based on requirements",
+    "requirements": ["Follow best practices", "Add error handling"],
+    "dependencies": ["task_1"],
+    "complexity": "medium",
+},
+{
+    "id": "task_3",
+    "name": "Add tests",
+    "type": "test",
+    "description": "Unit and integration tests",
+    "requirements": ["Test all core functions", "Edge cases"],
+    "dependencies": ["task_2"],
+    "complexity": "medium",
+},
+]
 
-            return {
-                "project_description": project_description,
-                "tasks": tasks,
-                "total_tasks": len(tasks),
-                "estimated_duration_minutes": sum(
-                    {"simple": 5, "medium": 15, "complex": 30}.get(t["complexity"], 10)
-                    for t in tasks
-                ),
-                "decomposition_model": result["model"],
-            }
+return {
+"project_description": project_description,
+"tasks": tasks,
+"total_tasks": len(tasks),
+"estimated_duration_minutes": sum(
+    {"simple": 5, "medium": 15, "complex": 30}.get(t["complexity"], 10)
+    for t in tasks
+),
+"decomposition_model": result["model"],
+}
 
-        except Exception as e:
-            activity.logger.error(f"Project decomposition failed: {e}")
-            raise
+except Exception as e:
+activity.logger.error(f"Project decomposition failed: {e}")
+raise
 
 
 @activity.defn
 async def create_task_plan(task_breakdown: dict[str, Any]) -> dict[str, Any]:
-    """
-    Create execution plan with dependency-based waves.
+"""
+Create execution plan with dependency-based waves.
 
-    activity that analyzes task dependencies and creates
-    an execution plan with parallel waves.
-    """
-    activity.logger.info("Creating task execution plan")
+activity that analyzes task dependencies and creates
+an execution plan with parallel waves.
+"""
+activity.logger.info("Creating task execution plan")
 
-    tasks = task_breakdown["tasks"]
+tasks = task_breakdown["tasks"]
 
-    # Build dependency graph (algorithm)
-    waves = []
-    completed_tasks = set()
+# Build dependency graph (algorithm)
+waves = []
+completed_tasks = set()
 
-    while len(completed_tasks) < len(tasks):
-        # Find tasks with all dependencies satisfied (logic)
-        ready_tasks = [
-            t
-            for t in tasks
-            if t["id"] not in completed_tasks
-            and all(dep in completed_tasks for dep in t.get("dependencies", []))
-        ]
+while len(completed_tasks) < len(tasks):
+# Find tasks with all dependencies satisfied (logic)
+ready_tasks = [
+t
+for t in tasks
+if t["id"] not in completed_tasks
+and all(dep in completed_tasks for dep in t.get("dependencies", []))
+]
 
-        if not ready_tasks:
-            # Circular dependency detected
-            raise ValueError("Circular dependency in task graph")
+if not ready_tasks:
+# Circular dependency detected
+raise ValueError("Circular dependency in task graph")
 
-        waves.append(
-            {
-                "wave_number": len(waves) + 1,
-                "tasks": ready_tasks,
-                "parallel_count": len(ready_tasks),
-            }
-        )
+waves.append(
+{
+"wave_number": len(waves) + 1,
+"tasks": ready_tasks,
+"parallel_count": len(ready_tasks),
+}
+)
 
-        completed_tasks.update(t["id"] for t in ready_tasks)
+completed_tasks.update(t["id"] for t in ready_tasks)
 
-    activity.logger.info(f"Execution plan created: {len(waves)} waves")
+activity.logger.info(f"Execution plan created: {len(waves)} waves")
 
-    return {
-        "waves": waves,
-        "total_waves": len(waves),
-        "max_parallelism": max(w["parallel_count"] for w in waves),
-    }
+return {
+"waves": waves,
+"total_waves": len(waves),
+"max_parallelism": max(w["parallel_count"] for w in waves),
+}
 
 
 @activity.defn
 async def spawn_agent(agent_type: str, requirements: dict[str, Any]) -> dict[str, Any]:
-    """
-    Spawn a new agent instance for task execution.
+"""
+Spawn a new agent instance for task execution.
 
-    activity that creates an agent with specific capabilities.
-    In production, this would allocate resources, load models, etc.
-    """
-    activity.logger.info(f"Spawning {agent_type} agent")
+activity that creates an agent with specific capabilities.
+In production, this would allocate resources, load models, etc.
+"""
+activity.logger.info(f"Spawning {agent_type} agent")
 
-    # Generate unique agent ID (REAL)
-    agent_id = f"agent_{agent_type}_{datetime.now(UTC).timestamp()}"
+# Generate unique agent ID (REAL)
+agent_id = f"agent_{agent_type}_{datetime.now(UTC).timestamp()}"
 
-    # In production, this would:
-    # 1. Allocate compute resources
-    # 2. Load required models
-    # 3. Initialize agent state
-    # 4. Register in agent registry
+# In production, this would:
+# 1. Allocate compute resources
+# 2. Load required models
+# 3. Initialize agent state
+# 4. Register in agent registry
 
-    return {
-        "agent_id": agent_id,
-        "agent_type": agent_type,
-        "status": "ready",
-        "capabilities": requirements,
-        "spawned_at": datetime.now(UTC).isoformat(),
-    }
+return {
+"agent_id": agent_id,
+"agent_type": agent_type,
+"status": "ready",
+"capabilities": requirements,
+"spawned_at": datetime.now(UTC).isoformat(),
+}
 
 
 @activity.defn
 async def execute_task(
-    task: dict[str, Any],
-    agent_instance: dict[str, Any],
-    user_id: str,
+task: dict[str, Any],
+agent_instance: dict[str, Any],
+user_id: str,
 ) -> dict[str, Any]:
-    """
-    Execute a single task with policy checks.
+"""
+Execute a single task with policy checks.
 
-    Runs the task using the SLM service (formerly SomaLLMProvider) after policy validation.
+Runs the task using the LLM Hub after policy validation.
 
-    Args:
-        task: Task specification with id, description, type
-        agent_instance: Spawned agent instance details
-        user_id: User context for policy checks
+Args:
+task: Task specification with id, description, type
+agent_instance: Spawned agent instance details
+user_id: User context for policy checks
 
-    Returns:
-        Task execution results with output and metrics
-    """
-    agent_id = agent_instance["agent_id"]
-    activity.logger.info(f"Agent {agent_id} executing task {task['id']}")
+Returns:
+Task execution results with output and metrics
+"""
+agent_id = agent_instance["agent_id"]
+activity.logger.info(f"Agent {agent_id} executing task {task['id']}")
 
-    start_time = datetime.now(UTC)
+start_time = datetime.now(UTC)
 
-    # Step 1: Policy check (call to policy engine)
-    async with httpx.AsyncClient(
-        timeout=httpx.Timeout(10.0, connect=5.0),
-        limits=httpx.Limits(max_connections=200, max_keepalive_connections=50),
-    ) as client:
-        try:
-            session_id = agent_instance.get("session_id", f"task-{task['id']}")
-            policy_response = await client.post(
-                POLICY_ENGINE_URL,
-                json={
-                    "session_id": session_id,
-                    "tenant": "global",
-                    "user": user_id or "kamachiq_system",
-                    "prompt": task["description"],
-                    "role": "agent",
-                    "metadata": {"task_id": task["id"], "agent_id": agent_id},
-                },
-                timeout=10.0,
-            )
-            policy_response.raise_for_status()
-            policy_result = policy_response.json()
+# Step 1: Policy check (call to policy engine)
+async with httpx.AsyncClient(
+timeout=httpx.Timeout(10.0, connect=5.0),
+limits=httpx.Limits(max_connections=200, max_keepalive_connections=50),
+) as client:
+try:
+session_id = agent_instance.get("session_id", f"task-{task['id']}")
+policy_response = await client.post(
+POLICY_ENGINE_URL,
+json={
+    "session_id": session_id,
+    "tenant": "global",
+    "user": user_id or "kamachiq_system",
+    "prompt": task["description"],
+    "role": "agent",
+    "metadata": {"task_id": task["id"], "agent_id": agent_id},
+},
+timeout=10.0,
+)
+policy_response.raise_for_status()
+policy_result = policy_response.json()
 
-            if not policy_result["allowed"]:
-                activity.logger.warning(
-                    f"Task blocked by policy: {policy_result['reasons']}"
-                )
-                return {
-                    "status": "blocked",
-                    "reason": "policy_violation",
-                    "details": policy_result,
-                    "duration_ms": 0,
-                }
+if not policy_result["allowed"]:
+activity.logger.warning(
+    f"Task blocked by policy: {policy_result['reasons']}"
+)
+return {
+    "status": "blocked",
+    "reason": "policy_violation",
+    "details": policy_result,
+    "duration_ms": 0,
+}
 
-            # Step 2: Execute task logic (SLM service call)
-            task_prompt = f"""
-            Execute this task:
+# Step 2: Execute task logic (LLM Hub call)
+task_prompt = f"""
+Execute this task:
 
-            Task: {task['name']}
-            Description: {task['description']}
-            Requirements: {', '.join(task['requirements'])}
+Task: {task["name"]}
+Description: {task["description"]}
+Requirements: {", ".join(task["requirements"])}
 
-            Provide the implementation or result.
-            """
+Provide the implementation or result.
+"""
 
-            llm_response = await client.post(
-                f"{SOMALLM_PROVIDER_URL}/v1/infer/sync",
-                json={
-                    "prompt": task_prompt,
-                    "max_tokens": 150,
-                    "temperature": 0.8,
-                },
-                timeout=60.0,
-            )
-            llm_response.raise_for_status()
-            llm_result = llm_response.json()
+llm_response = await client.post(
+f"{LLM_HUB_URL}/v1/infer/sync",
+json={
+    "prompt": task_prompt,
+    "max_tokens": 150,
+    "temperature": 0.8,
+},
+timeout=60.0,
+)
+llm_response.raise_for_status()
+llm_result = llm_response.json()
 
-            duration_ms = int((datetime.now(UTC) - start_time).total_seconds() * 1000)
+duration_ms = int((datetime.now(UTC) - start_time).total_seconds() * 1000)
 
-            activity.logger.info(f"Task completed in {duration_ms}ms")
+activity.logger.info(f"Task completed in {duration_ms}ms")
 
-            return {
-                "status": "completed",
-                "output": llm_result["completion"],
-                "model_used": llm_result["model"],
-                "tokens_used": llm_result["usage"]["total_tokens"],
-                "duration_ms": duration_ms,
-                "policy_score": policy_result["score"],
-            }
+return {
+"status": "completed",
+"output": llm_result["completion"],
+"model_used": llm_result["model"],
+"tokens_used": llm_result["usage"]["total_tokens"],
+"duration_ms": duration_ms,
+"policy_score": policy_result["score"],
+}
 
-        except Exception as e:
-            activity.logger.error(f"Task execution failed: {e}")
-            return {
-                "status": "failed",
-                "error": str(e),
-                "duration_ms": int(
-                    (datetime.now(UTC) - start_time).total_seconds() * 1000
-                ),
-            }
+except Exception as e:
+activity.logger.error(f"Task execution failed: {e}")
+return {
+"status": "failed",
+"error": str(e),
+"duration_ms": int(
+    (datetime.now(UTC) - start_time).total_seconds() * 1000
+),
+}
 
 
 @activity.defn
 async def review_output(
-    task_results: list[dict[str, Any]], project_description: str
+task_results: list[dict[str, Any]], project_description: str
 ) -> dict[str, Any]:
-    """
-    Quality gate review of task outputs.
+"""
+Quality gate review of task outputs.
 
-    activity that analyzes outputs for quality and completeness.
-    """
-    activity.logger.info(f"Reviewing {len(task_results)} task outputs")
+activity that analyzes outputs for quality and completeness.
+"""
+activity.logger.info(f"Reviewing {len(task_results)} task outputs")
 
-    # Calculate quality metrics (logic)
-    completed_tasks = sum(1 for r in task_results if r["status"] == "completed")
-    failed_tasks = sum(1 for r in task_results if r["status"] == "failed")
-    blocked_tasks = sum(1 for r in task_results if r["status"] == "blocked")
+# Calculate quality metrics (logic)
+completed_tasks = sum(1 for r in task_results if r["status"] == "completed")
+failed_tasks = sum(1 for r in task_results if r["status"] == "failed")
+blocked_tasks = sum(1 for r in task_results if r["status"] == "blocked")
 
-    success_rate = completed_tasks / len(task_results) if task_results else 0
+success_rate = completed_tasks / len(task_results) if task_results else 0
 
-    # Quality score (calculation)
-    quality_score = success_rate * 100
+# Quality score (calculation)
+quality_score = success_rate * 100
 
-    # Determine approval status
-    auto_approved = quality_score >= 70  # 70% threshold for auto-approval
+# Determine approval status
+auto_approved = quality_score >= 70  # 70% threshold for auto-approval
 
-    activity.logger.info(
-        f"Quality review: {quality_score:.1f}% "
-        f"({completed_tasks} completed, {failed_tasks} failed, {blocked_tasks} blocked)"
-    )
+activity.logger.info(
+f"Quality review: {quality_score:.1f}% "
+f"({completed_tasks} completed, {failed_tasks} failed, {blocked_tasks} blocked)"
+)
 
-    return {
-        "status": "approved" if auto_approved else "needs_review",
-        "score": quality_score,
-        "completed_tasks": completed_tasks,
-        "failed_tasks": failed_tasks,
-        "blocked_tasks": blocked_tasks,
-        "total_tasks": len(task_results),
-        "auto_approved": auto_approved,
-        "review_time": datetime.now(UTC).isoformat(),
-    }
+return {
+"status": "approved" if auto_approved else "needs_review",
+"score": quality_score,
+"completed_tasks": completed_tasks,
+"failed_tasks": failed_tasks,
+"blocked_tasks": blocked_tasks,
+"total_tasks": len(task_results),
+"auto_approved": auto_approved,
+"review_time": datetime.now(UTC).isoformat(),
+}
 
 
 @activity.defn
 async def aggregate_results(
-    task_results: list[dict[str, Any]], review_result: dict[str, Any]
+task_results: list[dict[str, Any]], review_result: dict[str, Any]
 ) -> dict[str, Any]:
-    """
-    Aggregate task results into final project output.
+"""
+Aggregate task results into final project output.
 
-    activity that combines outputs and creates deliverables.
-    """
-    activity.logger.info("Aggregating final project results")
+activity that combines outputs and creates deliverables.
+"""
+activity.logger.info("Aggregating final project results")
 
-    # Collect all outputs (aggregation)
-    outputs = [r.get("output", "") for r in task_results if r["status"] == "completed"]
+# Collect all outputs (aggregation)
+outputs = [r.get("output", "") for r in task_results if r["status"] == "completed"]
 
-    # Calculate total execution metrics (metrics)
-    total_duration_ms = sum(r.get("duration_ms", 0) for r in task_results)
-    total_tokens = sum(r.get("tokens_used", 0) for r in task_results)
+# Calculate total execution metrics (metrics)
+total_duration_ms = sum(r.get("duration_ms", 0) for r in task_results)
+total_tokens = sum(r.get("tokens_used", 0) for r in task_results)
 
-    return {
-        "deliverables": outputs,
-        "total_outputs": len(outputs),
-        "total_execution_time_ms": total_duration_ms,
-        "total_tokens_used": total_tokens,
-        "quality_score": review_result["score"],
-        "completion_status": review_result["status"],
-        "aggregated_at": datetime.now(UTC).isoformat(),
-    }
+return {
+"deliverables": outputs,
+"total_outputs": len(outputs),
+"total_execution_time_ms": total_duration_ms,
+"total_tokens_used": total_tokens,
+"quality_score": review_result["score"],
+"completion_status": review_result["status"],
+"aggregated_at": datetime.now(UTC).isoformat(),
+}
+
+
+@activity.defn
+async def copy_templates(
+app_name: str, image: str, service_port: int = 8000
+) -> dict[str, Any]:
+"""Render static template sets for an application.
+
+Copies ``fastapi`` + ``helm/generated-app`` + ``react`` + monitoring & ci templates
+into a workflow-local artefacts directory under ``/tmp/taxi-builder/<workflow-id>``.
+In a production deployment this base path would be a shared PVC.
+"""
+workflow_id = activity.info().workflow_id
+from services.common.config.base_settings import resolve_env
+
+base_dir = (
+Path(resolve_env("TAXI_BUILDER_OUTPUT_ROOT", "/tmp/taxi-builder")) / workflow_id
+)
+base_dir.mkdir(parents=True, exist_ok=True)
+
+from ..app.static_templates.engine import (
+render_template_set,
+build_default_tokens,
+)
+
+tokens = build_default_tokens(
+app_name=app_name, image=image, service_port=service_port
+)
+
+template_sets = ["fastapi", "helm/generated-app", "react", "ci", "monitoring"]
+rendered: list[dict[str, Any]] = []
+for ts in template_sets:
+try:
+result = render_template_set(ts, base_dir, tokens, zip_output=False)
+rendered.append(
+{
+    "template_set": ts,
+    "files_rendered": result.files_rendered,
+    "output_dir": str(result.output_dir),
+}
+)
+except Exception as exc:
+# Fail fast: bubble up to workflow for retry
+raise RuntimeError(f"Template rendering failed for {ts}: {exc}") from exc
+
+return {
+"status": "rendered",
+"workflow_id": workflow_id,
+"app_name": app_name,
+"image": image,
+"service_port": service_port,
+"artefact_root": str(base_dir),
+"sets": rendered,
+}

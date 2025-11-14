@@ -3,10 +3,11 @@ import statistics
 import uuid
 from contextlib import asynccontextmanager
 from datetime import UTC, datetime
+from typing import Dict, List
 
 import httpx
 from fastapi import FastAPI, HTTPException, Query
-from prometheus_client import Counter
+from prometheus_client import Counter, Histogram
 from prometheus_fastapi_instrumentator import Instrumentator
 
 from .aggregator import fetch_live_offers
@@ -15,45 +16,53 @@ from .clickhouse import get_client
 from .config import get_settings
 from .models import LivePricingResponse, LivePricingSummary, PricingOffer
 from .refresh import start_refresh_loop, stop_refresh_loop
+from .schemas import (
+PricingLiveRequest,
+PricingSummary,
+SelectedOffer,
+PricingReconcileRequest,
+PricingReconcileResponse,
+)
 from services.common.config.base_settings import BaseServiceSettings, load_settings
 from services.common.fastapi.bootstrap import create_app
+from services.common.config.base_settings import resolve_env
 
 logger = logging.getLogger(__name__)
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    try:
-        ensure_tables()
-    except Exception as e:
-        # Allow app to start even if ClickHouse isn't ready yet
-        logger.warning("[pricing-service] table ensure failed: %s", e)
-    try:
-        Instrumentator().instrument(app).expose(app)
-    except Exception as e:
-        logger.warning("[pricing-service] metrics init failed: %s", e)
-    try:
-        start_refresh_loop()
-    except Exception as e:
-        logger.warning("[pricing-service] refresh loop failed to start: %s", e)
-    yield
-    try:
-        stop_refresh_loop()
-    except Exception:
-        pass
+try:
+ensure_tables()
+except Exception as e:
+# Allow app to start even if ClickHouse isn't ready yet
+logger.warning("[pricing-service] table ensure failed: %s", e)
+try:
+Instrumentator().instrument(app).expose(app)
+except Exception as e:
+logger.warning("[pricing-service] metrics init failed: %s", e)
+try:
+start_refresh_loop()
+except Exception as e:
+logger.warning("[pricing-service] refresh loop failed to start: %s", e)
+yield
+try:
+stop_refresh_loop()
+except Exception:
+pass
 
 
 class PricingServiceSettings(BaseServiceSettings):
-    pricing_refresh_enabled: bool = True
-    opa_enabled: bool = True
+pricing_refresh_enabled: bool = True
+opa_enabled: bool = True
 
 
 settings = load_settings(PricingServiceSettings)
 
 app = create_app(
-    "pricing-service",
-    settings,
-    version="0.1.0",
+"pricing-service",
+settings,
+version="0.1.0",
 )
 
 # Attach lifespan context (FastAPI supports overriding via router attribute)
@@ -61,338 +70,555 @@ app.router.lifespan_context = lifespan
 
 REQS = Counter("pricing_requests_total", "Requests to pricing endpoints", ["endpoint"])
 BUDGET_DECISIONS = Counter(
-    "pricing_budget_decisions_total",
-    "Budget evaluation decisions",
-    ["within_budget", "policy_allow"],
+"pricing_budget_decisions_total",
+"Budget evaluation decisions",
+["within_budget", "policy_allow"],
 )
+LIVE_LATENCY = Histogram(
+"pricing_latency_seconds",
+"Latency for pricing operations",
+["stage"],
+buckets=(0.05, 0.1, 0.25, 0.5, 1, 2, 5),
+)
+
+_SUMMARY_CACHE: Dict[str, PricingSummary] = {}
+
+_PROFILE_MAP: Dict[str, Dict[str, object]] = {
+"llm-inference-a100": {
+"gpu_terms": ["A100", "H100"],
+"hours": 20.0,
+"tokens": 2_000_000,
+},
+"image-gen-4090": {
+"gpu_terms": ["4090", "L40", "A6000"],
+"hours": 40.0,
+},
+"training-v100": {
+"gpu_terms": ["V100", "A100"],
+"hours": 100.0,
+},
+}
 
 
 @app.get("/healthz")
 def healthz():
-    return {"status": "ok"}
+return {"status": "ok"}
 
 
 @app.get("/health")
 def health():
-    return {"status": "ok"}
+return {"status": "ok"}
 
 
 @app.get("/v1/pricing/live", response_model=LivePricingResponse)
 def get_live_pricing(
-    gpu_model: str | None = Query(None),
-    gpu_class: str | None = Query(None),  # placeholder for future grouping
-    min_vram_gb: float | None = Query(None, ge=0),
-    region: str | None = Query(None),
-    cloud: str | None = Query(None),
-    spot: bool | None = Query(None),
-    max_price_hour: float | None = Query(None, ge=0),
-    framework: str | None = Query(None),
-    page: int = Query(1, ge=1),
-    page_size: int = Query(25, ge=1, le=200),
-    sort_by: str = Query("price_hour"),
-    order: str = Query("asc"),
+gpu_model: str | None = Query(None),
+gpu_class: str | None = Query(None),  # placeholder for future grouping
+min_vram_gb: float | None = Query(None, ge=0),
+region: str | None = Query(None),
+cloud: str | None = Query(None),
+spot: bool | None = Query(None),
+max_price_hour: float | None = Query(None, ge=0),
+framework: str | None = Query(None),
+page: int = Query(1, ge=1),
+page_size: int = Query(25, ge=1, le=200),
+sort_by: str = Query("price_hour"),
+order: str = Query("asc"),
 ):
-    _ = get_settings()  # future: cache usage and OPA hooks
-    offers: list[PricingOffer] = fetch_live_offers()
+_ = get_settings()  # future: cache usage and OPA hooks
+offers: list[PricingOffer] = fetch_live_offers()
 
-    # Filtering
-    def keep(o: PricingOffer) -> bool:
-        if gpu_model and gpu_model.lower() not in o.gpu_model.lower():
-            return False
-        if min_vram_gb is not None and (o.vram_gb or 0) < min_vram_gb:
-            return False
-        if region and (o.region or "").lower() != region.lower():
-            return False
-        if cloud and cloud.lower() != o.provider.lower():
-            return False
-        if spot is not None and o.spot != spot:
-            return False
-        if max_price_hour is not None and o.price_per_hour > max_price_hour:
-            return False
-        if framework and framework.lower() not in [f.lower() for f in o.frameworks]:
-            return False
-        return True
+# Filtering
+def keep(o: PricingOffer) -> bool:
+if gpu_model and gpu_model.lower() not in o.gpu_model.lower():
+return False
+if min_vram_gb is not None and (o.vram_gb or 0) < min_vram_gb:
+return False
+if region and (o.region or "").lower() != region.lower():
+return False
+if cloud and cloud.lower() != o.provider.lower():
+return False
+if spot is not None and o.spot != spot:
+return False
+if max_price_hour is not None and o.price_per_hour > max_price_hour:
+return False
+if framework and framework.lower() not in [f.lower() for f in o.frameworks]:
+return False
+return True
 
-    filtered = [o for o in offers if keep(o)]
-    REQS.labels(endpoint="live").inc()
+filtered = [o for o in offers if keep(o)]
+REQS.labels(endpoint="live").inc()
 
-    # Sorting
-    reverse = order.lower() == "desc"
-    key_map = {
-        "price_hour": lambda x: x.price_per_hour,
-        "availability": lambda x: (x.availability or 0.0),
-        "last_seen": lambda x: x.last_seen_at,
-    }
-    key_fn = key_map.get(sort_by, key_map["price_hour"])  # default
-    filtered.sort(key=key_fn, reverse=reverse)
+# Sorting
+reverse = order.lower() == "desc"
+key_map = {
+"price_hour": lambda x: x.price_per_hour,
+"availability": lambda x: (x.availability or 0.0),
+"last_seen": lambda x: x.last_seen_at,
+}
+key_fn = key_map.get(sort_by, key_map["price_hour"])  # default
+filtered.sort(key=key_fn, reverse=reverse)
 
-    # Paging
-    total = len(filtered)
-    start = (page - 1) * page_size
-    end = start + page_size
-    page_items = filtered[start:end]
+# Paging
+total = len(filtered)
+start = (page - 1) * page_size
+end = start + page_size
+page_items = filtered[start:end]
 
-    # Summary
-    prices = [o.price_per_hour for o in filtered]
-    median = statistics.median(prices) if prices else None
-    p95 = None
-    if prices:
-        idx = max(0, int(round(0.95 * (len(prices) - 1))))
-        p95 = sorted(prices)[idx]
-    freshest = max((o.last_seen_at for o in filtered), default=None)
+# Summary
+prices = [o.price_per_hour for o in filtered]
+median = statistics.median(prices) if prices else None
+p95 = None
+if prices:
+idx = max(0, int(round(0.95 * (len(prices) - 1))))
+p95 = sorted(prices)[idx]
+freshest = max((o.last_seen_at for o in filtered), default=None)
 
-    summary = LivePricingSummary(
-        count=total,
-        min_price_hour=min(prices) if prices else None,
-        median_price_hour=median,
-        p95_price_hour=p95,
-        freshest_at=freshest,
-        is_stale=False,
-        scrape_lag_seconds=None,
-    )
+summary = LivePricingSummary(
+count=total,
+min_price_hour=min(prices) if prices else None,
+median_price_hour=median,
+p95_price_hour=p95,
+freshest_at=freshest,
+is_stale=False,
+scrape_lag_seconds=None,
+)
 
-    meta = {
-        "request_id": None,
-        "generated_at": datetime.now(UTC).isoformat(),
-    }
+meta = {
+"request_id": None,
+"generated_at": datetime.now(UTC).isoformat(),
+}
 
-    paging = {"page": page, "page_size": page_size, "total": total}
+paging = {"page": page, "page_size": page_size, "total": total}
 
-    return LivePricingResponse(
-        offers=page_items, summary=summary, paging=paging, meta=meta
-    )
+return LivePricingResponse(
+offers=page_items, summary=summary, paging=paging, meta=meta
+)
 
 
 @app.post("/v1/pricing/snapshot")
 def create_snapshot():
-    REQS.labels(endpoint="snapshot_create").inc()
-    offers: list[PricingOffer] = fetch_live_offers()
-    if not offers:
-        raise HTTPException(status_code=503, detail="No offers available to snapshot")
+REQS.labels(endpoint="snapshot_create").inc()
+offers: list[PricingOffer] = fetch_live_offers()
+if not offers:
+raise HTTPException(status_code=503, detail="No offers available to snapshot")
 
-    prices = [o.price_per_hour for o in offers]
-    median = statistics.median(prices)
-    p95 = sorted(prices)[max(0, int(round(0.95 * (len(prices) - 1))))]
+prices = [o.price_per_hour for o in offers]
+median = statistics.median(prices)
+p95 = sorted(prices)[max(0, int(round(0.95 * (len(prices) - 1))))]
 
-    payload_str = "|".join(
-        sorted(
-            f"{o.provider}:{o.gpu_model}:{o.region}:{o.price_per_hour}" for o in offers
-        )
-    )
-    hash_fixed = uuid.uuid5(uuid.NAMESPACE_DNS, payload_str).hex
+payload_str = "|".join(
+sorted(
+f"{o.provider}:{o.gpu_model}:{o.region}:{o.price_per_hour}" for o in offers
+)
+)
+hash_fixed = uuid.uuid5(uuid.NAMESPACE_DNS, payload_str).hex
 
-    sid = uuid.uuid4()
-    ch = get_client()
-    # header
-    ch.execute(
-        """
-        INSERT INTO pricing_snapshots (snapshot_id, offer_count, min_price_hour, median_price_hour, p95_price_hour, hash_fixed)
-        VALUES
-        """,
-        [(sid, len(offers), min(prices), median, p95, hash_fixed)],
-        types_check=True,
-    )
-    # rows
-    rows = [
-        (
-            sid,
-            o.id,
-            o.provider,
-            o.gpu_model,
-            o.vram_gb or 0.0,
-            int(o.cpu_cores or 0),
-            o.ram_gb or 0.0,
-            o.storage_gb or 0.0,
-            o.region or "",
-            o.zone or "",
-            float(o.availability or 0.0),
-            1 if o.spot else 0,
-            o.currency,
-            o.price_per_hour,
-            o.price_per_minute,
-            o.tags,
-            o.frameworks,
-            int(o.billing_increment_min or 0),
-            float(o.min_rent_hours or 0.0),
-            float(o.provision_latency_s or 0.0),
-            float(o.deprovision_latency_s or 0.0),
-            o.last_seen_at,
-            o.source or "",
-            float(o.confidence or 0.0),
-        )
-        for o in offers
-    ]
-    ch.execute(
-        """
-        INSERT INTO pricing_snapshot_offers (
-            snapshot_id,id,provider,gpu_model,vram_gb,cpu_cores,ram_gb,storage_gb,region,zone,availability,spot,currency,price_per_hour,price_per_minute,tags,frameworks,billing_increment_min,min_rent_hours,provision_latency_s,deprovision_latency_s,last_seen_at,source,confidence
-        ) VALUES
-        """,
-        rows,
-        types_check=True,
-    )
+sid = uuid.uuid4()
+ch = get_client()
+# header
+ch.execute(
+"""
+INSERT INTO pricing_snapshots (snapshot_id, offer_count, min_price_hour, median_price_hour, p95_price_hour, hash_fixed)
+VALUES
+""",
+[(sid, len(offers), min(prices), median, p95, hash_fixed)],
+types_check=True,
+)
+# rows
+rows = [
+(
+sid,
+o.id,
+o.provider,
+o.gpu_model,
+o.vram_gb or 0.0,
+int(o.cpu_cores or 0),
+o.ram_gb or 0.0,
+o.storage_gb or 0.0,
+o.region or "",
+o.zone or "",
+float(o.availability or 0.0),
+1 if o.spot else 0,
+o.currency,
+o.price_per_hour,
+o.price_per_minute,
+o.tags,
+o.frameworks,
+int(o.billing_increment_min or 0),
+float(o.min_rent_hours or 0.0),
+float(o.provision_latency_s or 0.0),
+float(o.deprovision_latency_s or 0.0),
+o.last_seen_at,
+o.source or "",
+float(o.confidence or 0.0),
+)
+for o in offers
+]
+ch.execute(
+"""
+INSERT INTO pricing_snapshot_offers (
+snapshot_id,id,provider,gpu_model,vram_gb,cpu_cores,ram_gb,storage_gb,region,zone,availability,spot,currency,price_per_hour,price_per_minute,tags,frameworks,billing_increment_min,min_rent_hours,provision_latency_s,deprovision_latency_s,last_seen_at,source,confidence
+) VALUES
+""",
+rows,
+types_check=True,
+)
 
-    return {"snapshot_id": str(sid), "hash": hash_fixed, "offers": len(offers)}
+return {"snapshot_id": str(sid), "hash": hash_fixed, "offers": len(offers)}
 
 
 @app.get("/v1/pricing/snapshot/{snapshot_id}")
 def get_snapshot(snapshot_id: str):
-    REQS.labels(endpoint="snapshot_get").inc()
-    try:
-        sid = uuid.UUID(snapshot_id)
-    except Exception:
-        raise HTTPException(status_code=400, detail="Invalid snapshot_id")
+REQS.labels(endpoint="snapshot_get").inc()
+try:
+sid = uuid.UUID(snapshot_id)
+except Exception:
+raise HTTPException(status_code=400, detail="Invalid snapshot_id")
 
-    ch = get_client()
-    header = ch.execute(
-        "SELECT snapshot_id, created_at, offer_count, min_price_hour, median_price_hour, p95_price_hour, hash_fixed FROM pricing_snapshots WHERE snapshot_id = %(sid)s LIMIT 1",
-        {"sid": sid},
-        with_column_types=True,
-    )
-    rows = header[0][0] if header and header[0] else None
-    if not rows:
-        raise HTTPException(status_code=404, detail="Snapshot not found")
+ch = get_client()
+header = ch.execute(
+"SELECT snapshot_id, created_at, offer_count, min_price_hour, median_price_hour, p95_price_hour, hash_fixed FROM pricing_snapshots WHERE snapshot_id = %(sid)s LIMIT 1",
+{"sid": sid},
+with_column_types=True,
+)
+rows = header[0][0] if header and header[0] else None
+if not rows:
+raise HTTPException(status_code=404, detail="Snapshot not found")
 
-    offers_rows = ch.execute(
-        "SELECT id, provider, gpu_model, vram_gb, cpu_cores, ram_gb, storage_gb, region, zone, availability, spot, currency, price_per_hour, price_per_minute, tags, frameworks, billing_increment_min, min_rent_hours, provision_latency_s, deprovision_latency_s, last_seen_at, source, confidence FROM pricing_snapshot_offers WHERE snapshot_id = %(sid)s",
-        {"sid": sid},
-    )
-    offers: list[PricingOffer] = []
-    for r in offers_rows:
-        offers.append(
-            PricingOffer(
-                id=r[0],
-                provider=r[1],
-                gpu_model=r[2],
-                vram_gb=r[3],
-                cpu_cores=r[4],
-                ram_gb=r[5],
-                storage_gb=r[6],
-                region=r[7],
-                zone=r[8],
-                availability=r[9],
-                spot=bool(r[10]),
-                currency=r[11],
-                price_per_hour=r[12],
-                price_per_minute=r[13],
-                tags=r[14],
-                frameworks=r[15],
-                billing_increment_min=r[16],
-                min_rent_hours=r[17],
-                provision_latency_s=r[18],
-                deprovision_latency_s=r[19],
-                last_seen_at=r[20],
-                source=r[21],
-                confidence=r[22],
-            )
-        )
+offers_rows = ch.execute(
+"SELECT id, provider, gpu_model, vram_gb, cpu_cores, ram_gb, storage_gb, region, zone, availability, spot, currency, price_per_hour, price_per_minute, tags, frameworks, billing_increment_min, min_rent_hours, provision_latency_s, deprovision_latency_s, last_seen_at, source, confidence FROM pricing_snapshot_offers WHERE snapshot_id = %(sid)s",
+{"sid": sid},
+)
+offers: list[PricingOffer] = []
+for r in offers_rows:
+offers.append(
+PricingOffer(
+id=r[0],
+provider=r[1],
+gpu_model=r[2],
+vram_gb=r[3],
+cpu_cores=r[4],
+ram_gb=r[5],
+storage_gb=r[6],
+region=r[7],
+zone=r[8],
+availability=r[9],
+spot=bool(r[10]),
+currency=r[11],
+price_per_hour=r[12],
+price_per_minute=r[13],
+tags=r[14],
+frameworks=r[15],
+billing_increment_min=r[16],
+min_rent_hours=r[17],
+provision_latency_s=r[18],
+deprovision_latency_s=r[19],
+last_seen_at=r[20],
+source=r[21],
+confidence=r[22],
+)
+)
 
-    return {
-        "snapshot_id": snapshot_id,
-        "created_at": rows[1].isoformat() if rows[1] else None,
-        "offer_count": rows[2],
-        "min_price_hour": rows[3],
-        "median_price_hour": rows[4],
-        "p95_price_hour": rows[5],
-        "hash": rows[6],
-        "offers": [o.model_dump() for o in offers],
-    }
+return {
+"snapshot_id": snapshot_id,
+"created_at": rows[1].isoformat() if rows[1] else None,
+"offer_count": rows[2],
+"min_price_hour": rows[3],
+"median_price_hour": rows[4],
+"p95_price_hour": rows[5],
+"hash": rows[6],
+"offers": [o.model_dump() for o in offers],
+}
 
 
 @app.post("/v1/pricing/evaluate-budget")
 def evaluate_budget(
-    gpu_model: str | None = None,
-    region: str | None = None,
-    hours_planned: float = Query(..., gt=0),
-    quantity: int = Query(1, ge=1),
-    budget_cap: float = Query(..., gt=0),
+gpu_model: str | None = None,
+region: str | None = None,
+hours_planned: float = Query(..., gt=0),
+quantity: int = Query(1, ge=1),
+budget_cap: float = Query(..., gt=0),
 ):
-    offers: list[PricingOffer] = fetch_live_offers()
-    if gpu_model:
-        offers = [o for o in offers if gpu_model.lower() in o.gpu_model.lower()]
-    if region:
-        offers = [o for o in offers if (o.region or "").lower() == region.lower()]
-    if not offers:
-        raise HTTPException(status_code=404, detail="No matching offers to evaluate")
+offers: list[PricingOffer] = fetch_live_offers()
+if gpu_model:
+offers = [o for o in offers if gpu_model.lower() in o.gpu_model.lower()]
+if region:
+offers = [o for o in offers if (o.region or "").lower() == region.lower()]
+if not offers:
+raise HTTPException(status_code=404, detail="No matching offers to evaluate")
 
-    best = min(offers, key=lambda o: o.price_per_hour)
-    estimated_cost = best.price_per_hour * hours_planned * quantity
-    within = estimated_cost <= budget_cap
+best = min(offers, key=lambda o: o.price_per_hour)
+estimated_cost = best.price_per_hour * hours_planned * quantity
+within = estimated_cost <= budget_cap
 
-    BUDGET_DECISIONS.labels(within_budget=str(within), policy_allow="").inc()
-    REQS.labels(endpoint="evaluate_budget").inc()
-    return {
-        "within_budget": within,
-        "estimated_cost": estimated_cost,
-        "currency": best.currency,
-        "chosen_offer": best.model_dump(),
-        "blocking_reason": None if within else "Estimated cost exceeds budget cap",
-    }
+BUDGET_DECISIONS.labels(within_budget=str(within), policy_allow="").inc()
+REQS.labels(endpoint="evaluate_budget").inc()
+return {
+"within_budget": within,
+"estimated_cost": estimated_cost,
+"currency": best.currency,
+"chosen_offer": best.model_dump(),
+"blocking_reason": None if within else "Estimated cost exceeds budget cap",
+}
 
 
 def _opa_decide(payload: dict) -> dict | None:
-    settings = get_settings()
-    url = settings.opa_url.rstrip("/") + "/v1/data/somagent/policies/decision"
-    try:
-        with httpx.Client(timeout=3.0) as client:
-            r = client.post(url, json={"input": payload})
-        if r.status_code == 200:
-            data = r.json()
-            return data.get("result")
-    except Exception as e:
-        logger.warning("[pricing-service] OPA call failed: %s", e)
-    return None
+settings = get_settings()
+url = settings.opa_url.rstrip("/") + "/v1/data/somagent/policies/decision"
+try:
+with httpx.Client(timeout=3.0) as client:
+r = client.post(url, json={"input": payload})
+if r.status_code == 200:
+data = r.json()
+return data.get("result")
+except Exception as e:
+logger.warning("[pricing-service] OPA call failed: %s", e)
+return None
+
+
+def _select_offer(
+offers: List[PricingOffer],
+gpu_terms: List[str],
+region: str | None,
+price_cap: float | None,
+required_tags: List[str],
+) -> tuple[PricingOffer | None, List[str]]:
+warnings: List[str] = []
+filtered = []
+for o in offers:
+gpu_ok = (
+any(term.lower() in o.gpu_model.lower() for term in gpu_terms)
+if gpu_terms
+else True
+)
+if not gpu_ok:
+continue
+if region and (o.region or "").lower() != region.lower():
+continue
+if price_cap is not None and o.price_per_hour > price_cap:
+continue
+if required_tags and not set(t.lower() for t in required_tags).issubset(
+{t.lower() for t in o.tags}
+):
+continue
+filtered.append(o)
+if not filtered:
+warnings.append("no_offers_after_filtering")
+return None, warnings
+chosen = min(filtered, key=lambda o: o.price_per_hour)
+return chosen, warnings
+
+
+@app.post("/v1/pricing/live-summary", response_model=PricingSummary)
+def pricing_live_summary(req: PricingLiveRequest):  # type: ignore[valid-type]
+settings = get_settings()
+start = datetime.now(UTC)
+stage = "live"
+try:
+profile_cfg = _PROFILE_MAP.get(req.capsule_profile, {})
+gpu_terms = [str(x) for x in profile_cfg.get("gpu_terms", [])] or []
+hours_default = float(profile_cfg.get("hours", req.usage.hours))
+tokens_default = profile_cfg.get("tokens")
+
+offers = fetch_live_offers()
+chosen, warnings = _select_offer(
+offers,
+gpu_terms=gpu_terms,
+region=req.region,
+price_cap=req.price_cap,
+required_tags=req.required_tags,
+)
+if not chosen:
+raise HTTPException(
+status_code=404, detail="No matching offers for constraints"
+)
+
+hours = req.usage.hours or hours_default
+tokens = req.usage.tokens or tokens_default
+hourly = chosen.price_per_hour
+token_cost = None
+if tokens and tokens > 0:
+# Simple linear token estimation placeholder (future: KPI service)
+# Not a mock price; derived from hourly rate assuming 2000 tokens/sec baseline on high-end GPU
+# tokens/sec approx scaling heuristic
+baseline_tokens_per_hour = 2000 * 3600
+cost_per_token = hourly / baseline_tokens_per_hour
+token_cost = cost_per_token * tokens
+
+total = hourly * hours + (token_cost or 0.0)
+
+snapshot_id = str(uuid.uuid4())
+summary = PricingSummary(
+snapshot_id=snapshot_id,
+fetched_at=start,
+ttl_seconds=settings.cache_ttl_seconds,
+stale=False,
+cache_status="miss",
+gpubroker_url=settings.gpubroker_url,
+constraints={
+"capsule_profile": req.capsule_profile,
+"region": req.region,
+"price_cap": req.price_cap,
+"required_tags": req.required_tags,
+"gpu_terms": gpu_terms,
+"usage": {"hours": hours, "tokens": tokens},
+},
+offers_considered=len(offers),
+provider_warnings=warnings,
+selected_offer=SelectedOffer(
+provider=chosen.provider,
+gpu=chosen.gpu_model,
+region=chosen.region,
+price_per_hour=chosen.price_per_hour,
+availability=chosen.availability,
+last_updated=chosen.last_seen_at,
+),
+breakdown={
+"hourly": hourly,
+"hours": hours,
+"tokens": tokens,
+"token_cost": token_cost,
+},
+total_estimated=total,
+)
+_SUMMARY_CACHE[snapshot_id] = summary
+REQS.labels(endpoint="live_summary").inc()
+return summary
+finally:
+LIVE_LATENCY.labels(stage=stage).observe(
+(datetime.now(UTC) - start).total_seconds()
+)
+
+
+@app.post("/v1/pricing/reconcile", response_model=PricingReconcileResponse)
+def pricing_reconcile(req: PricingReconcileRequest):  # type: ignore[valid-type]
+settings = get_settings()
+start = datetime.now(UTC)
+stage = "reconcile"
+try:
+prior = req.snapshot
+if prior.snapshot_id not in _SUMMARY_CACHE:
+_SUMMARY_CACHE[prior.snapshot_id] = prior  # allow external snapshot usage
+
+gpu_terms = prior.constraints.get("gpu_terms", [])
+offers = fetch_live_offers()
+chosen, warnings = _select_offer(
+offers,
+gpu_terms=gpu_terms,
+region=prior.constraints.get("region"),
+price_cap=prior.constraints.get("price_cap"),
+required_tags=prior.constraints.get("required_tags", []),
+)
+if not chosen:
+raise HTTPException(status_code=404, detail="No offers for reconciliation")
+
+hours = prior.constraints["usage"]["hours"]
+tokens = prior.constraints["usage"].get("tokens")
+hourly = chosen.price_per_hour
+token_cost = None
+if tokens and tokens > 0:
+baseline_tokens_per_hour = 2000 * 3600
+cost_per_token = hourly / baseline_tokens_per_hour
+token_cost = cost_per_token * tokens
+new_total = hourly * hours + (token_cost or 0.0)
+old_total = prior.total_estimated
+drift_percent = (
+((new_total - old_total) / old_total * 100.0) if old_total > 0 else 0.0
+)
+requires_reaccept = abs(drift_percent) > 5.0  # default threshold (future: OPA)
+
+updated = PricingSummary(
+snapshot_id=prior.snapshot_id,
+fetched_at=start,
+ttl_seconds=settings.cache_ttl_seconds,
+stale=False,
+cache_status="miss",
+gpubroker_url=settings.gpubroker_url,
+constraints=prior.constraints,
+offers_considered=len(offers),
+provider_warnings=warnings,
+selected_offer=SelectedOffer(
+provider=chosen.provider,
+gpu=chosen.gpu_model,
+region=chosen.region,
+price_per_hour=chosen.price_per_hour,
+availability=chosen.availability,
+last_updated=chosen.last_seen_at,
+),
+breakdown={
+"hourly": hourly,
+"hours": hours,
+"tokens": tokens,
+"token_cost": token_cost,
+},
+total_estimated=new_total,
+)
+_SUMMARY_CACHE[prior.snapshot_id] = updated
+REQS.labels(endpoint="reconcile").inc()
+return PricingReconcileResponse(
+old_total=old_total,
+new_total=new_total,
+drift_percent=drift_percent,
+requires_reaccept=requires_reaccept,
+summary=updated,
+receipt_id=None,
+)
+finally:
+LIVE_LATENCY.labels(stage=stage).observe(
+(datetime.now(UTC) - start).total_seconds()
+)
 
 
 @app.post("/v1/pricing/evaluate-budget/with-policy")
 def evaluate_budget_with_policy(
-    gpu_model: str | None = None,
-    region: str | None = None,
-    hours_planned: float = Query(..., gt=0),
-    quantity: int = Query(1, ge=1),
-    budget_cap: float = Query(..., gt=0),
-    payment_approved: bool = Query(False),
-    required_feature: str | None = Query(None),
-    current_agents: int = Query(0, ge=0),
+gpu_model: str | None = None,
+region: str | None = None,
+hours_planned: float = Query(..., gt=0),
+quantity: int = Query(1, ge=1),
+budget_cap: float = Query(..., gt=0),
+payment_approved: bool = Query(False),
+required_feature: str | None = Query(None),
+current_agents: int = Query(0, ge=0),
 ):
-    offers: list[PricingOffer] = fetch_live_offers()
-    if gpu_model:
-        offers = [o for o in offers if gpu_model.lower() in o.gpu_model.lower()]
-    if region:
-        offers = [o for o in offers if (o.region or "").lower() == region.lower()]
-    if not offers:
-        raise HTTPException(status_code=404, detail="No matching offers to evaluate")
+offers: list[PricingOffer] = fetch_live_offers()
+if gpu_model:
+offers = [o for o in offers if gpu_model.lower() in o.gpu_model.lower()]
+if region:
+offers = [o for o in offers if (o.region or "").lower() == region.lower()]
+if not offers:
+raise HTTPException(status_code=404, detail="No matching offers to evaluate")
 
-    best = min(offers, key=lambda o: o.price_per_hour)
-    estimated_cost = best.price_per_hour * hours_planned * quantity
-    within = estimated_cost <= budget_cap
+best = min(offers, key=lambda o: o.price_per_hour)
+estimated_cost = best.price_per_hour * hours_planned * quantity
+within = estimated_cost <= budget_cap
 
-    # Construct OPA input
-    opa_input: dict = {
-        "estimated_cost": estimated_cost,
-        "budget_cap": budget_cap,
-        "payment_approved": payment_approved,
-        "required_feature": required_feature,
-        "current_agents": current_agents,
-        "requested_agents": quantity,
-        "plan": {
-            "max_agents_per_user": None,
-            "features": [],
-        },
-    }
+# Construct OPA input
+opa_input: dict = {
+"estimated_cost": estimated_cost,
+"budget_cap": budget_cap,
+"payment_approved": payment_approved,
+"required_feature": required_feature,
+"current_agents": current_agents,
+"requested_agents": quantity,
+"plan": {
+"max_agents_per_user": None,
+"features": [],
+},
+}
 
-    decision = _opa_decide(opa_input)
+decision = _opa_decide(opa_input)
 
-    allowed = True
-    if isinstance(decision, dict):
-        allowed = bool(decision.get("allow_build", True))
-    BUDGET_DECISIONS.labels(within_budget=str(within), policy_allow=str(allowed)).inc()
-    REQS.labels(endpoint="evaluate_budget_with_policy").inc()
-    return {
-        "within_budget": within,
-        "estimated_cost": estimated_cost,
-        "currency": best.currency,
-        "chosen_offer": best.model_dump(),
-        "policy_decision": decision,
-        "blocking_reason": None if within else "Estimated cost exceeds budget cap",
-    }
+allowed = True
+if isinstance(decision, dict):
+allowed = bool(decision.get("allow_build", True))
+BUDGET_DECISIONS.labels(within_budget=str(within), policy_allow=str(allowed)).inc()
+REQS.labels(endpoint="evaluate_budget_with_policy").inc()
+return {
+"within_budget": within,
+"estimated_cost": estimated_cost,
+"currency": best.currency,
+"chosen_offer": best.model_dump(),
+"policy_decision": decision,
+"blocking_reason": None if within else "Estimated cost exceeds budget cap",
+}

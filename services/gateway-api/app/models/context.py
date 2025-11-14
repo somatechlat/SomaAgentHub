@@ -3,18 +3,19 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from services.common.config.base_settings import resolve_env
 
 
 @dataclass
 class RequestContext:
-    """Lightweight request-scoped context container.
+"""Lightweight request-scoped context container.
 
-    Fields mirror what the gateway code expects to read/write.
-    """
+Fields mirror what the gateway code expects to read/write.
+"""
 
-    tenant_id: str
-    user_id: str | None
-    capabilities: list[str]
-    client_type: str
-    deployment_mode: str
-    request_id: str
+tenant_id: str
+user_id: str | None
+capabilities: list[str]
+client_type: str
+deployment_mode: str
+request_id: str

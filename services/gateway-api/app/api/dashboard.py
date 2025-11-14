@@ -2,15 +2,15 @@
 
 from __future__ import annotations
 
-import os
 from typing import Any
 
 import httpx
 from fastapi import APIRouter, Depends, HTTPException, status
 
-from ..config import get_sah_settings
+from ..config import get_settings
 from ..dependencies import request_context_dependency
 from ..models.context import RequestContext
+from services.common.config.base_settings import resolve_env
 
 router = APIRouter(prefix="/v1/dashboard", tags=["dashboard"])
 
@@ -33,17 +33,16 @@ async def fetch_json(url: str) -> dict[str, Any]:
 async def dashboard_health(
     ctx: RequestContext = Depends(request_context_dependency),
 ) -> dict[str, Any]:
-    settings = get_sah_settings()
+    settings = get_settings()
     extra = settings.model_extra or {}
-    slm_health_url = str(
-        extra.get("SLM_HEALTH_URL")
-        or os.getenv("SLM_HEALTH_URL", "http://slm-service:10022/health")
+    llm_health_url = str(
+        extra.get("LLM_HUB_HEALTH_URL")
+        or resolve_env("LLM_HUB_HEALTH_URL", "http://llm-hub:10022/health")
     )
-    # Use the configured MEMORY_GATEWAY_PORT (default 10021) to build the metrics URL
-    default_port = os.getenv("MEMORY_GATEWAY_PORT", "10021")
+    default_port = resolve_env("MEMORY_GATEWAY_PORT", "10021")
     somabrain_metrics_url = str(
         extra.get("SOMABRAIN_METRICS_URL")
-        or os.getenv(
+        or resolve_env(
             "SOMABRAIN_METRICS_URL",
             f"http://memory-gateway:{default_port}/metrics",
         )
@@ -53,7 +52,9 @@ async def dashboard_health(
         if settings.kafka.bootstrap_servers
         else "kafka:9092"
     )
-    postgres_host = extra.get("SOMASTACK_POSTGRES_HOST") or "postgres:5432"
+    postgres_host = extra.get("POSTGRES_HOST") or resolve_env(
+        "POSTGRES_HOST", "postgres:5432"
+    )
     if settings.redis.host and settings.redis.port:
         redis_host = f"{settings.redis.host}:{settings.redis.port}"
     elif settings.redis.url:
@@ -62,19 +63,18 @@ async def dashboard_health(
         redis_host = "redis:6379"
 
     try:
-        somallm_health = await fetch_json(slm_health_url)
+        llm_hub_health = await fetch_json(llm_health_url)
     except HTTPException as exc:
-        somallm_health = {"status": "error", "detail": exc.detail}
+        llm_hub_health = {"status": "error", "detail": exc.detail}
 
-    data = {
+    return {
         "tenant": ctx.tenant_id,
         "deployment_mode": ctx.deployment_mode,
         "services": {
-            "slm_service": somallm_health,
+            "llm_hub": llm_hub_health,
             "somabrain": somabrain_metrics_url,
             "kafka": kafka_endpoint,
             "postgres": postgres_host,
             "redis": redis_host,
         },
     }
-    return data

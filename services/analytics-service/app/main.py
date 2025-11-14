@@ -7,11 +7,12 @@ from prometheus_client import CONTENT_TYPE_LATEST, generate_latest
 from .api.routes import router
 from .core.config import settings
 from .observability import setup_observability
+from services.common.config.base_settings import resolve_env
 
 app = FastAPI(
-    title="SomaGent Analytics Service",
-    version="0.1.0",
-    description="Aggregates capsule telemetry, persona regression outcomes, and governance reports.",
+title="SomaGent Analytics Service",
+version="0.1.0",
+description="Aggregates capsule telemetry, persona regression outcomes, and governance reports.",
 )
 
 app.include_router(router)
@@ -22,9 +23,9 @@ setup_observability("analytics-service", app, service_version="0.1.0")
 
 @app.get("/health", tags=["system"])
 def healthcheck() -> dict[str, str]:
-    return {"status": "ok", "service": settings.service_name}
+return {"status": "ok", "service": settings.service_name}
 
 
 @app.get("/metrics", tags=["system"])
 def metrics() -> Response:
-    return Response(generate_latest(), media_type=CONTENT_TYPE_LATEST)
+return Response(generate_latest(), media_type=CONTENT_TYPE_LATEST)

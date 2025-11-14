@@ -1,26 +1,19 @@
+import importlib
 import os
-from importlib.machinery import SourceFileLoader
+import sys
 
 import httpx
 from fastapi.testclient import TestClient
 from httpx import Response
 
-# Add service path then dynamically load gateway main to avoid package shadowing
 BASE = os.path.dirname(os.path.dirname(__file__))
-gateway_main = SourceFileLoader(
-    "gateway_app_main", os.path.join(BASE, "app", "main.py")
-).load_module()
-app = gateway_main.app  # noqa: E402
-
+if BASE not in sys.path:
+    sys.path.insert(0, BASE)
+app = importlib.import_module("app.main").app  # type: ignore
 client = TestClient(app)
-
-# Minimal monkeypatch for settings if needed
 
 
 class FakeAsyncClient:
-    def __init__(self, *a, **kw):
-        pass
-
     async def __aenter__(self):
         return self
 
@@ -37,30 +30,20 @@ class FakeAsyncClient:
                 "require_payment": False,
                 "recommended_action": None,
             }
-            return Response(
-                200,
-                content=json.dumps(data),
-                headers={"Content-Type": "application/json"},
-            )
+            return Response(status_code=200, json=data)
         if url.endswith("/v1/pricing/snapshot"):
             data = {"snapshot_id": "test-snap-123", "offers": 1, "hash": "abc"}
-            return Response(
-                200,
-                content=json.dumps(data),
-                headers={"Content-Type": "application/json"},
-            )
+            return Response(status_code=200, json=data)
         if url.endswith("/v1/build-runs"):
             data = {"id": "run-1", "status": "queued"}
-            return Response(
-                200,
-                content=json.dumps(data),
-                headers={"Content-Type": "application/json"},
-            )
-        return Response(404, json={"detail": "not found"})
+            return Response(status_code=200, json=data)
+        return Response(status_code=404, json={"detail": "not found"})
 
 
 def test_cost_precheck(monkeypatch):
-    monkeypatch.setenv("SOMAGENT_GATEWAY_ORCHESTRATOR_URL", "http://orchestrator-mock")
+    monkeypatch.setenv(
+        "SOMA_AGENT_HUB_GATEWAY_ORCHESTRATOR_URL", "http://orchestrator-mock"
+    )
     monkeypatch.setattr(httpx, "AsyncClient", FakeAsyncClient)
     resp = client.post(
         "/v1/build/cost-precheck",
@@ -83,8 +66,7 @@ def test_cost_precheck(monkeypatch):
 
 
 def test_build_run_requires_snapshot_auto(monkeypatch):
-    # Mock orchestrator endpoint and pricing snapshot creation via monkeypatching AsyncClient
-    monkeypatch.setenv("SOMAGENT_GATEWAY_ORCHESTRATOR_URL", "http://orchestrator-mock")
+    monkeypatch.setenv("SOMA_AGENT_HUB_GATEWAY_ORCHESTRATOR_URL", "http://orchestrator-mock")
     monkeypatch.setattr(httpx, "AsyncClient", FakeAsyncClient)
     resp = client.post(
         "/v1/build/run",

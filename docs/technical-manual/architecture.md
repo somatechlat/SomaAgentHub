@@ -1,234 +1,658 @@
-# SomaAgentHub System Architecture
+# System Architecture
 
-<!-- markdownlint-disable MD013 -->
+![Version](https://img.shields.io/badge/version-1.0.0-blue)
 
-> _Version: soma_integration (last updated 2025-10-16)_
+## Overview
 
-## Purpose
+SomaAgentHub implements a microservices architecture designed for enterprise-scale agent orchestration with production-ready infrastructure, comprehensive observability, and policy-driven governance.
 
-Provide a single source of truth for how SomaAgentHub is assembled, which components exist today, and how they interact across environments (local Docker, staging, production clusters).
+## High-Level Architecture
 
-## Audience
-
-| Role | Why this page matters |
-|---|---|
-| Platform engineers & SREs | Understand service boundaries, dependencies, and failure domains before operating or extending the platform. |
-| Application developers | Locate integration points, required upstreams, and shared infrastructure prior to feature work. |
-| Security & compliance reviewers | Validate data flows, trust zones, and enforcement layers against policy requirements. |
-| External partners | Confirm open-source dependencies, container images, and orchestration touchpoints for integration planning. |
-
-## Prerequisites
-
-- Familiarity with containerized deployments (Docker, Kubernetes basics).
-- Access to the repository (`somaAgentHub`) and the local helper script `scripts/docker-cluster.sh`.
-- Installed tooling: Docker Engine 24+, Docker Compose v2, and (optionally) Kind for local Kubernetes validation.
-- Optional tooling used in verification steps: PostgreSQL `psql` client and MinIO Client (`mc`).
-
----
-
-**A detailed overview of the SomaAgentHub platform's components, design principles, and data flow.**
-
-This document provides a comprehensive architectural overview for platform engineers, SREs, and system administrators. It details the microservices architecture, guiding principles, data flow patterns, and technology stack that power SomaAgentHub.
-
----
-
-## 🎯 Guiding Principles
-
-The architecture is built on a foundation of modern, cloud-native principles to ensure scalability, resilience, and maintainability.
-
-| Principle | Description | Implementation |
-|---|---|---|
-| **Microservices** | Each service is independently deployable, scalable, and maintainable. | FastAPI services packaged as individual containers under `services/`. |
-| **API-First Design** | Services communicate through well-defined, versioned APIs. | OpenAPI specifications for every service. |
-| **Cloud-Native** | Designed for containerization and orchestration. | Kubernetes-native, 12-factor app methodology. |
-| **Asynchronous & Event-Driven** | Long-running tasks are handled asynchronously for resilience. | Temporal for workflow orchestration, Redis for caching. |
-| **Infrastructure as Code (IaC)** | All infrastructure is defined and managed in version control. | Kubernetes manifests, Helm charts, and Terraform. |
-| **Comprehensive Observability** | The system is designed to be monitored and understood. | Prometheus metrics, Grafana dashboards, Loki logging. |
-| **Security by Design** | Security is integrated at every layer of the platform. | JWT authentication, RBAC, secrets management. |
-
----
-
-## 🏗️ High-Level Architecture
-
-SomaAgentHub operates as a layered system, separating concerns from public-facing APIs down to the underlying infrastructure.
-
-```text
-┌─────────────────────────────────────────────────────────┐
-│                   PRESENTATION LAYER                    │
-│         (Admin Console, CLI, External Integrations)     │
-└───────────────────────────┬─────────────────────────────┘
-                            │
-┌───────────────────────────▼─────────────────────────────┐
-│                       GATEWAY LAYER                     │
-│      (Gateway API: Auth, Rate Limiting, Routing)        │
-└───────────────────────────┬─────────────────────────────┘
-                            │
-┌───────────────────────────▼─────────────────────────────┐
-│                   ORCHESTRATION LAYER                   │
-│      (Orchestrator Service, Temporal Workflows)         │
-└───────────────────────────┬─────────────────────────────┘
-                            │
-┌───────────────────────────▼─────────────────────────────┐
-│                      SERVICE LAYER                      │
-│ (Policy, Memory, Identity, Tools, SLM, and other services)│
-└───────────────────────────┬─────────────────────────────┘
-                            │
-┌───────────────────────────▼─────────────────────────────┐
-│                   INFRASTRUCTURE LAYER                  │
-│      (PostgreSQL, Redis, Qdrant, Kubernetes)            │
-└─────────────────────────────────────────────────────────┘
+```mermaid
+graph TB
+    subgraph "External Layer"
+        UI[Web UI]
+        CLI[CLI Client]
+        API[External APIs]
+    end
+    
+    subgraph "Ingress Layer"
+        ING[Ingress Controller]
+        LB[Load Balancer]
+    end
+    
+    subgraph "Application Layer"
+        GW[Gateway API<br/>:10000]
+        ORCH[Orchestrator<br/>:10001]
+        ID[Identity Service<br/>:10002]
+        MEM[Memory Gateway<br/>:10021]
+        POL[Policy Engine<br/>:10020]
+    end
+    
+    subgraph "Workflow Layer"
+        TEMP[Temporal Server<br/>:7233]
+        WORK[Temporal Workers]
+    end
+    
+    subgraph "Data Layer"
+        REDIS[Redis<br/>Session State]
+        QDRANT[Qdrant<br/>Vector DB]
+        POSTGRES[PostgreSQL<br/>Transactional]
+        CLICKHOUSE[ClickHouse<br/>Analytics]
+    end
+    
+    subgraph "Infrastructure Layer"
+        PROM[Prometheus]
+        GRAF[Grafana]
+        LOKI[Loki]
+        KAFKA[Kafka]
+    end
+    
+    UI --> ING
+    CLI --> ING
+    API --> ING
+    ING --> LB
+    LB --> GW
+    
+    GW --> ORCH
+    GW --> ID
+    GW --> POL
+    ORCH --> TEMP
+    ORCH --> MEM
+    TEMP --> WORK
+    
+    GW --> REDIS
+    MEM --> QDRANT
+    ID --> POSTGRES
+    ORCH --> REDIS
+    
+    WORK --> KAFKA
+    KAFKA --> CLICKHOUSE
+    
+    GW --> PROM
+    ORCH --> PROM
+    PROM --> GRAF
 ```
 
+## Core Services Architecture
+
+### Gateway API Service
+**Port**: 10000 (external), 8000 (container)
+**Purpose**: Public ingress and wizard flow orchestration
+
+**Components**:
+- FastAPI application with async request handling
+- Redis-based session management
+- WebSocket support for real-time updates
+- Middleware for authentication and context propagation
+
+**Key Files**:
+- `services/gateway-api/app/main.py` - Application entry point
+- `services/gateway-api/app/api/routes.py` - REST endpoints
+- `services/gateway-api/app/core/redis.py` - Redis client management
+- `services/gateway-api/app/wizard_engine.py` - Wizard flow logic
+
+**Dependencies**:
+```python
+# External dependencies
+redis >= 4.0.0
+fastapi >= 0.100.0
+uvicorn >= 0.20.0
+
+# Internal dependencies
+orchestrator (10001)
+identity-service (10002)
+pricing-service (10026) # optional
+```
+
+### Orchestrator Service
+**Port**: 10001 (external), 8000 (container)
+**Purpose**: Temporal workflow coordination and agent lifecycle management
+
+**Components**:
+- Temporal client integration
+- Workflow and activity definitions
+- Session state synchronization
+- Policy enforcement integration
+
+**Key Files**:
+- `services/orchestrator/app/main.py` - FastAPI application
+- `services/orchestrator/app/workflows/` - Temporal workflows
+- `services/orchestrator/temporal_worker.py` - Temporal worker process
+- `services/orchestrator/app/core/config.py` - Configuration management
+
+**Temporal Integration**:
+```python
+# Workflow definition
+@workflow.defn
+class AgentSessionWorkflow:
+    @workflow.run
+    async def run(self, session_request: SessionRequest) -> SessionResult:
+        # Policy check activity
+        policy_result = await workflow.execute_activity(
+            check_policy,
+            session_request.action,
+            start_to_close_timeout=timedelta(seconds=30)
+        )
+        
+        if not policy_result.allowed:
+            return SessionResult(status="blocked", reason=policy_result.reason)
+        
+        # Execute agent tasks
+        return await workflow.execute_activity(
+            execute_agent_tasks,
+            session_request,
+            start_to_close_timeout=timedelta(minutes=10)
+        )
+```
+
+### Identity Service
+**Port**: 10002 (external), 8000 (container)
+**Purpose**: Authentication, authorization, and token management
+
+**Components**:
+- JWT token issuance and validation
+- User and service account management
+- RBAC policy enforcement
+- Optional SPIFFE/SPIRE integration
+
+**Key Files**:
+- `services/identity-service/app/main.py` - Service entry point
+- `services/identity-service/app/auth.py` - Authentication logic
+- `services/identity-service/app/models.py` - Data models
+
+**Token Flow**:
+```python
+# Token issuance
+@app.post("/v1/tokens/issue")
+async def issue_token(request: TokenRequest) -> TokenResponse:
+    # Validate credentials
+    user = await authenticate_user(request.username, request.password)
+    
+    # Generate JWT
+    token = jwt.encode({
+        "sub": user.id,
+        "iat": datetime.utcnow(),
+        "exp": datetime.utcnow() + timedelta(hours=24),
+        "scopes": user.scopes
+    }, JWT_SECRET, algorithm="HS256")
+    
+    return TokenResponse(access_token=token, token_type="bearer")
+```
+
+### Memory Gateway
+**Port**: 10021 (external), 8000 (container)
+**Purpose**: Vector and key-value storage for agent memory
+
+**Components**:
+- Qdrant vector database integration
+- Redis key-value storage
+- Semantic search capabilities
+- Memory lifecycle management
+
+**Key Files**:
+- `services/memory-gateway/app/main.py` - Service application
+- `services/memory-gateway/app/vector_store.py` - Qdrant integration
+- `services/memory-gateway/app/kv_store.py` - Redis integration
+
+**Memory Operations**:
+```python
+# Vector storage
+@app.post("/collections/{collection}/points")
+async def store_vectors(
+    collection: str,
+    points: List[VectorPoint]
+) -> StorageResponse:
+    # Store in Qdrant
+    result = await qdrant_client.upsert(
+        collection_name=collection,
+        points=[
+            PointStruct(
+                id=point.id,
+                vector=point.vector,
+                payload=point.payload
+            ) for point in points
+        ]
+    )
+    
+    # Cache metadata in Redis
+    for point in points:
+        await redis_client.hset(
+            f"vector:{collection}:{point.id}",
+            mapping=point.payload
+        )
+    
+    return StorageResponse(stored=len(points))
+```
+
+### Policy Engine
+**Port**: 10020 (external), 8000 (container)
+**Purpose**: Rule-based governance and compliance enforcement
+
+**Components**:
+- Open Policy Agent (OPA) integration
+- Policy rule evaluation
+- Decision logging and audit
+- Constitution service integration
+
+**Key Files**:
+- `services/policy-engine/app/main.py` - Policy service
+- `services/policy-engine/policies/` - Rego policy files
+- `services/policy-engine/app/opa_client.py` - OPA integration
+
+**Policy Evaluation**:
+```python
+# Policy decision
+@app.post("/v1/evaluate")
+async def evaluate_policy(request: PolicyRequest) -> PolicyDecision:
+    # Prepare OPA input
+    opa_input = {
+        "user": request.user,
+        "action": request.action,
+        "resource": request.resource,
+        "context": request.context
+    }
+    
+    # Query OPA
+    result = await opa_client.query("data.agent.policies.allow", opa_input)
+    
+    # Log decision
+    await audit_logger.log_decision(request, result)
+    
+    return PolicyDecision(
+        allowed=result.get("allow", False),
+        reason=result.get("reason", "Policy evaluation"),
+        decision_id=generate_decision_id()
+    )
+```
+
+## Supporting Services
+
+### Analytics Service
+**Purpose**: Metrics collection and business intelligence
+
+**Components**:
+- Kafka event consumption
+- ClickHouse data warehouse
+- Real-time analytics processing
+- Prometheus metrics export
+
+### Tool Service
+**Purpose**: External tool integration and adapter management
+
+**Components**:
+- Tool adapter registry
+- Dynamic adapter loading
+- Tool execution sandboxing
+- Result caching and validation
+
+### Billing Service
+**Purpose**: Usage tracking and cost management
+
+**Components**:
+- Resource consumption tracking
+- Cost calculation engine
+- Budget enforcement
+- Usage reporting
+
+## Data Architecture
+
+### Session State (Redis)
+```
+session:{session_id} -> {
+    "user_id": "user_123",
+    "workflow_id": "wf_abc",
+    "status": "active",
+    "context": {...},
+    "created_at": "2024-12-19T10:00:00Z"
+}
+
+agent:{agent_id}:context -> {
+    "memory_keys": [...],
+    "tool_state": {...},
+    "last_action": "..."
+}
+```
+
+### Vector Memory (Qdrant)
+```
+Collection: session_{session_id}
+Points: [
+    {
+        "id": "mem_001",
+        "vector": [0.1, 0.2, ...],  # 1536 dimensions
+        "payload": {
+            "type": "conversation",
+            "timestamp": "2024-12-19T10:00:00Z",
+            "content": "User asked about...",
+            "agent_id": "agent_123"
+        }
+    }
+]
+```
+
+### Transactional Data (PostgreSQL)
+```sql
+-- Users and authentication
+CREATE TABLE users (
+    id UUID PRIMARY KEY,
+    username VARCHAR(255) UNIQUE,
+    email VARCHAR(255),
+    created_at TIMESTAMP DEFAULT NOW()
+);
+
+-- Agent definitions
+CREATE TABLE agents (
+    id UUID PRIMARY KEY,
+    name VARCHAR(255),
+    config JSONB,
+    created_by UUID REFERENCES users(id)
+);
+
+-- Workflow executions
+CREATE TABLE workflow_executions (
+    id UUID PRIMARY KEY,
+    workflow_id VARCHAR(255),
+    status VARCHAR(50),
+    started_at TIMESTAMP,
+    completed_at TIMESTAMP,
+    result JSONB
+);
+```
+
+### Analytics Data (ClickHouse)
+```sql
+-- Agent performance metrics
+CREATE TABLE agent_metrics (
+    timestamp DateTime64,
+    agent_id String,
+    session_id String,
+    action_type String,
+    duration_ms UInt32,
+    success Bool,
+    error_message Nullable(String),
+    metadata String  -- JSON
+) ENGINE = MergeTree()
+ORDER BY (timestamp, agent_id);
+
+-- Workflow analytics
+CREATE TABLE workflow_analytics (
+    timestamp DateTime64,
+    workflow_id String,
+    step_name String,
+    execution_time_ms UInt32,
+    memory_usage_mb UInt32,
+    cpu_usage_percent Float32
+) ENGINE = MergeTree()
+ORDER BY (timestamp, workflow_id);
+```
+
+## Network Architecture
+
+### Service Mesh (Optional)
+```yaml
+# Istio service mesh configuration
+apiVersion: networking.istio.io/v1beta1
+kind: VirtualService
+metadata:
+  name: gateway-api
+spec:
+  hosts:
+  - gateway-api
+  http:
+  - match:
+    - uri:
+        prefix: "/v1/"
+    route:
+    - destination:
+        host: gateway-api
+        port:
+          number: 8000
+    timeout: 30s
+    retries:
+      attempts: 3
+```
+
+### Network Policies
+```yaml
+# Restrict gateway access
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: gateway-api-policy
+spec:
+  podSelector:
+    matchLabels:
+      app: gateway-api
+  policyTypes:
+  - Ingress
+  - Egress
+  ingress:
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          name: ingress-nginx
+  egress:
+  - to:
+    - podSelector:
+        matchLabels:
+          app: orchestrator
+    ports:
+    - protocol: TCP
+      port: 8000
+```
+
+## Security Architecture
+
+### Authentication Flow
+```mermaid
+sequenceDiagram
+    participant Client
+    participant Gateway
+    participant Identity
+    participant Orchestrator
+    
+    Client->>Gateway: Request with credentials
+    Gateway->>Identity: Validate credentials
+    Identity-->>Gateway: JWT token
+    Gateway->>Orchestrator: Request with JWT
+    Orchestrator->>Identity: Validate JWT
+    Identity-->>Orchestrator: Token valid
+    Orchestrator-->>Gateway: Response
+    Gateway-->>Client: Final response
+```
+
+### RBAC Configuration
+```yaml
+# Service account for orchestrator
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: orchestrator
+  namespace: soma-agent-hub
+
 ---
-
-## ⚙️ Core Service Responsibilities
-
-The docker-compose stack delivers the core runtime needed for local development and integration testing.
-
-| Service | Default Container Port | Purpose & Key Features |
-|---|---|---|
-| **Gateway API** | 10000 | Handles ingress traffic, JWT enforcement, request validation, and routing to internal services. Exposes session creation (`POST /v1/sessions`) and health (`/healthz`, `/ready`). |
-| **Orchestrator** | 10001 | Coordinates multi-agent workflows using Temporal, maintains conversational state, and orchestrates long-running tasks. |
-| **Identity Service** | 10002 | Manages tenants, roles, and JWT issuance. Integrates with Redis for session caching and policy lookups. |
-| **Temporal Server** | 10009 (gRPC) | Supplies workflow orchestration and durable timers through `temporalio/auto-setup`. |
-| **Temporal PostgreSQL** | 5432 | Stores Temporal metadata, task queues, and workflow history. |
-| **Redis** | 6379 | Provides caching and lightweight messaging for identity and orchestration components. |
-| **Application PostgreSQL** | 5432 | Persists domain data for application services. |
-| **Qdrant** | 6333 | Offers vector storage and similarity search for semantic memory and retrieval-augmented generation. |
-| **ClickHouse** | 8123 | Serves analytical queries and event ingestion for reporting workloads. |
-| **MinIO** | 9000 (API) / 9001 (Console) | Supplies S3-compatible object storage for binary artifacts and dataset snapshots. |
-
-Additional services (for example `policy-engine`, `memory-gateway`, `slm-service`, `tool-service`, and `analytics-service`) live under `services/` and are deployed as needed per environment. Each directory contains its own README with detailed responsibilities and configuration.
-
-### Local Docker Stack (docker-compose)
-
-The `docker-compose.yml` file defines the default local topology. `scripts/docker-cluster.sh` safeguards port allocation and generates `.env` each run.
-
-| Service | Image (pinned) | Host Port (`.env`) | Container Port | Health Check |
-|---|---|---|---|---|
-| Gateway API | Built from `services/gateway-api` | `${GATEWAY_API_PORT}` | 10000 | `GET /ready` |
-| Orchestrator | Built from `services/orchestrator` | `${ORCHESTRATOR_PORT}` | 10001 | `GET /ready` |
-| Identity Service | Built from `services/identity-service` | `${IDENTITY_SERVICE_PORT}` | 10002 | `GET /ready` |
-| Redis | `redis:7-alpine` | `${REDIS_PORT}` | 6379 | `redis-cli ping` |
-| App PostgreSQL | `postgres:16.4-alpine` | `${APP_POSTGRES_PORT}` | 5432 | `pg_isready` |
-| Temporal (server) | `temporalio/auto-setup:1.22.4` | Internal | 10009 | `tctl cluster health` |
-| Temporal PostgreSQL | `postgres:15-alpine` | Internal | 5432 | `pg_isready` |
-| Qdrant | `qdrant/qdrant:v1.11.0@sha256:22a2d455837380d5fa1a3455b87b4fe7af30aa4f4712f8a57027c61022113796` | `${QDRANT_PORT}` | 6333 | `GET /healthz` |
-| ClickHouse | `clickhouse/clickhouse-server:24.7-alpine@sha256:3187267104ffa306377a9d41eedcdb9c3fade52db855f92021fb1498a070c7fb` | `${CLICKHOUSE_HTTP_PORT}` | 8123 | `GET /ping` |
-| MinIO (API/Console) | `minio/minio:latest@sha256:a1a8bd4ac40ad7881a245bab97323e18f971e4d4cba2c2007ec1bedd21cbaba2` | `${MINIO_API_PORT}` / `${MINIO_CONSOLE_PORT}` | 9000 / 9001 | `GET /minio/health/live` |
-
-- Health probes are mirrored from Kubernetes readiness checks to keep behavior consistent across environments.
-- The helper script prints the reserved host ports at startup; re-run it after stopping the stack to release old allocations.
-
-### Container Image Provenance
-
-All third-party containers in the local stack are pinned to official open-source images and verified digests:
-
-- PostgreSQL apps: `postgres:16.4-alpine` (Docker Official Image).
-- Temporal dependencies: `postgres:15-alpine`, `temporalio/auto-setup:1.22.4`.
-- Redis cache: `redis:7-alpine`.
-- Vector store: `qdrant/qdrant:v1.11.0@sha256:22a2d455837380d5fa1a3455b87b4fe7af30aa4f4712f8a57027c61022113796`.
-- Analytics warehouse: `clickhouse/clickhouse-server:24.7-alpine@sha256:3187267104ffa306377a9d41eedcdb9c3fade52db855f92021fb1498a070c7fb`.
-- Object storage: `minio/minio:latest@sha256:a1a8bd4ac40ad7881a245bab97323e18f971e4d4cba2c2007ec1bedd21cbaba2`.
-
-Documented digests ensure reproducible builds and satisfy the "official OSS only" requirement in ROADMAP-2.5.
+# Role for orchestrator permissions
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: orchestrator-role
+rules:
+- apiGroups: [""]
+  resources: ["pods", "configmaps", "secrets"]
+  verbs: ["get", "list", "create", "update"]
+- apiGroups: ["batch"]
+  resources: ["jobs"]
+  verbs: ["create", "get", "list", "delete"]
 
 ---
+# Bind role to service account
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: orchestrator-binding
+subjects:
+- kind: ServiceAccount
+  name: orchestrator
+roleRef:
+  kind: Role
+  name: orchestrator-role
+  apiGroup: rbac.authorization.k8s.io
+```
 
-## 🔄 Data Flow & Communication
+## Deployment Architecture
 
-### Request Lifecycle Example: Start a Session
+### Kubernetes Resources
+```yaml
+# Gateway API deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: gateway-api
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: gateway-api
+  template:
+    metadata:
+      labels:
+        app: gateway-api
+    spec:
+      serviceAccountName: gateway-api
+      containers:
+      - name: gateway-api
+        image: somaagent/gateway-api:latest
+        ports:
+        - containerPort: 8000
+        env:
+        - name: REDIS_URL
+          value: "redis://redis:6379/0"
+        - name: ORCHESTRATOR_URL
+          value: "http://orchestrator:8000"
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8000
+          initialDelaySeconds: 30
+        readinessProbe:
+          httpGet:
+            path: /ready
+            port: 8000
+          initialDelaySeconds: 5
+        resources:
+          requests:
+            cpu: 500m
+            memory: 512Mi
+          limits:
+            cpu: 1000m
+            memory: 1Gi
+```
 
-1. **Client Request**: A user sends `POST /v1/sessions` to the **Gateway API** (port 10000).
-2. **Authentication**: The Gateway validates the token with the **Identity Service** (port 10002).
-3. **Routing**: The Gateway forwards to the **Orchestrator** `POST /v1/sessions/start` (port 10001).
-4. **Policy Check (when deployed)**: The Orchestrator calls the **Policy Engine** to evaluate governance rules before executing stateful actions.
-5. **Memory Retrieval (when deployed)**: The Orchestrator queries the **Memory Gateway** for context (optional; default container port 8000).
-6. **LLM Interaction**: The Orchestrator uses the **SLM Service** to generate model outputs.
-7. **Response & Memory Update**: Results are persisted and/or sent to the **Memory Gateway** as needed.
-8. **Final Response**: The Gateway returns the created session metadata; clients poll Orchestrator `GET /v1/sessions/{workflow_id}` for status.
+### Helm Chart Structure
+```
+k8s/helm/soma-agent/
+├── Chart.yaml
+├── values.yaml
+├── values-dev.yaml
+├── values-production.yaml
+└── templates/
+    ├── gateway-api.yaml
+    ├── orchestrator.yaml
+    ├── identity-service.yaml
+    ├── memory-gateway.yaml
+    ├── policy-engine.yaml
+    ├── configmaps.yaml
+    ├── secrets.yaml
+    └── servicemonitors.yaml
+```
 
-### Asynchronous Workflows
+## Observability Architecture
 
-For complex tasks (e.g., "research and write a report"), the Orchestrator initiates a **Temporal Workflow**. This workflow defines a series of durable tasks (activities) that are executed by worker agents, ensuring the process can survive crashes and run for hours or days if needed.
+### Metrics Collection
+```python
+# Prometheus metrics in services
+from prometheus_client import Counter, Histogram, Gauge
 
----
+# Request metrics
+request_count = Counter(
+    'http_requests_total',
+    'Total HTTP requests',
+    ['method', 'endpoint', 'status']
+)
 
-## 🛠️ Technology Stack
+request_duration = Histogram(
+    'http_request_duration_seconds',
+    'HTTP request duration',
+    ['method', 'endpoint']
+)
 
-| Layer | Technology | Purpose |
-|---|---|---|
-| **Backend Services** | Python 3.11+, FastAPI | High-performance, modern API development. |
-| **Frontend** | TypeScript, React | Admin console and user-facing interfaces. |
-| **Workflow Engine** | Temporal | Durable, scalable, and resilient orchestration. |
-| **Primary Database** | PostgreSQL | Relational data storage (users, policies, etc.). |
-| **Caching & Messaging**| Redis | Caching, session storage, real-time state. |
-| **Vector Database** | Qdrant | High-performance semantic search for memory. |
-| **Infrastructure** | Kubernetes, Docker, Helm | Containerization, orchestration, and deployment. |
-| **Observability** | Prometheus, Grafana, Loki | Metrics, dashboards, and log aggregation. |
-| **CI/CD** | GitHub Actions, Make | Automated builds, testing, and deployments. |
+# Business metrics
+active_sessions = Gauge(
+    'active_sessions_total',
+    'Number of active agent sessions'
+)
 
----
+workflow_executions = Counter(
+    'workflow_executions_total',
+    'Total workflow executions',
+    ['workflow_type', 'status']
+)
+```
 
-## 🔧 Service-Specific Troubleshooting
+### Distributed Tracing
+```python
+# OpenTelemetry integration
+from opentelemetry import trace
+from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import OTLPSpanExporter
+from opentelemetry.sdk.trace import TracerProvider
+from opentelemetry.sdk.trace.export import BatchSpanProcessor
 
-For detailed troubleshooting of individual services, refer to the following common issues and solutions:
+# Configure tracing
+trace.set_tracer_provider(TracerProvider())
+tracer = trace.get_tracer(__name__)
 
-| Service | Port | Health Endpoint | Common Issue | Solution |
-|---------|------|-----------------|--------------|----------|
-| **Gateway API** | 10000 | `GET /healthz` | 502 Bad Gateway | Check Orchestrator (10001) and Identity (10002) health |
-| **Orchestrator** | 10001 | `GET /ready` | Temporal connection failed | Ensure Temporal server is up (`docker ps | grep temporal`) |
-| **Identity Service** | 10002 | `GET /ready` | Redis unavailable | Check Redis health: `redis-cli ping` returns PONG |
-| **Redis** | 10003 | `redis-cli ping` | Connection refused | Restart: `docker restart somaagenthub_redis` |
-| **Memory Gateway** | varies (container 8000) | `GET /health` | Qdrant unavailable | Check Qdrant: `curl http://localhost:10005/healthz` |
-| **Qdrant** | 10005 | `GET /healthz` | Storage full | Check volume: `docker exec somaagenthub_qdrant du -sh /qdrant/storage` |
-| **ClickHouse** | 10006 | `GET /ping` | Port conflict | Free port 10006: `lsof -i :10006` and kill process |
-| **MinIO** | 10007/10008 | `GET /minio/health/live` | Login failed | Use default credentials: `somaagent` / `local-developer` |
+otlp_exporter = OTLPSpanExporter(endpoint="http://jaeger:14250")
+span_processor = BatchSpanProcessor(otlp_exporter)
+trace.get_tracer_provider().add_span_processor(span_processor)
 
-**For complete runbook procedures, see**: `docs/technical-manual/runbooks/service-is-down.md`
+# Trace workflow execution
+@tracer.start_as_current_span("execute_workflow")
+async def execute_workflow(session_id: str):
+    with tracer.start_as_current_span("policy_check") as span:
+        span.set_attribute("session.id", session_id)
+        policy_result = await check_policy(session_id)
+    
+    with tracer.start_as_current_span("agent_execution"):
+        return await execute_agents(session_id)
+```
 
----
+## Scalability Considerations
 
-1. Run `scripts/docker-cluster.sh` and confirm all services start:
+### Horizontal Scaling
+- **Stateless Services**: Gateway, Orchestrator, Policy Engine scale horizontally
+- **Database Scaling**: Read replicas for PostgreSQL, Redis clustering
+- **Temporal Scaling**: Multiple worker pools, partitioned task queues
+- **Vector Database**: Qdrant clustering for large-scale memory storage
 
-    ```bash
-    ./scripts/docker-cluster.sh
-    docker compose ps
-    ```
+### Performance Optimization
+- **Connection Pooling**: Async database connections with pooling
+- **Caching**: Redis caching for policy decisions and user sessions
+- **Batch Processing**: Bulk operations for analytics and memory storage
+- **Async Processing**: Non-blocking I/O throughout the stack
 
-2. Verify key health endpoints:
-
-    ```bash
-    curl http://127.0.0.1:${GATEWAY_API_PORT}/healthz
-    curl http://127.0.0.1:${QDRANT_PORT}/healthz
-    curl http://127.0.0.1:${CLICKHOUSE_HTTP_PORT}/ping
-    ```
-
-3. Ensure data services are reachable via CLI (requires `psql` and `mc`):
-
-    ```bash
-    PGPASSWORD=somaagent psql -h 127.0.0.1 -p ${APP_POSTGRES_PORT} -U somaagent -c "select now();"
-    mc alias set local http://127.0.0.1:${MINIO_API_PORT} somaagent local-developer
-    ```
-
-Successful responses confirm the compose topology matches this architecture description.
-
-## ⚠️ Common Issues and Fixes
-
-| Symptom | Likely Cause | Resolution |
-|---|---|---|
-| `docker compose up` fails with `manifest unknown` | Image tag missing or moved. | Pull the pinned digest listed above; ensure Docker Hub credentials are valid if rate limited. |
-| Temporal health check loops forever | `temporal-postgres` not ready or port collision. | Delete `.env`, rerun `scripts/docker-cluster.sh`, ensure ports are free (`lsof -i :<port>`). |
-| Gateway `/ready` returns 502 | Upstream orchestrator or identity unavailable. | Check `docker compose logs orchestrator` and identity; restart dependent services once healthy. |
-| Qdrant health endpoint 404 | Old container tag cached locally. | `docker image rm qdrant/qdrant:latest`, rerun helper to pull digest-pinned image. |
-
----
-
-## 🔗 Related Documentation
-
-- **[Deployment Guide](deployment.md)**: For instructions on how to deploy this architecture.
-- **[Monitoring Guide](monitoring.md)**: For details on how to observe system health.
-- **[Development Manual](../development-manual/index.md)**: For information on how to contribute to these services.
-- Legacy roadmap (replaced by **[ROADMAP](../ROADMAP.md)**): See canonical plan for service mesh, policy plane, and observability enhancements.
-
-<!-- markdownlint-restore -->
+### Resource Management
+```yaml
+# Resource quotas per namespace
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: soma-agent-hub-quota
+spec:
+  hard:
+    requests.cpu: "10"
+    requests.memory: 20Gi
+    limits.cpu: "20"
+    limits.memory: 40Gi
+    persistentvolumeclaims: "10"
+```

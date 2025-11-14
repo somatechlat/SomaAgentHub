@@ -5,86 +5,87 @@ Data models for SomaAgent SDK.
 from dataclasses import dataclass, field
 from datetime import datetime
 from typing import Any, Dict, List, Optional
+from services.common.config.base_settings import resolve_env
 
 
 @dataclass
 class Message:
-    """Chat message."""
+"""Chat message."""
 
-    id: str
-    conversation_id: str
-    role: str  # user, assistant, system
-    content: str
-    created_at: datetime
-    metadata: Dict[str, Any] = field(default_factory=dict)
+id: str
+conversation_id: str
+role: str  # user, assistant, system
+content: str
+created_at: datetime
+metadata: Dict[str, Any] = field(default_factory=dict)
 
 
 @dataclass
 class Conversation:
-    """Chat conversation."""
+"""Chat conversation."""
 
-    id: str
-    user_id: str
-    messages: List[Message] = field(default_factory=list)
-    created_at: datetime = field(default_factory=datetime.utcnow)
-    updated_at: datetime = field(default_factory=datetime.utcnow)
-    metadata: Dict[str, Any] = field(default_factory=dict)
+id: str
+user_id: str
+messages: List[Message] = field(default_factory=list)
+created_at: datetime = field(default_factory=datetime.utcnow)
+updated_at: datetime = field(default_factory=datetime.utcnow)
+metadata: Dict[str, Any] = field(default_factory=dict)
 
 
 @dataclass
 class Capsule:
-    """Marketplace capsule metadata."""
+"""Marketplace capsule metadata."""
 
-    id: str
-    name: str
-    description: str
-    category: str
-    version: str
-    publisher: str
-    price: float
-    rating: float
-    install_count: int
-    created_at: datetime
-    metadata: Dict[str, Any] = field(default_factory=dict)
+id: str
+name: str
+description: str
+category: str
+version: str
+publisher: str
+price: float
+rating: float
+install_count: int
+created_at: datetime
+metadata: Dict[str, Any] = field(default_factory=dict)
 
 
 @dataclass
 class Task:
-    """Project or workflow task description."""
+"""Project or workflow task description."""
 
-    id: str
-    status: str
-    name: Optional[str] = None
-    description: Optional[str] = None
-    assignee: Optional[str] = None
-    dependencies: List[str] = field(default_factory=list)
-    created_at: datetime = field(default_factory=datetime.utcnow)
-    updated_at: datetime = field(default_factory=datetime.utcnow)
-    metadata: Dict[str, Any] = field(default_factory=dict)
+id: str
+status: str
+name: Optional[str] = None
+description: Optional[str] = None
+assignee: Optional[str] = None
+dependencies: List[str] = field(default_factory=list)
+created_at: datetime = field(default_factory=datetime.utcnow)
+updated_at: datetime = field(default_factory=datetime.utcnow)
+metadata: Dict[str, Any] = field(default_factory=dict)
 
 
 @dataclass
 class Agent:
-    """AI agent."""
+"""AI agent."""
 
-    id: str
-    name: str
-    instructions: str
-    model: str
-    tools: List[str] = field(default_factory=list)
-    created_at: datetime = field(default_factory=datetime.utcnow)
-    metadata: Dict[str, Any] = field(default_factory=dict)
+id: str
+name: str
+instructions: str
+model: str
+tools: List[str] = field(default_factory=list)
+created_at: datetime = field(default_factory=datetime.utcnow)
+metadata: Dict[str, Any] = field(default_factory=dict)
 
 
 @dataclass
 class WorkflowRun:
-    """Workflow execution run."""
+"""Workflow execution run."""
 
-    id: str
-    workflow_type: str
-    status: str  # running, completed, failed
-    inputs: Dict[str, Any]
-    outputs: Optional[Dict[str, Any]] = None
-    started_at: datetime = field(default_factory=datetime.utcnow)
-    completed_at: Optional[datetime] = None
-    error: Optional[str] = None
+id: str
+workflow_type: str
+status: str  # running, completed, failed
+inputs: Dict[str, Any]
+outputs: Optional[Dict[str, Any]] = None
+started_at: datetime = field(default_factory=datetime.utcnow)
+completed_at: Optional[datetime] = None
+error: Optional[str] = None

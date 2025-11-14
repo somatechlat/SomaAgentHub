@@ -1,3 +1,5 @@
+from services.common.config.base_settings import resolve_env
+
 """OPA policy bundles for SomaStack services.
 
 Policies here are packaged and mounted into the OPA side-car. Keep rules small and
