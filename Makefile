@@ -183,6 +183,37 @@ verify-observability:
 	./scripts/verify-instrumentation.sh
 
 .PHONY: docker-cluster-up docker-cluster-down
+
+## Sprint 1 Development Targets
+sprint-1-up:
+	@echo "🚀 Starting Sprint 1 development..."
+	docker-compose -f docker-compose.sprint1.yml up -d
+	@sleep 5
+	@echo "✅ Sprint 1 environment ready!"
+	@echo "   Capsule Registry: http://localhost:8000"
+	@echo "   Agent Spawner: http://localhost:8001"
+
+sprint-1-down:
+	@echo "🛑 Stopping Sprint 1..."
+	docker-compose -f docker-compose.sprint1.yml down
+
+sprint-1-logs:
+	docker-compose -f docker-compose.sprint1.yml logs -f
+
+sprint-1-test-capsule:
+	@curl -s -X POST "http://localhost:8000/v1/capsules" \
+		-G -d "capsule_id=$$(uuidgen)" \
+		-d "version=1.0.0" \
+		-d "type=static" \
+		-d "manifest_yaml=apiVersion: v1\\nkind: ConfigMap\\nmetadata:\\n  name: test-capsule" \
+		| jq .
+
+sprint-1-test-agent:
+	@curl -s -X POST "http://localhost:8001/v1/spawn" \
+		-H "Content-Type: application/json" \
+		-d '{"agent_type": "code-generator", "tenant_id": "550e8400-e29b-41d4-a716-446655440000", "user_id": "550e8400-e29b-41d4-a716-446655440001", "image": "soma-agent:latest", "execution_mode": "batch"}' \
+		| jq .
+
 docker-cluster-up:
 	./scripts/docker-cluster.sh
 
