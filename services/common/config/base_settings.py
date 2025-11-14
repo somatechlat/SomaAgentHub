@@ -3,7 +3,7 @@ from __future__ import annotations
 from functools import lru_cache
 from typing import Any, Literal
 
-from pydantic_settings import BaseSettings
+from pydantic import BaseSettings, Field
 
 
 class BaseServiceSettings(BaseSettings):
@@ -20,6 +20,10 @@ class BaseServiceSettings(BaseSettings):
 	enable_metrics: bool = True
 	enable_prometheus: bool = True
 	enable_otlp: bool = False  # overridable per environment
+
+	# Database connection string (supports both SOMA_AGENT_HUB_DATABASE_URL
+	# and plain DATABASE_URL for local development).
+	database_url: str | None = Field(default=None, env="DATABASE_URL")
 
 	class Config:
 		env_prefix = "SOMA_AGENT_HUB_"

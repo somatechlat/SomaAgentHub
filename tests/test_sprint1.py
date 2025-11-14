@@ -235,14 +235,27 @@ def event_loop():
 
 
 @pytest.fixture
-async def db_session():
-    """Create a database session for tests"""
-    # This would typically use a test database
-    # For now, we'll use the development database
+def db_session():
+    """Create a database session for tests (sync fixture for reliability).
+
+    Runs the async generator synchronously so tests receive a concrete
+    `AsyncSession` instance regardless of pytest-asyncio plugin availability.
+    """
+    import asyncio
+
+    # This would typically use a test database. For now, use development DB.
     from services.task_capsule_repo.app.database import get_db
-    async for session in get_db():
+
+    agen = get_db()
+    loop = asyncio.get_event_loop()
+    session = loop.run_until_complete(agen.__anext__())
+    try:
         yield session
-        break
+    finally:
+        try:
+            loop.run_until_complete(agen.aclose())
+        except RuntimeError:
+            pass
 
 
 if __name__ == "__main__":

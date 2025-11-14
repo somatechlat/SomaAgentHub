@@ -13,11 +13,33 @@ or ``SOMA_AGENT_HUB_`` prefixes.
 
 from __future__ import annotations
 
-from services.common.config.base_settings import BaseServiceSettings, load_settings
-from services.common.config.base_settings import resolve_env
+from functools import lru_cache
 
-# The ``settings`` instance is cached (lru_cache) inside ``load_settings`` so it
-# is created only once per process and can be safely imported from anywhere.
-settings = load_settings(BaseServiceSettings)
+from services.common.config.base_settings import BaseServiceSettings, load_settings, resolve_env
 
-__all__ = ["settings"]
+
+# Backwards-compatible helpers
+@lru_cache()
+def get_settings() -> BaseServiceSettings:
+	"""Return the cached `BaseServiceSettings` instance for the process.
+
+	Services should call `get_settings()` to obtain configuration rather than
+	constructing settings directly. This avoids duplicated parsing and keeps
+	runtime behavior consistent across the project.
+	"""
+	return load_settings(BaseServiceSettings)
+
+
+# Convenience export used across the codebase
+settings = get_settings()
+
+
+# Backwards compatibility names
+CommonSettings = BaseServiceSettings
+
+
+def get_common_settings() -> BaseServiceSettings:
+	return get_settings()
+
+
+__all__ = ["settings", "get_settings", "get_common_settings", "CommonSettings", "resolve_env"]
