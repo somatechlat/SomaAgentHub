@@ -2,11 +2,11 @@ FROM python:3.13-slim
 
 WORKDIR /app
 
-COPY requirements.txt .
+COPY services/constitution-service/requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-COPY app/ ./app/
-COPY . .
+COPY services/constitution-service/app/ ./app/
+COPY services/constitution-service/ .
 
 EXPOSE 1008
 

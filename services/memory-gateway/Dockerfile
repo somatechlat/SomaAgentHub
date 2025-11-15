@@ -2,11 +2,11 @@ FROM python:3.13-slim
 
 WORKDIR /app
 
-COPY requirements.txt .
+COPY services/memory-gateway/requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-COPY app/ ./app/
-COPY . .
+COPY services/memory-gateway/app/ ./app/
+COPY services/memory-gateway/ .
 
 EXPOSE 8000
 

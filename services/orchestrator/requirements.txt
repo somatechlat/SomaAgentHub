@@ -26,4 +26,4 @@ cryptography>=42.0.0
 requests>=2.31.0
 
 # Centralized configuration
--e ../common
+# -e ../common  # Disabled for Docker build

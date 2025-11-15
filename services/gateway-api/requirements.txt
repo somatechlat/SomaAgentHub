@@ -12,4 +12,4 @@ opentelemetry-exporter-prometheus
 pyyaml>=6.0
 
 # Centralized configuration
--e ../common
+ # Editable common package removed for Docker build

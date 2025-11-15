@@ -16,4 +16,4 @@ opentelemetry-exporter-otlp>=1.25.0
 opentelemetry-instrumentation-fastapi>=0.46b0
 
 # Centralized configuration
--e ../common
+# -e ../common  # Disabled for Docker build

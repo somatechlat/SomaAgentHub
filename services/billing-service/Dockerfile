@@ -2,10 +2,10 @@ FROM python:3.13-slim
 
 WORKDIR /app
 
-COPY requirements.txt .
+COPY services/billing-service/requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-COPY app/ ./app/
+COPY services/billing-service/app/ ./app/
 COPY . .
 
 EXPOSE 1010

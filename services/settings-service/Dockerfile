@@ -2,11 +2,11 @@ FROM python:3.13-slim
 
 WORKDIR /app
 
-COPY requirements.txt .
+COPY services/settings-service/requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-COPY app/ ./app/
-COPY . .
+COPY services/settings-service/app/ ./app/
+COPY services/settings-service/ .
 
 EXPOSE 8000
 
