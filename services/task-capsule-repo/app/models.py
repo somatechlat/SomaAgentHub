@@ -1,5 +1,10 @@
 """
-SQLModel definitions for the capsule repository.
+SQLAlchemy ORM models for the capsule repository.
+
+We replaced the previous SQLModel definitions with plain SQLAlchemy
+declarative models so the codebase can migrate to Pydantic v2 while
+retaining an async SQLAlchemy runtime. The table and column names are
+unchanged from the old schema.
 """
 
 from __future__ import annotations
@@ -9,9 +14,12 @@ from datetime import datetime
 from enum import Enum
 from typing import Any, Dict
 
-from sqlmodel import Field, SQLModel
-from sqlalchemy import Column, Enum as SAEnum, Text, DateTime, func
-from sqlalchemy.dialects.postgresql import JSONB
+from sqlalchemy import Column, Enum as SAEnum, Text, DateTime, String, func
+from sqlalchemy.dialects.postgresql import JSONB, UUID as PGUUID
+from sqlalchemy.orm import declarative_base
+
+Base = declarative_base()
+
 
 class CapsuleType(str, Enum):
     WORKFLOW = "workflow"
@@ -19,21 +27,17 @@ class CapsuleType(str, Enum):
     DYNAMIC = "dynamic"
     TOOL = "tool"
 
-class Capsule(SQLModel, table=True):
-    __tablename__ = "capsules"
-    
-    id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
-    capsule_id: str = Field(index=True, nullable=False, max_length=36)
-    version: str = Field(nullable=False, max_length=20)
-    type: CapsuleType = Field(sa_column=Column(SAEnum(CapsuleType)))
-    manifest_yaml: str = Field(sa_column=Column(Text))
-    # Use attribute name `meta` to avoid clashing with SQLAlchemy's reserved
-    # `metadata` attribute. Map the column name to `metadata` in Postgres.
-    meta: Dict[str, Any] = Field(default_factory=dict, sa_column=Column("metadata", JSONB))
-    created_at: datetime = Field(sa_column=Column(DateTime, server_default=func.now()))
-    updated_at: datetime = Field(sa_column=Column(DateTime, server_default=func.now(), onupdate=func.now()))
 
-    # Note: we intentionally avoid adding a class-level attribute named
-    # `metadata` because SQLAlchemy reserves that name for the MetaData
-    # object used by the declarative base. Use the mapped attribute `meta`
-    # for storage; callers (repository / API) should read/write `meta`.
+class Capsule(Base):
+    __tablename__ = "capsules"
+
+    id = Column(PGUUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    capsule_id = Column(String(36), nullable=False, index=True)
+    version = Column(String(20), nullable=False)
+    type = Column(SAEnum(CapsuleType), nullable=False)
+    manifest_yaml = Column(Text)
+    # Use instance attribute name `metadata` so existing callers continue to
+    # access `.metadata`. Column name in Postgres is also `metadata` (JSONB).
+    metadata = Column(JSONB, default=dict)
+    created_at = Column(DateTime, server_default=func.now())
+    updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now())

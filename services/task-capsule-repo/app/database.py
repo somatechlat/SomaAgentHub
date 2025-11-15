@@ -14,10 +14,10 @@ from contextlib import asynccontextmanager
 
 from sqlalchemy.ext.asyncio import create_async_engine
 from sqlalchemy.orm import sessionmaker
-from sqlmodel import SQLModel, create_engine
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from services.common.config.settings import get_settings
+from .models import Base
 
 logger = logging.getLogger(__name__)
 
@@ -34,17 +34,10 @@ if not DATABASE_URL.startswith("postgresql+asyncpg://"):
         + DATABASE_URL
     )
 
-# Synchronous engine used only for metadata creation in tests or migrations.
-sync_engine = create_engine("sqlite:///:memory:", echo=False, future=True)
-
 # Asynchronous engine for runtime operations.
 async_engine = create_async_engine(
     DATABASE_URL,
     echo=getattr(settings, "database_echo", False),
-    pool_size=getattr(settings, "database_pool_size", 5),
-    max_overflow=getattr(settings, "database_max_overflow", 10),
-    pool_timeout=getattr(settings, "database_pool_timeout", 30),
-    pool_recycle=getattr(settings, "database_pool_recycle", 1800),
 )
 
 AsyncSessionLocal = sessionmaker(
@@ -64,7 +57,8 @@ async def init_db() -> None:
     lifespan event) to ensure the database schema exists.
     """
     async with async_engine.begin() as conn:
-        await conn.run_sync(SQLModel.metadata.create_all)
+        # Create tables from the declarative Base defined in models.py
+        await conn.run_sync(Base.metadata.create_all)
     logger.info("Task Capsule Repository DB schema initialized")
 
 

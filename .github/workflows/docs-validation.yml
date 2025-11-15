@@ -1,0 +1,671 @@
+name: Documentation Validation & Quality Check
+
+on:
+  push:
+    branches: [ main, develop ]
+    paths: [ 'docs/**', '.github/workflows/docs-validation.yml' ]
+  pull_request:
+    branches: [ main, develop ]
+    paths: [ 'docs/**' ]
+
+jobs:
+  validate-documentation:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Install documentation tools
+        run: |
+          # Markdown linting
+          npm install -g markdownlint-cli2
+          
+          # Link checking
+          npm install -g remark-cli remark-validate-links
+          
+          # Python tools for validation
+          pip install pyyaml jsonschema requests
+
+      - name: Validate required documentation files
+        run: |
+          python3 << 'EOF'
+          import os
+          import sys
+          
+          required_files = [
+              'docs/README.md',
+              'docs/front_matter.yaml',
+              'docs/glossary.md',
+              'docs/style-guide.md',
+              'docs/changelog.md',
+              'docs/metadata.json',
+              'docs/review-log.md',
+              'docs/accessibility.md',
+              'docs/security-classification.md',
+              'docs/traceability-matrix.md',
+              'docs/i18n/en/README.md',
+              'docs/user-manual/index.md',
+              'docs/user-manual/installation.md',
+              'docs/user-manual/quick-start-tutorial.md',
+              'docs/user-manual/features/feature-data-pipeline.md',
+              'docs/user-manual/features/feature-real-time-propagation.md',
+              'docs/user-manual/faq.md',
+              'docs/technical-manual/index.md',
+              'docs/technical-manual/architecture.md',
+              'docs/technical-manual/architecture.puml',
+              'docs/technical-manual/deployment.md',
+              'docs/technical-manual/monitoring.md',
+              'docs/technical-manual/data-flow.mermaid',
+              'docs/technical-manual/runbooks/propagation-service.md',
+              'docs/technical-manual/runbooks/data-ingest-service.md',
+              'docs/technical-manual/backup-and-recovery.md',
+              'docs/technical-manual/security/secrets-policy.md',
+              'docs/technical-manual/security/rbac-matrix.md',
+              'docs/development-manual/index.md',
+              'docs/development-manual/local-setup.md',
+              'docs/development-manual/coding-standards.md',
+              'docs/development-manual/testing-guidelines.md',
+              'docs/development-manual/api-reference.md',
+              'docs/development-manual/contribution-process.md',
+              'docs/onboarding-manual/project-context.md',
+              'docs/onboarding-manual/codebase-walkthrough.md',
+              'docs/onboarding-manual/first-contribution.md',
+              'docs/onboarding-manual/team-collaboration.md',
+              'docs/onboarding-manual/domain-knowledge.md',
+              'docs/agent-onboarding/index.md',
+              'docs/agent-onboarding/agent-zero.md',
+              'docs/agent-onboarding/propagation-agent.md',
+              'docs/agent-onboarding/monitoring-agent.md',
+              'docs/agent-onboarding/security-hardening.md'
+          ]
+          
+          missing_files = []
+          for file_path in required_files:
+              if not os.path.exists(file_path):
+                  missing_files.append(file_path)
+          
+          if missing_files:
+              print("❌ Missing required documentation files:")
+              for file_path in missing_files:
+                  print(f"  - {file_path}")
+              sys.exit(1)
+          else:
+              print("✅ All required documentation files are present")
+          EOF
+
+      - name: Validate metadata.json structure
+        run: |
+          python3 << 'EOF'
+          import json
+          import jsonschema
+          
+          # Define schema for metadata.json
+          schema = {
+              "type": "object",
+              "required": ["title", "version", "last_updated", "owner", "project", "standards", "badge"],
+              "properties": {
+                  "title": {"type": "string"},
+                  "version": {"type": "string", "pattern": "^\\d+\\.\\d+\\.\\d+$"},
+                  "last_updated": {"type": "string"},
+                  "owner": {"type": "string"},
+                  "project": {"type": "string"},
+                  "standards": {
+                      "type": "array",
+                      "items": {"type": "string"}
+                  },
+                  "badge": {"type": "string"}
+              }
+          }
+          
+          try:
+              with open('docs/metadata.json', 'r') as f:
+                  metadata = json.load(f)
+              
+              jsonschema.validate(metadata, schema)
+              print("✅ metadata.json structure is valid")
+              
+              # Check required ISO standards
+              required_standards = [
+                  "ISO/IEC 12207", "ISO/IEC 15288", "ISO/IEC 29148", 
+                  "ISO/IEC 29119", "ISO/IEC 42010", "ISO 21500",
+                  "ISO/IEC 27001", "IEEE 1016"
+              ]
+              
+              missing_standards = [std for std in required_standards if std not in metadata["standards"]]
+              if missing_standards:
+                  print(f"⚠️ Missing ISO standards: {missing_standards}")
+              else:
+                  print("✅ All required ISO standards are documented")
+                  
+          except Exception as e:
+              print(f"❌ metadata.json validation failed: {e}")
+              exit(1)
+          EOF
+
+      - name: Validate YAML front matter
+        run: |
+          python3 << 'EOF'
+          import yaml
+          
+          try:
+              with open('docs/front_matter.yaml', 'r') as f:
+                  front_matter = yaml.safe_load(f)
+              
+              required_keys = ['site_name', 'site_url', 'repo_url', 'nav', 'theme']
+              missing_keys = [key for key in required_keys if key not in front_matter]
+              
+              if missing_keys:
+                  print(f"❌ Missing required keys in front_matter.yaml: {missing_keys}")
+                  exit(1)
+              else:
+                  print("✅ front_matter.yaml structure is valid")
+                  
+          except Exception as e:
+              print(f"❌ front_matter.yaml validation failed: {e}")
+              exit(1)
+          EOF
+
+      - name: Check version badge consistency
+        run: |
+          python3 << 'EOF'
+          import json
+          import re
+          import os
+          
+          # Get version from metadata.json
+          with open('docs/metadata.json', 'r') as f:
+              metadata = json.load(f)
+          
+          expected_version = metadata['version']
+          expected_badge = f"![Version](https://img.shields.io/badge/version-{expected_version}-blue)"
+          
+          # Check all markdown files for version badge consistency
+          inconsistent_files = []
+          
+          for root, dirs, files in os.walk('docs'):
+              for file in files:
+                  if file.endswith('.md'):
+                      file_path = os.path.join(root, file)
+                      try:
+                          with open(file_path, 'r', encoding='utf-8') as f:
+                              content = f.read()
+                          
+                          # Look for version badge
+                          badge_pattern = r'!\[Version\]\(https://img\.shields\.io/badge/version-([^-]+)-blue\)'
+                          matches = re.findall(badge_pattern, content)
+                          
+                          if matches:
+                              for match in matches:
+                                  if match != expected_version:
+                                      inconsistent_files.append(f"{file_path}: found {match}, expected {expected_version}")
+                      except Exception as e:
+                          print(f"Warning: Could not read {file_path}: {e}")
+          
+          if inconsistent_files:
+              print("❌ Version badge inconsistencies found:")
+              for file_info in inconsistent_files:
+                  print(f"  - {file_info}")
+              exit(1)
+          else:
+              print("✅ All version badges are consistent")
+          EOF
+
+      - name: Markdown linting
+        run: |
+          markdownlint-cli2 "docs/**/*.md" --config .markdownlint.json
+
+      - name: Link validation
+        run: |
+          # Check internal links
+          remark docs --use remark-validate-links --quiet --frail
+
+      - name: Check for broken internal links
+        run: |
+          python3 << 'EOF'
+          import os
+          import re
+          
+          def find_markdown_files(directory):
+              md_files = []
+              for root, dirs, files in os.walk(directory):
+                  for file in files:
+                      if file.endswith('.md'):
+                          md_files.append(os.path.join(root, file))
+              return md_files
+          
+          def extract_internal_links(content):
+              # Find markdown links [text](path)
+              link_pattern = r'\[([^\]]+)\]\(([^)]+)\)'
+              links = re.findall(link_pattern, content)
+              
+              internal_links = []
+              for text, path in links:
+                  # Skip external links (http/https)
+                  if not path.startswith(('http://', 'https://', 'mailto:')):
+                      internal_links.append((text, path))
+              
+              return internal_links
+          
+          def check_link_exists(base_path, link_path):
+              # Handle relative paths
+              if link_path.startswith('../'):
+                  # Go up from base directory
+                  base_dir = os.path.dirname(base_path)
+                  full_path = os.path.normpath(os.path.join(base_dir, link_path))
+              elif link_path.startswith('./'):
+                  # Same directory
+                  base_dir = os.path.dirname(base_path)
+                  full_path = os.path.normpath(os.path.join(base_dir, link_path[2:]))
+              elif link_path.startswith('/'):
+                  # Absolute path from docs root
+                  full_path = os.path.normpath(os.path.join('docs', link_path[1:]))
+              else:
+                  # Relative to current directory
+                  base_dir = os.path.dirname(base_path)
+                  full_path = os.path.normpath(os.path.join(base_dir, link_path))
+              
+              # Handle anchors
+              if '#' in full_path:
+                  full_path = full_path.split('#')[0]
+              
+              return os.path.exists(full_path)
+          
+          # Find all markdown files
+          md_files = find_markdown_files('docs')
+          broken_links = []
+          
+          for md_file in md_files:
+              try:
+                  with open(md_file, 'r', encoding='utf-8') as f:
+                      content = f.read()
+                  
+                  internal_links = extract_internal_links(content)
+                  
+                  for text, link_path in internal_links:
+                      if not check_link_exists(md_file, link_path):
+                          broken_links.append(f"{md_file}: [{text}]({link_path})")
+                          
+              except Exception as e:
+                  print(f"Warning: Could not process {md_file}: {e}")
+          
+          if broken_links:
+              print("❌ Broken internal links found:")
+              for link in broken_links:
+                  print(f"  - {link}")
+              exit(1)
+          else:
+              print("✅ All internal links are valid")
+          EOF
+
+      - name: Check diagram files exist
+        run: |
+          python3 << 'EOF'
+          import os
+          import re
+          
+          def find_diagram_references(content):
+              # Find PlantUML references
+              puml_pattern = r'```plantuml\s*\n(.*?)\n```'
+              puml_refs = re.findall(puml_pattern, content, re.DOTALL)
+              
+              # Find Mermaid references  
+              mermaid_pattern = r'```mermaid\s*\n(.*?)\n```'
+              mermaid_refs = re.findall(mermaid_pattern, content, re.DOTALL)
+              
+              # Find file references
+              file_refs = []
+              file_pattern = r'\[.*?\]\(([^)]+\.(puml|mermaid))\)'
+              file_matches = re.findall(file_pattern, content)
+              for match in file_matches:
+                  file_refs.append(match[0])
+              
+              return puml_refs, mermaid_refs, file_refs
+          
+          # Check for diagram files
+          diagram_files = []
+          missing_diagrams = []
+          
+          for root, dirs, files in os.walk('docs'):
+              for file in files:
+                  if file.endswith(('.puml', '.mermaid')):
+                      diagram_files.append(os.path.join(root, file))
+                  elif file.endswith('.md'):
+                      file_path = os.path.join(root, file)
+                      try:
+                          with open(file_path, 'r', encoding='utf-8') as f:
+                              content = f.read()
+                          
+                          puml_refs, mermaid_refs, file_refs = find_diagram_references(content)
+                          
+                          # Check file references exist
+                          for ref in file_refs:
+                              ref_path = os.path.join(os.path.dirname(file_path), ref)
+                              if not os.path.exists(ref_path):
+                                  missing_diagrams.append(f"{file_path} references missing {ref}")
+                                  
+                      except Exception as e:
+                          print(f"Warning: Could not process {file_path}: {e}")
+          
+          print(f"✅ Found {len(diagram_files)} diagram files")
+          
+          if missing_diagrams:
+              print("❌ Missing diagram files:")
+              for missing in missing_diagrams:
+                  print(f"  - {missing}")
+              exit(1)
+          else:
+              print("✅ All referenced diagram files exist")
+          EOF
+
+      - name: Validate traceability matrix
+        run: |
+          python3 << 'EOF'
+          import re
+          import os
+          
+          # Read traceability matrix
+          try:
+              with open('docs/traceability-matrix.md', 'r') as f:
+                  matrix_content = f.read()
+          except FileNotFoundError:
+              print("❌ traceability-matrix.md not found")
+              exit(1)
+          
+          # Extract feature IDs from matrix
+          feature_pattern = r'\*\*F(\d+)\*\*'
+          feature_ids = re.findall(feature_pattern, matrix_content)
+          
+          print(f"✅ Found {len(feature_ids)} features in traceability matrix")
+          
+          # Check that features reference actual documentation
+          doc_pattern = r'\[([^\]]+)\]\(([^)]+)\)'
+          doc_links = re.findall(doc_pattern, matrix_content)
+          
+          missing_docs = []
+          for text, link in doc_links:
+              if link.startswith('http'):
+                  continue  # Skip external links
+              
+              # Convert relative path to absolute
+              doc_path = os.path.join('docs', link)
+              if not os.path.exists(doc_path):
+                  missing_docs.append(f"Feature documentation missing: {link}")
+          
+          if missing_docs:
+              print("❌ Missing feature documentation:")
+              for missing in missing_docs:
+                  print(f"  - {missing}")
+              exit(1)
+          else:
+              print("✅ All feature documentation links are valid")
+          EOF
+
+      - name: Check accessibility compliance
+        run: |
+          python3 << 'EOF'
+          import re
+          import os
+          
+          accessibility_issues = []
+          
+          for root, dirs, files in os.walk('docs'):
+              for file in files:
+                  if file.endswith('.md'):
+                      file_path = os.path.join(root, file)
+                      try:
+                          with open(file_path, 'r', encoding='utf-8') as f:
+                              content = f.read()
+                          
+                          # Check for images without alt text
+                          img_pattern = r'!\[([^\]]*)\]\([^)]+\)'
+                          images = re.findall(img_pattern, content)
+                          
+                          for alt_text in images:
+                              if not alt_text.strip():
+                                  accessibility_issues.append(f"{file_path}: Image without alt text")
+                          
+                          # Check for tables without captions
+                          table_pattern = r'\|.*\|'
+                          tables = re.findall(table_pattern, content)
+                          
+                          if tables:
+                              # Look for table caption before table
+                              lines = content.split('\n')
+                              for i, line in enumerate(lines):
+                                  if '|' in line and line.strip().startswith('|'):
+                                      # Check if previous line is a caption
+                                      if i > 0:
+                                          prev_line = lines[i-1].strip()
+                                          if not prev_line or prev_line.startswith('#'):
+                                              # No caption found
+                                              accessibility_issues.append(f"{file_path}: Table without caption at line {i+1}")
+                                      break
+                                      
+                      except Exception as e:
+                          print(f"Warning: Could not process {file_path}: {e}")
+          
+          if accessibility_issues:
+              print("⚠️ Accessibility issues found:")
+              for issue in accessibility_issues:
+                  print(f"  - {issue}")
+              print("Note: These are warnings, not blocking errors")
+          else:
+              print("✅ No accessibility issues found")
+          EOF
+
+      - name: Generate documentation report
+        run: |
+          python3 << 'EOF'
+          import os
+          import json
+          from datetime import datetime
+          
+          # Count documentation files
+          total_files = 0
+          md_files = 0
+          diagram_files = 0
+          
+          for root, dirs, files in os.walk('docs'):
+              for file in files:
+                  total_files += 1
+                  if file.endswith('.md'):
+                      md_files += 1
+                  elif file.endswith(('.puml', '.mermaid')):
+                      diagram_files += 1
+          
+          # Load metadata
+          with open('docs/metadata.json', 'r') as f:
+              metadata = json.load(f)
+          
+          # Generate report
+          report = {
+              "validation_date": datetime.now().isoformat(),
+              "documentation_stats": {
+                  "total_files": total_files,
+                  "markdown_files": md_files,
+                  "diagram_files": diagram_files,
+                  "version": metadata["version"],
+                  "standards_compliance": len(metadata["standards"])
+              },
+              "validation_status": "passed",
+              "iso_standards": metadata["standards"]
+          }
+          
+          print("📊 Documentation Validation Report")
+          print("=" * 40)
+          print(f"Total files: {total_files}")
+          print(f"Markdown files: {md_files}")
+          print(f"Diagram files: {diagram_files}")
+          print(f"Version: {metadata['version']}")
+          print(f"ISO standards: {len(metadata['standards'])}")
+          print("=" * 40)
+          print("✅ All validation checks passed!")
+          
+          # Save report
+          with open('docs-validation-report.json', 'w') as f:
+              json.dump(report, f, indent=2)
+          EOF
+
+      - name: Upload validation report
+        uses: actions/upload-artifact@v3
+        with:
+          name: documentation-validation-report
+          path: docs-validation-report.json
+
+  accessibility-check:
+    runs-on: ubuntu-latest
+    needs: validate-documentation
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install MkDocs and build site
+        run: |
+          pip install mkdocs-material
+          mkdocs build -f docs/front_matter.yaml
+
+      - name: Install accessibility checker
+        run: |
+          npm install -g @axe-core/cli
+
+      - name: Run accessibility audit
+        run: |
+          # Start a simple HTTP server
+          cd site
+          python -m http.server 8080 &
+          SERVER_PID=$!
+          
+          # Wait for server to start
+          sleep 5
+          
+          # Run axe accessibility check
+          axe http://localhost:8080 --exit
+          
+          # Clean up
+          kill $SERVER_PID
+
+  security-scan:
+    runs-on: ubuntu-latest
+    needs: validate-documentation
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Scan for secrets in documentation
+        run: |
+          python3 << 'EOF'
+          import re
+          import os
+          
+          # Patterns for potential secrets
+          secret_patterns = [
+              (r'password\s*[=:]\s*["\']?([^"\'\s]+)', 'Password'),
+              (r'api[_-]?key\s*[=:]\s*["\']?([^"\'\s]+)', 'API Key'),
+              (r'secret[_-]?key\s*[=:]\s*["\']?([^"\'\s]+)', 'Secret Key'),
+              (r'token\s*[=:]\s*["\']?([^"\'\s]+)', 'Token'),
+              (r'[A-Za-z0-9+/]{40,}={0,2}', 'Base64 Encoded'),
+              (r'[0-9a-f]{32,}', 'Hex Encoded'),
+          ]
+          
+          potential_secrets = []
+          
+          for root, dirs, files in os.walk('docs'):
+              for file in files:
+                  if file.endswith('.md'):
+                      file_path = os.path.join(root, file)
+                      try:
+                          with open(file_path, 'r', encoding='utf-8') as f:
+                              content = f.read()
+                          
+                          for pattern, secret_type in secret_patterns:
+                              matches = re.finditer(pattern, content, re.IGNORECASE)
+                              for match in matches:
+                                  # Skip obvious examples and placeholders
+                                  matched_text = match.group(0).lower()
+                                  if any(placeholder in matched_text for placeholder in 
+                                        ['example', 'placeholder', 'dummy', 'test', 'sample', 'your_', '<', '>']):
+                                      continue
+                                  
+                                  potential_secrets.append(f"{file_path}: {secret_type} - {match.group(0)[:20]}...")
+                                  
+                      except Exception as e:
+                          print(f"Warning: Could not scan {file_path}: {e}")
+          
+          if potential_secrets:
+              print("⚠️ Potential secrets found in documentation:")
+              for secret in potential_secrets:
+                  print(f"  - {secret}")
+              print("\nPlease review these findings and ensure no real secrets are exposed.")
+          else:
+              print("✅ No potential secrets found in documentation")
+          EOF
+
+      - name: Check for sensitive information patterns
+        run: |
+          python3 << 'EOF'
+          import re
+          import os
+          
+          # Patterns for sensitive information
+          sensitive_patterns = [
+              (r'\b\d{3}-\d{2}-\d{4}\b', 'SSN Pattern'),
+              (r'\b\d{4}[\s-]?\d{4}[\s-]?\d{4}[\s-]?\d{4}\b', 'Credit Card Pattern'),
+              (r'\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b', 'Email Address'),
+              (r'\b\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}\b', 'IP Address'),
+          ]
+          
+          sensitive_info = []
+          
+          for root, dirs, files in os.walk('docs'):
+              for file in files:
+                  if file.endswith('.md'):
+                      file_path = os.path.join(root, file)
+                      try:
+                          with open(file_path, 'r', encoding='utf-8') as f:
+                              content = f.read()
+                          
+                          for pattern, info_type in sensitive_patterns:
+                              matches = re.finditer(pattern, content)
+                              for match in matches:
+                                  # Skip localhost and example IPs
+                                  matched_text = match.group(0)
+                                  if info_type == 'IP Address':
+                                      if matched_text.startswith(('127.', '192.168.', '10.', '172.')) or matched_text == '0.0.0.0':
+                                          continue
+                                  
+                                  # Skip example emails
+                                  if info_type == 'Email Address':
+                                      if 'example' in matched_text.lower() or 'test' in matched_text.lower():
+                                          continue
+                                  
+                                  sensitive_info.append(f"{file_path}: {info_type} - {matched_text}")
+                                  
+                      except Exception as e:
+                          print(f"Warning: Could not scan {file_path}: {e}")
+          
+          if sensitive_info:
+              print("⚠️ Potential sensitive information found:")
+              for info in sensitive_info:
+                  print(f"  - {info}")
+              print("\nPlease review and replace with placeholder values if needed.")
+          else:
+              print("✅ No sensitive information patterns detected")
+          EOF

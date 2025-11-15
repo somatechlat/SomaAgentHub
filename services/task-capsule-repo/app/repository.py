@@ -9,8 +9,8 @@ from __future__ import annotations
 
 from typing import List, Optional
 
-from sqlmodel.ext.asyncio.session import AsyncSession
-from sqlmodel import select
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select
 
 from .models import Capsule
 
@@ -32,7 +32,7 @@ class CapsuleRepository:
             version=version,
             type=type,
             manifest_yaml=manifest_yaml,
-            meta=metadata or {},
+            metadata=metadata or {},
         )
         self.session.add(capsule)
         await self.session.flush()
@@ -42,12 +42,12 @@ class CapsuleRepository:
         stmt = select(Capsule).where(
             (Capsule.capsule_id == capsule_id) & (Capsule.version == version)
         )
-        result = await self.session.exec(stmt)
-        return result.first()
+        result = await self.session.execute(stmt)
+        return result.scalars().first()
 
     async def list_capsules(self, capsule_id: str | None = None) -> List[Capsule]:
         stmt = select(Capsule)
         if capsule_id:
             stmt = stmt.where(Capsule.capsule_id == capsule_id)
-        result = await self.session.exec(stmt)
-        return result.all()
+        result = await self.session.execute(stmt)
+        return result.scalars().all()

@@ -14,7 +14,7 @@ from pydantic import BaseModel, Field
 
 from ..database import get_session
 from ..models import Capsule, CapsuleType
-from sqlmodel import select
+from sqlalchemy import select
 
 router = APIRouter(prefix="/v1", tags=["capsules"])
 
@@ -64,8 +64,8 @@ async def create_capsule(
     stmt = select(Capsule).where(
         (Capsule.capsule_id == payload.capsule_id) & (Capsule.version == payload.version)
     )
-    existing = await session.exec(stmt)
-    if existing.first():
+    existing = await session.execute(stmt)
+    if existing.scalars().first():
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
             detail="Capsule version already exists",
@@ -92,8 +92,8 @@ async def list_capsules(
     stmt = select(Capsule)
     if capsule_id:
         stmt = stmt.where(Capsule.capsule_id == capsule_id)
-    result = await session.exec(stmt)
-    capsules = result.all()
+    result = await session.execute(stmt)
+    capsules = result.scalars().all()
     return [CapsuleResponse.from_orm(c) for c in capsules]
 
 
@@ -108,8 +108,8 @@ async def get_capsule(
     stmt = select(Capsule).where(
         (Capsule.capsule_id == capsule_id) & (Capsule.version == version)
     )
-    result = await session.exec(stmt)
-    capsule = result.first()
+    result = await session.execute(stmt)
+    capsule = result.scalars().first()
     if not capsule:
         raise HTTPException(status_code=404, detail="Capsule not found")
     return CapsuleResponse.from_orm(capsule)
@@ -127,8 +127,8 @@ async def update_capsule(
     stmt = select(Capsule).where(
         (Capsule.capsule_id == capsule_id) & (Capsule.version == version)
     )
-    result = await session.exec(stmt)
-    capsule = result.first()
+    result = await session.execute(stmt)
+    capsule = result.scalars().first()
     if not capsule:
         raise HTTPException(status_code=404, detail="Capsule not found")
     # Update mutable fields
@@ -150,9 +150,9 @@ async def delete_capsule(
     stmt = select(Capsule).where(
         (Capsule.capsule_id == capsule_id) & (Capsule.version == version)
     )
-    result = await session.exec(stmt)
-    capsule = result.first()
+    result = await session.execute(stmt)
+    capsule = result.scalars().first()
     if not capsule:
         raise HTTPException(status_code=404, detail="Capsule not found")
-    await session.delete(capsule)
+    session.delete(capsule)
     return None

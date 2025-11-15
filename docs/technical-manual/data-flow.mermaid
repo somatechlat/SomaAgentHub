@@ -3,123 +3,193 @@ flowchart TD
         A[User Request]
         B[CLI Command]
         C[External API Call]
+        D[Agent Requests]
+        E[Webhook Events]
     end
     
-    subgraph "Ingress & Gateway"
-        D[Ingress Controller]
-        E[Gateway API :10000]
+    subgraph "Security & Ingress"
+        F[WAF & DDoS Protection]
+        G[Load Balancer]
+        H[Ingress Controller]
+        I[TLS Termination]
     end
     
-    subgraph "Authentication & Policy"
-        F[Identity Service :10002]
-        G[Policy Engine :10020]
+    subgraph "Gateway Layer"
+        J[Gateway API :10000]
+        K[Rate Limiting]
+        L[Request Validation]
+        M[Session Management]
+    end
+    
+    subgraph "Authentication & Authorization"
+        N[Identity Service :10002]
+        O[Policy Engine :10020]
+        P[RBAC Enforcement]
+        Q[Token Validation]
     end
     
     subgraph "Orchestration Layer"
-        H[Orchestrator :10001]
-        I[Temporal Server :7233]
-        J[Temporal Workers]
+        R[Orchestrator :10001]
+        S[Temporal Server :7233]
+        T[Temporal Workers]
+        U[Workflow Engine]
+        V[Task Scheduler]
     end
     
-    subgraph "Agent Execution"
-        K[Agent Tasks]
-        L[Tool Service]
-        M[Memory Gateway :10021]
+    subgraph "Agent Execution Environment"
+        W[Agent Sessions]
+        X[Multi-Agent Coordination]
+        Y[Tool Integration]
+        Z[Memory Context]
+        AA[Task Execution]
     end
     
-    subgraph "Data Storage"
-        N[Redis<br/>Session State]
-        O[Qdrant<br/>Vector Memory]
-        P[PostgreSQL<br/>Transactional]
-        Q[ClickHouse<br/>Analytics]
+    subgraph "Memory & Context"
+        BB[Memory Gateway :10021]
+        CC[Qdrant Vector DB]
+        DD[Redis Session Store]
+        EE[Context Sharing]
+        FF[Semantic Search]
+    end
+    
+    subgraph "Data Processing"
+        GG[Analytics Service]
+        HH[Flink Stream Processing]
+        II[Data Transformation]
+        JJ[Real-time Aggregation]
     end
     
     subgraph "Event Streaming"
-        R[Kafka Topics]
-        S[Analytics Service]
-        T[Flink Processing]
+        KK[Kafka Event Bus]
+        LL[Event Routing]
+        MM[Message Queues]
+        NN[Event Sourcing]
     end
     
-    subgraph "Observability"
-        U[Prometheus Metrics]
-        V[Grafana Dashboards]
-        W[Loki Logs]
+    subgraph "Data Storage"
+        OO[PostgreSQL<br/>Transactional Data]
+        PP[ClickHouse<br/>Analytics & Metrics]
+        QQ[Object Storage<br/>Files & Artifacts]
+        RR[Time Series DB<br/>Monitoring Data]
     end
     
-    %% Request Flow
-    A --> D
-    B --> D
-    C --> D
-    D --> E
+    subgraph "Observability Stack"
+        SS[Prometheus<br/>Metrics Collection]
+        TT[Grafana<br/>Dashboards]
+        UU[Loki<br/>Log Aggregation]
+        VV[Jaeger<br/>Distributed Tracing]
+        WW[AlertManager<br/>Notifications]
+    end
     
-    %% Authentication Flow
+    subgraph "External Integrations"
+        XX[External APIs]
+        YY[Third-party Tools]
+        ZZ[Notification Services]
+        AAA[Compliance Systems]
+    end
+    
+    %% External to Security Layer
+    A --> F
+    B --> F
+    C --> F
+    D --> F
     E --> F
-    F --> E
     
-    %% Policy Check Flow
-    E --> G
-    G --> E
-    
-    %% Orchestration Flow
-    E --> H
+    %% Security Layer Flow
+    F --> G
+    G --> H
     H --> I
     I --> J
     
-    %% Agent Execution Flow
+    %% Gateway Processing
     J --> K
     K --> L
-    K --> M
+    L --> M
+    M --> N
     
-    %% Data Storage Flow
-    E --> N
-    H --> N
-    M --> O
-    F --> P
-    S --> Q
+    %% Authentication Flow
+    N --> O
+    O --> P
+    P --> Q
+    Q --> R
     
-    %% Event Streaming Flow
-    K --> R
+    %% Orchestration Flow
     R --> S
-    R --> T
-    T --> N
-    
-    %% Observability Flow
-    E --> U
-    H --> U
-    M --> U
-    G --> U
-    U --> V
-    E --> W
-    H --> W
-    
-    %% Response Flow
-    K --> J
-    J --> I
-    I --> H
-    H --> E
-    E --> D
-    D --> A
-    
-    %% Memory Retrieval Flow
-    K --> M
-    M --> O
-    O --> M
-    M --> K
-    
-    %% Policy Decision Flow
-    H --> G
-    G --> H
-    
-    %% Analytics Flow
-    S --> Q
+    S --> T
     T --> U
+    U --> V
+    V --> W
+    
+    %% Agent Execution Flow
+    W --> X
+    X --> Y
+    Y --> Z
+    Z --> AA
+    AA --> BB
+    
+    %% Memory Operations
+    BB --> CC
+    BB --> DD
+    BB --> EE
+    BB --> FF
+    
+    %% Data Processing Flow
+    AA --> GG
+    GG --> HH
+    HH --> II
+    II --> JJ
+    
+    %% Event Streaming
+    AA --> KK
+    KK --> LL
+    LL --> MM
+    MM --> NN
+    
+    %% Data Storage
+    N --> OO
+    GG --> PP
+    Y --> QQ
+    SS --> RR
+    
+    %% Observability
+    J --> SS
+    R --> SS
+    W --> SS
+    BB --> SS
+    SS --> TT
+    J --> UU
+    R --> UU
+    W --> UU
+    AA --> VV
+    SS --> WW
+    
+    %% External Integrations
+    Y --> XX
+    Y --> YY
+    WW --> ZZ
+    O --> AAA
+    
+    %% Response Flow (simplified)
+    AA --> W
+    W --> R
+    R --> J
+    J --> A
     
     %% Real-time Updates
-    N --> E
-    E --> A
+    DD --> J
+    KK --> GG
+    NN --> BB
     
-    style A fill:#e1f5fe
-    style E fill:#f3e5f5
-    style H fill:#e8f5e8
-    style M fill:#fff3e0
-    style R fill:#fce4ec
+    %% Cross-cutting Concerns
+    O -.-> W
+    O -.-> BB
+    O -.-> GG
+    
+    %% Styling
+    style J fill:#e3f2fd
+    style R fill:#e8f5e8
+    style W fill:#fff3e0
+    style BB fill:#f3e5f5
+    style KK fill:#fce4ec
+    style SS fill:#e1f5fe
+    style F fill:#ffebee

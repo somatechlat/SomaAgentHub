@@ -23,12 +23,18 @@ from prometheus_client import CONTENT_TYPE_LATEST, generate_latest
 from pydantic import BaseModel, Field
 
 from .usage_tracker import get_usage_tracker
+from .models import Receipt, ReceiptStatus, BudgetDecision
+import httpx
+from pydantic import BaseModel, Field
+from services.common.config.base_settings import resolve_env
+from services.orchestrator.app.database import get_async_session
 from services.common.config.base_settings import resolve_env
 
 logger = logging.getLogger(__name__)
 
 STRIPE_KEY = resolve_env("STRIPE_SECRET_KEY")
 STRIPE_WEBHOOK_SECRET = resolve_env("STRIPE_WEBHOOK_SECRET")
+PRICING_SERVICE_URL = resolve_env("PRICING_SERVICE_URL")
 
 if STRIPE_KEY:
 stripe.api_key = STRIPE_KEY
@@ -146,14 +152,108 @@ event = request.json()
 except Exception:
 event = None
 
-event_type = (
-event.get("type")
-if isinstance(event, dict)
-else getattr(event, "type", "unknown")
-)
-logger.info(f"Stripe webhook received type={event_type}")
-# TODO: Update BuildRun or user entitlement based on event_type (payment_intent.succeeded, charge.refunded, etc.)
-return {"received": True, "type": event_type}
+	event_type = (
+		event.get("type")
+		if isinstance(event, dict)
+		else getattr(event, "type", "unknown")
+	)
+	logger.info(f"Stripe webhook received type={event_type}")
+
+	# Persist receipt information for payment_intent events.
+	if isinstance(event, dict) and event_type.startswith("payment_intent."):
+		obj = event.get("data", {}).get("object", {})
+		stripe_intent_id = obj.get("id")
+		amount = obj.get("amount")
+		currency = obj.get("currency")
+		metadata = obj.get("metadata", {})
+		user_id = metadata.get("user_id", "unknown")
+		# Map Stripe status to our enum.
+		stripe_status = obj.get("status")
+		status_map = {
+			"succeeded": ReceiptStatus.SUCCEEDED,
+			"requires_payment_method": ReceiptStatus.FAILED,
+			"canceled": ReceiptStatus.FAILED,
+			"requires_action": ReceiptStatus.PENDING,
+		}
+		receipt_status = status_map.get(stripe_status, ReceiptStatus.PENDING)
+		async with get_async_session() as session:
+			receipt = Receipt(
+				user_id=user_id,
+				stripe_payment_intent_id=stripe_intent_id,
+				amount_cents=amount,
+				currency=currency,
+				status=receipt_status,
+			)
+			session.add(receipt)
+			await session.commit()
+			logger.info("Stored receipt %s for user %s", receipt.id, user_id)
+
+	# TODO: Update BuildRun or user entitlement based on event_type (payment_intent.succeeded, charge.refunded, etc.)
+	return {"received": True, "type": event_type}
+
+
+# ---------------------------------------------------------------------------
+# Budget evaluation endpoint (integrates with pricing-service)
+# ---------------------------------------------------------------------------
+
+
+class BudgetEvalRequest(BaseModel):
+	user_id: str = Field(..., description="User requesting the build")
+	gpu_model: str | None = Field(None, description="GPU model filter for pricing")
+	region: str | None = Field(None, description="Region filter for pricing")
+	hours_planned: float = Field(..., gt=0, description="Planned runtime in hours")
+	quantity: int = Field(1, ge=1, description="Number of agents to provision")
+	budget_cap: float = Field(..., gt=0, description="Maximum budget in currency units")
+
+
+@app.post("/v1/billing/evaluate-budget", tags=["billing"], response_model=dict)
+async def evaluate_budget(request: BudgetEvalRequest) -> dict:
+	"""Forward budget evaluation to the pricing service and persist the decision.
+
+	This endpoint makes a real HTTP call to the external pricing service using
+	the ``PRICING_SERVICE_URL`` environment variable. The response is stored in
+	the ``budget_decisions`` table for auditability.
+	"""
+	if not PRICING_SERVICE_URL:
+		raise HTTPException(status_code=503, detail="Pricing service URL not configured")
+
+	pricing_endpoint = f"{PRICING_SERVICE_URL.rstrip('/')}/v1/pricing/evaluate-budget"
+	payload = {
+		"gpu_model": request.gpu_model,
+		"region": request.region,
+		"hours_planned": request.hours_planned,
+		"quantity": request.quantity,
+		"budget_cap": request.budget_cap,
+	}
+	try:
+		async with httpx.AsyncClient(timeout=5.0) as client:
+			resp = await client.post(pricing_endpoint, json=payload)
+	except Exception as e:
+		logger.error("Failed to call pricing service: %s", e)
+		raise HTTPException(status_code=502, detail="Pricing service unavailable")
+
+	if resp.status_code != 200:
+		raise HTTPException(status_code=resp.status_code, detail=resp.text)
+
+	data = resp.json()
+	# Persist decision
+	async with get_async_session() as session:
+		decision = BudgetDecision(
+			user_id=request.user_id,
+			within_budget=data.get("within_budget", False),
+			estimated_cost=data.get("estimated_cost", 0.0),
+			currency=data.get("currency", "usd"),
+		)
+		session.add(decision)
+		await session.commit()
+
+	return {
+		"decision_id": str(decision.id),
+		"within_budget": decision.within_budget,
+		"estimated_cost": decision.estimated_cost,
+		"currency": decision.currency,
+		"pricing_response": data,
+	}
 
 
 class UsageSummaryQuery(BaseModel):
