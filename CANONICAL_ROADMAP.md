@@ -80,7 +80,7 @@ Production-ready taxi-service builder with PostgreSQL-backed capsule registry, K
 - ✅ Linkerd mesh with mTLS
 - ✅ OpenTelemetry tracing
 - ✅ Vault secrets management
-- ✅ Prometheus/Grafana dashboards
+- ✅ Prometheus metrics dashboards
 
 **Acceptance Criteria**:
 - [ ] All inter-service mTLS
@@ -137,7 +137,7 @@ Production-ready taxi-service builder with PostgreSQL-backed capsule registry, K
 - **Orchestration**: Kubernetes + Temporal
 - **Payments**: Stripe Python SDK
 - **Security**: Linkerd + Vault + OPA
-- **Observability**: OpenTelemetry + Prometheus + Grafana
+- **Observability**: OpenTelemetry + Prometheus
 - **Storage**: MinIO for artifacts, PostgreSQL for metadata
 
 ### **Database Schema**
@@ -186,7 +186,7 @@ CREATE TABLE agent_instances (
 ### **Observability Standards**
 - 100% service tracing
 - Key metrics in Prometheus
-- Grafana dashboards for all services
+- Prometheus metrics dashboards for all services
 - Alerting on SLO breaches
 
 ## 🚀 Getting Started

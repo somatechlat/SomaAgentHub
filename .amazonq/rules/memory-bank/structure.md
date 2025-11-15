@@ -66,7 +66,7 @@
 
 ### Observability Stack
 - **Prometheus** for metrics collection
-- **Grafana** for visualization and dashboards
+- **Prometheus** for metrics collection and dashboards
 - **Loki** for log aggregation
 - **OpenTelemetry** for distributed tracing
 

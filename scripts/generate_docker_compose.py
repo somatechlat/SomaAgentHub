@@ -23,7 +23,7 @@ class DockerComposeGenerator:
             "volumes": {
                 "postgres_data": {}, "redis_data": {}, "temporal_data": {},
                 "minio_data": {}, "qdrant_data": {}, "prometheus_data": {},
-                "grafana_data": {}, "jaeger_data": {}, "loki_data": {}
+                "jaeger_data": {}, "loki_data": {}
             }
         }
         
@@ -102,11 +102,10 @@ class DockerComposeGenerator:
         
         if monitoring_config.enabled:
             services["monitoring-stack"] = {
-                "image": "grafana/grafana:latest",
+                "image": "prom/prometheus:latest",
                 "container_name": "somagenthub_monitoring",
-                "ports": ["3000:3000"],
-                "environment": {"GF_SECURITY_ADMIN_PASSWORD": "admin"},
-                "volumes": ["grafana_data:/var/lib/grafana"],
+                "ports": ["9090:9090"],
+                "volumes": ["./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml"],
                 "networks": ["somagenthub-network"],
                 "deploy": {"resources": {"limits": {"memory": "512Mi", "cpus": "500m"}}}
             }

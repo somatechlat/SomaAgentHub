@@ -11,7 +11,7 @@
 | Path | Description |
 | --- | --- |
 | `helm/soma-agent/` | Primary Helm chart bundling gateway, orchestrator, policy engine, identity, and supporting services. |
-| `monitoring/` | ServiceMonitors, alerting rules, and Grafana dashboard configs. |
+| `monitoring/` | ServiceMonitors, alerting rules, and dashboard configs. |
 | `airflow-deployment.yaml` | Example deployment for Airflow integration. |
 | `flink-deployment.yaml` | Example deployment for streaming workloads. |
 | `kind-storageclass.yaml` | StorageClass for local Kind clusters. |
@@ -39,7 +39,7 @@ helm upgrade --install soma-agent-hub ./k8s/helm/soma-agent \
 ## Monitoring Assets
 
 - `monitoring/servicemonitors.yaml` — scrapes key services with Prometheus.
-- Extend alerting by adding rules in `monitoring/alerts/` (create if missing) and update Grafana dashboards in `monitoring/dashboards/`.
+- Extend alerting by adding rules in `monitoring/alerts/` (create if missing) and update dashboards in `monitoring/dashboards/`.
 
 ---
 

@@ -28,8 +28,7 @@ prometheus:
             requests:
               storage: 10Gi
 
-grafana:
-  enabled: false
+
 
 # Alertmanager configuration
 alertmanager:

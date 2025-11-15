@@ -18,7 +18,7 @@
 | `infra/clickhouse/` | ClickHouse configs and bootstrap scripts. |
 | `infra/postgres/` | Postgres configs, migrations, and backup scripts. |
 | `infra/seeds/` | Seed data for bootstrapping environments. |
-| `infra/monitoring/` | Observability stack manifests (Prometheus, Grafana, Loki). |
+| `infra/monitoring/` | Observability stack manifests (Prometheus, Loki). |
 | `infra/terraform/` | Terraform modules for cloud infrastructure (VPC, clusters, databases). |
 
 ---

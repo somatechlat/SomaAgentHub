@@ -39,7 +39,7 @@ redis:
 prometheus:
   enabled: false
 
-grafana:
+
   enabled: false
 
 opa:

@@ -46,7 +46,7 @@
 
 **Progress:**
 - Added Prometheus `volcano-control-plane` scrape and ServiceMonitors for scheduler/controller pods (`infra/monitoring/prometheus.yml`, `k8s/monitoring/servicemonitors.yaml`).
-- Published Grafana dashboard **Volcano Scheduler Operations** covering queue depth, latency, and preemption metrics (`infra/monitoring/grafana/dashboards/volcano-operations.json`).
+- Published metrics dashboard **Volcano Scheduler Operations** covering queue depth, latency, and preemption metrics (`infra/monitoring/dashboards/volcano-operations.json`).
 - Introduced Volcano-specific alert rules (backlog, latency, preemption) and extended runbook guidance for on-call usage (`infra/monitoring/alerting-rules.yml`, `docs/technical-manual/runbooks/volcano-operations.md`).
 - Enriched audit events with Volcano job metadata to satisfy compliance requirements (`services/orchestrator/app/workflows/session.py`).
 
@@ -60,7 +60,7 @@
 **Links:**
 - `infra/monitoring/prometheus.yml`
 - `k8s/monitoring/servicemonitors.yaml`
-- `infra/monitoring/grafana/dashboards/volcano-operations.json`
+- `infra/monitoring/dashboards/volcano-operations.json`
 - `infra/monitoring/alerting-rules.yml`
 - `services/orchestrator/app/workflows/session.py`
 

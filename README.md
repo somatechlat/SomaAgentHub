@@ -221,7 +221,7 @@ Service-specific READMEs live beside the code under `services/`, and infra playb
 
 - **Core Services** – Gateway, orchestrator, and identity ship with production manifests; policy engine and memory gateway are optional and disabled in the default docker-compose stack.
 - **Infrastructure** – Helm chart, Kind bootstrap, and Terraform modules (see `infra/terraform/`) keep environments reproducible.
-- **Observability** – Prometheus, Grafana, Loki, and alert routing are wired through `k8s/monitoring/` and Make targets.
+- **Observability** – Prometheus, Loki, and alert routing are wired through `k8s/monitoring/` and Make targets.
 - **Compliance & Policy** – Constitution and policy artifacts live under `services/constitution-service` and integrate with the policy engine.
 - **Roadmaps & Playbooks** – Every sprint deliverable is mirrored in `docs/` for zero documentation drift.
 
@@ -235,7 +235,7 @@ Service-specific READMEs live beside the code under `services/`, and infra playb
 | **Governance & Policy** | ✅ Dedicated policy engine with constitution service | ❌ Custom build required |
 | **Memory Architecture** | ✅ Pluggable Qdrant/Redis memory gateway | ⚠️ Basic in-memory or third-party |
 | **CI/CD Automation** | ✅ Make-driven builds, scans, and deploys | ⚠️ Manual scripts |
-| **Observability** | ✅ Metrics, probes, and Grafana dashboards out of the box | ❌ Minimal logging |
+| **Observability** | ✅ Metrics, probes, and dashboards out of the box | ❌ Minimal logging |
 
 ---
 
@@ -245,7 +245,7 @@ Service-specific READMEs live beside the code under `services/`, and infra playb
 - **Core Services**: FastAPI, Temporal, Redis, PostgreSQL, Qdrant
 - **Infrastructure**: Kubernetes, Helm, Kind, Terraform
 - **CI/CD & Automation**: GitHub Actions, Make, Docker, Syft, Trivy
-- **Observability**: Prometheus, Grafana, Loki, OpenTelemetry
+- **Observability**: Prometheus, Loki, OpenTelemetry
 
 ---
 

@@ -19,7 +19,7 @@ Define the target architecture for introducing the Volcano batch scheduler into 
 - Externalise resource-intensive activities (Ray jobs, marketing campaign phases, MAO directives) into Kubernetes Jobs managed by Volcano PodGroups.
 - Provide queue isolation between conversational, background, and batch analytics workloads.
 - Maintain Temporal as the control-plane while Volcano enforces resource guarantees and prioritisation.
-- Instrument scheduling decisions for operators (Prometheus + Grafana) and expose toggles via configuration/feature flags.
+- Instrument scheduling decisions for operators (Prometheus) and expose toggles via configuration/feature flags.
 
 ## 3. Non-Goals
 
@@ -69,7 +69,7 @@ Define the target architecture for introducing the Volcano batch scheduler into 
 ### 5.4 Observability
 
 - Deploy Volcano metrics ServiceMonitor (`volcano-system` namespace).
-- Extend Grafana with queue depth, pending duration, and preemption count panels.
+- Extend metrics dashboards with queue depth, pending duration, and preemption count panels.
 - Emit structured logs from orchestrator when PodGroup events change state.
 - Capture pre/post rollout metrics following `baseline-metrics.md` to validate improvements.
 

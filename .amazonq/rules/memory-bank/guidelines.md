@@ -150,7 +150,7 @@ logger.info(
 
 ### Metrics and Monitoring
 - **Prometheus integration** - Custom metrics with proper labeling
-- **Grafana dashboards** - Visualization for operational metrics
+- **Prometheus dashboards** - Metrics collection and operational monitoring
 - **Alert configuration** - Proactive monitoring with threshold-based alerts
 
 ### Distributed Tracing

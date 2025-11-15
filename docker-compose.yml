@@ -452,8 +452,7 @@ volumes:
     driver: local
     name: somaagenthub_prometheus_data
   
-    driver: local
-    name: somaagenthub_grafana_data
+    
 
 networks:
   somaagenthub-network:

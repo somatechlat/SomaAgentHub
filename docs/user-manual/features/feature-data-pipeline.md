@@ -22,7 +22,7 @@ flowchart TD
     end
     
     subgraph Storage
-        E -->|Queries| G[Grafana Dashboards]
+        E -->|Queries| G[Metrics Dashboards]
         F -->|Alerts| H[Notification Service]
     end
     
@@ -208,7 +208,7 @@ ORDER BY p95_duration DESC;
 
 ## Monitoring & Alerts
 
-### Grafana Dashboards
+### Metrics Dashboards
 - Agent Performance Overview
 - Workflow Execution Trends
 - Error Rate Analysis

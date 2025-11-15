@@ -30,7 +30,7 @@
 
 ## Observability & Monitoring
 - **Prometheus** - Metrics collection and alerting
-- **Grafana** - Visualization dashboards and monitoring
+- **Prometheus** - Metrics collection and monitoring
 - **Loki** - Log aggregation and search
 - **OpenTelemetry** - Distributed tracing and observability
 - **Jaeger/Tempo** - Trace storage and analysis

@@ -64,7 +64,7 @@ Record `Backlog` and `ReadLevel` values daily to track load before Volcano chang
 
 1. Set env vars in orchestrator deployment:
    - `RAY_DASHBOARD_AGENT_LISTEN_PORT=8265`
-   - `RAY_GRAFANA_HOST` if using Grafana integration.
+   
 2. Port-forward or scrape Ray metrics endpoint `http://<pod-ip>:8265/metrics` and export `ray_task_runtime_avg_ms`.
 
 ### 2.4 Marketing Workflow Duration
@@ -84,7 +84,7 @@ Store results in CSV alongside Prometheus exports for trend analysis.
 
 - Commit raw JSON/CSV exports to a dedicated object store or analytics bucket (avoid committing large files to git).
 - Summarise findings in `docs/development-manual/volcano-integration-notes/retro.md` at the end of Sprint 1.
-- Update Grafana dashboards to display baselines vs. post-Volcano metrics.
+- Update metrics dashboards to display baselines vs. post-Volcano metrics.
 
 ---
 

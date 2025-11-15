@@ -37,7 +37,7 @@ async def test_infrastructure_accessibility(self, http_client):
 """Test that infrastructure services are accessible."""
 infrastructure = [
 ("prometheus", "http://localhost:10010", "/-/healthy"),
-("grafana", "http://localhost:10011", "/api/health"),
+
 ]
 
 accessible_count = 0

@@ -16,7 +16,7 @@ prometheus:
         memory: 512Mi
     serviceMonitorSelectorNilUsesHelmValues: false
 
-grafana:
+
   enabled: false
 
 # Alertmanager

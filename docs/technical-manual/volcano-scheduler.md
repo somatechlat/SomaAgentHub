@@ -138,7 +138,7 @@ If any step fails, consult the runbook (`./runbooks/volcano-operations.md`).
   - `volcano_job_scheduling_duration_seconds_bucket` — histogram for scheduling latency (combine with `histogram_quantile` for P95).
   - `volcano_pod_preemptions_total` — preemption activity per queue.
   - `process_resident_memory_bytes{job=~"volcano-control-plane.*"}` — scheduler/controller resource footprint.
-- **Dashboards:** Grafana **Volcano Scheduler Operations** dashboard (`infra/monitoring/grafana/dashboards/volcano-operations.json`) tracks queue depth, scheduling latency (average & P95), PodGroup wait distribution, and preemption frequency.
+- **Dashboards:** **Volcano Scheduler Operations** dashboard (`infra/monitoring/dashboards/volcano-operations.json`) tracks queue depth, scheduling latency (average & P95), PodGroup wait distribution, and preemption frequency.
 - **Alerting Rules:** `infra/monitoring/alerting-rules.yml` adds `VolcanoQueueBacklog`, `VolcanoSchedulingLatencyHigh`, and `VolcanoPreemptionSpike` to surface backlog, latency, and preemption anomalies.
 
 Integrate scrapes in `infra/monitoring/prometheus.yml` and deploy the monitoring assets via `k8s/monitoring`.

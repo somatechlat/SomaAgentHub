@@ -68,9 +68,7 @@ web:
 admintools:
   enabled: false  # Disable to avoid image pull issues
 
-# Grafana dashboards (will integrate with Sprint-6 observability stack)
-grafana:
-  enabled: false  # Using our own Grafana in Sprint-6
+
 
 prometheus:
   enabled: false  # Using our own Prometheus in Sprint-6
