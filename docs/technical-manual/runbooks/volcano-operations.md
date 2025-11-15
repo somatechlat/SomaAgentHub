@@ -12,7 +12,7 @@
 
 - Familiarity with the Volcano deployment as described in `../volcano-scheduler.md`.
 - `kubectl` access with permissions to read and restart resources in the SomaAgentHub namespace.
-- Access to Grafana, Prometheus, and Loki dashboards.
+- Access to Prometheus and Loki dashboards.
 - Knowledge of Temporal workflow queue configuration.
 
 ---
@@ -28,7 +28,7 @@
 | Tail scheduler logs | `kubectl logs -n soma-agent-hub deployment/volcano-scheduler -f` | Filter for `Warning`/`Error`. |
 | Cleanup sample job | `scripts/volcano/cleanup-sample.sh` | Deletes `session-sample` job/PodGroup artifacts. |
 | Verify orchestrator RBAC | `kubectl get rolebinding orchestrator-volcano -n <ns>` | Ensure Volcano permissions remain in place. |
-| Grafana dashboard | Grafana → **Volcano Scheduler Operations** | Queue depth, scheduling latency, preemptions. |
+| Metrics dashboard | Prometheus → **Volcano Scheduler Operations** | Queue depth, scheduling latency, preemptions. |
 | Prometheus queries | `volcano_queue_pending_pods`, `volcano_job_scheduling_duration_seconds_bucket` | Confirm metrics scraping from `volcano-system`. |
 
 ---
@@ -38,7 +38,7 @@
 ### 1. Jobs Stuck in Pending
 
 **Symptoms:**
-- Grafana alert `VolcanoQueuePendingJobsHigh` firing.
+- Prometheus alert `VolcanoQueuePendingJobsHigh` firing.
 - Temporal workflows waiting for execution slots.
 
 **Procedure:**
@@ -106,7 +106,7 @@
   - `volcano_queue_running_pods{queue="interactive"}` — active pods admitted by Volcano.
   - `volcano_job_scheduling_duration_seconds_bucket` — histogram for admission latency; use `histogram_quantile` for P95.
   - `volcano_pod_preemptions_total` — cumulative pod preemptions.
-- **Dashboards:** Grafana dashboard **Volcano Scheduler Operations** covers queue depth trends, scheduling latency (average and P95), preemption rate, and PodGroup wait distribution.
+- **Dashboards:** **Volcano Scheduler Operations** dashboard covers queue depth trends, scheduling latency (average and P95), preemption rate, and PodGroup wait distribution.
 - **Alerts:** Prometheus rules `VolcanoQueueBacklog`, `VolcanoSchedulingLatencyHigh`, and `VolcanoPreemptionSpike` raise warning/critical signals when backlogs grow, latency breaches 60s P95, or preemption spikes persist.
 
 ---

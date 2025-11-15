@@ -47,7 +47,7 @@ package "Data Layer" {
 
 package "Infrastructure Layer" {
   RECTANGLE "Prometheus\nMetrics" as Prometheus <<Infrastructure>>
-  RECTANGLE "Grafana\nDashboards" as Grafana <<Infrastructure>>
+  RECTANGLE "Prometheus\nDashboards" as PrometheusDashboards <<Infrastructure>>
   RECTANGLE "Loki\nLogs" as Loki <<Infrastructure>>
   RECTANGLE "Kafka\nStreaming" as Kafka <<Infrastructure>>
 }
@@ -89,7 +89,7 @@ Orchestrator --> Prometheus : HTTP
 Memory --> Prometheus : HTTP
 Policy --> Prometheus : HTTP
 
-Prometheus --> Grafana : HTTP
+Prometheus --> PrometheusDashboards : Internal
 Gateway --> Loki : HTTP
 Orchestrator --> Loki : HTTP
 

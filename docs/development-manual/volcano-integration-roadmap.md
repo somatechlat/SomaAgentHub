@@ -60,11 +60,11 @@
 
 ### Sprint 3 – Observability & Policy (1 week)
 - ✅ Integrate Volcano metrics into existing Prometheus scrape configs (`infra/monitoring/prometheus.yml`) and ServiceMonitors (`k8s/monitoring/servicemonitors.yaml`).
-- ✅ Extend Grafana dashboards for queue depth, job latency, and preemption counts (`infra/monitoring/grafana/dashboards/volcano-operations.json`).
+- ✅ Extend metrics dashboards for queue depth, job latency, and preemption counts (`infra/monitoring/dashboards/volcano-operations.json`).
 - ✅ Capture runbooks for queue saturation, job starvation, and plugin tuning in `docs/technical-manual/runbooks/volcano-operations.md`.
 - ✅ Ensure auditing hooks capture scheduling decisions for compliance (`services/orchestrator/app/workflows/session.py`).
 
-**Verification:** `ci-volcano` self-hosted job scrapes the new metrics, Grafana dashboard deployed, Prometheus alerts (`VolcanoQueueBacklog`, `VolcanoSchedulingLatencyHigh`, `VolcanoPreemptionSpike`) enabled, and audit events include Volcano job metadata.
+**Verification:** `ci-volcano` self-hosted job scrapes the new metrics, metrics dashboard deployed, Prometheus alerts (`VolcanoQueueBacklog`, `VolcanoSchedulingLatencyHigh`, `VolcanoPreemptionSpike`) enabled, and audit events include Volcano job metadata.
 
 ### Sprint 4 – Stabilization & Rollout (2 weeks)
 - Execute load, chaos, and failover tests via `scripts/load_testing.py` and Temporal stress suites.

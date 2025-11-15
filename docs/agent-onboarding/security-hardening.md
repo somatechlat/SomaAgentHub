@@ -1327,7 +1327,7 @@ if __name__ == "__main__":
 
 **Real-time Monitoring:**
 ```yaml
-# Grafana Dashboard Configuration
+# Metrics Dashboard Configuration
 dashboard:
   title: "Security-Hardened Agent Dashboard"
   panels:

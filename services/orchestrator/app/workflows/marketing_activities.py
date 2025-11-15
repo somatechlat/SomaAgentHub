@@ -914,7 +914,7 @@ _CAMPAIGN_ANALYTICS_CREATED = Counter(
 @activity.defn
 async def analytics_setup_activity(input: dict[str, Any]) -> dict[str, Any]:
 """
-Phase 6: Analytics wiring without Grafana.
+Phase 6: Analytics wiring with direct Prometheus integration.
 
 Real behavior:
 - Record a Prometheus counter to mark analytics setup for the campaign.

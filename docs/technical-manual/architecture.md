@@ -43,7 +43,7 @@ graph TB
     
     subgraph "Infrastructure Layer"
         PROM[Prometheus]
-        GRAF[Grafana]
+        PROM[Prometheus]
         LOKI[Loki]
         KAFKA[Kafka]
     end

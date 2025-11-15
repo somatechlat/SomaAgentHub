@@ -82,7 +82,7 @@ A runbook is a living document. To contribute:
 ### 1. Triage & Diagnosis
 
 **Initial Checks:**
-- Check Grafana Dashboard: [Link to relevant dashboard]
+- Check Metrics Dashboard: [Link to relevant dashboard]
 - Check recent logs: `kubectl logs ...`
 
 **Diagnostic Steps:**
@@ -99,7 +99,7 @@ A runbook is a living document. To contribute:
 
 **Verification:**
 - `command to verify the fix`
-- Check Grafana to confirm metrics have returned to normal.
+- Check Prometheus to confirm metrics have returned to normal.
 
 ### 3. Escalation
 

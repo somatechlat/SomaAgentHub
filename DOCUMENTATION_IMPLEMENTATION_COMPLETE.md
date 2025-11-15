@@ -71,7 +71,7 @@
 - **Qdrant** for vector memory storage
 - **PostgreSQL** for transactional data
 - **ClickHouse** for analytics
-- **Prometheus/Grafana** for observability
+- **Prometheus** for observability
 
 ### 4. CI/CD AUTOMATION 🚀
 
@@ -112,7 +112,7 @@
 ### 2. PRODUCTION-READY DOCUMENTATION
 - **Real deployment procedures**: Based on actual Helm charts and Kubernetes manifests
 - **Operational runbooks**: Covering real service failure scenarios
-- **Monitoring integration**: Prometheus metrics and Grafana dashboards
+- **Monitoring integration**: Prometheus metrics and dashboards
 - **Security procedures**: RBAC, network policies, and secret management
 
 ### 3. COMPREHENSIVE COVERAGE
@@ -152,7 +152,7 @@
 ### For Operations Teams
 - **Production runbooks**: Step-by-step incident response procedures
 - **Deployment guides**: Real Helm charts and Kubernetes configurations
-- **Monitoring setup**: Prometheus and Grafana integration
+- **Monitoring setup**: Prometheus integration
 - **Security procedures**: RBAC and network policy configurations
 
 ### For End Users

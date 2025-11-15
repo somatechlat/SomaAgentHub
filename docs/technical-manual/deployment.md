@@ -122,9 +122,6 @@ monitoring:
   prometheus:
     enabled: true
     serviceMonitor: true
-  grafana:
-    enabled: true
-    dashboards: true
 ```
 
 #### 3. Deploy with Helm
@@ -407,17 +404,10 @@ monitoring:
             summary: "SomaAgentHub service is down"
 ```
 
-### Grafana Dashboards
+### Metrics Dashboards
 ```yaml
-grafana:
-  enabled: true
-  dashboards:
-    enabled: true
-    configMaps:
-    - soma-dashboards
-  datasources:
-    prometheus:
-      url: http://prometheus:9090
+# Prometheus dashboards are accessed directly via the Prometheus web UI
+# at http://prometheus:9090/graph or http://localhost:9090/graph
 ```
 
 ## Backup & Recovery

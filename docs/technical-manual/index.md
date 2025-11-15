@@ -44,7 +44,7 @@ SomaAgentHub is built as a microservices architecture on Kubernetes with the fol
 | PostgreSQL | Transactional data | External or in-cluster |
 | Qdrant | Vector database | Memory Gateway integration |
 | Prometheus | Metrics collection | `k8s/monitoring/` |
-| Grafana | Visualization | Pre-built dashboards |
+| Prometheus | Metrics Collection | Time-series data storage and querying |
 
 ## Deployment Patterns
 
@@ -150,7 +150,7 @@ services:
 - Database query tracing
 - Performance bottleneck identification
 
-### Dashboards (Grafana)
+### Dashboards (Prometheus)
 - Service overview dashboards
 - Infrastructure monitoring
 - Business metrics visualization
