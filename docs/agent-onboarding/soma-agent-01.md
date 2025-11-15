@@ -1,4 +1,4 @@
-# Agent Zero - Basic Agent Setup
+# SomaAgent01 - Basic Agent Setup
 
 ![Version](https://img.shields.io/badge/version-1.0.0-blue)
 
@@ -10,7 +10,7 @@
 
 ## 📋 Overview
 
-Agent Zero is the foundational pattern for any autonomous agent integrating with SomaAgentHub. This guide walks through creating a minimal but complete agent that can:
+SomaAgent01 is the foundational pattern for any autonomous agent integrating with SomaAgentHub. This guide walks through creating a minimal but complete agent that can:
 
 - **Authenticate** with the identity service
 - **Create sessions** for stateful interactions
@@ -22,7 +22,7 @@ Agent Zero is the foundational pattern for any autonomous agent integrating with
 
 ## 🎯 Learning Objectives
 
-By completing this guide, your agent will:
+By completing this guide, your SomaAgent01 will:
 
 ✅ **Authenticate** using service account tokens  
 ✅ **Create and manage** agent sessions  
@@ -58,7 +58,7 @@ import requests
 import json
 from datetime import datetime, timedelta
 
-class AgentZero:
+class SomaAgent01:
     def __init__(self, agent_name: str):
         self.agent_name = agent_name
         self.base_url = "http://localhost"
@@ -100,7 +100,7 @@ class AgentZero:
         return {"Authorization": f"Bearer {self.token}"}
 
 # Initialize your agent
-agent = AgentZero("my-first-agent")
+agent = SomaAgent01("my-first-agent")
 success = agent.authenticate()
 ```
 
@@ -139,8 +139,8 @@ def create_session(self) -> str:
         print(f"❌ Session creation error: {e}")
         return None
 
-# Add to AgentZero class
-AgentZero.create_session = create_session
+# Add to SomaAgent01 class
+SomaAgent01.create_session = create_session
 
 # Create a session
 session_id = agent.create_session()
@@ -183,14 +183,14 @@ def execute_task(self, session_id: str, task_description: str) -> dict:
         print(f"❌ Task execution error: {e}")
         return None
 
-# Add to AgentZero class
-AgentZero.execute_task = execute_task
+# Add to SomaAgent01 class
+SomaAgent01.execute_task = execute_task
 
 # Execute a simple task
 result = agent.execute_task(session_id, "Check system health and report status")
 ```
 
-### Step 4: Complete Agent Zero Implementation
+### Step 4: Complete SomaAgent01 Implementation
 
 **Full Agent Implementation:**
 ```python
@@ -201,7 +201,7 @@ import logging
 from datetime import datetime, timedelta
 from typing import Optional, Dict, Any
 
-class AgentZero:
+class SomaAgent01:
     """
     Basic autonomous agent for SomaAgentHub integration
     
@@ -268,7 +268,7 @@ class AgentZero:
         return {
             "Authorization": f"Bearer {self.token}",
             "Content-Type": "application/json",
-            "User-Agent": f"AgentZero/{self.agent_name}"
+            "User-Agent": f"SomaAgent01/{self.agent_name}"
         }
     
     def create_session(self, config: Optional[Dict[str, Any]] = None) -> Optional[str]:
@@ -492,8 +492,8 @@ class AgentZero:
 
 # Example usage
 if __name__ == "__main__":
-    # Create and run Agent Zero
-    agent = AgentZero("demo-agent")
+    # Create and run SomaAgent01
+    agent = SomaAgent01("demo-agent")
     
     # Define tasks to execute
     tasks = [
@@ -507,7 +507,7 @@ if __name__ == "__main__":
     
     # Print results
     print("\n" + "="*50)
-    print("AGENT ZERO EXECUTION SUMMARY")
+    print("SOMAAGENT01 EXECUTION SUMMARY")
     print("="*50)
     
     for i, result in enumerate(results, 1):
@@ -557,7 +557,7 @@ def retry_on_failure(max_retries: int = 3, delay: float = 1.0, backoff: float = 
     return decorator
 
 # Apply to critical methods
-class RobustAgentZero(AgentZero):
+class RobustSomaAgent01(SomaAgent01):
     @retry_on_failure(max_retries=3, delay=2.0)
     def authenticate(self):
         return super().authenticate()
@@ -612,21 +612,21 @@ def retrieve_memory(self, key: str, session_id: Optional[str] = None) -> Optiona
         self.logger.error(f"Memory retrieval error: {e}")
         return None
 
-# Add to AgentZero class
-AgentZero.store_memory = store_memory
-AgentZero.retrieve_memory = retrieve_memory
+# Add to SomaAgent01 class
+SomaAgent01.store_memory = store_memory
+SomaAgent01.retrieve_memory = retrieve_memory
 ```
 
 ### Async Agent Implementation
 
-**Asynchronous Agent Zero:**
+**Asynchronous SomaAgent01:**
 ```python
 import asyncio
 import aiohttp
 from typing import List
 
-class AsyncAgentZero:
-    """Asynchronous version of Agent Zero for high-performance scenarios"""
+class AsyncSomaAgent01:
+    """Asynchronous version of SomaAgent01 for high-performance scenarios"""
     
     def __init__(self, agent_name: str, base_url: str = "http://localhost"):
         self.agent_name = agent_name
@@ -686,7 +686,7 @@ class AsyncAgentZero:
 
 # Usage example
 async def run_async_agent():
-    async with AsyncAgentZero("async-agent") as agent:
+    async with AsyncSomaAgent01("async-agent") as agent:
         tasks = [
             "Check system health",
             "Analyze performance metrics",
@@ -703,7 +703,7 @@ async def run_async_agent():
 
 ## 📊 Testing Your Agent
 
-### Unit Tests for Agent Zero
+### Unit Tests for SomaAgent01
 
 **Test Implementation:**
 ```python
@@ -711,9 +711,9 @@ import unittest
 from unittest.mock import Mock, patch
 import json
 
-class TestAgentZero(unittest.TestCase):
+class TestSomaAgent01(unittest.TestCase):
     def setUp(self):
-        self.agent = AgentZero("test-agent")
+        self.agent = SomaAgent01("test-agent")
     
     @patch('requests.post')
     def test_authentication_success(self, mock_post):
@@ -794,21 +794,21 @@ if __name__ == "__main__":
 ```python
 #!/usr/bin/env python3
 """
-Integration test for Agent Zero
+Integration test for SomaAgent01
 Requires SomaAgentHub services to be running
 """
 
 import sys
 import time
-from agent_zero import AgentZero
+from soma_agent_01 import SomaAgent01
 
 def test_full_agent_workflow():
     """Test complete agent workflow"""
-    print("🧪 Starting Agent Zero Integration Test")
+    print("🧪 Starting SomaAgent01 Integration Test")
     print("="*50)
     
     # Initialize agent
-    agent = AgentZero("integration-test-agent")
+    agent = SomaAgent01("integration-test-agent")
     
     try:
         # Test 1: Health Check
@@ -883,7 +883,7 @@ if __name__ == "__main__":
 
 ## 🚀 Production Deployment
 
-### Docker Container for Agent Zero
+### Docker Container for SomaAgent01
 
 **Dockerfile:**
 ```dockerfile
@@ -897,7 +897,7 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy agent code
-COPY agent_zero.py .
+COPY soma_agent_01.py .
 COPY config.json .
 
 # Create non-root user
@@ -906,10 +906,10 @@ USER agent
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-  CMD python -c "from agent_zero import AgentZero; agent = AgentZero('health-check'); print('healthy' if agent.health_check() else exit(1))"
+  CMD python -c "from soma_agent_01 import SomaAgent01; agent = SomaAgent01('health-check'); print('healthy' if agent.health_check() else exit(1))"
 
 # Run agent
-CMD ["python", "agent_zero.py"]
+CMD ["python", "soma_agent_01.py"]
 ```
 
 **requirements.txt:**
@@ -922,34 +922,34 @@ cryptography>=41.0.0
 
 ### Kubernetes Deployment
 
-**agent-zero-deployment.yaml:**
+**soma-agent-01-deployment.yaml:**
 ```yaml
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: agent-zero
+  name: soma-agent-01
   namespace: soma-agent-hub
   labels:
-    app: agent-zero
+    app: soma-agent-01
     version: v1.0.0
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: agent-zero
+      app: soma-agent-01
   template:
     metadata:
       labels:
-        app: agent-zero
+        app: soma-agent-01
         version: v1.0.0
     spec:
-      serviceAccountName: agent-zero
+      serviceAccountName: soma-agent-01
       containers:
-      - name: agent-zero
-        image: somaagent/agent-zero:latest
+      - name: soma-agent-01
+        image: somaagent/soma-agent-01:latest
         env:
         - name: AGENT_NAME
-          value: "production-agent-zero"
+          value: "production-soma-agent-01"
         - name: SOMA_BASE_URL
           value: "http://gateway-api:8000"
         - name: LOG_LEVEL
@@ -986,14 +986,14 @@ spec:
 apiVersion: v1
 kind: ServiceAccount
 metadata:
-  name: agent-zero
+  name: soma-agent-01
   namespace: soma-agent-hub
 
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
 metadata:
-  name: agent-zero-role
+  name: soma-agent-01-role
   namespace: soma-agent-hub
 rules:
 - apiGroups: [""]
@@ -1004,14 +1004,14 @@ rules:
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
 metadata:
-  name: agent-zero-binding
+  name: soma-agent-01-binding
   namespace: soma-agent-hub
 subjects:
 - kind: ServiceAccount
-  name: agent-zero
+  name: soma-agent-01
 roleRef:
   kind: Role
-  name: agent-zero-role
+  name: soma-agent-01-role
   apiGroup: rbac.authorization.k8s.io
 ```
 
@@ -1021,14 +1021,14 @@ roleRef:
 
 ### Immediate Next Steps
 
-1. **Test your Agent Zero implementation** with the integration test script
+1. **Test your SomaAgent01 implementation** with the integration test script
 2. **Deploy to development environment** using Docker or Kubernetes
 3. **Monitor agent performance** with health checks and metrics
 4. **Implement error handling** for production resilience
 
 ### Advanced Agent Patterns
 
-Once you have Agent Zero working, explore these advanced patterns:
+Once you have SomaAgent01 working, explore these advanced patterns:
 
 - **[Propagation Agent](propagation-agent.md)** - Handle data propagation and event streaming
 - **[Monitoring Agent](monitoring-agent.md)** - Implement comprehensive system monitoring
@@ -1043,4 +1043,4 @@ Once you have Agent Zero working, explore these advanced patterns:
 
 ---
 
-**Congratulations! You've successfully created your first autonomous agent with SomaAgentHub. Your Agent Zero can now authenticate, create sessions, execute tasks, and handle errors gracefully. Ready for the next challenge? Try building a [Propagation Agent](propagation-agent.md) to handle real-time data processing.**
+**Congratulations! You've successfully created your first autonomous agent with SomaAgentHub. Your SomaAgent01 can now authenticate, create sessions, execute tasks, and handle errors gracefully. Ready for the next challenge? Try building a [Propagation Agent](propagation-agent.md) to handle real-time data processing.**

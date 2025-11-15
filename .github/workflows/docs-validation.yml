@@ -84,7 +84,7 @@ jobs:
               'docs/onboarding-manual/team-collaboration.md',
               'docs/onboarding-manual/domain-knowledge.md',
               'docs/agent-onboarding/index.md',
-              'docs/agent-onboarding/agent-zero.md',
+              'docs/agent-onboarding/soma-agent-01.md',
               'docs/agent-onboarding/propagation-agent.md',
               'docs/agent-onboarding/monitoring-agent.md',
               'docs/agent-onboarding/security-hardening.md'

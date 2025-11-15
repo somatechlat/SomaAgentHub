@@ -84,7 +84,7 @@ graph TB
 
 | Section | Purpose | Integration Level |
 |---------|---------|-------------------|
-| [Agent Zero](agent-zero.md) | Basic agent setup and first API call | Beginner |
+| [SomaAgent01](soma-agent-01.md) | Basic agent setup and first API call | Beginner |
 | [Propagation Agent](propagation-agent.md) | Data propagation and event handling | Intermediate |
 | [Monitoring Agent](monitoring-agent.md) | System monitoring and alerting | Intermediate |
 | [Security Hardening](security-hardening.md) | Security best practices for agents | Advanced |
@@ -792,7 +792,7 @@ agent.audit_log("session_created", {"session_id": "sess_123", "token": "secret_t
 
 ### Immediate Integration Steps
 
-1. **Start with [Agent Zero](agent-zero.md)** - Basic setup and first API call
+1. **Start with [SomaAgent01](soma-agent-01.md)** - Basic setup and first API call
 2. **Implement authentication** using the patterns above
 3. **Add error handling** with retry logic and exponential backoff
 4. **Set up monitoring** with health checks and metrics
@@ -813,4 +813,4 @@ agent.audit_log("session_created", {"session_id": "sess_123", "token": "secret_t
 
 ---
 
-**Ready to integrate your agent? Start with [Agent Zero](agent-zero.md) for basic setup, then explore specialized agent patterns based on your use case.**
+**Ready to integrate your agent? Start with [SomaAgent01](soma-agent-01.md) for basic setup, then explore specialized agent patterns based on your use case.**
