@@ -45,7 +45,7 @@ class CapsuleResponse(BaseModel):
             version=capsule.version,
             type=capsule.type,
             manifest_yaml=capsule.manifest_yaml,
-            metadata=capsule.metadata or {},
+            metadata=capsule.metadata_json or {},
             created_at=capsule.created_at.isoformat(),
             updated_at=capsule.updated_at.isoformat(),
         )
@@ -134,7 +134,7 @@ async def update_capsule(
     # Update mutable fields
     capsule.type = payload.type
     capsule.manifest_yaml = payload.manifest_yaml
-    capsule.metadata = payload.metadata or {}
+    capsule.metadata_json = payload.metadata or {}
     session.add(capsule)
     return CapsuleResponse.from_orm(capsule)
 

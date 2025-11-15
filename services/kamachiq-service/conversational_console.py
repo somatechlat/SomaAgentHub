@@ -348,23 +348,7 @@ Just describe what you want to build, and I'll take care of the rest!
 """
 
 
-# Example usage
+# Example usage - requires real dependencies
 if __name__ == "__main__":
-import asyncio
-from unittest.mock import Mock
-
-# Mock dependencies
-bootstrapper = Mock()
-mao_client = Mock()
-
-console = KAMACHIQConsole(bootstrapper, mao_client)
-
-async def demo():
-session_id = "demo-session"
-
-async for response in console.process_message(
-session_id, "Create a web app called TaskMaster for team collaboration"
-):
-print(f"[{response['type']}] {response.get('content', '')}")
-
-asyncio.run(demo())
+    # Real dependencies required - no mocks allowed
+    raise NotImplementedError("Real bootstrapper and MAO client implementation required")

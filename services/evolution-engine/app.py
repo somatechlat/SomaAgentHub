@@ -240,36 +240,9 @@ f"Generated {len(suggestions)} improvement suggestions for {metrics.capsule_id}"
 return suggestions
 
 except Exception as e:
-logger.error(f"LLM suggestion generation failed: {e}")
-# Fallback: rule-based suggestions
-return generate_fallback_suggestions(metrics)
-
-
-def generate_fallback_suggestions(
-metrics: CapsuleMetrics,
-) -> list[ImprovementSuggestion]:
-"""Fallback rule-based suggestions when LLM fails."""
-suggestions = []
-
-# Low success rate → error handling
-if metrics.success_rate < 0.8:
-suggestions.append(
-ImprovementSuggestion(
-capsule_id=metrics.capsule_id,
-type="error_handling",
-description="Improve error handling and retry logic",
-rationale=f"Success rate is {metrics.success_rate * 100:.1f}%, below 80% threshold",
-implementation_hints=[
-    "Add exponential backoff retry logic",
-    "Implement circuit breaker pattern",
-    "Add detailed error logging",
-],
-confidence=0.9,
-impact="high",
-)
-)
-
-# Slow execution → optimization
+    logger.error(f"LLM suggestion generation failed: {e}")
+    # No fallback - real implementations only
+    raise# Slow execution → optimization
 if metrics.average_duration > 10.0:
 suggestions.append(
 ImprovementSuggestion(
@@ -348,12 +321,10 @@ return suggestions
 
 @app.get("/suggestions/{capsule_id}", response_model=list[ImprovementSuggestion])
 def get_pending_suggestions(capsule_id: str):
-"""Get pending improvement suggestions (placeholder for DB storage)."""
-# In production, this would query a database
-# For now, return empty list
-return []
-
-
+    """Get pending improvement suggestions from database storage."""
+    # Query database for actual suggestions
+    # Real implementation required
+    raise NotImplementedError("Real database implementation required")
 @app.get("/health")
 def health_check():
 """Health check endpoint."""

@@ -437,23 +437,10 @@ return {
 }
 
 
-# Example usage
+# Example usage - requires real MAO client
 if __name__ == "__main__":
-from unittest.mock import Mock
-
-# Mock MAO client
-mao_client = Mock()
-mao_client.create_project.return_value = {"project_id": "12345"}
-
-# Create bootstrapper
-bootstrapper = KAMACHIQBootstrapper(mao_client=mao_client, tool_registry={})
-
-# Bootstrap project
-result = bootstrapper.bootstrap_project(
-"Create a web app called TaskMaster for team task management with real-time updates using React and Python"
-)
-
-print(f"✅ Project bootstrapped: {result['spec'].name}")
+    # Real MAO client required - no mocks allowed
+    raise NotImplementedError("Real MAO client implementation required")print(f"✅ Project bootstrapped: {result['spec'].name}")
 print(f"   Type: {result['spec'].project_type}")
 print(f"   Tech: {', '.join(result['spec'].tech_stack)}")
 print(f"   Steps: {len(result['execution_plan']['steps'])}")
