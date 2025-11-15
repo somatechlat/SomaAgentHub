@@ -1,6 +1,5 @@
 """OPA (Open Policy Agent) client for SomaAgentHub.
 
-Real client only: no shims, no mocks. Errors fail closed.
 """
 
 from __future__ import annotations

@@ -1,7 +1,6 @@
 """Real ClickHouse driver package.
 
 This module requires the real clickhouse_driver package to be installed.
-No shims, no fallbacks, no fake implementations - real driver only.
 """
 
 from __future__ import annotations

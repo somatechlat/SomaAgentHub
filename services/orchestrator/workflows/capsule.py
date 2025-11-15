@@ -39,39 +39,21 @@ from services.common.observability import get_meter, get_tracer
 
 @dataclass
 class CapsuleRunInput:
-"""Input payload for a capsule run.
+    """Input payload for a capsule run.
 
-The original API schema (gateway ``/capsules/{capsule_id}/{version}/run``)
-includes ``run_id``, ``capsule_id``, ``version``, ``tenant``, ``user``,
-``params`` and ``metadata``.  The test suite's ``FakeTemporalClient``
-expects a legacy ``session_id`` and ``prompt`` attribute when constructing a
-``SessionStartResult``.  To remain compatible without altering the test
-harness we provide those additional fields as aliases – ``session_id`` is
-derived from ``run_id`` and ``prompt`` defaults to an empty string.
-"""
+    The original API schema (gateway ``/capsules/{capsule_id}/{version}/run``)
+    includes ``run_id``, ``capsule_id``, ``version``, ``tenant``, ``user``,
+    ``params`` and ``metadata``.
+    """
 
-# Primary fields used by the API and workflow.
-run_id: str
-capsule_id: str
-version: str
-tenant: str
-user: str
-params: dict[str, Any]
-metadata: dict[str, Any]
-
-# Compatibility fields for the fake client used in tests.
-session_id: str = ""
-prompt: str = ""
-
-def __post_init__(self) -> None:  # pragma: no cover – exercised via tests
-# If the legacy ``session_id`` is not supplied, fall back to ``run_id``.
-if not self.session_id:
-self.session_id = self.run_id
-# ``prompt`` is not part of the current API; default to empty string.
-if not self.prompt:
-self.prompt = ""
-
-
+    # Primary fields used by the API and workflow.
+    run_id: str
+    capsule_id: str
+    version: str
+    tenant: str
+    user: str
+    params: dict[str, Any]
+    metadata: dict[str, Any]
 # ---------------------------------------------------------------------------
 # Workflow definition
 # ---------------------------------------------------------------------------

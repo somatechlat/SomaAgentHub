@@ -2,7 +2,6 @@
 namespace.
 
 Tests sometimes import ``services.common`` (e.g. the OPA client test).  The
-actual ``common`` package lives at the repository root.  By adding this shim
 and extending the package path we make ``services.common`` resolve to the same
 module hierarchy.
 """

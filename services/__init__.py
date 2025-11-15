@@ -27,7 +27,6 @@ __path__ = pkgutil.extend_path(__path__, __name__)
 # ---------------------------------------------------------------------
 # Repository‑wide import‑path handling
 # ---------------------------------------------------------------------
-# The import‑path shim is now centralized in ``services/_path_setup.py``.
 # Individual services import that helper from their ``app/__init__`` modules.
 # Keeping this file free of ``sys.path`` manipulation avoids duplicate logic
 # and ensures a single source of truth for path handling.

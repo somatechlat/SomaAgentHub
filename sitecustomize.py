@@ -16,7 +16,6 @@ test code manipulates ``sys.path``.
 
 2. **Patch ``testcontainers``' ``RedisContainer``** – Some versions of the
 ``testcontainers`` library lack the ``get_connection_url`` method required by
-the identity‑service tests.  The original implementation of this shim
 remains unchanged; we only add the repository‑path logic before it.
 """
 

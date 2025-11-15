@@ -2,8 +2,6 @@
 
 This package ensures that the repository root is placed at the front of
 ``sys.path`` so that the top‑level ``services`` namespace package (which
-contains the central ``_path_setup`` shim) can be imported correctly.  After
-adjusting ``sys.path`` we import the shim to guarantee the repository root is
 available for all subsequent imports.
 """
 
@@ -16,7 +14,6 @@ _repo_root = pathlib.Path(__file__).resolve().parents[3]
 if str(_repo_root) not in sys.path:
     sys.path.insert(0, str(_repo_root))
 
-# Import the central path‑setup shim to finalize the import‑path configuration.
 import services._path_setup  # noqa: F401,E402
 from services.common.config.base_settings import resolve_env
 

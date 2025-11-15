@@ -9,7 +9,6 @@ from datetime import UTC, datetime
 from enum import Enum
 from typing import TYPE_CHECKING, Any
 
-# Import the ClickHouse ``Client`` from the real driver package. The shim
 # located at ``clickhouse_driver/__init__.py`` provides a stub ``Client`` at the
 # top level, but the actual driver exposes the class in the ``client``
 # submodule. Importing from the submodule bypasses the stub and ensures we use

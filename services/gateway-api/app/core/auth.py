@@ -97,20 +97,3 @@ detail="Empty token provided",
 return await _verify_token(token)
 
 
-# ---------------------------------------------------------------------------
-# Compatibility shim for the existing middleware
-# ---------------------------------------------------------------------------
-
-
-async def decode_token(token: str) -> Mapping[str, Any]:
-"""Decode a JWT token using the Identity Service.
-
-The original implementation performed local JWT validation or delegated to
-Keycloak.  For consistency across the platform we now forward the token to
-the Identity Service ``/v1/tokens/verify`` endpoint, which returns the full
-claim set after verification.  This function is ``async`` because the HTTP
-call is asynchronous.
-"""
-# Re‑use the internal verification helper which already handles errors and
-# returns a mapping of claims.
-return await _verify_token(token)

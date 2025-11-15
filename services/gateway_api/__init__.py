@@ -1,4 +1,3 @@
-"""Namespace shim for the legacy ``services/gateway-api`` directory.
 
 The on‑disk directory is named ``gateway-api`` (containing a hyphen), which
 cannot be used in a Python import statement. The codebase therefore imports

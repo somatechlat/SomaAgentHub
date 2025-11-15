@@ -14,12 +14,9 @@ metadata: dict[str, Any] = Field(default_factory=dict)
 
 
 class ModerationDetail(BaseModel):
-strike_count: int = 0
-flagged_terms: list[str] = Field(default_factory=list)
-reasons: list[str] = Field(default_factory=list)
-bypassed: bool = False
-
-
+    strike_count: int = 0
+    flagged_terms: list[str] = Field(default_factory=list)
+    reasons: list[str] = Field(default_factory=list)
 class SessionCreateResponse(BaseModel):
 session_id: str
 status: str

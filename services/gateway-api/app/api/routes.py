@@ -155,7 +155,6 @@ moderation = ModerationDetail(
 strike_count=verdict.strike_count,
 flagged_terms=verdict.flagged_terms,
 reasons=verdict.reasons,
-bypassed=verdict.bypassed,
 )
 
 return SessionCreateResponse(

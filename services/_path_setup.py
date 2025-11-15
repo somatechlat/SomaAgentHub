@@ -1,4 +1,3 @@
-"""Centralized import‑path shim for the repository.
 
 The test harness prepends the individual service directory (e.g. ``services/analytics-service``)
 to ``sys.path`` before importing ``app`` modules.  Many services also import top‑level

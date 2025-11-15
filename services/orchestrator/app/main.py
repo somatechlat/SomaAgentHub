@@ -11,7 +11,6 @@ from prometheus_client import CONTENT_TYPE_LATEST, generate_latest
 from temporalio import client as temporal_client
 
 # Import the original FastAPI bootstrap helper under an alias to avoid name
-# clashes with the legacy ``create_app`` shim defined later in this module.
 from services.common.fastapi.bootstrap import create_app as bootstrap_create_app
 from services.common.spiffe_auth import init_spiffe
 
@@ -116,10 +115,8 @@ app = build_app()
 
 
 # ---------------------------------------------------------------------------
-# Compatibility shim for the test suite
 # ---------------------------------------------------------------------------
 def create_app(*args, **kwargs) -> FastAPI:  # pragma: no cover
-"""Compatibility shim for legacy test imports.
 
 The historic test suite imports ``create_app`` from this module and calls it
 with a single ``settings`` keyword argument containing a dict of overrides.

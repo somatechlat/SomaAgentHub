@@ -17,16 +17,13 @@ class ModerationError(RuntimeError):
 
 @dataclass
 class ModerationVerdict:
-"""Result of moderation evaluation."""
+    """Result of moderation evaluation."""
 
-allowed: bool
-strike_count: int
-flagged_terms: list[str] = field(default_factory=list)
-reasons: list[str] = field(default_factory=list)
-bypassed: bool = False
-strike_delta: int = 0
-
-
+    allowed: bool
+    strike_count: int
+    flagged_terms: list[str] = field(default_factory=list)
+    reasons: list[str] = field(default_factory=list)
+    strike_delta: int = 0
 class ModerationGuard:
 """Performs lightweight content moderation with strike tracking."""
 
@@ -71,15 +68,6 @@ async def evaluate(
 self, ctx: RequestContext, content: str | None
 ) -> ModerationVerdict:
 """Evaluate content and update strike counters as needed."""
-
-if "moderation:bypass" in ctx.capabilities:
-strikes = await self._get_current_strikes(ctx.tenant_id, ctx.user_id)
-return ModerationVerdict(
-allowed=True,
-strike_count=strikes,
-bypassed=True,
-reasons=["moderation bypass capability present"],
-)
 
 text = (content or "").lower()
 if not text.strip():

@@ -1,7 +1,6 @@
 """Jobs service package.
 
 Ensure the repository root is at the front of ``sys.path`` before importing
-the central path‑setup shim. This guarantees that the top‑level ``services``
 namespace package (which contains ``_path_setup.py``) is resolved instead of
 the service‑specific ``services`` subpackage added by the test harness.
 """

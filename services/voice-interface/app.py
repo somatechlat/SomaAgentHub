@@ -42,7 +42,6 @@ class TTSRequest(BaseModel):
 """Request for text-to-speech."""
 
 text: str
-voice: str = "alloy"  # alloy, echo, fable, onyx, nova, shimmer
 model: str = "tts-1"  # tts-1 or tts-1-hd
 speed: float = 1.0  # 0.25 to 4.0
 
@@ -345,7 +344,6 @@ return {
 {"id": "fable", "description": "Expressive, storytelling voice"},
 {"id": "onyx", "description": "Deep, authoritative voice"},
 {"id": "nova", "description": "Energetic, youthful voice"},
-{"id": "shimmer", "description": "Soft, calm voice"},
 ]
 }
 

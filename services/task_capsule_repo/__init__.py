@@ -1,4 +1,3 @@
-"""Compatibility shim for tests expecting the underscore package name.
 
 This package maps the dotted name ``services.task_capsule_repo`` to the
 existing directory ``services/task-capsule-repo`` (which cannot be imported

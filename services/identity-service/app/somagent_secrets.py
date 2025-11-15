@@ -1,4 +1,3 @@
-"""Backwards compatibility shim for legacy somagent_secrets import sites."""
 
 from __future__ import annotations
 
