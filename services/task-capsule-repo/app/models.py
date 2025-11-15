@@ -36,8 +36,7 @@ class Capsule(Base):
     version = Column(String(20), nullable=False)
     type = Column(SAEnum(CapsuleType), nullable=False)
     manifest_yaml = Column(Text)
-    # Use instance attribute name `metadata` so existing callers continue to
-    # access `.metadata`. Column name in Postgres is also `metadata` (JSONB).
-    metadata = Column(JSONB, default=dict)
+    # Use instance attribute name `metadata_json` to avoid SQLAlchemy reserved name
+    metadata_json = Column("metadata", JSONB, default=dict)
     created_at = Column(DateTime, server_default=func.now())
     updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now())

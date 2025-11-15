@@ -18,8 +18,8 @@ repo_common = repo_root / "common"
 
 # Ensure the repository ``common`` directory is on ``sys.path`` so the
 # original package can be discovered.
-if str(repo_common) not in sys.path:
-sys.path.insert(0, str(repo_common))
+if str(_repo_root) not in sys.path:
+    sys.path.insert(0, str(repo_common))
 
 # Merge this shim with the real ``common`` package.
 __path__ = pkgutil.extend_path(__path__, __name__)

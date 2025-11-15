@@ -50,9 +50,6 @@ services:
       - SOMA_AGENT_HUB_DATABASE_URL=postgresql+asyncpg://${APP_POSTGRES_USER:-somaagent}:${APP_POSTGRES_PASSWORD:-somaagent}@app-postgres:5432/${APP_POSTGRES_DB:-somaagent}
       - SOMA_AGENT_HUB_CAPSULE_REPO_URL=http://capsule-repo:8002/v1/capsules
       - SOMA_AGENT_HUB_OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4317
-    depends_on:
-      temporal-server:
-        condition: service_healthy
     healthcheck:
       test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/ready', timeout=3)\""]
       interval: 10s
@@ -194,6 +191,21 @@ services:
     image: temporalio/auto-setup:1.22.4
     container_name: somaagenthub_temporal
     restart: unless-stopped
+    ports:
+      - "7233:7233"
+    environment:
+      - DB=postgresql
+      - POSTGRES_SEEDS=temporal-postgres
+      - POSTGRES_USER=temporal
+      - POSTGRES_PASSWORD=temporal
+    depends_on:
+      temporal-postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "echo 'health' | nc -w 1 localhost 7233"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
     networks:
       - somaagenthub-network
 
@@ -238,7 +250,7 @@ services:
     volumes:
       - clickhouse-data:/var/lib/clickhouse
     healthcheck:
-      test: ["CMD-SHELL", "curl -f http://127.0.0.1:8123/ping || exit 1"]
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:8123/ping || exit 1"]
       interval: 15s
       timeout: 5s
       retries: 6
@@ -382,7 +394,7 @@ services:
     restart: unless-stopped
     command: ["-config.file=/etc/loki/local-config.yaml"]
     ports:
-      - "${LOKI_HTTP_PORT:-10013}:3100"
+      - "${LOKI_HTTP_PORT:-10018}:3100"
     healthcheck:
       test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:3100/ready || exit 1"]
     networks:
