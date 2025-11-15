@@ -9,7 +9,6 @@ from typing import BinaryIO
 # MinIO/S3 service. The test suite replaces the ``Minio`` class with a dummy
 # implementation, but importing the library unconditionally fails in the CI
 # environment where the package is not installed. We therefore import it lazily
-# and provide a minimal fallback stub so that the module can be imported even
 # without the external library.
 from minio import Minio  # type: ignore
 from minio.error import S3Error  # type: ignore

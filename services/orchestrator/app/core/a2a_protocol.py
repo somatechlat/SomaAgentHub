@@ -159,7 +159,6 @@ except ImportError as exc:
 raise RuntimeError(
 "kubernetes python client is required for ConfigMapAgentRegistryBackend"
 ) from exc
-# Load in‑cluster config; fallback to default kubeconfig for local dev.
 try:
 config.load_incluster_config()
 except config.ConfigException:

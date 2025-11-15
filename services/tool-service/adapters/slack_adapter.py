@@ -126,7 +126,6 @@ Send a message.
 
 Args:
 channel_id: Channel ID
-text: Message text (fallback for blocks)
 blocks: Block Kit blocks
 thread_ts: Thread timestamp (for replies)
 attachments: Legacy attachments
@@ -423,7 +422,6 @@ self.build_section_block(message),
 
 # Legacy attachment for color bar
 attachments = [
-{"color": colors.get(level, "#36a64f"), "fallback": f"{title}: {message}"}
 ]
 
 return self.send_message(

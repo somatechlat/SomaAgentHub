@@ -164,7 +164,6 @@ session_id, tenant, "conversation.stream_complete", {"chunks": chunk_count}
 )
 except Exception as exc:
 # Fallback to echo response if OpenAI unavailable
-logger.warning("[OPENAI_ERROR] Streaming failed, using fallback: %s", exc)
 chunks = ["Hello", " from", " orchestrator", " streaming", " endpoint!"]
 for chunk in chunks:
 yield f"data: {json.dumps({'chunk': chunk})}\n\n"

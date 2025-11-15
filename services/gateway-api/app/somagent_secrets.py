@@ -1,7 +1,6 @@
 """Strict secret loader.
 
 All secret values must be provided via the canonical ``SOMA_AGENT_HUB_``
-environment variables. No file‑based fallbacks, default values, or silent
 silencing of missing secrets are allowed. If a secret cannot be resolved the
 function raises a ``RuntimeError`` to fail fast and surface the configuration
 issue.

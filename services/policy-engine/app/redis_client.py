@@ -2,7 +2,6 @@
 
 Exports:
 - redis_client: an async Redis client or None if unavailable/misconfigured.
-- get_constitution_hash: helper to fetch constitution hash with safe fallbacks.
 """
 
 from __future__ import annotations
@@ -42,7 +41,6 @@ return redis_client
 
 
 async def get_constitution_hash(tenant: str) -> str:
-"""Return a cached constitution hash for tenant with safe fallback."""
 client = await _ensure_client()
 if client is None:
 return f"constitution-hash-{tenant}"

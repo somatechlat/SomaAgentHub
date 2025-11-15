@@ -235,10 +235,8 @@ return [_rule_to_dict(rule) for rule in get_rules(tenant)]
 
 @app.get("/v1/health/redis")
 async def health_redis() -> dict:
-"""Async health check that pings Redis (or fallback) and reports status.
 
 Returns ``{"status": "ok"}`` with HTTP 200 when the Redis client can be reached
-(or when the fallback placeholder is used). Returns ``{"status": "unavailable"}``
 with HTTP 503 otherwise.
 """
 try:

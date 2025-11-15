@@ -13,7 +13,6 @@ DATABASE_URL = resolve_env(
 
 
 def _get_api_key(env_name: str, vault_key: str) -> str:
-# Prefer env variable; fallback to Vault path services/llm-hub
 val = resolve_env(env_name)
 if val:
 return val

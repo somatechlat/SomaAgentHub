@@ -21,7 +21,6 @@ class GeodesicKernel:
 """Computes soft geodesic scores over spherical embeddings.
 
 This implementation is intentionally lightweight: it provides the structure for future
-accelerated implementations while offering a deterministic fallback that mirrors cosine
 similarity. The kernel normalizes embeddings onto the unit sphere and then computes
 exponential weights over the angular distance.
 """

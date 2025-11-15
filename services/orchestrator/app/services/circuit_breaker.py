@@ -2,7 +2,6 @@
 Production circuit breaker implementation for resilient service communication.
 
 Supports multiple backends: database, kafka, external services with configurable thresholds,
-fallback mechanisms, and automatic recovery.
 """
 
 from __future__ import annotations
@@ -52,7 +51,6 @@ class CircuitBreakerConfig:
 failure_threshold: int = 5
 recovery_timeout: int = 60
 expected_exception: type[Exception] = Exception
-fallback_function: Optional[Callable[..., Any]] = None
 success_threshold: int = 2
 name: str = "circuit_breaker"
 
@@ -84,8 +82,6 @@ if self._should_attempt_reset():
         f"Circuit breaker {self.config.name} entering HALF_OPEN state"
     )
 else:
-    if self.config.fallback_function:
-        return await self._execute_fallback(*args, **kwargs)
     raise ServiceUnavailableError(
         f"Circuit breaker {self.config.name} is OPEN"
     )
@@ -109,8 +105,6 @@ circuit_breaker_duration.labels(
 service=self.config.name, status="failure"
 ).observe(time.time() - start_time)
 
-if self.config.fallback_function:
-return await self._execute_fallback(*args, **kwargs)
 raise
 
 def _should_attempt_reset(self) -> bool:
@@ -147,11 +141,6 @@ logger.warning(
 f"Circuit breaker {self.config.name} OPENED after {self.failure_count} failures"
 )
 
-async def _execute_fallback(self, *args: Any, **kwargs: Any) -> Any:
-"""Execute fallback function."""
-if self.config.fallback_function:
-logger.info(f"Executing fallback for circuit breaker {self.config.name}")
-return await self.config.fallback_function(*args, **kwargs)
 return None
 
 def get_state(self) -> Dict[str, Any]:
@@ -177,7 +166,6 @@ CircuitBreakerConfig(
 name="database",
 failure_threshold=3,
 recovery_timeout=30,
-fallback_function=lambda: {"healthy": False, "message": "Database unavailable"},
 )
 )
 
@@ -186,7 +174,6 @@ CircuitBreakerConfig(
 name="kafka",
 failure_threshold=5,
 recovery_timeout=60,
-fallback_function=lambda: {"healthy": False, "message": "Kafka unavailable"},
 )
 )
 
@@ -195,7 +182,6 @@ CircuitBreakerConfig(
 name="external_service",
 failure_threshold=3,
 recovery_timeout=45,
-fallback_function=lambda: {
 "healthy": False,
 "message": "External service unavailable",
 },

@@ -4,7 +4,6 @@ import os
 import pytest
 from fastapi.testclient import TestClient
 
-# Ensure Redis fallback (no REDIS_URL) for deterministic behavior
 if "REDIS_URL" in os.environ:
 del os.environ["REDIS_URL"]
 

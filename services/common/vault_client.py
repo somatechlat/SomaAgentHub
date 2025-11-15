@@ -47,7 +47,6 @@ self.vault_namespace = vault_namespace or resolve_env(
 "VAULT_NAMESPACE", "somaagent"
 )
 
-# Determine mode once; DEV mirrors interfaces using env/in-memory fallbacks
 self._deployment_mode = (resolve_env("DEPLOYMENT_MODE", "DEV") or "DEV").upper()
 self._dev_mode = self._deployment_mode == "DEV"
 

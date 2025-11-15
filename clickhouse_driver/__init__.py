@@ -9,7 +9,6 @@ import importlib.util
 import sys
 from pathlib import Path
 
-# Real driver required - no fallbacks allowed
 try:
     import clickhouse_driver
 except ImportError:

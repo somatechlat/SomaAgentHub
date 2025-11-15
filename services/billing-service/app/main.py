@@ -122,7 +122,6 @@ raise HTTPException(status_code=500, detail="Payment intent creation failed")
 
 
 class WebhookEvent(BaseModel):
-"""Generic wrapper if manual JSON parsing fallback is needed."""
 
 type: str | None = None
 data: dict | None = None

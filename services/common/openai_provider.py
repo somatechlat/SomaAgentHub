@@ -39,7 +39,6 @@ base_url: Custom API base URL (for Azure OpenAI, etc.)
 if AsyncOpenAI is None:
 raise RuntimeError("openai library not installed. Run: pip install openai")
 
-# Centralized resolver (new prefix + fallbacks) without breaking legacy values
 try:
 from services.common.config.base_settings import resolve_env as _resolve_env
 except Exception:

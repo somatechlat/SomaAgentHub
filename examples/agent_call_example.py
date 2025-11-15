@@ -43,13 +43,11 @@ raise ImportError(
 ) from exc
 
 
-def _env_default(name: str, fallback: str | None = None) -> str | None:
 """Return environment override if present."""
 
 value = resolve_env(name)
 if value:
 return value
-return fallback
 
 
 def build_parser() -> argparse.ArgumentParser:

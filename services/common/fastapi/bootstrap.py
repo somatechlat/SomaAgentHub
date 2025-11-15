@@ -20,7 +20,6 @@ lifespan: Callable | None = None,
 ) -> FastAPI:
 """Create a FastAPI app with unified logging and observability.
 
-- Applies log level (fallback to INFO if attribute missing)
 - Initializes OpenTelemetry (metrics + tracing) if enabled
 - Calls an optional `routes_factory` to attach routes/routers
 """

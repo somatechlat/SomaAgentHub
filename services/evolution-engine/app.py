@@ -241,7 +241,6 @@ return suggestions
 
 except Exception as e:
     logger.error(f"LLM suggestion generation failed: {e}")
-    # No fallback - real implementations only
     raise# Slow execution → optimization
 if metrics.average_duration > 10.0:
 suggestions.append(

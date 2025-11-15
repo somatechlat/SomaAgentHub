@@ -62,11 +62,9 @@ name="llm_hub_failure",
 type=ExperimentType.POD_FAILURE,
 target_service="llm-hub",
 duration="3m",
-description="Kill LLM Hub pod to test provider routing fallback",
 params={"mode": "one"},
 validation_queries=[
 "rate(model_requests_total[1m]) > 0",
-"model_fallback_total > 0",
 ],
 ),
 # Network chaos

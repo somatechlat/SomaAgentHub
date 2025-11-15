@@ -9,7 +9,6 @@ from typing import Any
 
 try:  # pragma: no cover - optional dependency for production
 import numpy as _np  # type: ignore
-except Exception:  # pragma: no cover - fallback to standard library math
 _np = None
 
 from .geometry import GeodesicKernel

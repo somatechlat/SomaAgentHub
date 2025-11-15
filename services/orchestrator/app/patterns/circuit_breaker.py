@@ -85,7 +85,6 @@ breaker = CircuitBreaker("github-api")
 try:
 result = await breaker.call(make_github_api_call, arg1, arg2)
 except CircuitBreakerOpenError:
-# Circuit is open, use fallback
 result = get_cached_data()
 
 Real-World Benefits:

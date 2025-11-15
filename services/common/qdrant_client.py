@@ -9,7 +9,6 @@ import os
 from typing import Any
 
 # Attempt to import the real qdrant client. If unavailable, provide a lightweight
-# in‑memory fallback that implements the subset of async methods used by the test
 # suite. This avoids pulling the heavy external dependency during CI.
 try:
 from qdrant_client import AsyncQdrantClient

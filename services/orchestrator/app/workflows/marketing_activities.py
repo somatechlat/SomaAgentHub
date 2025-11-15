@@ -519,7 +519,6 @@ temperature=0.7,
 
 content_text = llm_result["completion"]
 
-# Step 4: Parse content (try JSON, fallback to structured text)
 try:
 import json
 

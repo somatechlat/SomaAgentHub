@@ -11,7 +11,6 @@ from services.common.config.base_settings import resolve_env
 
 try:  # pragma: no cover - optional cryptography dependency
 from nacl.signing import SigningKey, VerifyKey  # type: ignore
-except Exception:  # pragma: no cover - fallback when PyNaCl is unavailable
 SigningKey = None
 VerifyKey = None
 

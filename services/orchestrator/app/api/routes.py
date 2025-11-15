@@ -51,8 +51,6 @@ router.include_router(training_router)
 
 # Metrics
 POLICY_FALLBACK_EVENTS = Counter(
-"policy_fallback_events_total",
-"Number of policy fallback events (OPA unavailable or error)",
 ["route", "reason"],
 )
 

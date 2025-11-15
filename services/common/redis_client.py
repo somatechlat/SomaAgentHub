@@ -15,10 +15,8 @@ try:
 import redis.asyncio as redis
 from redis.asyncio import Redis
 from redis.exceptions import RedisError
-except Exception:  # pragma: no cover - fallback if redis not installed
 redis = None
 
-# Lightweight fallback stubs for typing when redis isn't present
 class _RedisStub:  # noqa: D401
 pass
 
@@ -260,7 +258,6 @@ from services.common.config.base_settings import resolve_env
 
 # Primary environment variable used by most services.
 redis_url = resolve_env("REDIS_URL")
-# No legacy or wildcard fallbacks; require canonical var.
 if not redis_url:
 raise RuntimeError("REDIS_URL environment variable not set")
 

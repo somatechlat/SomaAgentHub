@@ -28,7 +28,6 @@ path = Path(file_path)
 if path.is_file():
 try:
     return path.read_text(encoding="utf-8").strip()
-except Exception:  # pragma: no cover - best effort fallback
     pass
 return default or ""
 

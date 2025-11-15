@@ -5,7 +5,6 @@ Deprecated migration script.
 The unified settings/registry/vault_manager workflow has been removed.
 Configuration is centralized via:
  - services.common.config.base_settings.resolve_env
- - services.common.vault_client for secrets (DEV uses env/in-memory fallbacks)
 
 This script is no longer supported and will not run.
 """

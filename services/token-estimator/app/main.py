@@ -81,7 +81,6 @@ days=7,  # Use 7-day history for forecast
 base_tokens = usage_data.get("total_tokens", 100_000) // 7  # Daily average
 confidence = 0.85  # Higher confidence with real data
 except Exception as exc:
-logger.warning("[ANALYTICS_WARNING] Using fallback forecast: %s", exc)
 # Fallback to heuristic estimates
 base_tokens = 100_000  # Base daily estimate
 confidence = 0.65  # Lower confidence without real data

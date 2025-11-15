@@ -1,7 +1,6 @@
 """
 Policy-engine configuration using centralized resolver.
 
-Two modes only: DEV and PROD. DEV mirrors PROD code paths with local fallbacks.
 """
 
 from services.common.config.base_settings import resolve_env

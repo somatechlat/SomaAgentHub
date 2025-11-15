@@ -122,7 +122,6 @@ async def remember(payload: RememberRequest):
 # Ensure we can modify the module‑level flag when falling back to in‑memory storage
 global _use_qdrant
 if _use_qdrant:
-# Generate embedding via LLM Hub (fallback to zero vector on any error)
 import json
 import os
 
@@ -150,7 +149,6 @@ exc,
 )
 vector = [0.0] * 768
 
-# Attempt to upsert into Qdrant, but gracefully fallback to the in‑memory store
 try:
 await _qdrant_client.upsert_points(
 collection_name="memory",
@@ -174,7 +172,6 @@ logger.warning(
 "[QDRANT_WARNING] Upsert failed, falling back to in-memory store: %s",
 exc,
 )
-# Store in the in‑memory fallback and disable Qdrant usage for this request cycle
 MEMORY_STORE[payload.key] = payload.value
 # Ensure subsequent recall uses the in‑memory path
 _use_qdrant = False
@@ -226,7 +223,6 @@ content_type=file.content_type or "application/octet-stream",
 
 # Persist a compact metadata entry so it is searchable later.  The record is
 # stored in the ``capsule_runs`` vector collection (zero‑vector placeholder)
-# and also in the in‑memory fallback.
 record = {
 "key": object_key,
 "url": url,
@@ -295,7 +291,6 @@ async def post_memory(payload: RememberRequest):
 """Alias for ``/v1/remember`` to maintain backward compatibility.
 
 The implementation delegates to the ``remember`` function so that any
-fallback logic (Qdrant handling, in‑memory store) is shared.
 """
 return await remember(payload)
 
@@ -336,7 +331,6 @@ return RecallResponse(key=key, value=MEMORY_STORE[key])
 async def list_memories() -> list[str]:
 """Return a list of stored memory keys.
 
-For the in‑memory fallback we simply return the keys of ``MEMORY_STORE``.
 When Qdrant is enabled, a full enumeration would require a collection
 scan; for now we expose the in‑memory view which is sufficient for the
 current test suite and CI validation.
@@ -381,7 +375,6 @@ answer = f"Found {len(results)} relevant memories. Top result: {context_texts[0]
 return RAGResponse(answer=answer, sources=sources)
 else:
 # Fallback: No vector store available. Return error or use basic string matching.
-# In production, this should use a configured fallback (e.g., ES, database search)
 raise HTTPException(
 status_code=503,
 detail="Vector store (Qdrant) unavailable. Configure LLM_HUB_URL and Qdrant to enable RAG.",
