@@ -59,13 +59,7 @@ policy_engine_url: str = resolve_env(
 llm_hub_url: str = resolve_env("LLM_HUB_URL", "http://llm-hub:8000")
 gateway_api_url: str = resolve_env("GATEWAY_API_URL", "http://gateway-api:10000")
 
-# Volcano scheduler flags (optional features)
-enable_volcano_scheduler: bool = (
-str(resolve_env("ENABLE_VOLCANO_SCHEDULER", "false")).lower() == "true"
-)
-volcano_job_timeout_seconds: int = int(
-resolve_env("VOLCANO_JOB_TIMEOUT_SECONDS", "300")
-)
+
 
 # Database configuration (canonical prefix variables)
 database_url: str = resolve_env(

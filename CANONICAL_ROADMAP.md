@@ -40,7 +40,7 @@ Production-ready taxi-service builder with PostgreSQL-backed capsule registry, K
 ### **Sprint 2: Agent Management (Week 3-4)**
 **Focus: Kubernetes-Native Agent Spawning**
 
-**User Story**: "As a platform admin, I can spawn agent pods without Volcano scheduler"
+**User Story**: "As a platform admin, I can spawn agent pods"
 
 **Deliverables**:
 - ✅ Agent-Spawner FastAPI service

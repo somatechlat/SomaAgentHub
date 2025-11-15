@@ -45,7 +45,7 @@ token: dict[str, Any] | None
 llm_response: dict[str, Any]
 audit_event_id: str
 completed_at: datetime
-volcano_job: dict[str, Any] | None = None
+
 
 
 @dataclass
@@ -246,38 +246,7 @@ audit_event_id=audit_id,
 completed_at=datetime.now(UTC),
 )
 
-volcano_job_result: dict[str, Any] | None = None
-if settings.enable_volcano_scheduler:
-volcano_payload: dict[str, Any] = {
-"session_id": payload.session_id,
-"tenant": payload.tenant,
-"user": payload.user,
-"wait": payload.metadata.get("volcano_wait", True),
-}
-for key, meta_key in {
-"queue": "volcano_queue",
-"command": "volcano_command",
-"image": "volcano_image",
-"env": "volcano_env",
-"cpu": "volcano_cpu",
-"memory": "volcano_memory",
-"timeout_seconds": "volcano_timeout_seconds",
-}.items():
-value = payload.metadata.get(meta_key)
-if value is not None:
-    volcano_payload[key] = value
 
-try:
-volcano_job_result = await workflow.execute_activity(
-    "launch-volcano-session-job",
-    volcano_payload,
-    start_to_close_timeout=timedelta(
-        seconds=settings.volcano_job_timeout_seconds + 30
-    ),
-)
-logger.info("Volcano job submitted with result %s", volcano_job_result)
-except Exception as exc:  # pragma: no cover - best effort integration
-logger.warning("Volcano submission failed: %s", exc)
 
 token_req = IdentityTokenRequest(
 user_id=payload.user,
@@ -312,16 +281,7 @@ audit_payload: dict[str, Any] = {
 "token_claims": {k: v for k, v in token.items() if k != "access_token"},
 "llm_model": payload.model,
 }
-if volcano_job_result:
-volcano_details: dict[str, Any] = {
-"job_name": volcano_job_result.get("job_name"),
-"status": volcano_job_result.get("status"),
-"waited": volcano_job_result.get("waited"),
-}
-logs = volcano_job_result.get("logs")
-if isinstance(logs, str) and logs.strip():
-volcano_details["logs"] = logs[:2048]
-audit_payload["volcano_job"] = volcano_details
+
 
 audit_event_id = await workflow.execute_activity(
 emit_audit_event,
@@ -339,7 +299,6 @@ token=token,
 llm_response=llm_response,
 audit_event_id=audit_event_id,
 completed_at=datetime.now(UTC),
-volcano_job=volcano_job_result,
 )
 logger.info("Session workflow completed", result=result.__dict__)
 return result

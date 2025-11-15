@@ -23,6 +23,9 @@ from pydantic import BaseModel
 
 from services.common.config.base_settings import resolve_env
 
+from app.api.service_auth import router as service_auth_router
+from app.core.service_auth import get_service_auth_manager
+
 
 # Configure logging
 logging.basicConfig(
@@ -109,22 +112,30 @@ logger.info("Governance Service stopped")
 
 # Create FastAPI app
 app = FastAPI(
-title="Governance Service API",
-description="Unified Governance and Security Service",
-version="1.0.0",
-lifespan=lifespan,
+    title="Governance Service API",
+    description="Unified Governance and Security Service",
+    version="1.0.0",
+    lifespan=lifespan,
 )
 
-
+# Include service authentication routes
+app.include_router(service_auth_router)
 async def _initialize_governance_services():
-"""Initialize governance services."""
-# TODO: Initialize authentication service
-# TODO: Initialize authorization service
-# TODO: Initialize policy management
-# TODO: Initialize audit logging
-logger.info("Governance services initialized")
-
-
+    """Initialize governance services."""
+    try:
+        # Initialize service authentication manager
+        auth_manager = get_service_auth_manager()
+        await auth_manager.initialize()
+        logger.info("Service authentication manager initialized")
+        
+        # TODO: Initialize authorization service
+        # TODO: Initialize policy management
+        # TODO: Initialize audit logging
+        
+        logger.info("Governance services initialized")
+    except Exception as e:
+        logger.error(f"Failed to initialize governance services: {e}")
+        raise
 async def _cleanup_governance_services():
 """Cleanup governance services."""
 # TODO: Cleanup authentication service
@@ -142,21 +153,39 @@ return {"message": "Governance Service - Unified Governance and Security"}
 
 @app.get("/health", response_model=HealthResponse)
 async def health_check():
-"""Health check endpoint."""
-# TODO: Check actual governance service status
-return HealthResponse(
-status="healthy",
-services_available={
-"authentication": False,  # TODO: Check actual status
-"authorization": False,  # TODO: Check actual status
-"policy_management": False,  # TODO: Check actual status
-"audit_logging": False,  # TODO: Check actual status
-"compliance_monitoring": False,  # TODO: Check actual status
-},
-policies_loaded=0,  # TODO: Count actual loaded policies
-)
-
-
+    """Health check endpoint."""
+    try:
+        # Check service authentication status
+        auth_manager = get_service_auth_manager()
+        service_accounts = auth_manager.list_service_accounts()
+        active_tokens = auth_manager.get_active_tokens()
+        
+        auth_status = auth_manager._initialized and len(service_accounts) > 0
+        
+        return HealthResponse(
+            status="healthy" if auth_status else "degraded",
+            services_available={
+                "authentication": auth_status,
+                "authorization": False,  # TODO: Check actual status
+                "policy_management": False,  # TODO: Check actual status
+                "audit_logging": False,  # TODO: Check actual status
+                "compliance_monitoring": False,  # TODO: Check actual status
+            },
+            policies_loaded=0,  # TODO: Count actual loaded policies
+        )
+    except Exception as e:
+        logger.error(f"Health check failed: {e}")
+        return HealthResponse(
+            status="unhealthy",
+            services_available={
+                "authentication": False,
+                "authorization": False,
+                "policy_management": False,
+                "audit_logging": False,
+                "compliance_monitoring": False,
+            },
+            policies_loaded=0,
+        )
 @app.post("/auth/login", response_model=AuthResponse)
 async def login(request: AuthRequest):
 """

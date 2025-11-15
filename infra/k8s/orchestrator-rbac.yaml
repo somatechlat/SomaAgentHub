@@ -11,7 +11,7 @@ metadata:
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
 metadata:
-  name: orchestrator-volcano
+  name: orchestrator
   namespace: somaagent
   labels:
     app: orchestrator
@@ -22,24 +22,21 @@ rules:
   - apiGroups: [""]
     resources: ["pods", "pods/log"]
     verbs: ["get", "list", "watch"]
-  - apiGroups: ["scheduling.volcano.sh"]
-    resources: ["podgroups"]
+  - apiGroups: ["apps"]
+    resources: ["deployments"]
     verbs: ["create", "get", "list", "watch", "delete"]
-  - apiGroups: ["scheduling.volcano.sh"]
-    resources: ["queues"]
-    verbs: ["get", "list", "watch"]
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
 metadata:
-  name: orchestrator-volcano
+  name: orchestrator
   namespace: somaagent
   labels:
     app: orchestrator
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: Role
-  name: orchestrator-volcano
+  name: orchestrator
 subjects:
   - kind: ServiceAccount
     name: orchestrator

@@ -102,7 +102,7 @@ Successfully migrated 5 high-priority services to the unified configuration syst
 
 ### Service-Specific Variables
 - **gateway-api**: Security, TLS, routing configuration
-- **orchestrator**: Temporal, Kafka, Ray, Volcano scheduler
+- **orchestrator**: Temporal, Kafka, Ray
 - **memory-gateway**: Qdrant, embedding, object storage
 - **policy-engine**: OPA integration, Redis cache settings
 - **llm-hub**: API keys, model providers, rate limiting

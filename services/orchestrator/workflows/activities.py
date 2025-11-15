@@ -17,18 +17,7 @@ from common.config.runtime import runtime_default
 
 from ..app.core.config import settings
 
-try:  # pragma: no cover - optional dependency during spike
-from ..app.workflows.volcano_launcher import (
-VolcanoJobLauncher,
-VolcanoJobSpec,
-VolcanoLauncherError,
-default_session_spec,
-)
-except Exception:  # pragma: no cover - kubectl/PyYAML missing locally
-VolcanoJobLauncher = None  # type: ignore[assignment]
-VolcanoJobSpec = None  # type: ignore[assignment]
-VolcanoLauncherError = RuntimeError  # type: ignore[assignment]
-default_session_spec = None  # type: ignore[assignment]
+
 
 
 def _ensure_endpoint(url: str, expected_path: str) -> str:
@@ -103,98 +92,7 @@ from services.common.config.base_settings import resolve_env
 GATEWAY_API_URL = resolve_env("GATEWAY_API_URL", "http://gateway-api:10000")
 
 
-@activity.defn(name="launch-volcano-session-job")
-async def launch_volcano_session_job(payload: dict[str, Any]) -> dict[str, Any]:
-"""Submit a Volcano job for the session workflow (feature-flagged)."""
 
-if not settings.enable_volcano_scheduler:
-activity.logger.info("Volcano scheduler disabled; skipping job launch")
-return {"status": "disabled"}
-
-if default_session_spec is None or VolcanoJobLauncher is None:
-raise RuntimeError(
-"Volcano launcher not available. Ensure PyYAML/kubectl are installed in the worker image."
-)
-
-session_id: str = (
-payload.get("session_id")
-or payload.get("workflow_id")
-or payload.get("job_name")
-or "session"
-)
-spec: VolcanoJobSpec = default_session_spec(session_id)
-
-if queue := payload.get("queue"):
-spec.queue = str(queue)
-if "command" in payload:
-spec.command = _normalize_command(payload.get("command"))
-if image := payload.get("image"):
-spec.image = str(image)
-if "env" in payload:
-env_override = payload.get("env")
-if not isinstance(env_override, Mapping):
-raise ValueError("env override must be a mapping of string keys to values")
-spec.env = {**spec.env, **_normalize_env(env_override)}
-if cpu := payload.get("cpu"):
-spec.cpu = str(cpu)
-if memory := payload.get("memory"):
-spec.memory = str(memory)
-if "min_member" in payload:
-spec.min_member = _coerce_positive_int(payload.get("min_member"), "min_member")
-if "parallelism" in payload:
-spec.parallelism = _coerce_positive_int(
-payload.get("parallelism"), "parallelism"
-)
-if "completions" in payload:
-spec.completions = _coerce_positive_int(
-payload.get("completions"), "completions"
-)
-if "ttl_seconds_after_finished" in payload:
-spec.ttl_seconds_after_finished = _coerce_non_negative_int(
-payload.get("ttl_seconds_after_finished"), "ttl_seconds_after_finished"
-)
-
-spec.min_member = max(spec.min_member, spec.parallelism)
-
-try:
-launcher = VolcanoJobLauncher()
-except VolcanoLauncherError as exc:  # type: ignore[misc]
-raise RuntimeError(f"Volcano launcher unavailable: {exc}") from exc
-
-job_name = await asyncio.to_thread(launcher.submit, spec)
-activity.logger.info("Submitted Volcano job %s", job_name)
-
-should_wait = payload.get("wait", True)
-timeout_seconds = int(
-payload.get("timeout_seconds", settings.volcano_job_timeout_seconds)
-)
-logs: str | None = None
-
-wait_error: Exception | None = None
-if should_wait:
-try:
-await asyncio.to_thread(
-launcher.wait_for_completion, job_name, timeout_seconds
-)
-except VolcanoLauncherError as exc:  # type: ignore[misc]
-wait_error = exc
-try:
-logs = await asyncio.to_thread(launcher.fetch_logs, job_name)
-except VolcanoLauncherError as exc:  # type: ignore[misc]
-activity.logger.warning(
-"Failed to stream Volcano logs for %s: %s", job_name, exc
-)
-if wait_error is not None:
-raise RuntimeError(
-f"Volcano job {job_name} failed to complete: {wait_error}"
-) from wait_error
-
-return {
-"status": "submitted",
-"job_name": job_name,
-"waited": should_wait,
-"logs": logs,
-}
 
 
 @activity.defn
