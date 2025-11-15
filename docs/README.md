@@ -31,7 +31,7 @@
 - **Languages**: Python 3.11+, TypeScript/React, Bash
 - **Core Services**: FastAPI, Temporal, Redis, PostgreSQL, Qdrant
 - **Infrastructure**: Kubernetes, Helm, Kind, Terraform
-- **Observability**: Prometheus, Grafana, Loki, OpenTelemetry
+- **Observability**: Prometheus, Loki, OpenTelemetry
 
 ## ISO/IEC Compliance
 

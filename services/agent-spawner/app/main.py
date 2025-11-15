@@ -450,7 +450,6 @@ async def get_agent_logs(
     The function looks up the ``AgentInstance`` to obtain the namespace and job
     name, then lists pods with label ``app=<job_name>``. It returns the logs of
     the first matching pod. This is a *real* call to the Kubernetes API – no
-    mocks or faked data.
     """
     async with get_async_session() as session:
         result = await session.exec(select(AgentInstance).where(AgentInstance.id == agent_id))

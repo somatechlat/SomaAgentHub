@@ -13,7 +13,7 @@ SomaAgentHub is designed for high observability, shipping with a pre-configured 
 | Component | Tool | Purpose |
 |---|---|---|
 | **Metrics** | Prometheus | Collects and stores time-series data from all services. |
-| **Dashboards** | Grafana | Visualizes metrics with pre-built, customizable dashboards. |
+
 | **Logging** | Loki | Aggregates logs from all pods in the cluster. |
 | **Alerting** | Alertmanager | Manages and routes alerts based on Prometheus rules. |
 | **Tracing** | OpenTelemetry | (Optional) Provides distributed tracing for request lifecycles. |
@@ -22,8 +22,7 @@ SomaAgentHub is designed for high observability, shipping with a pre-configured 
 After deployment, you can access the monitoring tools via `kubectl port-forward`:
 
 ```bash
-# Port-forward Grafana
-kubectl port-forward svc/prometheus-grafana 10011:80 -n observability
+
 
 # Port-forward Prometheus
 kubectl port-forward svc/prometheus-prometheus 10010:9090 -n observability
@@ -31,7 +30,7 @@ kubectl port-forward svc/prometheus-prometheus 10010:9090 -n observability
 # Port-forward Alertmanager
 kubectl port-forward svc/prometheus-alertmanager 10019:9093 -n observability
 ```
-- **Grafana**: `http://localhost:10011` (default login: `admin`/`prom-operator`)
+
 - **Prometheus**: `http://localhost:10010`
 - **Alertmanager**: `http://localhost:10019`
 
@@ -64,9 +63,9 @@ All services expose a `/metrics` endpoint that Prometheus scrapes. Below are the
 
 ---
 
-## 📈 Grafana Dashboards
+## 📈 Metrics Dashboards
 
-The Helm chart includes several pre-built Grafana dashboards for immediate visibility.
+The system includes metrics collection and query capabilities for immediate visibility.
 
 - **SomaAgentHub - Platform Overview**: A high-level view of system health, including request rates, error rates, and service availability.
 - **SomaAgentHub - Service Detail**: A drill-down dashboard to inspect the performance of a specific microservice (e.g., Gateway API, Orchestrator).
@@ -78,11 +77,11 @@ The Helm chart includes several pre-built Grafana dashboards for immediate visib
 ## 📝 Logging
 
 ### Log Aggregation
-Logs from all services are automatically collected by Loki. You can query logs in Grafana using **LogQL**.
+Logs from all services are automatically collected by Loki. You can query logs using **LogQL**.
 
 ### How to Query Logs
-1.  Navigate to the **Explore** tab in Grafana.
-2.  Select the **Loki** data source.
+1.  Access the Loki query interface.
+2.  Use LogQL queries to filter logs:
 3.  Use LogQL queries to filter logs:
 
     ```logql

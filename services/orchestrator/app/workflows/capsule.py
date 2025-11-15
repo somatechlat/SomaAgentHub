@@ -45,7 +45,7 @@ summary: str
 def generate_summary(capsule_id: str, version: str, params: dict[str, Any]) -> str:
 """Produce a deterministic summary of the run parameters.
 
-This keeps the workflow fully executable without mocks while still
+This keeps the workflow fully executable while still
 exercising activity scheduling and result retrieval.
 """
 ordered_keys = sorted(params.keys())

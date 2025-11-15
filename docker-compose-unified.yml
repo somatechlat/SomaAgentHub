@@ -1,0 +1,267 @@
+# docker-compose-unified.yml
+# UNIFIED Docker Compose file for SomaAgentHub
+# Consolidated services using proven patterns and unified architecture
+
+name: somaagenthub-unified
+
+services:
+  # --- Unified Core Services ---
+  mao-engine:
+    build:
+      context: .
+      dockerfile: services/mao-engine/Dockerfile
+    container_name: somaagenthub_mao-engine
+    restart: unless-stopped
+    ports:
+      - "${MAO_ENGINE_PORT:-10000}:8000"
+    environment:
+      - TEMPORAL_HOST=temporal-server:7233
+      - TEMPORAL_NAMESPACE=${TEMPORAL_NAMESPACE:-default}
+      - MAO_ENGINE_HOST=0.0.0.0
+      - MAO_ENGINE_PORT=8000
+      - MAO_ENGINE_DEBUG=false
+    depends_on:
+      temporal-server:
+        condition: service_healthy
+      data-layer:
+        condition: service_healthy
+      ai-services:
+        condition: service_healthy
+      governance:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+    networks:
+      - somaagenthub-network
+
+  data-layer:
+    build:
+      context: .
+      dockerfile: services/data-layer/Dockerfile
+    container_name: somaagenthub_data-layer
+    restart: unless-stopped
+    ports:
+      - "${DATA_LAYER_PORT:-10001}:8001"
+    environment:
+      - POSTGRES_HOST=postgres:5432
+      - POSTGRES_PORT=5432
+      - POSTGRES_DB=${POSTGRES_DB:-soma}
+      - POSTGRES_USER=${POSTGRES_USER:-soma}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-soma}
+      - CLICKHOUSE_HOST=clickhouse:9000
+      - CLICKHOUSE_PORT=9000
+      - CLICKHOUSE_DB=${CLICKHOUSE_DB:-soma_analytics}
+      - DATA_LAYER_HOST=0.0.0.0
+      - DATA_LAYER_PORT=8001
+      - DATA_LAYER_DEBUG=false
+    depends_on:
+      postgres:
+        condition: service_healthy
+      clickhouse:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8001/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+    networks:
+      - somaagenthub-network
+
+  ai-services:
+    build:
+      context: .
+      dockerfile: services/ai-services/Dockerfile
+    container_name: somaagenthub_ai-services
+    restart: unless-stopped
+    ports:
+      - "${AI_SERVICES_PORT:-10002}:8002"
+    environment:
+      - AI_SERVICES_HOST=0.0.0.0
+      - AI_SERVICES_PORT=8002
+      - AI_SERVICES_DEBUG=false
+      - MODEL_STORAGE_PATH=/app/models
+    volumes:
+      - ai_models:/app/models
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8002/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+    networks:
+      - somaagenthub-network
+
+  governance:
+    build:
+      context: .
+      dockerfile: services/governance/Dockerfile
+    container_name: somaagenthub_governance
+    restart: unless-stopped
+    ports:
+      - "${GOVERNANCE_PORT:-10003}:8003"
+    environment:
+      - GOVERNANCE_HOST=0.0.0.0
+      - GOVERNANCE_PORT=8003
+      - GOVERNANCE_DEBUG=false
+      - JWT_SECRET=${JWT_SECRET:-your-secret-key}
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8003/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+    networks:
+      - somaagenthub-network
+
+  # --- Infrastructure Services ---
+  temporal-server:
+    image: temporalio/auto-setup:1.22.4
+    container_name: somaagenthub_temporal-server
+    restart: unless-stopped
+    ports:
+      - "${TEMPORAL_UI_PORT:-18023}:7233"
+      - "${TEMPORAL_WEB_PORT:-18024}:8080"
+    environment:
+      - POSTGRES_HOST=postgres
+      - POSTGRES_PORT=5432
+      - POSTGRES_USER=${POSTGRES_USER:-soma}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-soma}
+      - POSTGRES_DB=${POSTGRES_DB:-temporal}
+      - DB=postgresql12
+      - DB_PORT=5432
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:7233/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+    networks:
+      - somaagenthub-network
+
+  postgres:
+    image: postgres:16-alpine
+    container_name: somaagenthub_postgres
+    restart: unless-stopped
+    ports:
+      - "${POSTGRES_PORT:-15432}:5432"
+    environment:
+      - POSTGRES_USER=${POSTGRES_USER:-soma}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-soma}
+      - POSTGRES_DB=${POSTGRES_DB:-soma}
+      - POSTGRES_HOST_AUTH_METHOD=scram-sha-256
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-soma} -d ${POSTGRES_DB:-soma}"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+    networks:
+      - somaagenthub-network
+
+  clickhouse:
+    image: clickhouse/clickhouse-server:24.3-alpine
+    container_name: somaagenthub_clickhouse
+    restart: unless-stopped
+    ports:
+      - "${CLICKHOUSE_PORT:-19000}:9000"
+      - "${CLICKHOUSE_HTTP_PORT:-18123}:8123"
+    environment:
+      - CLICKHOUSE_DB=${CLICKHOUSE_DB:-soma_analytics}
+      - CLICKHOUSE_USER=${CLICKHOUSE_USER:-soma}
+      - CLICKHOUSE_PASSWORD=${CLICKHOUSE_PASSWORD:-soma}
+    volumes:
+      - clickhouse_data:/var/lib/clickhouse
+      - clickhouse_logs:/var/log/clickhouse-server
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8123/ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+    networks:
+      - somaagenthub-network
+
+  redis:
+    image: redis:7-alpine
+    container_name: somaagenthub_redis
+    restart: unless-stopped
+    ports:
+      - "${REDIS_PORT:-16379}:6379"
+    command: redis-server --appendonly yes
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+    networks:
+      - somaagenthub-network
+
+  # --- Observability Services ---
+  prometheus:
+    image: prom/prometheus:v2.47.2
+    container_name: somaagenthub_prometheus
+    restart: unless-stopped
+    ports:
+      - "${PROMETHEUS_PORT:-19090}:9090"
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus_data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--storage.tsdb.retention.time=200h'
+      - '--web.enable-lifecycle'
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:9090/-/healthy"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+    networks:
+      - somaagenthub-network
+
+  
+
+  # --- Development Tools ---
+  temporal-ui:
+    image: temporalio/ui:2.24.0
+    container_name: somaagenthub_temporal-ui
+    restart: unless-stopped
+    ports:
+      - "${TEMPORAL_UI_WEB_PORT:-18080}:8080"
+    environment:
+      - TEMPORAL_ADDRESS=temporal-server:7233
+      - TEMPORAL_NAMESPACE=${TEMPORAL_NAMESPACE:-default}
+    depends_on:
+      temporal-server:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8080/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+    networks:
+      - somaagenthub-network
+
+# --- Volumes ---
+volumes:
+  postgres_data:
+  clickhouse_data:
+  clickhouse_logs:
+  redis_data:
+  ai_models:
+  prometheus_data:
+
+# --- Networks ---
+networks:
+  somaagenthub-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16

@@ -12,7 +12,7 @@ SomaAgentHub is an enterprise-grade orchestration platform for autonomous agents
 - **Governance & Policy**: Dedicated policy engine with constitution service
 - **Memory Architecture**: Pluggable Qdrant/Redis memory gateway
 - **CI/CD Automation**: Make-driven builds, scans, and deploys
-- **Observability**: Metrics, probes, and Grafana dashboards out of the box
+- **Observability**: Metrics, probes, and dashboards out of the box
 
 ### What are the core services?
 - **Gateway API** (port 10000): Public ingress and wizard flows

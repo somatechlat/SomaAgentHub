@@ -1,5 +1,5 @@
 # Prometheus Stack Values for Sprint-6 Observability
-# Includes Prometheus and Alertmanager (Grafana disabled)
+# Includes Prometheus and Alertmanager
 
 # Prometheus configuration
 prometheus:

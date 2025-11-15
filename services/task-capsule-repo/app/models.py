@@ -28,6 +28,18 @@ class CapsuleType(str, Enum):
     TOOL = "tool"
 
 
+class CapsuleKind(str, Enum):
+    WORKFLOW = "workflow"
+    STATIC = "static"
+    EXTERNAL_SERVICE = "external_service"
+    ANALYTIC = "analytic"
+
+
+class ExecutionMode(str, Enum):
+    SYNC = "sync"
+    ASYNC = "async"
+
+
 class Capsule(Base):
     __tablename__ = "capsules"
 
@@ -35,6 +47,11 @@ class Capsule(Base):
     capsule_id = Column(String(36), nullable=False, index=True)
     version = Column(String(20), nullable=False)
     type = Column(SAEnum(CapsuleType), nullable=False)
+    kind = Column(SAEnum(CapsuleKind), nullable=False, default=CapsuleKind.STATIC)
+    execution_mode = Column(SAEnum(ExecutionMode), nullable=False, default=ExecutionMode.SYNC)
+    required_roles = Column(JSONB, default=list)
+    requires_payment = Column(String(10), nullable=False, default="false")
+    http_config = Column(JSONB, default=dict)
     manifest_yaml = Column(Text)
     # Use instance attribute name `metadata_json` to avoid SQLAlchemy reserved name
     metadata_json = Column("metadata", JSONB, default=dict)

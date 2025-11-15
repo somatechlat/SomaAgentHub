@@ -167,7 +167,7 @@ prompt: str, model: str, session_id: str, tenant: str, user: str
 ) -> dict[str, Any]:
 # In production this is where a provider adapter is called. We keep the
 # function simple but real (executed inside Ray) to honour the principle
-# of avoiding mocks.
+
 time.sleep(0.5)
 return {
 "session_id": session_id,

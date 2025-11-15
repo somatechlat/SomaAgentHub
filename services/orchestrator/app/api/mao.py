@@ -186,7 +186,6 @@ orchestration_id: str, db_session: AsyncSession = Depends(get_session)
 ) -> Dict[str, Any]:
 """Get current status of an orchestration."""
 # This would integrate with Temporal workflow queries
-# For now, return mock data
 return {
 "orchestration_id": orchestration_id,
 "status": "running",

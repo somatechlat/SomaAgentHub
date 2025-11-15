@@ -351,32 +351,71 @@ return {
 
 @activity.defn
 async def spawn_agent(agent_type: str, requirements: dict[str, Any]) -> dict[str, Any]:
-"""
-Spawn a new agent instance for task execution.
-
-activity that creates an agent with specific capabilities.
-In production, this would allocate resources, load models, etc.
-"""
-activity.logger.info(f"Spawning {agent_type} agent")
-
-# Generate unique agent ID (REAL)
-agent_id = f"agent_{agent_type}_{datetime.now(UTC).timestamp()}"
-
-# In production, this would:
-# 1. Allocate compute resources
-# 2. Load required models
-# 3. Initialize agent state
-# 4. Register in agent registry
-
-return {
-"agent_id": agent_id,
-"agent_type": agent_type,
-"status": "ready",
-"capabilities": requirements,
-"spawned_at": datetime.now(UTC).isoformat(),
-}
-
-
+    """
+    Spawn a new agent instance for task execution using Kubernetes-native agent management.
+    
+    This activity creates a real agent instance in the database and launches it on Kubernetes
+    using the official Kubernetes Python client for both Jobs and Deployments.
+    """
+    from uuid import uuid4
+    from ..agents import create_agent_instance, launch_agent_instance, update_agent_status
+    from ..app.models.agent_instance import AgentStatus
+    
+    activity.logger.info(f"Spawning {agent_type} agent")
+    
+    try:
+        # Extract parameters from requirements
+        tenant_id = uuid4()  # In production, get from workflow context
+        user_id = uuid4()    # In production, get from workflow context
+        capsule_id = requirements.get("capsule_id")
+        k8s_namespace = requirements.get("k8s_namespace", "default")
+        is_long_running = requirements.get("is_long_running", False)
+        container_image = requirements.get("container_image", "somaagent01:latest")
+        resource_requests = requirements.get("resource_requests")
+        resource_limits = requirements.get("resource_limits")
+        env_vars = requirements.get("env_vars")
+        
+        # Step 1: Create agent instance in database
+        agent_instance = await create_agent_instance(
+            agent_type=agent_type,
+            capsule_id=capsule_id,
+            tenant_id=tenant_id,
+            user_id=user_id,
+            k8s_namespace=k8s_namespace,
+            metadata=requirements.get("metadata", {})
+        )
+        
+        # Step 2: Launch agent on Kubernetes
+        k8s_resource_name = await launch_agent_instance(
+            agent_instance_id=agent_instance.id,
+            agent_type=agent_type,
+            k8s_namespace=k8s_namespace,
+            is_long_running=is_long_running,
+            container_image=container_image,
+            resource_requests=resource_requests,
+            resource_limits=resource_limits,
+            env_vars=env_vars
+        )
+        
+        # Step 3: Update agent status to running
+        await update_agent_status(agent_instance.id, AgentStatus.RUNNING)
+        
+        activity.logger.info(f"Successfully spawned agent {agent_instance.id} as {k8s_resource_name}")
+        
+        return {
+            "agent_id": str(agent_instance.id),
+            "agent_type": agent_type,
+            "status": "running",
+            "k8s_resource_name": k8s_resource_name,
+            "k8s_namespace": k8s_namespace,
+            "is_long_running": is_long_running,
+            "capabilities": requirements,
+            "spawned_at": datetime.now(UTC).isoformat(),
+        }
+        
+    except Exception as e:
+        activity.logger.error(f"Failed to spawn agent: {e}")
+        raise
 @activity.defn
 async def execute_task(
 task: dict[str, Any],

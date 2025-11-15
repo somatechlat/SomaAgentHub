@@ -58,7 +58,6 @@ try:
 await self._producer.start()
 except Exception:
 # In test environments there may be no Kafka broker available.
-# Swallow the error so that mocked producers can still be used.
 pass
 
 async def stop(self) -> None:

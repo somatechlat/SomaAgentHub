@@ -124,7 +124,7 @@ The CLI at `cli/soma` provides commands for:
 
 **Monitoring Infrastructure:**
 - Prometheus for metrics collection
-- Grafana for visualization (configured in `infra/monitoring/`)
+- Prometheus for metrics collection and visualization (configured in `infra/monitoring/`)
 - Loki for log aggregation
 - OpenTelemetry for distributed tracing
 

@@ -307,22 +307,7 @@ services:
     networks:
       - somaagenthub-network
 
-  grafana:
-    image: grafana/grafana:latest
-    container_name: somaagenthub_grafana
-    restart: unless-stopped
-    environment:
-      - GF_SECURITY_ADMIN_USER=${GF_SECURITY_ADMIN_USER:-admin}
-      - GF_SECURITY_ADMIN_PASSWORD=${GF_SECURITY_ADMIN_PASSWORD:-admin}
-    ports:
-      - "${GRAFANA_PORT:-10011}:3000"
-    volumes:
-      - grafana-data:/var/lib/grafana
-      - ./infra/observability/grafana-datasources.yaml:/etc/grafana/provisioning/datasources/datasources.yaml
-    depends_on:
-      prometheus:
-        condition: service_healthy
-    healthcheck:
+  
       test: ["CMD-SHELL", "curl -f http://127.0.0.1:3000/api/health || exit 1"]
       interval: 10s
       timeout: 5s
@@ -466,7 +451,7 @@ volumes:
   prometheus-data:
     driver: local
     name: somaagenthub_prometheus_data
-  grafana-data:
+  
     driver: local
     name: somaagenthub_grafana_data
 

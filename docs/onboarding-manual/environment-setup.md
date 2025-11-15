@@ -106,7 +106,7 @@ make docker-compose-up
 ✓ temporal-server:10009 (external), 7233 (internal-only, health: ✅)
 ✓ vault:10009 (health: ✅)
 ✓ prometheus:10010 (health: ✅)
-✓ grafana:10011 (health: ✅)
+
 ✓ loki:10012 (health: ✅)
 ✓ tempo:10013 (gRPC) / 10014 (HTTP) (health: ✅)
 ✓ otel-collector:10015 (gRPC) / 10016 (HTTP) / 10017 (metrics) (health: ✅)
@@ -132,7 +132,7 @@ somaagenthub_minio            Up 2 minutes (healthy)   0.0.0.0:10007->9000/tcp, 
 somaagenthub_temporal         Up 2 minutes (healthy)   0.0.0.0:10009->7233/tcp
 somaagenthub_vault            Up 2 minutes (healthy)   0.0.0.0:10009->8200/tcp
 somaagenthub_prometheus       Up 2 minutes (healthy)   0.0.0.0:10010->9090/tcp
-somaagenthub_grafana          Up 2 minutes (healthy)   0.0.0.0:10011->3000/tcp
+
 somaagenthub_loki             Up 2 minutes (healthy)   0.0.0.0:10012->3100/tcp
 somaagenthub_tempo            Up 2 minutes (healthy)   0.0.0.0:10013->4317/tcp, 0.0.0.0:10014->4318/tcp
 somaagenthub_otel-collector   Up 2 minutes (healthy)   0.0.0.0:10015->4317/tcp, 0.0.0.0:10016->4318/tcp, 0.0.0.0:10017->8888/tcp
@@ -267,7 +267,7 @@ curl -X GET http://localhost:10002/health
 
 | Service | URL | Purpose |
 |---------|-----|---------|
-| **Grafana** | http://localhost:10011 | Metrics dashboards |
+
 | **Prometheus** | http://localhost:10010 | Metrics scraping & queries |
 | **Loki** | http://localhost:10012 | Log aggregation |
 | **Tempo** | OTLP gRPC `http://localhost:10013` *(default, optional)* | Distributed tracing (internal OTLP ingestion; HTTP query API requires exec/port-forward) |
@@ -300,7 +300,7 @@ curl -X GET http://localhost:10002/health
 ✓ ClickHouse: HEALTHY (uptime: 120s)
 ✓ Temporal: HEALTHY (workflows: 0)
 ✓ Prometheus: HEALTHY (targets: 15/15 up)
-✓ Grafana: HEALTHY (dashboards: 8)
+
 
 ALL SERVICES OPERATIONAL ✅
 ```
@@ -332,7 +332,7 @@ redis-cli -h localhost -p 10003 ping
 curl -s http://localhost:10005/healthz | jq .
 # Expected: Status 200
 
-# 7. Test Grafana dashboard
+
 curl -s http://localhost:10011/api/health | jq .
 # Expected: OK
 

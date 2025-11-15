@@ -62,6 +62,24 @@ updated_at: datetime = Field(default_factory=datetime.utcnow)
 metadata_json: dict = Field(sa_column=Column(JSON), default_factory=dict)
 
 
+class AnalysisRun(SQLModel, table=True):
+    """Represents a single analysis workflow execution snapshot.
+
+    Used for Voyant integration workflows and analysis tracking.
+    Links to capsule execution with workflow run ID and artifact storage.
+    """
+
+    id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
+    tenant: str = Field(index=True)
+    user_id: str = Field(index=True)
+    capsule_id: str = Field(index=True)
+    status: str = Field(default="pending", index=True)
+    workflow_run_id: str = Field(index=True)
+    artifacts_uri: Optional[str] = Field(default=None, description="URI to stored analysis artifacts")
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    updated_at: datetime = Field(default_factory=datetime.utcnow)
+
+
 """ORM/DTO models for storing project plan artifacts."""
 
 # NOTE: ``from __future__ import annotations`` must appear only once at the top
