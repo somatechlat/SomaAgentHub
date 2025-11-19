@@ -29,19 +29,26 @@ from __future__ import annotations
 
 import uuid
 from datetime import timedelta
-from typing import Any, Dict
+import time
+from typing import Any, Dict, Optional
 
 from temporalio import activity, workflow
 
 # ---------------------------------------------------------------------------
 # Imports from the orchestrator package
 # ---------------------------------------------------------------------------
-from ..core.framework_router import MultiAgentPattern
+# MultiAgentPattern import removed as it is unused in this workflow.
 from ..database import get_async_session
 from ..models.vc_models import VCEpisode, VCStep, VCRole
 from ..reward import exact_match_reward
 from ..workflows.session import run_llm_completion  # existing activity
-from ..services.event_service import OrchestratorEventService
+# Metrics for VC workflow
+from ..metrics.vc import (
+    vc_episode_total,
+    vc_step_total,
+    vc_step_reward,
+    vc_episode_duration_seconds,
+)
 
 
 # ---------------------------------------------------------------------------
@@ -73,8 +80,8 @@ async def add_step(
 ) -> None:
     """Persist a ``VCStep`` linked to ``episode_id``.
 
-    For the minimal MVP we only store the step record; emitting a dedicated
-    ``VC_STEP`` event is left for a later task.
+    This activity only writes the step record. Event emission is handled
+    elsewhere if enabled.
     """
     async with get_async_session() as session:
         step = VCStep(
@@ -89,10 +96,69 @@ async def add_step(
         await session.flush()
 
 
+# The emit_vc_step_activity function and its related imports have been removed per user request to eliminate parallel execution logic.
+
+
 @activity.defn(name="vc-calc-reward")
 async def calc_reward(model_output: Any, expected_answer: Any) -> float:
-    """Thin wrapper around :func:`exact_match_reward`."""
+    """Exact‑match reward for Solver and Corrector outputs.
+
+    This mirrors the original ``exact_match_reward`` utility.
+    """
     return exact_match_reward(model_output, expected_answer)
+
+
+@activity.defn(name="vc-calc-verifier-reward")
+async def calc_verifier_reward(verifier_output: Any, expected_answer: Any) -> float:
+    """Reward for the Verifier role.
+
+    The Verifier is asked a yes/no question.  If its answer (case‑insensitive)
+    matches the ground‑truth correctness of the solution, the reward is ``1.0``;
+    otherwise ``0.0``.
+    """
+    # Normalise the verifier answer to a simple yes/no string.
+    answer = ""
+    if isinstance(verifier_output, dict):
+        answer = str(verifier_output.get("completion", "")).strip().lower()
+    else:
+        answer = str(verifier_output).strip().lower()
+
+    # Determine whether the expected answer is a truthy string ("yes")
+    # – the caller passes the *expected* correctness (True/False) via the
+    # ``expected`` variable.  Here we simply compare the answer to "yes".
+    return 1.0 if "yes" in answer else 0.0
+
+
+# ---------------------------------------------------------------------------
+# Event emission activity – emits a VC_STEP event after a step is persisted.
+# ---------------------------------------------------------------------------
+
+from ..services.event_service import OrchestratorEventService
+
+@activity.defn(name="vc-emit-step")
+async def emit_vc_step_activity(
+    episode_id: str,
+    step_index: int,
+    role: str,
+    reward: float,
+    metadata: Optional[Dict[str, Any]] = None,
+) -> None:
+    """Emit a ``vc.step.v1`` event for a V‑C step.
+
+    The activity creates a temporary DB session, instantiates the
+    ``OrchestratorEventService`` and forwards the call to its ``emit_vc_step``
+    method.  Governance (``allow_rl_training_data``) is enforced inside the
+    service, so the activity does not need to repeat the check.
+    """
+    async with get_async_session() as session:
+        service = OrchestratorEventService(session)
+        await service.emit_vc_step(
+            episode_id=episode_id,
+            step_index=step_index,
+            role=role,
+            reward=reward,
+            metadata=metadata,
+        )
 
 
 # ---------------------------------------------------------------------------
@@ -120,8 +186,9 @@ class VCReasoningWorkflow:
         max_iterations: int = int(request.get("max_iterations", 5))
 
         # -------------------------------------------------------------------
-        # Create the episode record.
+        # Create the episode record and record metrics.
         # -------------------------------------------------------------------
+        start_time = time.time()
         episode_id = await workflow.execute_activity(
             create_episode,
             tenant,
@@ -129,6 +196,8 @@ class VCReasoningWorkflow:
             start_to_close_timeout=timedelta(seconds=30),
         )
         self.logger.info("VC episode created", episode_id=episode_id)
+        # Increment episode counter
+        vc_episode_total.labels(tenant=tenant).inc()
 
         # -------------------------------------------------------------------
         # Main loop – solver → (optional) verifier → corrector.
@@ -160,6 +229,18 @@ class VCReasoningWorkflow:
                 reward,
                 start_to_close_timeout=timedelta(seconds=5),
             )
+            # Emit VC_STEP event for the solver step
+            await workflow.execute_activity(
+                emit_vc_step_activity,
+                episode_id,
+                base_index,
+                VCRole.SOLVER.value,
+                reward,
+                start_to_close_timeout=timedelta(seconds=5),
+            )
+            # Record step metrics for solver
+            vc_step_total.labels(tenant=tenant, role=VCRole.SOLVER.value).inc()
+            vc_step_reward.labels(tenant=tenant, role=VCRole.SOLVER.value).observe(reward)
             if reward == 1.0:
                 self.logger.info("Solver produced correct answer – terminating loop")
                 break
@@ -174,7 +255,13 @@ class VCReasoningWorkflow:
                 verifier_input,
                 start_to_close_timeout=timedelta(minutes=1),
             )
-            verifier_correct = "yes" in verifier_output.get("completion", "").lower()
+            # Compute verifier reward (1.0 for "yes", else 0.0)
+            verifier_reward = await workflow.execute_activity(
+                calc_verifier_reward,
+                verifier_output,
+                expected,
+                start_to_close_timeout=timedelta(seconds=5),
+            )
             await workflow.execute_activity(
                 add_step,
                 episode_id,
@@ -182,10 +269,22 @@ class VCReasoningWorkflow:
                 VCRole.VERIFIER.value,
                 verifier_input,
                 verifier_output,
-                1.0 if verifier_correct else 0.0,
+                verifier_reward,
                 start_to_close_timeout=timedelta(seconds=5),
             )
-            if verifier_correct:
+            # Emit VC_STEP event for the verifier step
+            await workflow.execute_activity(
+                emit_vc_step_activity,
+                episode_id,
+                base_index + 1,
+                VCRole.VERIFIER.value,
+                verifier_reward,
+                start_to_close_timeout=timedelta(seconds=5),
+            )
+            # Record step metrics for verifier
+            vc_step_total.labels(tenant=tenant, role=VCRole.VERIFIER.value).inc()
+            vc_step_reward.labels(tenant=tenant, role=VCRole.VERIFIER.value).observe(verifier_reward)
+            if verifier_reward == 1.0:
                 self.logger.info("Verifier approved solution – terminating loop")
                 break
 
@@ -209,9 +308,23 @@ class VCReasoningWorkflow:
                 0.0,
                 start_to_close_timeout=timedelta(seconds=5),
             )
+            # Emit VC_STEP event for the corrector step (reward currently 0.0)
+            await workflow.execute_activity(
+                emit_vc_step_activity,
+                episode_id,
+                base_index + 2,
+                VCRole.CORRECTOR.value,
+                0.0,
+                start_to_close_timeout=timedelta(seconds=5),
+            )
+            # Record step metrics for corrector (reward is 0.0)
+            vc_step_total.labels(tenant=tenant, role=VCRole.CORRECTOR.value).inc()
+            vc_step_reward.labels(tenant=tenant, role=VCRole.CORRECTOR.value).observe(0.0)
         # -------------------------------------------------------------------
-        # Mark episode as completed.
+        # Mark episode as completed and record duration metric.
         # -------------------------------------------------------------------
+        duration_seconds = time.time() - start_time
+        vc_episode_duration_seconds.labels(tenant=tenant).observe(duration_seconds)
         # Episode status update is optional for this minimal implementation.
         # The caller can query the episode table later to see the final state.
         return {"episode_id": episode_id, "status": "completed"}

@@ -73,6 +73,16 @@ database_max_overflow: int = int(resolve_env("DATABASE_MAX_OVERFLOW", "10"))
 database_pool_timeout: int = int(resolve_env("DATABASE_POOL_TIMEOUT", "30"))
 database_pool_recycle: int = int(resolve_env("DATABASE_POOL_RECYCLE", "1800"))
 
+	# -----------------------------------------------------------------------
+	# Governance / RL data flag
+	# -----------------------------------------------------------------------
+	# Tenants can opt‑out of emitting RL training data.  The default is ``False``
+	# to stay safe.  Individual services (e.g., the VC workflow) should check
+	# this flag before publishing ``VC_STEP`` events.
+	allow_rl_training_data: bool = (
+		str(resolve_env("ALLOW_RL_TRAINING_DATA", "false")).lower() == "true"
+	)
+
 
 # Export a singleton instance for importers
 settings = Settings()

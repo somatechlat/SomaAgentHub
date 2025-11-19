@@ -500,3 +500,7 @@ within_budget=within_budget,
 
 router.include_router(dashboard_router)
 router.include_router(capsules_router)
+# Include the VC reasoning router (new endpoint)
+from .vc import router as vc_router
+
+router.include_router(vc_router)

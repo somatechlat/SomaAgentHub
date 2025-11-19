@@ -3,7 +3,12 @@ from __future__ import annotations
 from functools import lru_cache
 from typing import Any, Literal
 
-from pydantic import BaseSettings, Field
+# ``BaseSettings`` moved to ``pydantic-settings`` in v2. Import with fallback.
+try:
+	from pydantic import BaseSettings, Field  # type: ignore
+except ImportError:  # pragma: no cover
+	from pydantic_settings import BaseSettings  # type: ignore
+	from pydantic import Field  # type: ignore
 
 
 class BaseServiceSettings(BaseSettings):

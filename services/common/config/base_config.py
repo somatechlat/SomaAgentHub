@@ -12,7 +12,15 @@ from typing import Any, Dict, Optional, List
 from dataclasses import dataclass, field
 from pathlib import Path
 
-from pydantic import BaseSettings, Field, validator
+# NOTE: Pydantic v2 moved ``BaseSettings`` to the ``pydantic-settings`` package.
+# The project historically imported ``BaseSettings`` directly from ``pydantic``.
+# To maintain compatibility across versions, we attempt to import from
+# ``pydantic`` first and fall back to ``pydantic_settings`` if unavailable.
+try:
+    from pydantic import BaseSettings, Field, validator, ConfigDict  # type: ignore
+except ImportError:  # pragma: no cover
+    from pydantic_settings import BaseSettings  # type: ignore
+    from pydantic import Field, validator, ConfigDict  # type: ignore
 
 
 class DeploymentMode(str, Enum):
@@ -167,11 +175,18 @@ class BaseConfig(BaseSettings):
     enable_health_checks: bool = Field(default=True, env="SOMA_AGENT_HUB_ENABLE_HEALTH_CHECKS")
     enable_metrics_endpoint: bool = Field(default=True, env="SOMA_AGENT_HUB_ENABLE_METRICS_ENDPOINT")
     
-    class Config:
-        env_prefix = "SOMA_AGENT_HUB_"
-        case_sensitive = False
-        env_file = ".env"
-        env_file_encoding = "utf-8"
+    # Pydantic v2 uses ``model_config`` (a ``ConfigDict``) for configuration.
+    # This replaces the legacy ``Config`` inner class. It sets the environment
+    # variable prefix, disables case‑sensitivity, points to a ``.env`` file, and
+    # allows extra fields so that unknown environment variables do not raise
+    # validation errors.
+    model_config = ConfigDict(
+        env_prefix="SOMA_AGENT_HUB_",
+        case_sensitive=False,
+        env_file=".env",
+        env_file_encoding="utf-8",
+        extra="allow",
+    )
 
     @validator("service_name", pre=True)
     def default_service_name(cls, v):
