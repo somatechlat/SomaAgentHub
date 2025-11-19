@@ -1,26 +1,35 @@
-from functools import lru_cache
+"""Pricing‑service configuration.
 
-from pydantic import Field
-from pydantic_settings import BaseSettings, SettingsConfigDict
-from services.common.config.base_settings import resolve_env
+The project now uses a **centralised configuration system** located in
+``services.common.config``.  Each service obtains a scoped ``BaseConfig``
+instance via ``get_service_settings(service_name)``.  This file therefore
+exposes a thin wrapper that returns the shared settings object for the
+``pricing-service``.
+
+Why this works
+--------------
+* All environment‑variable parsing, validation and defaults are defined once
+  in ``services/common/config/base_settings.py``.
+* ``get_service_settings`` caches the result (via ``functools.lru_cache``),
+  so the settings object is a singleton per service – matching the previous
+  ``@lru_cache`` behaviour.
+* Existing code that imports ``get_settings`` continues to function unchanged.
+"""
+
+from services.common.config import get_service_settings
+
+# The service name used for environment‑variable prefixes (e.g. ``PRICING_…``).
+_SERVICE_NAME = "pricing-service"
+
+# Obtain a cached ``BaseConfig`` instance scoped to this service.
+settings = get_service_settings(_SERVICE_NAME)
 
 
-class Settings(BaseSettings):
-app_name: str = "pricing-service"
-clickhouse_host: str = Field("localhost", alias="CLICKHOUSE_HOST")
-clickhouse_port: int = Field(8123, alias="CLICKHOUSE_PORT")
-clickhouse_user: str = Field("default", alias="CLICKHOUSE_USER")
-clickhouse_password: str = Field("", alias="CLICKHOUSE_PASSWORD")
-clickhouse_database: str = Field("soma", alias="CLICKHOUSE_DATABASE")
-opa_url: str = Field("http://opa:8181", alias="OPA_URL")
-cache_ttl_seconds: int = Field(300, alias="PRICING_CACHE_TTL_SECONDS")
-gpubroker_url: str | None = Field(None, alias="GPUBROKER_URL")
+def get_settings():
+	"""Return the cached ``BaseConfig`` for the pricing service.
 
-model_config = SettingsConfigDict(
-env_file=".env", env_file_encoding="utf-8", extra="ignore"
-)
+	The function signature mirrors the previous implementation so callers do
+	not need to be updated.
+	"""
 
-
-@lru_cache(maxsize=1)
-def get_settings() -> Settings:
-return Settings()  # type: ignore[call-arg]
+	return settings

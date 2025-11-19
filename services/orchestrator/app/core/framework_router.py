@@ -8,10 +8,11 @@ from services.common.config.base_settings import resolve_env
 
 
 class MultiAgentPattern(str, Enum):
-GROUP_CHAT = "group_chat"
-TASK_DELEGATION = "task_delegation"
-STATE_MACHINE_ROUTING = "state_machine_routing"
-A2A = "a2a"
+	GROUP_CHAT = "group_chat"
+	TASK_DELEGATION = "task_delegation"
+	STATE_MACHINE_ROUTING = "state_machine_routing"
+	A2A = "a2a"
+	VC_REASONING = "vc_reasoning"  # Solver‑Verifier‑Corrector loop
 
 
 class FrameworkRouter:
@@ -51,7 +52,8 @@ mapping = {
 MultiAgentPattern.GROUP_CHAT: "autogen-group-chat",
 MultiAgentPattern.TASK_DELEGATION: "crewai-delegation",
 MultiAgentPattern.STATE_MACHINE_ROUTING: "langgraph-routing",
-MultiAgentPattern.A2A: "a2a-message",
+	MultiAgentPattern.A2A: "a2a-message",
+	MultiAgentPattern.VC_REASONING: "vc-reasoning-workflow",
 }
 try:
 return mapping[pattern]

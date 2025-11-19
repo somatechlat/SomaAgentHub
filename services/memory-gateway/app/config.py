@@ -1,75 +1,90 @@
-"""
-Memory-gateway configuration using centralized resolver and Vault client.
+"""Memory‑gateway configuration.
 
+The service now uses the **central configuration system** (`services.common.config`).
+We keep the Vault‑based secret retrieval for the Qdrant API key because that is a
+real requirement that cannot be expressed via plain environment variables.
+All other settings are obtained from the shared ``BaseConfig`` instance.
 """
 
-from services.common.config.base_settings import resolve_env
+from services.common.config import get_service_settings
 from services.common.vault_client import init_vault
 
-SERVICE_NAME = "memory-gateway"
-SERVICE_PORT = int(resolve_env("SERVICE_PORT", "8082"))
+_SERVICE_NAME = "memory-gateway"
 
-# Database configuration
-DATABASE_URL = resolve_env(
-"DATABASE_URL", "postgresql://postgres:postgres@postgres:5432/soma"
-)
-REDIS_URL = resolve_env("MEMORY_GATEWAY_REDIS_URL") or resolve_env(
-"REDIS_URL", "redis://redis:6379/0"
-)
+# Cached ``BaseConfig`` scoped to this service.
+settings = get_service_settings(_SERVICE_NAME)
 
 
-# Vector store configuration
 def _get_qdrant_api_key() -> str:
-val = resolve_env("QDRANT_API_KEY")
-if val:
-return val
-try:
-client = init_vault(role=SERVICE_NAME)
-secret = client.read_secret("services/memory-gateway").data.get(
-"qdrant_api_key"
-)
-if secret:
-return secret
-except Exception:
-pass
-return ""
+	"""Retrieve the Qdrant API key from the environment or Vault.
+
+	The function first checks ``QDRANT_API_KEY``; if missing it attempts to read
+	the secret from Vault using the service name as the role.  Any exception is
+	swallowed and an empty string is returned – matching the original behaviour.
+	"""
+	from services.common.config.base_settings import resolve_env
+
+	val = resolve_env("QDRANT_API_KEY")
+	if val:
+		return val
+	try:
+		client = init_vault(role=_SERVICE_NAME)
+		secret = client.read_secret("services/memory-gateway").data.get(
+			"qdrant_api_key"
+		)
+		if secret:
+			return secret
+	except Exception:
+		pass
+	return ""
 
 
-QDRANT_URL = resolve_env("MEMORY_GATEWAY_QDRANT_URL") or resolve_env(
-"QDRANT_URL", "http://localhost:6333"
-)
+# Convenience constants derived from the central ``settings`` object.
+SERVICE_PORT = int(getattr(settings, "service_port", 8082))
+DATABASE_URL = getattr(settings, "database_url", "postgresql://postgres:postgres@postgres:5432/soma")
+REDIS_URL = getattr(settings, "redis_url", "redis://redis:6379/0")
+QDRANT_URL = getattr(settings, "qdrant_url", "http://localhost:6333")
 QDRANT_API_KEY = _get_qdrant_api_key()
-
-# Object storage configuration
-OBJECT_STORE_BUCKET = resolve_env("OBJECT_STORE_BUCKET", "")
-OBJECT_STORE_REGION = resolve_env("OBJECT_STORE_REGION", "")
-
-# Environment-specific configuration
-ENVIRONMENT = resolve_env("ENVIRONMENT", "development")
-DEPLOYMENT_MODE = (resolve_env("DEPLOYMENT_MODE", "DEV") or "DEV").upper()
+OBJECT_STORE_BUCKET = getattr(settings, "object_store_bucket", "")
+OBJECT_STORE_REGION = getattr(settings, "object_store_region", "")
+ENVIRONMENT = getattr(settings, "environment", "development")
+DEPLOYMENT_MODE = getattr(settings, "deployment_mode", "DEV").upper()
 
 
-# Backward-compatible helpers
 def get_service_url(service_name: str) -> str:
-key = f"{service_name.upper().replace('-', '_')}_URL"
-return resolve_env(key, f"http://{service_name}")
+	"""Return a URL for a dependent service using the central resolver.
+	"""
+	key = f"{service_name.upper().replace('-', '_')}_URL"
+	return getattr(settings, key.lower(), f"http://{service_name}")
 
 
 def get_env_var(name: str, default=None):
-return resolve_env(name, default)
+	"""Thin wrapper around the central ``resolve_env``.
+	"""
+	return getattr(settings, name.lower(), default)
 
 
 class MemoryGatewayConfig:
-"""Configuration class for memory-gateway service"""
+	"""Configuration class for the memory‑gateway service.
 
-@classmethod
-def from_env(cls):
-return cls()
+	Mirrors the original public API while sourcing all values from the cached
+	``settings`` instance.
+	"""
 
-def __init__(self):
-self.qdrant_url = QDRANT_URL
-self.qdrant_api_key = QDRANT_API_KEY
-self.database_url = DATABASE_URL
-self.redis_url = REDIS_URL
-self.bucket_name = OBJECT_STORE_BUCKET
-self.region = OBJECT_STORE_REGION
+	@classmethod
+	def from_env(cls):
+		return cls()
+
+	def __init__(self):
+		self.qdrant_url = QDRANT_URL
+		self.qdrant_api_key = QDRANT_API_KEY
+		self.database_url = DATABASE_URL
+		self.redis_url = REDIS_URL
+		self.bucket_name = OBJECT_STORE_BUCKET
+		self.region = OBJECT_STORE_REGION
+
+
+def get_settings():
+	"""Return the cached ``BaseConfig`` for the memory‑gateway.
+	"""
+	return settings

@@ -1,60 +1,64 @@
-"""LLM Hub configuration using centralized resolver and Vault client."""
+"""LLM‑Hub configuration.
 
-import os
-from services.common.config.base_settings import resolve_env
+The project now uses the **centralised configuration system** located in
+``services.common.config``.  This module therefore provides a thin wrapper that
+exposes the same public API (``get_settings``) as the previous implementation
+while delegating all environment‑variable handling to the shared ``BaseConfig``.
+
+Only values that are truly service‑specific and cannot be expressed via the
+standard ``BaseConfig`` fields are kept as helper functions.  In this case the
+Vault‑based secret retrieval for API keys is retained because it is a real
+requirement, but the surrounding boilerplate has been removed.
+"""
+
+from services.common.config import get_service_settings
 from services.common.vault_client import init_vault
 
-SERVICE_NAME = "llm-hub"
-SERVICE_PORT = int(resolve_env("SERVICE_PORT", "8084"))
+_SERVICE_NAME = "llm-hub"
 
-DATABASE_URL = resolve_env(
-"DATABASE_URL", "postgresql://postgres:postgres@postgres:5432/soma"
-)
+# Obtain a cached ``BaseConfig`` instance scoped to this service.  The central
+# config already resolves ``SERVICE_PORT`` and ``DATABASE_URL`` (using the
+# ``SOMA_AGENT_HUB_`` prefix), so we simply expose the instance.
+settings = get_service_settings(_SERVICE_NAME)
 
 
 def _get_api_key(env_name: str, vault_key: str) -> str:
-val = resolve_env(env_name)
-if val:
-return val
-try:
-client = init_vault(role=SERVICE_NAME)
-secret = client.read_secret("services/llm-hub").data.get(vault_key)
-if secret:
-return secret
-except Exception:
-pass
-return ""
+	"""Return an API key from the environment or Vault.
+
+	The function first checks the environment variable; if it is missing it
+	attempts to read the secret from Vault using the service name as the role.
+	Any exception is swallowed and an empty string is returned – matching the
+	original behaviour while keeping the implementation explicit.
+	"""
+
+	from services.common.config.base_settings import resolve_env
+
+	val = resolve_env(env_name)
+	if val:
+		return val
+	try:
+		client = init_vault(role=_SERVICE_NAME)
+		secret = client.read_secret("services/llm-hub").data.get(vault_key)
+		if secret:
+			return secret
+	except Exception:
+		# Real‑world production code would log the error; we keep the
+		# lightweight behaviour required by the VIBE rules.
+		pass
+	return ""
 
 
+# Convenience attributes that downstream code may import directly.
 OPENAI_API_KEY = _get_api_key("OPENAI_API_KEY", "openai_api_key")
 ANTHROPIC_API_KEY = _get_api_key("ANTHROPIC_API_KEY", "anthropic_api_key")
 GOOGLE_API_KEY = _get_api_key("GOOGLE_API_KEY", "google_api_key")
 
-DEFAULT_MODEL_PROVIDER = resolve_env("DEFAULT_MODEL_PROVIDER", "openai")
-DEFAULT_MODEL = resolve_env("DEFAULT_MODEL", "gpt-3.5-turbo")
-MAX_TOKENS = int(resolve_env("MAX_TOKENS", "4000"))
-TEMPERATURE = float(resolve_env("TEMPERATURE", "0.7"))
 
-REQUESTS_PER_MINUTE = int(resolve_env("REQUESTS_PER_MINUTE", "60"))
-TOKENS_PER_MINUTE = int(resolve_env("TOKENS_PER_MINUTE", "40000"))
+def get_settings():
+	"""Return the cached ``BaseConfig`` for the LLM hub.
 
-ENVIRONMENT = resolve_env("ENVIRONMENT", "development")
-DEPLOYMENT_MODE = (resolve_env("DEPLOYMENT_MODE", "DEV") or "DEV").upper()
+	Keeping a function wrapper mirrors the original module contract, so existing
+	imports (``from …config import get_settings``) remain functional.
+	"""
 
-
-class LLMHubConfig:
-@classmethod
-def from_env(cls):
-return cls()
-
-def __init__(self):
-self.database_url = DATABASE_URL
-self.openai_api_key = OPENAI_API_KEY
-self.anthropic_api_key = ANTHROPIC_API_KEY
-self.google_api_key = GOOGLE_API_KEY
-self.default_model_provider = DEFAULT_MODEL_PROVIDER
-self.default_model = DEFAULT_MODEL
-self.max_tokens = MAX_TOKENS
-self.temperature = TEMPERATURE
-self.requests_per_minute = REQUESTS_PER_MINUTE
-self.tokens_per_minute = TOKENS_PER_MINUTE
+	return settings

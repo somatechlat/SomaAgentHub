@@ -40,6 +40,62 @@ return {
 }
 
 
+# ---------------------------------------------------------------------------
+# Central health‑aggregation endpoint
+# ---------------------------------------------------------------------------
+@router.get("/aggregate-status", tags=["gateway"], response_model=dict)
+async def aggregate_status(
+    ctx: RequestContext = Depends(request_context_dependency),
+    settings: GatewaySettings = Depends(get_settings),
+) -> dict:
+    """Query health endpoints of all downstream services and return a summary.
+
+    The list of services is derived from the central configuration.  Each
+    service URL is expected to expose a ``/health`` endpoint that returns a
+    JSON payload with at least a ``status`` field (``"healthy"``/``"degraded"``/``"unhealthy"``).
+    ``/status`` aggregates those responses and adds the gateway's own health.
+    """
+
+    import httpx
+    from asyncio import gather
+
+    # Mapping of logical service name -> URL (derived from config).  Fallbacks
+    # use the same defaults that were historically hard‑coded.
+    service_urls = {
+        "orchestrator": getattr(settings, "orchestrator_url", "http://orchestrator:8000"),
+        "identity": getattr(settings, "auth_url", "http://identity-service:8000"),
+        "policy": getattr(settings, "policy_engine_url", "http://policy-engine:8000"),
+        "memory_gateway": getattr(settings, "memory_gateway_url", "http://memory-gateway:8000"),
+        "llm_hub": getattr(settings, "llm_hub_url", "http://llm-hub:8000"),
+    }
+
+    async def fetch(url: str) -> dict:
+        try:
+            async with httpx.AsyncClient(timeout=3.0) as client:
+                resp = await client.get(f"{url.rstrip('/')}/health")
+                if resp.status_code == 200:
+                    return resp.json()
+        except Exception:
+            pass
+        # If anything fails, return a degraded status.
+        return {"status": "unhealthy", "service": url}
+
+    # Run all health checks concurrently.
+    results = await gather(*[fetch(u) for u in service_urls.values()])
+
+    # Build a dictionary keyed by service name.
+    aggregated = {name: result for name, result in zip(service_urls.keys(), results)}
+
+    # Include the gateway's own health (reuse the existing healthz logic).
+    gateway_health = await _check_kafka() and await _check_auth() and await _check_redis()
+    aggregated["gateway"] = {
+        "status": "ok" if gateway_health else "degraded",
+        "service": "gateway",
+    }
+
+    return aggregated
+
+
 def _build_orchestrator_payload(
 payload: SessionCreateRequest,
 ctx: RequestContext,
