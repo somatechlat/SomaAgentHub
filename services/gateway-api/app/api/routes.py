@@ -70,13 +70,18 @@ async def aggregate_status(
     }
 
     async def fetch(url: str) -> dict:
+        """Fetch the ``/health`` endpoint of a downstream service.
+
+        Returns the JSON payload on success or a degraded ``unhealthy`` payload
+        if the request fails or returns a non‑200 status.
+        """
         try:
             async with httpx.AsyncClient(timeout=3.0) as client:
                 resp = await client.get(f"{url.rstrip('/')}/health")
                 if resp.status_code == 200:
                     return resp.json()
-        except Exception:
-            pass
+        except Exception as exc:
+            logger.exception(f"Health check request failed for {url}: {exc}")
         # If anything fails, return a degraded status.
         return {"status": "unhealthy", "service": url}
 

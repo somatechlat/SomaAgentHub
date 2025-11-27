@@ -156,13 +156,23 @@ self.service_name = service_name
 
 @abstractmethod
 async def publish(self, event_data: Dict[str, Any]) -> None:
-"""Publish a single event."""
-pass
+    """Publish a single event.
+
+    Implementations must raise ``NotImplementedError`` if the method is not
+    overridden. Using ``raise`` instead of ``pass`` makes the abstract nature
+    explicit and prevents silent failures when a subclass forgets to provide an
+    implementation.
+    """
+    raise NotImplementedError()
 
 @abstractmethod
 async def publish_batch(self, events: List[Dict[str, Any]]) -> None:
-"""Publish multiple events."""
-pass
+    """Publish multiple events.
+
+    Sub‑classes should implement batch publishing semantics. The default
+    implementation raises ``NotImplementedError`` to avoid accidental usage.
+    """
+    raise NotImplementedError()
 
 
 class InMemoryEventPublisher(AbstractEventPublisher):

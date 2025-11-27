@@ -1,9 +1,9 @@
 from pathlib import Path
 
-from app.static_templates.engine import (
-build_default_tokens,
-render_template_set,
-TEMPLATE_ROOT,
+from services.orchestrator.app.static_templates.engine import (
+	build_default_tokens,
+	render_template_set,
+	TEMPLATE_ROOT,
 )
 from services.common.config.base_settings import resolve_env
 

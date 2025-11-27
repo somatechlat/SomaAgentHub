@@ -11,50 +11,54 @@ import os
 from contextlib import asynccontextmanager
 from typing import Any
 
+# The Redis client is optional for environments where Redis is not installed.
+# We attempt to import the async Redis library. If it is unavailable we raise a
+# clear error when the client is instantiated, rather than silently providing a
+# stub that masks configuration problems.
 try:
-import redis.asyncio as redis
-from redis.asyncio import Redis
-from redis.exceptions import RedisError
-redis = None
-
-class _RedisStub:  # noqa: D401
-pass
-
-class _RedisErrorStub(Exception):
-pass
-
-Redis = _RedisStub
-RedisError = _RedisErrorStub
+	import redis.asyncio as redis  # type: ignore
+	from redis.asyncio import Redis  # noqa: F401
+	from redis.exceptions import RedisError  # noqa: F401
+except Exception as exc:  # pragma: no cover
+	# Defer the import error until runtime when a RedisClient is created.
+	redis = None
+	Redis = None  # type: ignore
+	RedisError = Exception
 
 
 class RedisClient:
-"""Async Redis client with connection pooling."""
+	"""Async Redis client with connection pooling.
 
-def __init__(
-self,
-url: str,
-max_connections: int = 50,
-decode_responses: bool = True,
-):
-"""Initialize Redis client.
+	The client lazily creates a ``redis.asyncio.Redis`` instance backed by a
+	connection pool.  All public methods are async and raise ``RuntimeError``
+	with a clear message if the underlying ``redis`` library is missing.
+	"""
 
-Args:
-url: Redis connection URL (e.g., redis://localhost:6379/0)
-max_connections: Maximum connections in pool
-decode_responses: Auto-decode bytes to strings
-"""
-if redis is None:
-raise RuntimeError(
-"redis library not installed. Run: pip install redis[asyncio]"
-)
+	def __init__(
+		self,
+		url: str,
+		max_connections: int = 50,
+		decode_responses: bool = True,
+	) -> None:
+		"""Initialize Redis client.
 
-self.url = url
-self._pool = redis.ConnectionPool.from_url(
-url,
-max_connections=max_connections,
-decode_responses=decode_responses,
-)
-self._client: Redis | None = None
+		Args:
+			url: Redis connection URL (e.g., ``redis://localhost:6379/0``)
+			max_connections: Maximum connections in the pool.
+			decode_responses: Auto‑decode bytes to strings.
+		"""
+		if redis is None:
+			raise RuntimeError(
+				"redis library not installed. Run: pip install redis[asyncio]"
+			)
+
+		self.url = url
+		self._pool = redis.ConnectionPool.from_url(
+			url,
+			max_connections=max_connections,
+			decode_responses=decode_responses,
+		)
+		self._client: Redis | None = None
 
 async def get_client(self) -> Redis:
 """Get or create Redis client."""

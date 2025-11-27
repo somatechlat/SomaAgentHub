@@ -1,6 +1,6 @@
 """Asynchronous database utilities for the Task Capsule Repository service.
 
-We use **SQLModel** (built on SQLAlchemy) with the ``asyncpg`` driver for a
+We use **SQLModel** with the ``asyncpg`` driver for a
 PostgreSQL backend. The utilities provide an async engine, session factory, and
 helpers for FastAPI dependency injection. The implementation mirrors the pattern
 used in other services (e.g., the orchestrator) but is scoped to the Capsule
@@ -11,13 +11,14 @@ from __future__ import annotations
 
 import logging
 from contextlib import asynccontextmanager
+from typing import AsyncGenerator
 
+from sqlmodel import SQLModel
+from sqlmodel.ext.asyncio.session import AsyncSession
 from sqlalchemy.ext.asyncio import create_async_engine
 from sqlalchemy.orm import sessionmaker
-from sqlalchemy.ext.asyncio import AsyncSession
 
 from services.common.config.settings import get_settings
-from .models import Base
 
 logger = logging.getLogger(__name__)
 
@@ -41,7 +42,7 @@ async_engine = create_async_engine(
 )
 
 AsyncSessionLocal = sessionmaker(
-    bind=async_engine, class_=AsyncSession, expire_on_commit=False, future=True
+    bind=async_engine, class_=AsyncSession, expire_on_commit=False
 )
 
 
@@ -58,12 +59,12 @@ async def init_db() -> None:
     """
     async with async_engine.begin() as conn:
         # Create tables from the declarative Base defined in models.py
-        await conn.run_sync(Base.metadata.create_all)
+        await conn.run_sync(SQLModel.metadata.create_all)
     logger.info("Task Capsule Repository DB schema initialized")
 
 
 @asynccontextmanager
-async def get_async_session() -> AsyncSession:
+async def get_async_session() -> AsyncGenerator[AsyncSession, None]:
     """Yield an async session, committing on success and rolling back on error."""
     async with AsyncSessionLocal() as session:
         try:
@@ -75,14 +76,14 @@ async def get_async_session() -> AsyncSession:
 
 
 # FastAPI dependency helper
-async def get_session() -> AsyncSession:
+async def get_session() -> AsyncGenerator[AsyncSession, None]:
     """Dependency that provides a database session for route handlers."""
     async with get_async_session() as session:
         yield session
 
 
 # Backwards-compatible alias expected by tests
-async def get_db():
+async def get_db() -> AsyncGenerator[AsyncSession, None]:
     """Alias for `get_session` used by the test harness to obtain an async DB session."""
     async with get_async_session() as session:
         yield session

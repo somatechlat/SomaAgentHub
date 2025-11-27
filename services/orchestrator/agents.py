@@ -25,7 +25,8 @@ logger = logging.getLogger(__name__)
 
 class AgentManagementError(Exception):
     """Raised when agent management operations fail."""
-    pass
+    # No additional functionality required; the exception type itself is
+    # sufficient for callers to catch specific agent‑management errors.
 
 
 async def create_agent_instance(

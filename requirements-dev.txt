@@ -13,3 +13,4 @@ aiokafka>=0.10.0
 boto3>=1.34.0
 - minio>=7.2.0
 -e sdk/python
+alembic

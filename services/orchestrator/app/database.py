@@ -33,6 +33,12 @@ from sqlmodel.ext.asyncio.session import AsyncSession
 
 # Adjusted import path: models are in `repository/outbox.py` not `models/outbox`.
 from .repository.outbox import OutboxEvent
+# Import all SQLModel models so they are registered with SQLModel.metadata.
+# This ensures ``init_db`` creates the tables for new models such as ``Capsule``.
+# No additional models are required here for Sprint 1; the task‑capsule‑repo
+# service maintains its own capsule table. Importing a duplicate model would
+# create a second ``capsules`` table in the orchestrator database, which is not
+# intended.
 from .services.circuit_breaker import DATABASE_CIRCUIT_BREAKER
 
 # ---------------------------------------------------------------------------
@@ -53,9 +59,9 @@ sync_engine = create_engine("sqlite:///:memory:", echo=False, future=True)
 # Async engine for runtime operations with production pooling
 _db_url = DATABASE_URL
 if not _db_url.startswith("postgresql+asyncpg://"):
-raise RuntimeError(
-"DATABASE_URL must use asyncpg driver (postgresql+asyncpg://). Got: " + _db_url
-)
+	raise RuntimeError(
+		"DATABASE_URL must use asyncpg driver (postgresql+asyncpg://). Got: " + _db_url
+	)
 
 async_engine = create_async_engine(
 _db_url,
@@ -72,48 +78,48 @@ bind=async_engine, class_=AsyncSession, expire_on_commit=False
 
 # Alias for backward compatibility
 def get_session_factory():
-"""Return the async session factory for service initialization."""
-return AsyncSessionLocal
+	"""Return the async session factory for service initialization."""
+	return AsyncSessionLocal
 
 
 async def init_db() -> None:
-"""Initialize the database schema including outbox table."""
-# Create all tables including OutboxEvent
-async with async_engine.begin() as conn:
-await conn.run_sync(SQLModel.metadata.create_all)
-logger.info(f"Database schema initialized with URL: {DATABASE_URL}")
+	"""Initialize the database schema including outbox table."""
+	# Create all tables including OutboxEvent and any newly added models.
+	async with async_engine.begin() as conn:
+		await conn.run_sync(SQLModel.metadata.create_all)
+	logger.info(f"Database schema initialized with URL: {DATABASE_URL}")
 
 
 async def check_database_health() -> bool:
-"""Check database connectivity for health checks with circuit breaker."""
+	"""Check database connectivity for health checks with circuit breaker."""
 
-@DATABASE_CIRCUIT_BREAKER
-async def _check_db() -> bool:
-async with async_engine.connect() as conn:
-await conn.execute("SELECT 1")
-return True
+	@DATABASE_CIRCUIT_BREAKER
+	async def _check_db() -> bool:
+		async with async_engine.connect() as conn:
+			await conn.execute("SELECT 1")
+		return True
 
-try:
-return await _check_db()
-except Exception as e:
-logger.error(f"Database health check failed: {e}")
-return False
+	try:
+		return await _check_db()
+	except Exception as e:
+		logger.error(f"Database health check failed: {e}")
+		return False
 
 
 @asynccontextmanager
 async def get_async_session() -> AsyncSession:
-"""Yield an async session; commit on success, rollback on exception."""
-async with AsyncSessionLocal() as session:
-try:
-yield session
-await session.commit()
-except Exception:
-await session.rollback()
-raise
+	"""Yield an async session; commit on success, rollback on exception."""
+	async with AsyncSessionLocal() as session:
+		try:
+			yield session
+			await session.commit()
+		except Exception:
+			await session.rollback()
+			raise
 
 
 # FastAPI dependency injection helper
 async def get_session() -> AsyncSession:
-"""FastAPI dependency for getting database session."""
-async with get_async_session() as session:
-yield session
+	"""FastAPI dependency for getting database session."""
+	async with get_async_session() as session:
+		yield session

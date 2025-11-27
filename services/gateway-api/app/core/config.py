@@ -1,4 +1,46 @@
-"""Gateway service configuration using centralized resolver and Vault client."""
+"""Placeholder config for gateway API.
+
+Provides minimal settings required for import.
+"""
+
+from __future__ import annotations
+
+from functools import lru_cache
+
+SERVICE_NAME = "gateway-api"
+SERVICE_PORT = 8080
+
+class GatewaySettings:
+    def __init__(self) -> None:
+        self.service_name = SERVICE_NAME
+        self.service_port = SERVICE_PORT
+
+@lru_cache
+def get_settings() -> GatewaySettings:
+    return GatewaySettings()
+
+settings = get_settings()"""Placeholder config for gateway API.
+
+Provides minimal settings required for import.
+"""
+
+from __future__ import annotations
+
+from functools import lru_cache
+
+SERVICE_NAME = "gateway-api"
+SERVICE_PORT = 8080
+
+class GatewaySettings:
+    def __init__(self) -> None:
+        self.service_name = SERVICE_NAME
+        self.service_port = SERVICE_PORT
+
+@lru_cache
+def get_settings() -> GatewaySettings:
+    return GatewaySettings()
+
+settings = get_settings()"""Gateway service configuration using centralized resolver and Vault client."""
 
 from __future__ import annotations
 
@@ -46,8 +88,12 @@ client = init_vault(role=SERVICE_NAME)
 secret = client.read_secret("jwt").data.get("secret")
 if secret:
 return secret
-except Exception:
-pass
+except Exception as exc:  # pragma: no cover
+	# Log the exception for debugging purposes; fallback to default secret
+	import logging
+
+	logging.getLogger(__name__).exception("Failed to retrieve JWT secret from Vault")
+	# Continue to return the default dev secret below
 return resolve_env("JWT_SECRET", "dev-jwt-secret")
 
 

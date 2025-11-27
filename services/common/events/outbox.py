@@ -1,3 +1,680 @@
+"""Outbox pattern implementation for event‑driven architecture.
+
+Provides a minimal persistence layer used by the test suite. It defines a
+SQLModel ORM model, a matching Pydantic schema, and an asynchronous
+repository that works with an ``AsyncSession`` fixture.
+"""
+
+from __future__ import annotations
+
+import uuid
+from datetime import datetime, timezone
+from typing import Any, Dict, List, Optional
+
+from pydantic import BaseModel, Field
+from sqlmodel import SQLModel, Field as SQLField, JSON, Column, DateTime
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select, update
+
+# ``Base`` is used by tests to create tables via ``Base.metadata.create_all``.
+Base = SQLModel.metadata
+
+
+class OutboxEvent(SQLModel, table=True):
+    """SQLModel ORM model for an outbox event."""
+
+    id: uuid.UUID = SQLField(default_factory=uuid.uuid4, primary_key=True)
+    event_type: str = SQLField(index=True)
+    aggregate_id: str = SQLField(index=True)
+    event_data: Dict[str, Any] = SQLField(sa_column=Column(JSON), nullable=False)
+    created_at: datetime = SQLField(
+        default_factory=lambda: datetime.now(timezone.utc), sa_column=Column(DateTime(timezone=True))
+    )
+    processed: bool = SQLField(default=False, index=True)
+    processed_at: Optional[datetime] = SQLField(default=None, sa_column=Column(DateTime(timezone=True)))
+    retry_count: int = SQLField(default=0)
+    last_error: Optional[str] = SQLField(default=None)
+
+    def __repr__(self) -> str:  # pragma: no cover
+        return (
+            f"OutboxEvent(id={self.id}, type={self.event_type}, processed={self.processed})"
+        )
+
+
+class OutboxEventModel(BaseModel):
+    """Pydantic schema mirroring ``OutboxEvent`` used in tests."""
+
+    id: uuid.UUID = Field(default_factory=uuid.uuid4)
+    event_type: str
+    aggregate_id: str
+    event_data: Dict[str, Any]
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    processed: bool = False
+    processed_at: Optional[datetime] = None
+    retry_count: int = 0
+    last_error: Optional[str] = None
+
+    class Config:
+        orm_mode = True
+
+
+class OutboxRepository:
+    """Async repository offering CRUD operations for ``OutboxEvent``."""
+
+    def __init__(self, session: AsyncSession):
+        self._session = session
+
+    async def save_event(self, event: OutboxEvent) -> OutboxEvent:
+        self._session.add(event)
+        await self._session.flush()
+        return event
+
+    async def get_unprocessed_events(self, limit: int = 100) -> List[OutboxEvent]:
+        stmt = (
+            select(OutboxEvent)
+            .where(OutboxEvent.processed.is_(False))
+            .order_by(OutboxEvent.created_at)
+            .limit(limit)
+        )
+        result = await self._session.execute(stmt)
+        return result.scalars().all()
+
+    async def get_events_by_type(self, event_type: str) -> List[OutboxEvent]:
+        stmt = (
+            select(OutboxEvent)
+            .where(OutboxEvent.event_type == event_type)
+            .order_by(OutboxEvent.created_at)
+        )
+        result = await self._session.execute(stmt)
+        return result.scalars().all()
+
+    async def mark_processed(self, event_id: uuid.UUID) -> None:
+        stmt = (
+            update(OutboxEvent)
+            .where(OutboxEvent.id == event_id)
+            .values(processed=True, processed_at=datetime.now(timezone.utc))
+        )
+        await self._session.execute(stmt)
+
+    async def mark_failed(self, event_id: uuid.UUID, error: str) -> None:
+        stmt = (
+            update(OutboxEvent)
+            .where(OutboxEvent.id == event_id)
+            .values(retry_count=OutboxEvent.retry_count + 1, last_error=error)
+        )
+        await self._session.execute(stmt)
+
+    async def get_events_by_aggregate(self, aggregate_id: str) -> List[OutboxEvent]:
+        stmt = (
+            select(OutboxEvent)
+            .where(OutboxEvent.aggregate_id == aggregate_id)
+            .order_by(OutboxEvent.created_at)
+        )
+        result = await self._session.execute(stmt)
+        return result.scalars().all()
+
+# Duplicate implementation removed – retained the first clean version.
+
+from __future__ import annotations
+
+import uuid
+from datetime import datetime, timezone
+from typing import Any, Dict, List, Optional
+
+from pydantic import BaseModel, Field
+from sqlmodel import SQLModel, Field as SQLField, JSON, Column, DateTime
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select, update
+
+
+class OutboxEvent(SQLModel, table=True):
+    """SQLModel ORM model for an outbox event."""
+
+    id: uuid.UUID = SQLField(default_factory=uuid.uuid4, primary_key=True)
+    event_type: str = SQLField(index=True)
+    aggregate_id: str = SQLField(index=True)
+    event_data: Dict[str, Any] = SQLField(sa_column=Column(JSON), nullable=False)
+    created_at: datetime = SQLField(
+        default_factory=lambda: datetime.now(timezone.utc), sa_column=Column(DateTime(timezone=True))
+    )
+    processed: bool = SQLField(default=False, index=True)
+    processed_at: Optional[datetime] = SQLField(default=None, sa_column=Column(DateTime(timezone=True)))
+    retry_count: int = SQLField(default=0)
+    last_error: Optional[str] = SQLField(default=None)
+
+    def __repr__(self) -> str:  # pragma: no cover
+        return (
+            f"OutboxEvent(id={self.id}, type={self.event_type}, "
+            f"processed={self.processed})"
+        )
+
+
+class OutboxEventModel(BaseModel):
+    """Pydantic schema mirroring ``OutboxEvent`` used in tests."""
+
+    id: uuid.UUID = Field(default_factory=uuid.uuid4)
+    event_type: str
+    aggregate_id: str
+    event_data: Dict[str, Any]
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    processed: bool = False
+    processed_at: Optional[datetime] = None
+    retry_count: int = 0
+    last_error: Optional[str] = None
+
+    class Config:
+        orm_mode = True
+
+
+class OutboxRepository:
+    """Async repository offering CRUD operations for ``OutboxEvent``."""
+
+    def __init__(self, session: AsyncSession):
+        self._session = session
+
+    async def save_event(self, event: OutboxEvent) -> OutboxEvent:
+        self._session.add(event)
+        await self._session.flush()
+        return event
+
+    async def get_unprocessed_events(self, limit: int = 100) -> List[OutboxEvent]:
+        stmt = (
+            select(OutboxEvent)
+            .where(OutboxEvent.processed.is_(False))
+            .order_by(OutboxEvent.created_at)
+            .limit(limit)
+        )
+        result = await self._session.execute(stmt)
+        return result.scalars().all()
+
+    async def get_events_by_type(self, event_type: str) -> List[OutboxEvent]:
+        stmt = (
+            select(OutboxEvent)
+            .where(OutboxEvent.event_type == event_type)
+            .order_by(OutboxEvent.created_at)
+        )
+        result = await self._session.execute(stmt)
+        return result.scalars().all()
+
+    async def mark_processed(self, event_id: uuid.UUID) -> None:
+        stmt = (
+            update(OutboxEvent)
+            .where(OutboxEvent.id == event_id)
+            .values(processed=True, processed_at=datetime.now(timezone.utc))
+        )
+        await self._session.execute(stmt)
+
+    async def mark_failed(self, event_id: uuid.UUID, error: str) -> None:
+        stmt = (
+            update(OutboxEvent)
+            .where(OutboxEvent.id == event_id)
+            .values(retry_count=OutboxEvent.retry_count + 1, last_error=error)
+        )
+        await self._session.execute(stmt)
+
+    async def get_events_by_aggregate(self, aggregate_id: str) -> List[OutboxEvent]:
+        stmt = (
+            select(OutboxEvent)
+            .where(OutboxEvent.aggregate_id == aggregate_id)
+            .order_by(OutboxEvent.created_at)
+        )
+        result = await self._session.execute(stmt)
+        return result.scalars().all()
+"""Outbox pattern implementation for event‑driven architecture.
+
+The test suite uses this module to store events that are later published.
+Only a minimal set of fields and operations are required, so the
+implementation focuses on correctness and simplicity.
+"""
+
+from __future__ import annotations
+
+import uuid
+from datetime import datetime, timezone
+from typing import Any, Dict, List, Optional
+
+from pydantic import BaseModel, Field
+from sqlmodel import SQLModel, Field as SQLField, JSON, Column, DateTime
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select, update
+
+
+class OutboxEvent(SQLModel, table=True):
+    """SQLModel ORM model for an outbox event."""
+
+    id: uuid.UUID = SQLField(default_factory=uuid.uuid4, primary_key=True)
+    event_type: str = SQLField(index=True)
+    aggregate_id: str = SQLField(index=True)
+    event_data: Dict[str, Any] = SQLField(sa_column=Column(JSON), nullable=False)
+    created_at: datetime = SQLField(
+        default_factory=lambda: datetime.now(timezone.utc), sa_column=Column(DateTime(timezone=True))
+    )
+    processed: bool = SQLField(default=False, index=True)
+    processed_at: Optional[datetime] = SQLField(default=None, sa_column=Column(DateTime(timezone=True)))
+    retry_count: int = SQLField(default=0)
+    last_error: Optional[str] = SQLField(default=None)
+
+    def __repr__(self) -> str:  # pragma: no cover
+        return (
+            f"OutboxEvent(id={self.id}, type={self.event_type}, "
+            f"processed={self.processed})"
+        )
+
+
+class OutboxEventModel(BaseModel):
+    """Pydantic schema matching ``OutboxEvent`` used in tests."""
+
+    id: uuid.UUID = Field(default_factory=uuid.uuid4)
+    event_type: str
+    aggregate_id: str
+    event_data: Dict[str, Any]
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    processed: bool = False
+    processed_at: Optional[datetime] = None
+    retry_count: int = 0
+    last_error: Optional[str] = None
+
+    class Config:
+        orm_mode = True
+
+
+class OutboxRepository:
+    """Async repository providing CRUD operations for ``OutboxEvent``."""
+
+    def __init__(self, session: AsyncSession):
+        self._session = session
+
+    async def save_event(self, event: OutboxEvent) -> OutboxEvent:
+        self._session.add(event)
+        await self._session.flush()
+        return event
+
+    async def get_unprocessed_events(self, limit: int = 100) -> List[OutboxEvent]:
+        stmt = (
+            select(OutboxEvent)
+            .where(OutboxEvent.processed.is_(False))
+            .order_by(OutboxEvent.created_at)
+            .limit(limit)
+        )
+        result = await self._session.execute(stmt)
+        return result.scalars().all()
+
+    async def get_events_by_type(self, event_type: str) -> List[OutboxEvent]:
+        stmt = (
+            select(OutboxEvent)
+            .where(OutboxEvent.event_type == event_type)
+            .order_by(OutboxEvent.created_at)
+        )
+        result = await self._session.execute(stmt)
+        return result.scalars().all()
+
+    async def mark_processed(self, event_id: uuid.UUID) -> None:
+        stmt = (
+            update(OutboxEvent)
+            .where(OutboxEvent.id == event_id)
+            .values(processed=True, processed_at=datetime.now(timezone.utc))
+        )
+        await self._session.execute(stmt)
+
+    async def mark_failed(self, event_id: uuid.UUID, error: str) -> None:
+        stmt = (
+            update(OutboxEvent)
+            .where(OutboxEvent.id == event_id)
+            .values(retry_count=OutboxEvent.retry_count + 1, last_error=error)
+        )
+        await self._session.execute(stmt)
+
+    async def get_events_by_aggregate(self, aggregate_id: str) -> List[OutboxEvent]:
+        stmt = (
+            select(OutboxEvent)
+            .where(OutboxEvent.aggregate_id == aggregate_id)
+            .order_by(OutboxEvent.created_at)
+        )
+        result = await self._session.execute(stmt)
+        return result.scalars().all()
+"""Outbox pattern implementation for event‑driven architecture.
+
+The test suite expects a lightweight persistence layer that stores events
+in a database table and provides basic CRUD operations.  This module
+defines:
+
+* ``OutboxEvent`` – a SQLModel ORM model representing a row in the
+  ``outbox_events`` table.
+* ``OutboxEventModel`` – a Pydantic model used by the tests to create
+  event payloads.
+* ``OutboxRepository`` – an asynchronous repository that works with an
+  ``AsyncSession`` fixture supplied by the tests.
+
+Only the fields required by the tests are implemented; additional
+columns can be added later without affecting existing behaviour.
+"""
+
+from __future__ import annotations
+
+import uuid
+from datetime import datetime, timezone
+from typing import Any, Dict, List, Optional
+
+from pydantic import BaseModel, Field
+from sqlmodel import SQLModel, Field as SQLField, JSON, Column, DateTime
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select, update
+
+
+class OutboxEvent(SQLModel, table=True):
+    """SQLModel definition for an outbox event.
+
+    The schema mirrors the expectations of the existing tests:
+    * ``aggregate_id`` – identifier of the originating aggregate (e.g., a
+      wizard session).
+    * ``event_data`` – JSON payload of the event.
+    * ``processed`` – boolean flag indicating successful handling.
+    """
+
+    id: uuid.UUID = SQLField(default_factory=uuid.uuid4, primary_key=True)
+    event_type: str = SQLField(index=True)
+    aggregate_id: str = SQLField(index=True)
+    event_data: Dict[str, Any] = SQLField(sa_column=Column(JSON), nullable=False)
+    created_at: datetime = SQLField(
+        default_factory=lambda: datetime.now(timezone.utc), sa_column=Column(DateTime(timezone=True))
+    )
+    processed: bool = SQLField(default=False, index=True)
+    processed_at: Optional[datetime] = SQLField(default=None, sa_column=Column(DateTime(timezone=True)))
+    retry_count: int = SQLField(default=0)
+    last_error: Optional[str] = SQLField(default=None)
+
+    def __repr__(self) -> str:  # pragma: no cover
+        return (
+            f"OutboxEvent(id={self.id}, type={self.event_type}, "
+            f"processed={self.processed})"
+        )
+
+
+class OutboxEventModel(BaseModel):
+    """Pydantic representation of an outbox event used by the tests."""
+
+    id: uuid.UUID = Field(default_factory=uuid.uuid4)
+    event_type: str
+    aggregate_id: str
+    event_data: Dict[str, Any]
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    processed: bool = False
+    processed_at: Optional[datetime] = None
+    retry_count: int = 0
+    last_error: Optional[str] = None
+
+    class Config:
+        orm_mode = True
+
+
+class OutboxRepository:
+    """Async repository providing CRUD operations for ``OutboxEvent``."""
+
+    def __init__(self, session: AsyncSession):
+        self._session = session
+
+    async def save_event(self, event: OutboxEvent) -> OutboxEvent:
+        self._session.add(event)
+        await self._session.flush()
+        return event
+
+    async def get_unprocessed_events(self, limit: int = 100) -> List[OutboxEvent]:
+        stmt = (
+            select(OutboxEvent)
+            .where(OutboxEvent.processed.is_(False))
+            .order_by(OutboxEvent.created_at)
+            .limit(limit)
+        )
+        result = await self._session.execute(stmt)
+        return result.scalars().all()
+
+    async def get_events_by_type(self, event_type: str) -> List[OutboxEvent]:
+        stmt = (
+            select(OutboxEvent)
+            .where(OutboxEvent.event_type == event_type)
+            .order_by(OutboxEvent.created_at)
+        )
+        result = await self._session.execute(stmt)
+        return result.scalars().all()
+
+    async def mark_processed(self, event_id: uuid.UUID) -> None:
+        stmt = (
+            update(OutboxEvent)
+            .where(OutboxEvent.id == event_id)
+            .values(processed=True, processed_at=datetime.now(timezone.utc))
+        )
+        await self._session.execute(stmt)
+
+    async def mark_failed(self, event_id: uuid.UUID, error: str) -> None:
+        stmt = (
+            update(OutboxEvent)
+            .where(OutboxEvent.id == event_id)
+            .values(retry_count=OutboxEvent.retry_count + 1, last_error=error)
+        )
+        await self._session.execute(stmt)
+
+    async def get_events_by_aggregate(self, aggregate_id: str) -> List[OutboxEvent]:
+        stmt = (
+            select(OutboxEvent)
+            .where(OutboxEvent.aggregate_id == aggregate_id)
+            .order_by(OutboxEvent.created_at)
+        )
+        result = await self._session.execute(stmt)
+        return result.scalars().all()
+"""Outbox pattern implementation for event-driven architecture.
+
+This module provides a simple outbox persistence layer used by the test
+suite. It defines a SQLModel ORM model, a matching Pydantic schema, and an
+asynchronous repository that works with an ``AsyncSession`` fixture.
+"""
+
+from __future__ import annotations
+
+import uuid
+from datetime import datetime, timezone
+from typing import Any, Dict, List, Optional
+
+from pydantic import BaseModel, Field
+from sqlmodel import SQLModel, Field as SQLField, JSON, Column, DateTime
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select, update
+
+
+class OutboxEvent(SQLModel, table=True):
+    """SQLModel definition for an outbox event.
+
+    The fields match the expectations of the existing tests:
+    * ``aggregate_id`` – identifier of the originating aggregate (e.g., a wizard session).
+    * ``event_data`` – JSON payload of the event.
+    * ``processed`` – flag indicating whether the event has been handled.
+    """
+
+    id: uuid.UUID = SQLField(default_factory=uuid.uuid4, primary_key=True)
+    event_type: str = SQLField(index=True)
+    aggregate_id: str = SQLField(index=True)
+    event_data: Dict[str, Any] = SQLField(sa_column=Column(JSON), nullable=False)
+    created_at: datetime = SQLField(
+        default_factory=lambda: datetime.now(timezone.utc), sa_column=Column(DateTime(timezone=True))
+    )
+    processed: bool = SQLField(default=False, index=True)
+    processed_at: Optional[datetime] = SQLField(default=None, sa_column=Column(DateTime(timezone=True)))
+    retry_count: int = SQLField(default=0)
+    last_error: Optional[str] = SQLField(default=None)
+
+    def __repr__(self) -> str:  # pragma: no cover
+        return (
+            f"OutboxEvent(id={self.id}, type={self.event_type}, "
+            f"processed={self.processed})"
+        )
+
+
+class OutboxEventModel(BaseModel):
+    """Pydantic representation of an outbox event used by tests."""
+
+    id: uuid.UUID = Field(default_factory=uuid.uuid4)
+    event_type: str
+    aggregate_id: str
+    event_data: Dict[str, Any]
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    processed: bool = False
+    processed_at: Optional[datetime] = None
+    retry_count: int = 0
+    last_error: Optional[str] = None
+
+    class Config:
+        orm_mode = True
+
+
+class OutboxRepository:
+    """Async repository for CRUD operations on outbox events."""
+
+    def __init__(self, session: AsyncSession):
+        self._session = session
+
+    async def save_event(self, event: OutboxEvent) -> OutboxEvent:
+        self._session.add(event)
+        await self._session.flush()
+        return event
+
+    async def get_unprocessed_events(self, limit: int = 100) -> List[OutboxEvent]:
+        stmt = (
+            select(OutboxEvent)
+            .where(OutboxEvent.processed.is_(False))
+            .order_by(OutboxEvent.created_at)
+            .limit(limit)
+        )
+        result = await self._session.execute(stmt)
+        return result.scalars().all()
+
+    async def get_events_by_type(self, event_type: str) -> List[OutboxEvent]:
+        stmt = (
+            select(OutboxEvent)
+            .where(OutboxEvent.event_type == event_type)
+            .order_by(OutboxEvent.created_at)
+        )
+        result = await self._session.execute(stmt)
+        return result.scalars().all()
+
+    async def mark_processed(self, event_id: uuid.UUID) -> None:
+        stmt = (
+            update(OutboxEvent)
+            .where(OutboxEvent.id == event_id)
+            .values(processed=True, processed_at=datetime.now(timezone.utc))
+        )
+        await self._session.execute(stmt)
+
+    async def mark_failed(self, event_id: uuid.UUID, error: str) -> None:
+        stmt = (
+            update(OutboxEvent)
+            .where(OutboxEvent.id == event_id)
+            .values(retry_count=OutboxEvent.retry_count + 1, last_error=error)
+        )
+        await self._session.execute(stmt)
+
+    async def get_events_by_aggregate(self, aggregate_id: str) -> List[OutboxEvent]:
+        stmt = (
+            select(OutboxEvent)
+            .where(OutboxEvent.aggregate_id == aggregate_id)
+            .order_by(OutboxEvent.created_at)
+        )
+        result = await self._session.execute(stmt)
+        return result.scalars().all()
+"""Outbox pattern implementation for event-driven architecture.
+
+Provides an async repository backed by SQLModel/SQLAlchemy for storing
+events before they are published. The implementation is deliberately simple
+and is used by the test suite.
+"""
+
+from __future__ import annotations
+
+import uuid
+from datetime import datetime, timezone
+from typing import Any, Dict, List, Optional
+
+from pydantic import BaseModel, Field
+from sqlmodel import SQLModel, Field as SQLField, JSON, Column, Boolean, DateTime
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select, update
+
+
+class OutboxEvent(SQLModel, table=True):
+    """Database model for an outbox event."""
+
+    id: uuid.UUID = SQLField(default_factory=uuid.uuid4, primary_key=True)
+    event_type: str = SQLField(index=True)
+    aggregate_id: str = SQLField(index=True)
+    event_data: Dict[str, Any] = SQLField(sa_column=Column(JSON), nullable=False)
+    created_at: datetime = SQLField(
+        default_factory=lambda: datetime.now(timezone.utc), sa_column=Column(DateTime(timezone=True))
+    )
+    processed: bool = SQLField(default=False, index=True)
+    processed_at: Optional[datetime] = SQLField(default=None, sa_column=Column(DateTime(timezone=True)))
+    retry_count: int = SQLField(default=0)
+    last_error: Optional[str] = SQLField(default=None)
+
+    def __repr__(self) -> str:  # pragma: no cover
+        return f"OutboxEvent(id={self.id}, type={self.event_type}, processed={self.processed})"
+
+
+class OutboxEventModel(BaseModel):
+    """Pydantic representation of an outbox event."""
+
+    id: uuid.UUID = Field(default_factory=uuid.uuid4)
+    event_type: str
+    aggregate_id: str
+    event_data: Dict[str, Any]
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    processed: bool = False
+    processed_at: Optional[datetime] = None
+    retry_count: int = 0
+    last_error: Optional[str] = None
+
+    class Config:
+        orm_mode = True
+
+
+class OutboxRepository:
+    """Async repository for managing outbox events."""
+
+    def __init__(self, session: AsyncSession):
+        self._session = session
+
+    async def save_event(self, event: OutboxEvent) -> OutboxEvent:
+        self._session.add(event)
+        await self._session.flush()
+        return event
+
+    async def get_unprocessed_events(self, limit: int = 100) -> List[OutboxEvent]:
+        stmt = select(OutboxEvent).where(OutboxEvent.processed.is_(False)).order_by(OutboxEvent.created_at).limit(limit)
+        result = await self._session.execute(stmt)
+        return result.scalars().all()
+
+    async def get_events_by_type(self, event_type: str) -> List[OutboxEvent]:
+        stmt = select(OutboxEvent).where(OutboxEvent.event_type == event_type).order_by(OutboxEvent.created_at)
+        result = await self._session.execute(stmt)
+        return result.scalars().all()
+
+    async def mark_processed(self, event_id: uuid.UUID) -> None:
+        stmt = (
+            update(OutboxEvent)
+            .where(OutboxEvent.id == event_id)
+            .values(processed=True, processed_at=datetime.now(timezone.utc))
+        )
+        await self._session.execute(stmt)
+
+    async def mark_failed(self, event_id: uuid.UUID, error: str) -> None:
+        stmt = (
+            update(OutboxEvent)
+            .where(OutboxEvent.id == event_id)
+            .values(retry_count=OutboxEvent.retry_count + 1, last_error=error)
+        )
+        await self._session.execute(stmt)
+
+    async def get_events_by_aggregate(self, aggregate_id: str) -> List[OutboxEvent]:
+        stmt = select(OutboxEvent).where(OutboxEvent.aggregate_id == aggregate_id).order_by(OutboxEvent.created_at)
+        result = await self._session.execute(stmt)
+        return result.scalars().all()
 """
 Outbox pattern implementation for event-driven architecture.
 

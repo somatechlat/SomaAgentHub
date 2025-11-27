@@ -110,7 +110,8 @@ except Exception:  # noqa: BLE001
 async with self._lock:
     self._cache.append(record)
 except asyncio.CancelledError:  # pragma: no cover - shutdown path
-pass
+    # Expected during graceful shutdown; exit the consume loop.
+    return
 except Exception as exc:  # noqa: BLE001
 logger.error("Notification consumer loop crashed", exc_info=exc)
 
