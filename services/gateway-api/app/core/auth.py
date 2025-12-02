@@ -1,99 +1,99 @@
-"""Authentication utilities for the Gateway API.
+        uthentication utilities for the Gateway API.
 
-This module provides a FastAPI dependency that validates a JWT token against the
-Identity Service.  It is deliberately lightweight – it forwards the token to the
-identity service's ``/v1/tokens/verify`` endpoint and returns the decoded claims
-if the verification succeeds.
+         module provides a FastAPI dependency that validates a JWT token against the
+         tity Service.  It is deliberately lightweight – it forwards the token to the
+         tity service's ``/v1/tokens/verify`` endpoint and returns the decoded claims
+         he verification succeeds.
 
-The dependency can be used in any route that requires authentication, e.g.:
+         dependency can be used in any route that requires authentication, e.g.:
 
-```python
-from .core.auth import get_current_user
+             ```python
+             from .core.auth import get_current_user
 
-@router.get("/secure-data")
-def secure_endpoint(user: dict = Depends(get_current_user)):
-return {"user": user["user_id"], "tenant": user["tenant_id"]}
-```
+             @router.get("/secure-data")
+             def secure_endpoint(user: dict = Depends(get_current_user)):
+            return {"user": user["user_id"], "tenant": user["tenant_id"]}
+            ```
 
-The function raises ``HTTPException`` with status 401 when the token is missing
-or invalid.  It also caches the Identity Service base URL from environment
-variables to avoid repeated look‑ups.
-"""
+            The function raises ``HTTPException`` with status 401 when the token is missing
+            or invalid.  It also caches the Identity Service base URL from environment
+            variables to avoid repeated look‑ups.
+            """
 
-from __future__ import annotations
+            from __future__ import annotations
 
-from collections.abc import Mapping
-from typing import Any
+            from collections.abc import Mapping
+            from typing import Any
 
-import httpx
-from fastapi import Header, HTTPException, status
+            import httpx
+            from fastapi import Header, HTTPException, status
 
-from services.common.config.base_settings import resolve_env
+            from services.common.config.base_settings import resolve_env
 
-# The Identity Service URL can be overridden via ``IDENTITY_SERVICE_URL``.
-IDENTITY_SERVICE_URL = resolve_env(
-"IDENTITY_SERVICE_URL",
-"http://identity-service:10002",
-)
+            e Identity Service URL can be overridden via ``IDENTITY_SERVICE_URL``.
+            IDENTITY_SERVICE_URL = resolve_env(
+            "IDENTITY_SERVICE_URL",
+            "http://identity-service:10002",
+            )
 
-_client: httpx.AsyncClient | None = None
-
-
-def _get_client() -> httpx.AsyncClient:
-"""Return a singleton async HTTP client for the Identity Service."""
-global _client
-if _client is None:
-_client = httpx.AsyncClient(base_url=IDENTITY_SERVICE_URL, timeout=5.0)
-return _client
+            _client: httpx.AsyncClient | None = None
 
 
-async def _verify_token(token: str) -> Mapping[str, Any]:
-"""Call the Identity Service to verify *token*.
-
-Returns the JSON payload from the ``/v1/tokens/verify`` endpoint on success.
-Raises ``HTTPException`` with 401 on any verification failure.
-"""
-client = _get_client()
-try:
-resp = await client.post("/v1/tokens/verify", json={"token": token})
-except httpx.HTTPError as exc:
-raise HTTPException(
-status_code=status.HTTP_502_BAD_GATEWAY,
-detail="Unable to reach Identity Service",
-) from exc
-
-if resp.status_code != 200:
-# Propagate the error message from the identity service when possible.
-try:
-detail = resp.json().get("detail", "Invalid token")
-except Exception:
-detail = "Invalid token"
-raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=detail)
-
-return resp.json()
+            def _get_client() -> httpx.AsyncClient:
+                """Return a singleton async HTTP client for the Identity Service."""
+                global _client
+                if _client is None:
+                    _client = httpx.AsyncClient(base_url=IDENTITY_SERVICE_URL, timeout=5.0)
+                    return _client
 
 
-async def get_current_user(
-authorization: str = Header(..., description="Bearer <JWT token>")
-) -> Mapping[str, Any]:
-"""FastAPI dependency that returns the verified user claims.
+                    async def _verify_token(token: str) -> Mapping[str, Any]:
+                        """Call the Identity Service to verify *token*.
 
-The ``Authorization`` header must contain a ``Bearer`` token.  The token is
-forwarded to the Identity Service for verification.  On success the decoded
-token payload (as returned by the service) is returned; otherwise a 401 error
-is raised.
-"""
-if not authorization.lower().startswith("bearer "):
-raise HTTPException(
-status_code=status.HTTP_401_UNAUTHORIZED,
-detail="Authorization header must be Bearer <token>",
-)
-token = authorization[7:].strip()
-if not token:
-raise HTTPException(
-status_code=status.HTTP_401_UNAUTHORIZED,
-detail="Empty token provided",
-)
-return await _verify_token(token)
+                        Returns the JSON payload from the ``/v1/tokens/verify`` endpoint on success.
+                        Raises ``HTTPException`` with 401 on any verification failure.
+                        """
+                        client = _get_client()
+                        try:
+                            resp = await client.post("/v1/tokens/verify", json={"token": token})
+                            except httpx.HTTPError as exc:
+                                raise HTTPException(
+                                status_code=status.HTTP_502_BAD_GATEWAY,
+                                detail="Unable to reach Identity Service",
+                                ) from exc
+
+                                if resp.status_code != 200:
+                                    opagate the error message from the identity service when possible.
+                                    try:
+                                        detail = resp.json().get("detail", "Invalid token")
+                                        except Exception:
+                                            detail = "Invalid token"
+                                            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=detail)
+
+                                            return resp.json()
+
+
+                                            async def get_current_user(
+                                            authorization: str = Header(..., description="Bearer <JWT token>")
+                                            ) -> Mapping[str, Any]:
+                                                """FastAPI dependency that returns the verified user claims.
+
+                                                The ``Authorization`` header must contain a ``Bearer`` token.  The token is
+                                                forwarded to the Identity Service for verification.  On success the decoded
+                                                token payload (as returned by the service) is returned; otherwise a 401 error
+                                                is raised.
+                                                """
+                                                if not authorization.lower().startswith("bearer "):
+                                                    raise HTTPException(
+                                                    status_code=status.HTTP_401_UNAUTHORIZED,
+                                                    detail="Authorization header must be Bearer <token>",
+                                                    )
+                                                    token = authorization[7:].strip()
+                                                    if not token:
+                                                        raise HTTPException(
+                                                        status_code=status.HTTP_401_UNAUTHORIZED,
+                                                        detail="Empty token provided",
+                                                        )
+                                                        return await _verify_token(token)
 
 

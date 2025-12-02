@@ -24,37 +24,37 @@ vc_episode_total = Counter(
     "orchestrator_vc_episode_total",
     "Total number of VC reasoning episodes started",
     ["tenant"],
-)
+    )
 
 # ---------------------------------------------------------------------------
 # Step counters – one per role (solver, verifier, corrector)
 # ---------------------------------------------------------------------------
 
-vc_step_total = Counter(
+    vc_step_total = Counter(
     "orchestrator_vc_step_total",
     "Total number of VC steps executed",
     ["tenant", "role"],
-)
+    )
 
 # ---------------------------------------------------------------------------
 # Reward histogram – records the numeric reward for each step
 # ---------------------------------------------------------------------------
 
-vc_step_reward = Histogram(
+    vc_step_reward = Histogram(
     "orchestrator_vc_step_reward",
     "Distribution of rewards emitted by VC steps",
     ["tenant", "role"],
     buckets=[0.0, 0.25, 0.5, 0.75, 1.0],
-)
+    )
 
 # ---------------------------------------------------------------------------
 # Episode duration – measures how long an episode takes from creation to
 # completion. The histogram buckets are expressed in seconds.
 # ---------------------------------------------------------------------------
 
-vc_episode_duration_seconds = Histogram(
+    vc_episode_duration_seconds = Histogram(
     "orchestrator_vc_episode_duration_seconds",
     "Duration of VC episodes (seconds)",
     ["tenant"],
     buckets=[1, 5, 10, 30, 60, 120, 300, 600],
-)
+    )

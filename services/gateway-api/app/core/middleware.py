@@ -18,82 +18,82 @@ ALLOWED_ANON_PATHS = {"/health", "/ready", "/docs", "/openapi.json"}
 
 
 class ContextMiddleware(BaseHTTPMiddleware):
-"""Populate per-request context from JWT claims."""
+    """Populate per-request context from JWT claims."""
 
-def __init__(self, app) -> None:  # type: ignore[override]
-super().__init__(app)
-settings = get_settings()
-self._settings = settings
-self._defaults = {
-"client_type_header": settings.client_type_header,
-"deployment_mode_header": settings.deployment_mode_header,
-"default_tenant_id": settings.default_tenant_id,
-"default_client_type": settings.default_client_type,
-"default_deployment_mode": settings.default_deployment_mode,
-}
-self._allowed_tenants = set(settings.allowed_tenants())
+    def __init__(self, app) -> None:  # type: ignore[override]
+    super().__init__(app)
+    settings = get_settings()
+    self._settings = settings
+    self._defaults = {
+    "client_type_header": settings.client_type_header,
+    "deployment_mode_header": settings.deployment_mode_header,
+    "default_tenant_id": settings.default_tenant_id,
+    "default_client_type": settings.default_client_type,
+    "default_deployment_mode": settings.default_deployment_mode,
+    }
+    self._allowed_tenants = set(settings.allowed_tenants())
 
-environment = (settings.environment or "development").lower()
-self._allow_anonymous = environment != "production"
-self._anonymous_user = resolve_env("GATEWAY_ANON_USER", "dev-user")
+    environment = (settings.environment or "development").lower()
+    self._allow_anonymous = environment != "production"
+    self._anonymous_user = resolve_env("GATEWAY_ANON_USER", "dev-user")
 
 # Check if OPA is configured
-self._opa_enabled = bool(resolve_env("OPA_URL"))
-if self._opa_enabled:
-try:
-from services.common.opa_client import get_opa_client
+    self._opa_enabled = bool(resolve_env("OPA_URL"))
+    if self._opa_enabled:
+        try:
+            from services.common.opa_client import get_opa_client
 
-self._opa_client = get_opa_client()
-except Exception:
-self._opa_enabled = False
+            self._opa_client = get_opa_client()
+            except Exception:
+                self._opa_enabled = False
 
-async def dispatch(self, request: Request, call_next: Callable):
-path = request.url.path
-if any(path.startswith(p) for p in ALLOWED_ANON_PATHS):
-return await call_next(request)
+    async def dispatch(self, request: Request, call_next: Callable):
+                    path = request.url.path
+                    if any(path.startswith(p) for p in ALLOWED_ANON_PATHS):
+                        return await call_next(request)
 
-auth_header = request.headers.get("Authorization")
-claims: dict[str, str | list[str] | None]
-using_token = False
-if auth_header and auth_header.startswith("Bearer "):
-token = auth_header.split(" ", 1)[1]
+                        auth_header = request.headers.get("Authorization")
+                        claims: dict[str, str | list[str] | None]
+                        using_token = False
+                        if auth_header and auth_header.startswith("Bearer "):
+                            token = auth_header.split(" ", 1)[1]
 # ``decode_token`` is now async and forwards verification to the
 # Identity Service.  Await the coroutine to obtain the claims.
-claims = await decode_token(token)
-using_token = True
-elif self._allow_anonymous:
-tenant_id = self._defaults.get("default_tenant_id") or "demo"
-claims = {
-"tenant_id": tenant_id,
-"sub": self._anonymous_user,
-"capabilities": [],
-}
-else:
-return JSONResponse(
-status_code=status.HTTP_401_UNAUTHORIZED,
-content={"detail": "Missing bearer token"},
-)
+                            claims = await decode_token(token)
+                            using_token = True
+                            elif self._allow_anonymous:
+                                tenant_id = self._defaults.get("default_tenant_id") or "demo"
+                                claims = {
+                                "tenant_id": tenant_id,
+                                "sub": self._anonymous_user,
+                                "capabilities": [],
+                                }
+                                else:
+                                    return JSONResponse(
+                                    status_code=status.HTTP_401_UNAUTHORIZED,
+                                    content={"detail": "Missing bearer token"},
+                                    )
 
-try:
-ctx = build_request_context(request, self._defaults, claims)
-except ValueError as exc:
-return JSONResponse(
-status_code=status.HTTP_400_BAD_REQUEST, content={"detail": str(exc)}
-)
+                                    try:
+                                        ctx = build_request_context(request, self._defaults, claims)
+                                        except ValueError as exc:
+                                            return JSONResponse(
+                                            status_code=status.HTTP_400_BAD_REQUEST, content={"detail": str(exc)}
+                                            )
 
-if self._allowed_tenants and ctx.tenant_id not in self._allowed_tenants:
-return JSONResponse(
-status_code=status.HTTP_403_FORBIDDEN,
-content={
+                                            if self._allowed_tenants and ctx.tenant_id not in self._allowed_tenants:
+                                                return JSONResponse(
+                                                status_code=status.HTTP_403_FORBIDDEN,
+                                                content={
     "detail": "Tenant not authorised for this region",
     "tenant": ctx.tenant_id,
-},
-)
+    },
+    )
 
 # OPA policy check (if enabled)
-if self._opa_enabled and using_token:
-try:
-authorized = await self._opa_client.check_authorization(
+    if self._opa_enabled and using_token:
+        try:
+            authorized = await self._opa_client.check_authorization(
     tenant_id=ctx.tenant_id,
     user_id=claims.get("user_id", claims.get("sub")),
     action="access",
@@ -103,24 +103,24 @@ authorized = await self._opa_client.check_authorization(
         "client_type": ctx.client_type,
         "deployment_mode": ctx.deployment_mode,
     },
-)
-if not authorized:
+    )
+    if not authorized:
     return JSONResponse(
         status_code=status.HTTP_403_FORBIDDEN,
         content={"detail": "Policy denied access to this resource"},
     )
-except HTTPException as exc:
+    except HTTPException as exc:
 # Log OPA error but don't block request (fail open in dev)
-if resolve_env("DEPLOYMENT_MODE") == "production":
+        if resolve_env("DEPLOYMENT_MODE") == "production":
     return JSONResponse(
         status_code=exc.status_code,
         content={"detail": exc.detail},
     )
 
-token_var = set_request_context(ctx)
-try:
-response = await call_next(request)
-finally:
-reset_request_context(token_var)
-response.headers.setdefault("X-Request-ID", ctx.request_id or "")
-return response
+    token_var = set_request_context(ctx)
+    try:
+        response = await call_next(request)
+        finally:
+            reset_request_context(token_var)
+            response.headers.setdefault("X-Request-ID", ctx.request_id or "")
+            return response

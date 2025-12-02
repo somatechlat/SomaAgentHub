@@ -4,7 +4,6 @@ import httpx
 import pytest
 from httpx import ASGITransport
 from httpx import AsyncClient as OriginalAsyncClient
-from services.common.config.base_settings import resolve_env
 
 
 # Patch httpx.AsyncClient to accept `app` and `base_url` for ASGI testing.
@@ -41,9 +40,7 @@ def _run(**kwargs):  # noqa: D401
     def wrapper(func):
         def inner(*args, **inner_kwargs):
             if asyncio_flag:
-                return asyncio.get_event_loop().run_until_complete(
-                    func(*args, **inner_kwargs)
-                )
+                return asyncio.get_event_loop().run_until_complete(func(*args, **inner_kwargs))
             return func(*args, **inner_kwargs)
 
         return inner

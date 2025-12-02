@@ -21,78 +21,78 @@ class AgentStatus(str, enum.Enum):
     TERMINATED = "TERMINATED"
 
 
-class AgentInstance(SQLModel, table=True):
+    class AgentInstance(SQLModel, table=True):
     """Database model for tracking agent instances in Kubernetes."""
     
     __tablename__ = "agent_instances"
     
     id: uuid.UUID = Field(
-        default_factory=uuid.uuid4,
-        primary_key=True,
-        index=True
+    default_factory=uuid.uuid4,
+    primary_key=True,
+    index=True
     )
     
     agent_type: str = Field(
-        max_length=100,
-        description="Type of agent (code_generator, ui_customizer, etc.)"
+    max_length=100,
+    description="Type of agent (code_generator, ui_customizer, etc.)"
     )
     
     capsule_id: Optional[uuid.UUID] = Field(
-        default=None,
-        foreign_key="capsules.capsule_id",
-        description="Associated capsule ID"
+    default=None,
+    foreign_key="capsules.capsule_id",
+    description="Associated capsule ID"
     )
     
     tenant_id: uuid.UUID = Field(
-        index=True,
-        description="Tenant identifier"
+    index=True,
+    description="Tenant identifier"
     )
     
     user_id: uuid.UUID = Field(
-        index=True,
-        description="User who initiated the agent"
+    index=True,
+    description="User who initiated the agent"
     )
     
     status: AgentStatus = Field(
-        default=AgentStatus.PENDING,
-        index=True,
-        description="Current agent state"
+    default=AgentStatus.PENDING,
+    index=True,
+    description="Current agent state"
     )
     
     k8s_namespace: str = Field(
-        max_length=100,
-        description="Kubernetes namespace"
+    max_length=100,
+    description="Kubernetes namespace"
     )
     
     k8s_job_name: Optional[str] = Field(
-        default=None,
-        max_length=100,
-        description="Kubernetes job name (for batch agents)"
+    default=None,
+    max_length=100,
+    description="Kubernetes job name (for batch agents)"
     )
     
     k8s_deployment_name: Optional[str] = Field(
-        default=None,
-        max_length=100,
-        description="Kubernetes deployment name (for long-running agents)"
+    default=None,
+    max_length=100,
+    description="Kubernetes deployment name (for long-running agents)"
     )
     
     # Avoid using attribute name `metadata` which is reserved by SQLAlchemy.
     meta: dict = Field(
-        default_factory=dict,
-        sa_column=Column("metadata", JSONB),
-        description="Additional Kubernetes metadata",
+    default_factory=dict,
+    sa_column=Column("metadata", JSONB),
+    description="Additional Kubernetes metadata",
     )
     
     resource_requests: dict = Field(
-        default_factory=dict,
-        sa_column=Column("resource_requests", JSONB),
-        description="CPU/memory resource requests",
+    default_factory=dict,
+    sa_column=Column("resource_requests", JSONB),
+    description="CPU/memory resource requests",
     )
 
     resource_limits: dict = Field(
-        default_factory=dict,
-        sa_column=Column("resource_limits", JSONB),
-        description="CPU/memory resource limits",
+    default_factory=dict,
+    sa_column=Column("resource_limits", JSONB),
+    description="CPU/memory resource limits",
     )
     
     created_at: datetime = Field(sa_column=Column(DateTime, server_default=func.now()))
@@ -100,18 +100,18 @@ class AgentInstance(SQLModel, table=True):
     updated_at: datetime = Field(sa_column=Column(DateTime, server_default=func.now(), onupdate=func.now()))
     
     started_at: Optional[datetime] = Field(
-        default=None,
-        description="When the agent started running"
+    default=None,
+    description="When the agent started running"
     )
     
     completed_at: Optional[datetime] = Field(
-        default=None,
-        description="When the agent completed"
+    default=None,
+    description="When the agent completed"
     )
     
     error_message: Optional[str] = Field(
-        default=None,
-        description="Error details if agent failed"
+    default=None,
+    description="Error details if agent failed"
     )
     
     # Keep default SQLModel behavior; explicit Config not required here.

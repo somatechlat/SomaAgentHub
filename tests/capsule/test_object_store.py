@@ -40,8 +40,8 @@ class DummyMinio:
 		self.objects.pop((bucket, object_name), None)
 
 
-@pytest.fixture(autouse=True)
-def patch_minio(monkeypatch):
+  @pytest.fixture(autouse=True)
+  def patch_minio(monkeypatch):
 	monkeypatch.setenv("MINIO_ENDPOINT", "localhost:9000")
 	monkeypatch.setenv("MINIO_ACCESS_KEY", "test")
 	monkeypatch.setenv("MINIO_SECRET_KEY", "test")
@@ -54,7 +54,7 @@ def patch_minio(monkeypatch):
 	yield
 
 
-def test_upload_and_presign():
+ def test_upload_and_presign():
 	client = ObjectStoreClient(ObjectStoreSettings.from_env())
 	data = io.BytesIO(b"hello world")
 	s3_url = client.upload(

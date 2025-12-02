@@ -13,109 +13,109 @@ from enum import Enum
 
 # Sprint 1 validation - standalone version
 class CapsuleType(str, Enum):
-    WORKFLOW = "workflow"
-    STATIC = "static"
-    DYNAMIC = "dynamic"
-    TOOL = "tool"
+        WORKFLOW = "workflow"
+        STATIC = "static"
+        DYNAMIC = "dynamic"
+        TOOL = "tool"
 
-class AgentStatus(str, Enum):
-    PENDING = "pending"
-    RUNNING = "running"
-    SUCCEEDED = "succeeded"
-    FAILED = "failed"
-    CANCELED = "canceled"
+        class AgentStatus(str, Enum):
+        PENDING = "pending"
+        RUNNING = "running"
+        SUCCEEDED = "succeeded"
+        FAILED = "failed"
+        CANCELED = "canceled"
 
-class Capsule:
-    """Sprint 1 Capsule model - PostgreSQL-backed"""
+        class Capsule:
+        """Sprint 1 Capsule model - PostgreSQL-backed"""
     def __init__(
-        self,
-        capsule_id: str,
-        version: str,
-        type: CapsuleType,
-        manifest_yaml: str,
-        metadata: Optional[Dict[str, Any]] = None
-    ):
-        self.id = str(uuid.uuid4())
-        self.capsule_id = capsule_id
-        self.version = version
-        self.type = type
-        self.manifest_yaml = manifest_yaml
-        self.metadata = metadata or {}
-        self.created_at = datetime.utcnow()
-        self.updated_at = datetime.utcnow()
+            self,
+            capsule_id: str,
+            version: str,
+            type: CapsuleType,
+            manifest_yaml: str,
+            metadata: Optional[Dict[str, Any]] = None
+        ):
+            self.id = str(uuid.uuid4())
+            self.capsule_id = capsule_id
+            self.version = version
+            self.type = type
+            self.manifest_yaml = manifest_yaml
+            self.metadata = metadata or {}
+            self.created_at = datetime.utcnow()
+            self.updated_at = datetime.utcnow()
 
-class AgentInstance:
-    """Sprint 1 AgentInstance model - PostgreSQL-backed"""
+            class AgentInstance:
+        """Sprint 1 AgentInstance model - PostgreSQL-backed"""
     def __init__(
-        self,
-        agent_type: str,
-        tenant_id: str,
-        user_id: str,
-        image: str,
-        execution_mode: str,
-        namespace: str,
-        job_name: Optional[str] = None,
-        deployment_name: Optional[str] = None,
-        status: AgentStatus = AgentStatus.PENDING,
-        env_vars: Optional[Dict[str, str]] = None,
-        metadata: Optional[Dict[str, Any]] = None
-    ):
-        self.id = str(uuid.uuid4())
-        self.agent_type = agent_type
-        self.tenant_id = tenant_id
-        self.user_id = user_id
-        self.image = image
-        self.execution_mode = execution_mode
-        self.namespace = namespace
-        self.job_name = job_name
-        self.deployment_name = deployment_name
-        self.status = status
-        self.env_vars = env_vars or {}
-        self.metadata = metadata or {}
-        self.created_at = datetime.utcnow()
-        self.updated_at = datetime.utcnow()
+            self,
+            agent_type: str,
+            tenant_id: str,
+            user_id: str,
+            image: str,
+            execution_mode: str,
+            namespace: str,
+            job_name: Optional[str] = None,
+            deployment_name: Optional[str] = None,
+            status: AgentStatus = AgentStatus.PENDING,
+            env_vars: Optional[Dict[str, str]] = None,
+            metadata: Optional[Dict[str, Any]] = None
+        ):
+            self.id = str(uuid.uuid4())
+            self.agent_type = agent_type
+            self.tenant_id = tenant_id
+            self.user_id = user_id
+            self.image = image
+            self.execution_mode = execution_mode
+            self.namespace = namespace
+            self.job_name = job_name
+            self.deployment_name = deployment_name
+            self.status = status
+            self.env_vars = env_vars or {}
+            self.metadata = metadata or {}
+            self.created_at = datetime.utcnow()
+            self.updated_at = datetime.utcnow()
 
-class Sprint1Validation:
-    """Validate Sprint 1 functionality"""
+            class Sprint1Validation:
+        """Validate Sprint 1 functionality"""
     
     def __init__(self):
         self.capsules: List[Capsule] = []
         self.agent_instances: List[AgentInstance] = []
     
     async def test_capsule_creation(self) -> bool:
-        """Test capsule creation with UUID and versioning"""
-        print("🧪 Testing Capsule Creation...")
+              """Test capsule creation with UUID and versioning"""
+              print("🧪 Testing Capsule Creation...")
         
-        capsule = Capsule(
-            capsule_id=str(uuid.uuid4()),
-            version="1.0.0",
-            type=CapsuleType.WORKFLOW,
-            manifest_yaml="""
-apiVersion: argoproj.io/v1alpha1
-kind: Workflow
-metadata:
-  name: test-workflow
-spec:
-  entrypoint: whalesay
-  templates:
-  - name: whalesay
-    container:
-      image: docker/whalesay:latest
-      command: [cowsay]
-      args: ["hello world"]
-""",
-            metadata={"description": "Test workflow for Sprint 1"}
-        )
+              capsule = Capsule(
+                  capsule_id=str(uuid.uuid4()),
+                  version="1.0.0",
+                  type=CapsuleType.WORKFLOW,
+                  manifest_yaml="""
+                  apiVersion: argoproj.io/v1alpha1
+                  kind: Workflow
+                  metadata:
+        name: test-workflow
+        spec:
+        entrypoint: whalesay
+        templates:
+        - name: whalesay
+          container:
+            image: docker/whalesay:latest
+            command: [cowsay]
+            args: ["hello world"]
+            """,
+                  metadata={"description": "Test workflow for Sprint 1"}
+              )
         
-        self.capsules.append(capsule)
+              self.capsules.append(capsule)
         
-        # Validate UUID format
-        assert len(capsule.id) == 36, "UUID should be 36 characters"
-        assert uuid.UUID(capsule.id), "Should be valid UUID"
-        assert capsule.type == CapsuleType.WORKFLOW, "Should be workflow type"
+              # Validate UUID format
+              assert len(capsule.id) == 36, "UUID should be 36 characters"
+              assert uuid.UUID(capsule.id), "Should be valid UUID"
+              assert capsule.type == CapsuleType.WORKFLOW, "Should be workflow type"
         
-        print(f"✅ Capsule created: {capsule.id}")
-        return True
+              print(f"✅ Capsule created: {capsule.id}")
+              return True
     
     async def test_agent_instance_creation(self) -> bool:
         """Test agent instance creation"""
@@ -279,20 +279,20 @@ spec:
             return False
 
 
-async def main():
-    """Main validation runner"""
-    validator = Sprint1Validation()
+    async def main():
+        """Main validation runner"""
+        validator = Sprint1Validation()
     
-    success = await validator.run_full_validation()
+        success = await validator.run_full_validation()
     
-    if success:
-        print("\n🎉 Sprint 1 is READY for production!")
-        print("🚀 Ready to proceed to Sprint 2: Payment Integration")
-    else:
-        print("\n⚠️ Sprint 1 requires fixes before production")
+        if success:
+            print("\n🎉 Sprint 1 is READY for production!")
+            print("🚀 Ready to proceed to Sprint 2: Payment Integration")
+        else:
+            print("\n⚠️ Sprint 1 requires fixes before production")
     
-    return success
+        return success
 
 
-if __name__ == "__main__":
-    asyncio.run(main())
+        if __name__ == "__main__":
+        asyncio.run(main())

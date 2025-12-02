@@ -1,13 +1,12 @@
 import asyncio
 import sys
-from pathlib import Path
 from logging.config import fileConfig
+from pathlib import Path
 
+from alembic import context
 from sqlalchemy import pool
 from sqlalchemy.engine import Connection
 from sqlalchemy.ext.asyncio import async_engine_from_config
-
-from alembic import context
 
 # Add the project root to the Python path
 sys.path.append(str(Path(__file__).resolve().parents[3]))
@@ -26,6 +25,7 @@ if config.config_file_name is not None:
 # from myapp import mymodel
 # target_metadata = mymodel.Base.metadata
 from services.task_capsule_repo.app.models import SQLModel
+
 target_metadata = SQLModel.metadata
 
 # other values from the config, defined by the needs of env.py,
@@ -33,6 +33,7 @@ target_metadata = SQLModel.metadata
 # my_important_option = config.get_main_option("my_important_option")
 # ... etc.
 from services.common.config.settings import get_settings
+
 settings = get_settings()
 if settings.database_url:
     config.set_main_option("sqlalchemy.url", settings.database_url)

@@ -16,14 +16,14 @@ from sqlmodel import SQLModel
 
 from services.orchestrator.app.repository.outbox_event_repository import (
     OutboxEventRepository,
-)
-from services.orchestrator.app.services.event_emission import EventEmissionService
-from services.orchestrator.app.planner.schemas import ProjectPlan, ModuleSpec
-from services.common.config.base_settings import resolve_env
+    )
+    from services.orchestrator.app.services.event_emission import EventEmissionService
+    from services.orchestrator.app.planner.schemas import ProjectPlan, ModuleSpec
+    from services.common.config.base_settings import resolve_env
 
 
-@pytest.mark.asyncio
-async def test_event_emission():
+    @pytest.mark.asyncio
+    async def test_event_emission():
     """Test event emission with actual database integration."""
 
     # Setup database
@@ -109,8 +109,8 @@ async def test_event_emission():
     return True
 
 
-@pytest.mark.asyncio
-async def test_build_run_events():
+    @pytest.mark.asyncio
+    async def test_build_run_events():
     """Test build run lifecycle events."""
 
     engine = create_async_engine("sqlite+aiosqlite:///:memory:")
@@ -156,7 +156,7 @@ async def test_build_run_events():
     return True
 
 
-if __name__ == "__main__":
+    if __name__ == "__main__":
     asyncio.run(test_event_emission())
     asyncio.run(test_build_run_events())
     logging.getLogger(__name__).info("🎉 All real integration tests passed!")

@@ -13,9 +13,9 @@ from .circuit_breaker import (
     get_circuit_breaker,
     get_all_circuit_breakers,
     reset_all_circuit_breakers
-)
+    )
 
-__all__ = [
+    __all__ = [
     "Saga",
     "CompensationPair", 
     "SagaBuilder",
@@ -26,4 +26,4 @@ __all__ = [
     "get_circuit_breaker",
     "get_all_circuit_breakers",
     "reset_all_circuit_breakers"
-]
+    ]

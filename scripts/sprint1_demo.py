@@ -29,11 +29,11 @@ class Sprint1Demo:
             "version": "1.0.0",
             "type": "workflow",
             "manifest_yaml": """
-apiVersion: argoproj.io/v1alpha1
-kind: Workflow
-metadata:
+            apiVersion: argoproj.io/v1alpha1
+            kind: Workflow
+            metadata:
   name: test-workflow
-spec:
+  spec:
   entrypoint: whalesay
   templates:
   - name: whalesay
@@ -41,7 +41,7 @@ spec:
       image: docker/whalesay:latest
       command: [cowsay]
       args: ["hello world"]
-"""
+      """
         }
         
         # Create capsule
@@ -197,7 +197,7 @@ spec:
         print("   └── JSONB metadata support")
 
 
-def main():
+        def main():
     """Run the Sprint 1 demo"""
     demo = Sprint1Demo()
     
@@ -216,5 +216,5 @@ def main():
     asyncio.run(demo.run_comprehensive_demo())
 
 
-if __name__ == "__main__":
+    if __name__ == "__main__":
     main()

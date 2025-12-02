@@ -26,20 +26,20 @@ circuit_breaker_state = Counter(
     "circuit_breaker_state_changes_total",
     "Total circuit breaker state changes",
     ["service", "state"],
-)
-circuit_breaker_failures = Counter(
+    )
+    circuit_breaker_failures = Counter(
     "circuit_breaker_failures_total",
     "Total circuit breaker failures",
     ["service", "type"],
-)
-circuit_breaker_duration = Histogram(
+    )
+    circuit_breaker_duration = Histogram(
     "circuit_breaker_response_duration_seconds",
     "Circuit breaker response duration",
     ["service", "status"],
-)
+    )
 
 
-class CircuitState(Enum):
+    class CircuitState(Enum):
     """Possible states of a circuit breaker."""
 
     CLOSED = "closed"
@@ -47,8 +47,8 @@ class CircuitState(Enum):
     HALF_OPEN = "half_open"
 
 
-@dataclass
-class CircuitBreakerConfig:
+    @dataclass
+    class CircuitBreakerConfig:
     """Configuration values for a circuit breaker instance."""
 
     failure_threshold: int = 5
@@ -58,7 +58,7 @@ class CircuitBreakerConfig:
     name: str = "circuit_breaker"
 
 
-class CircuitBreaker:
+    class CircuitBreaker:
     """Production circuit breaker with metrics and automatic recovery."""
 
     def __init__(self, config: CircuitBreakerConfig):
@@ -70,7 +70,7 @@ class CircuitBreaker:
         self._lock = asyncio.Lock()
 
     async def __call__(
-        self, func: Callable[..., Awaitable[Any]], *args: Any, **kwargs: Any
+    self, func: Callable[..., Awaitable[Any]], *args: Any, **kwargs: Any
     ) -> Any:
         """Execute *func* under circuit‑breaker protection.
 
@@ -79,60 +79,60 @@ class CircuitBreaker:
         downstream service.
         """
         async with self._lock:
-            if self.state == CircuitState.OPEN:
-                if self._should_attempt_reset():
-                    self.state = CircuitState.HALF_OPEN
-                    self.success_count = 0
-                    circuit_breaker_state.labels(
-                        service=self.config.name, state="half_open"
-                    ).inc()
-                    logger.info(
-                        f"Circuit breaker {self.config.name} entering HALF_OPEN state"
-                    )
-                else:
-                    raise ServiceUnavailableError(
-                        f"Circuit breaker {self.config.name} is OPEN"
-                    )
+    if self.state == CircuitState.OPEN:
+        if self._should_attempt_reset():
+            self.state = CircuitState.HALF_OPEN
+            self.success_count = 0
+            circuit_breaker_state.labels(
+                service=self.config.name, state="half_open"
+            ).inc()
+            logger.info(
+                f"Circuit breaker {self.config.name} entering HALF_OPEN state"
+            )
+        else:
+            raise ServiceUnavailableError(
+                f"Circuit breaker {self.config.name} is OPEN"
+            )
 
-            # Execute the protected function
-            start_time = time.time()
-            try:
-                result = await func(*args, **kwargs)
-                await self._on_success()
-                circuit_breaker_duration.labels(
-                    service=self.config.name, status="success"
-                ).observe(time.time() - start_time)
-                return result
-            except self.config.expected_exception as e:
-                await self._on_failure()
-                circuit_breaker_failures.labels(
-                    service=self.config.name, type=type(e).__name__
-                ).inc()
-                circuit_breaker_duration.labels(
-                    service=self.config.name, status="failure"
-                ).observe(time.time() - start_time)
-                raise
+    # Execute the protected function
+    start_time = time.time()
+    try:
+        result = await func(*args, **kwargs)
+        await self._on_success()
+        circuit_breaker_duration.labels(
+            service=self.config.name, status="success"
+        ).observe(time.time() - start_time)
+        return result
+    except self.config.expected_exception as e:
+        await self._on_failure()
+        circuit_breaker_failures.labels(
+            service=self.config.name, type=type(e).__name__
+        ).inc()
+        circuit_breaker_duration.labels(
+            service=self.config.name, status="failure"
+        ).observe(time.time() - start_time)
+        raise
 
     def _should_attempt_reset(self) -> bool:
         """Return ``True`` if the recovery timeout has elapsed."""
         if self.last_failure_time is None:
-            return True
-        return (time.time() - self.last_failure_time) >= self.config.recovery_timeout
+    return True
+    return (time.time() - self.last_failure_time) >= self.config.recovery_timeout
 
     async def _on_success(self) -> None:
         """Reset failure counters and possibly close the breaker."""
         self.failure_count = 0
         if self.state == CircuitState.HALF_OPEN:
-            self.success_count += 1
-            if self.success_count >= self.config.success_threshold:
-                self.state = CircuitState.CLOSED
-                circuit_breaker_state.labels(
-                    service=self.config.name, state="closed"
-                ).inc()
-                logger.info(
-                    f"Circuit breaker {self.config.name} reset to CLOSED"
-                )
-        # When CLOSED we simply keep operating; no action needed.
+    self.success_count += 1
+    if self.success_count >= self.config.success_threshold:
+        self.state = CircuitState.CLOSED
+        circuit_breaker_state.labels(
+            service=self.config.name, state="closed"
+        ).inc()
+        logger.info(
+            f"Circuit breaker {self.config.name} reset to CLOSED"
+        )
+# When CLOSED we simply keep operating; no action needed.
 
     async def _on_failure(self) -> None:
         """Record a failure and open the breaker if the threshold is hit."""
@@ -140,26 +140,26 @@ class CircuitBreaker:
         self.last_failure_time = time.time()
         self.success_count = 0
         if self.failure_count >= self.config.failure_threshold:
-            self.state = CircuitState.OPEN
-            circuit_breaker_state.labels(
-                service=self.config.name, state="open"
-            ).inc()
-            logger.warning(
-                f"Circuit breaker {self.config.name} OPENED after {self.failure_count} failures"
-            )
+    self.state = CircuitState.OPEN
+    circuit_breaker_state.labels(
+        service=self.config.name, state="open"
+    ).inc()
+    logger.warning(
+        f"Circuit breaker {self.config.name} OPENED after {self.failure_count} failures"
+    )
 
     def get_state(self) -> Dict[str, Any]:
         """Return a dictionary describing the current breaker state."""
         return {
-            "name": self.config.name,
-            "state": self.state.value,
-            "failure_count": self.failure_count,
-            "success_count": self.success_count,
-            "last_failure_time": self.last_failure_time,
-        }
+    "name": self.config.name,
+    "state": self.state.value,
+    "failure_count": self.failure_count,
+    "success_count": self.success_count,
+    "last_failure_time": self.last_failure_time,
+    }
 
 
-class ServiceUnavailableError(Exception):
+    class ServiceUnavailableError(Exception):
     """Raised when a circuit breaker is in the **OPEN** state."""
 
     pass
@@ -168,32 +168,32 @@ class ServiceUnavailableError(Exception):
 # ---------------------------------------------------------------------------
 # Pre‑configured circuit breakers for common services
 # ---------------------------------------------------------------------------
-DATABASE_CIRCUIT_BREAKER = CircuitBreaker(
+    DATABASE_CIRCUIT_BREAKER = CircuitBreaker(
     CircuitBreakerConfig(
-        name="database",
-        failure_threshold=3,
-        recovery_timeout=30,
+    name="database",
+    failure_threshold=3,
+    recovery_timeout=30,
     )
-)
+    )
 
-KAFKA_CIRCUIT_BREAKER = CircuitBreaker(
+    KAFKA_CIRCUIT_BREAKER = CircuitBreaker(
     CircuitBreakerConfig(
-        name="kafka",
-        failure_threshold=5,
-        recovery_timeout=60,
+    name="kafka",
+    failure_threshold=5,
+    recovery_timeout=60,
     )
-)
+    )
 
-EXTERNAL_SERVICE_CIRCUIT_BREAKER = CircuitBreaker(
+    EXTERNAL_SERVICE_CIRCUIT_BREAKER = CircuitBreaker(
     CircuitBreakerConfig(
-        name="external_service",
-        failure_threshold=3,
-        recovery_timeout=45,
+    name="external_service",
+    failure_threshold=3,
+    recovery_timeout=45,
     )
-)
+    )
 
 
-class CircuitBreakerManager:
+    class CircuitBreakerManager:
     """Container for multiple circuit‑breaker instances."""
 
     def __init__(self):
@@ -213,7 +213,7 @@ class CircuitBreakerManager:
 
 
 # Global manager instance and default registrations
-circuit_breaker_manager = CircuitBreakerManager()
-circuit_breaker_manager.register("database", DATABASE_CIRCUIT_BREAKER)
-circuit_breaker_manager.register("kafka", KAFKA_CIRCUIT_BREAKER)
-circuit_breaker_manager.register("external_service", EXTERNAL_SERVICE_CIRCUIT_BREAKER)
+        circuit_breaker_manager = CircuitBreakerManager()
+        circuit_breaker_manager.register("database", DATABASE_CIRCUIT_BREAKER)
+        circuit_breaker_manager.register("kafka", KAFKA_CIRCUIT_BREAKER)
+        circuit_breaker_manager.register("external_service", EXTERNAL_SERVICE_CIRCUIT_BREAKER)

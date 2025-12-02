@@ -5,12 +5,11 @@ from fastapi import status
 from httpx import AsyncClient
 
 from services.jobs.app.main import app
-from services.common.config.base_settings import resolve_env
 
 
 @pytest.mark.asyncio
 async def test_create_and_get_job():
-async with AsyncClient(app=app, base_url="http://test") as client:
+    async with AsyncClient(app=app, base_url="http://test") as client:
 # Create a job
 payload = {"task": "demo", "payload": {"foo": "bar"}}
 resp = await client.post("/v1/jobs", json=payload)
@@ -29,13 +28,12 @@ final = resp3.json()
 assert final["status"] == "completed"
 assert final["result"]["message"] == "Task demo completed"
 
-
 @pytest.mark.asyncio
 async def test_health_and_metrics():
-async with AsyncClient(app=app, base_url="http://test") as client:
-health = await client.get("/health")
-assert health.status_code == status.HTTP_200_OK
-metrics = await client.get("/metrics")
-assert metrics.status_code == status.HTTP_200_OK
-# Simple sanity check that metric output contains our counter name
-assert "jobs_requests_total" in metrics.text
+    async with AsyncClient(app=app, base_url="http://test") as client:
+        health = await client.get("/health")
+        assert health.status_code == status.HTTP_200_OK
+        metrics = await client.get("/metrics")
+        assert metrics.status_code == status.HTTP_200_OK
+        # Simple sanity check that metric output contains our counter name
+        assert "jobs_requests_total" in metrics.text

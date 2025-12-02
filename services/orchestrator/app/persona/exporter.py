@@ -33,149 +33,149 @@ logger = logging.getLogger(__name__)
 
 
 class PersonaExportRequest(BaseModel):
-"""Input payload describing what should be exported."""
+    """Input payload describing what should be exported."""
 
-tenant: str
-initiated_by: str = Field(..., description="User or system triggering the export")
-destination_path: Path = Field(
-..., description="Local filesystem path for the manifest artifact"
-)
-metadata: PersonaMetadata
-model_box: ModelBoxReference
-memory: MemorySnapshotReference
-tools: list[ToolAccessDescriptor] = Field(default_factory=list)
-evaluations: list[Any] = Field(
-default_factory=list,
-description="Evaluation records, validated upstream before export",
-)
-governance: GovernanceMetadata
-pricing: PricingModel = Field(default_factory=PricingModel)
-artifacts: ArtifactBundle = Field(default_factory=ArtifactBundle)
-additional_metadata: dict[str, Any] = Field(
-default_factory=dict,
-description="Loose metadata to persist alongside the manifest",
-)
-
-
-class PersonaExportResult(BaseModel):
-"""Outcome of an export operation."""
-
-tenant: str
-manifest: PersonaManifest
-manifest_path: Path
-created_at: datetime
-completed_at: datetime
-metadata: dict[str, Any] = Field(default_factory=dict)
+    tenant: str
+    initiated_by: str = Field(..., description="User or system triggering the export")
+    destination_path: Path = Field(
+    ..., description="Local filesystem path for the manifest artifact"
+    )
+    metadata: PersonaMetadata
+    model_box: ModelBoxReference
+    memory: MemorySnapshotReference
+    tools: list[ToolAccessDescriptor] = Field(default_factory=list)
+    evaluations: list[Any] = Field(
+    default_factory=list,
+    description="Evaluation records, validated upstream before export",
+    )
+    governance: GovernanceMetadata
+    pricing: PricingModel = Field(default_factory=PricingModel)
+    artifacts: ArtifactBundle = Field(default_factory=ArtifactBundle)
+    additional_metadata: dict[str, Any] = Field(
+    default_factory=dict,
+    description="Loose metadata to persist alongside the manifest",
+    )
 
 
-@dataclass
-class PersonaExporterDependencies:
-"""Thin dependency container allowing future injection of services."""
+    class PersonaExportResult(BaseModel):
+    """Outcome of an export operation."""
 
-storage_client: Any | None = None
-memory_gateway: Any | None = None
-tool_registry: Any | None = None
-event_emitter: Any | None = None
-signing_client: ManifestSigningClient | None = None
+    tenant: str
+    manifest: PersonaManifest
+    manifest_path: Path
+    created_at: datetime
+    completed_at: datetime
+    metadata: dict[str, Any] = Field(default_factory=dict)
 
 
-class PersonaExporter:
-"""Coordinates persona capsule exports and manifest generation."""
+    @dataclass
+    class PersonaExporterDependencies:
+        """Thin dependency container allowing future injection of services."""
 
-def __init__(self, dependencies: PersonaExporterDependencies | None = None) -> None:
-self._deps = dependencies or PersonaExporterDependencies()
-if self._deps.signing_client is None:
-self._deps.signing_client = build_signing_client()
+        storage_client: Any | None = None
+        memory_gateway: Any | None = None
+        tool_registry: Any | None = None
+        event_emitter: Any | None = None
+        signing_client: ManifestSigningClient | None = None
 
-async def export_persona(
-self, request: PersonaExportRequest
-) -> PersonaExportResult:
-"""Primary entrypoint to export a persona manifest and supporting artifacts."""
 
-started_at = datetime.now(UTC)
-manifest = self._build_manifest(request)
-manifest = await self._maybe_sign_manifest(manifest)
-manifest_path = self._persist_manifest(manifest, request.destination_path)
+        class PersonaExporter:
+            """Coordinates persona capsule exports and manifest generation."""
 
-await self._dispatch_async_tasks(request, manifest_path)
+    def __init__(self, dependencies: PersonaExporterDependencies | None = None) -> None:
+        self._deps = dependencies or PersonaExporterDependencies()
+        if self._deps.signing_client is None:
+    self._deps.signing_client = build_signing_client()
 
-completed_at = datetime.now(UTC)
-result = PersonaExportResult(
-tenant=request.tenant,
-manifest=manifest,
-manifest_path=manifest_path,
-created_at=started_at,
-completed_at=completed_at,
-metadata=request.additional_metadata,
-)
+    async def export_persona(
+    self, request: PersonaExportRequest
+    ) -> PersonaExportResult:
+    """Primary entrypoint to export a persona manifest and supporting artifacts."""
 
-await self._emit_event(result)
-return result
+    started_at = datetime.now(UTC)
+    manifest = self._build_manifest(request)
+    manifest = await self._maybe_sign_manifest(manifest)
+    manifest_path = self._persist_manifest(manifest, request.destination_path)
 
-def _build_manifest(self, request: PersonaExportRequest) -> PersonaManifest:
-"""Construct a PersonaManifest from the export request."""
+    await self._dispatch_async_tasks(request, manifest_path)
 
-manifest = PersonaManifest(
-metadata=request.metadata,
-model_box=request.model_box,
-memory=request.memory,
-tools=request.tools,
-evaluations=list(request.evaluations),
-governance=request.governance,
-pricing=request.pricing,
-artifacts=request.artifacts,
-)
-return manifest
+    completed_at = datetime.now(UTC)
+    result = PersonaExportResult(
+    tenant=request.tenant,
+    manifest=manifest,
+    manifest_path=manifest_path,
+    created_at=started_at,
+    completed_at=completed_at,
+    metadata=request.additional_metadata,
+    )
 
-def _persist_manifest(self, manifest: PersonaManifest, destination: Path) -> Path:
-"""Persist the manifest to the requested destination."""
+    await self._emit_event(result)
+    return result
 
-destination.parent.mkdir(parents=True, exist_ok=True)
-return dump_persona_manifest(manifest, destination)
+    def _build_manifest(self, request: PersonaExportRequest) -> PersonaManifest:
+        """Construct a PersonaManifest from the export request."""
 
-async def _maybe_sign_manifest(self, manifest: PersonaManifest) -> PersonaManifest:
-"""Attach a cryptographic signature when a signing client is configured."""
+        manifest = PersonaManifest(
+        metadata=request.metadata,
+        model_box=request.model_box,
+        memory=request.memory,
+        tools=request.tools,
+        evaluations=list(request.evaluations),
+        governance=request.governance,
+        pricing=request.pricing,
+        artifacts=request.artifacts,
+        )
+        return manifest
 
-client = self._deps.signing_client
-if client is None:
-return manifest
+    def _persist_manifest(self, manifest: PersonaManifest, destination: Path) -> Path:
+        """Persist the manifest to the requested destination."""
 
-try:
-signature = await client.sign_manifest(manifest)
-except ManifestSigningFailure as exc:
-logger.error("Persona manifest signing failed: %s", exc)
-raise
-manifest.signature = signature
-return manifest
+        destination.parent.mkdir(parents=True, exist_ok=True)
+        return dump_persona_manifest(manifest, destination)
 
-async def _dispatch_async_tasks(
-self, request: PersonaExportRequest, manifest_path: Path
-) -> None:
-"""Hook for future async tasks (artifact uploads, memory exports, etc.)."""
+    async def _maybe_sign_manifest(self, manifest: PersonaManifest) -> PersonaManifest:
+        """Attach a cryptographic signature when a signing client is configured."""
 
-tasks: list[asyncio.Task[Any]] = []
+        client = self._deps.signing_client
+        if client is None:
+    return manifest
+
+    try:
+        signature = await client.sign_manifest(manifest)
+        except ManifestSigningFailure as exc:
+            logger.error("Persona manifest signing failed: %s", exc)
+            raise
+            manifest.signature = signature
+            return manifest
+
+    async def _dispatch_async_tasks(
+                                                    self, request: PersonaExportRequest, manifest_path: Path
+                                                    ) -> None:
+                                                        """Hook for future async tasks (artifact uploads, memory exports, etc.)."""
+
+                                                        tasks: list[asyncio.Task[Any]] = []
 # Placeholder: attach background uploads once dependencies exist.
-if tasks:
-await asyncio.gather(*tasks)
+                                                        if tasks:
+                                                            await asyncio.gather(*tasks)
 
-async def _emit_event(self, result: PersonaExportResult) -> None:
-"""Emit an audit/marketplace event capturing the export."""
+    async def _emit_event(self, result: PersonaExportResult) -> None:
+        """Emit an audit/marketplace event capturing the export."""
 
-if self._deps.event_emitter is None:
-return
-payload = {
-"tenant": result.tenant,
-"persona_id": result.manifest.metadata.persona_id,
-"version": result.manifest.metadata.version,
-"manifest_path": str(result.manifest_path),
-"created_at": result.created_at.isoformat(),
-"completed_at": result.completed_at.isoformat(),
-}
-await self._deps.event_emitter.emit("persona.export.completed", payload)
+        if self._deps.event_emitter is None:
+    return
+    payload = {
+    "tenant": result.tenant,
+    "persona_id": result.manifest.metadata.persona_id,
+    "version": result.manifest.metadata.version,
+    "manifest_path": str(result.manifest_path),
+    "created_at": result.created_at.isoformat(),
+    "completed_at": result.completed_at.isoformat(),
+    }
+    await self._deps.event_emitter.emit("persona.export.completed", payload)
 
 
-async def export_persona(request: PersonaExportRequest) -> PersonaExportResult:
-"""Convenience coroutine using default dependencies."""
+    async def export_persona(request: PersonaExportRequest) -> PersonaExportResult:
+        """Convenience coroutine using default dependencies."""
 
-exporter = PersonaExporter()
-return await exporter.export_persona(request)
+        exporter = PersonaExporter()
+        return await exporter.export_persona(request)

@@ -21,19 +21,19 @@ class CapsuleType(str, Enum):
     TOOL = "tool"
 
 
-class CapsuleKind(str, Enum):
+    class CapsuleKind(str, Enum):
     WORKFLOW = "workflow"
     STATIC = "static"
     EXTERNAL_SERVICE = "external_service"
     ANALYTIC = "analytic"
 
 
-class ExecutionMode(str, Enum):
+    class ExecutionMode(str, Enum):
     SYNC = "sync"
     ASYNC = "async"
 
 
-class Capsule(SQLModel, table=True):
+    class Capsule(SQLModel, table=True):
     __tablename__ = "capsules"
 
     id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)

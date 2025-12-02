@@ -19,50 +19,50 @@ from services.common.config.base_settings import resolve_env
 
 
 class Plan(SQLModel, table=True):
-"""Database representation of a ``ProjectPlan``.
+    """Database representation of a ``ProjectPlan``.
 
-The ``payload`` column stores the full JSON representation of the plan –
-this allows the service to evolve the schema without requiring a migration
-for every new field.  ``created_at`` and ``updated_at`` are managed by the
-application code.
-"""
+    The ``payload`` column stores the full JSON representation of the plan –
+    this allows the service to evolve the schema without requiring a migration
+    for every new field.  ``created_at`` and ``updated_at`` are managed by the
+    application code.
+    """
 
-id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
-tenant: str = Field(index=True)
-plan_id: str = Field(index=True)  # matches ``ProjectPlan.plan_id``
-status: str = Field(default="draft", index=True)
+    id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
+    tenant: str = Field(index=True)
+    plan_id: str = Field(index=True)  # matches ``ProjectPlan.plan_id``
+    status: str = Field(default="draft", index=True)
 # Store the full plan JSON. Use SQLAlchemy's JSON column type for proper
 # serialization. ``sa_column`` accepts a full ``Column`` instance.
-payload: dict[str, Any] = Field(sa_column=Column(JSON))
-created_at: datetime = Field(default_factory=datetime.utcnow)
-updated_at: datetime = Field(default_factory=datetime.utcnow)
+    payload: dict[str, Any] = Field(sa_column=Column(JSON))
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    updated_at: datetime = Field(default_factory=datetime.utcnow)
 
 
-class BuildRun(SQLModel, table=True):
-"""Represents a single build workflow execution snapshot.
+    class BuildRun(SQLModel, table=True):
+        """Represents a single build workflow execution snapshot.
 
-Links pricing snapshot + budget evaluation + selected template set.
-Status flow: pending -> initializing -> provisioning -> building -> deploying -> completed / failed.
-"""
+        Links pricing snapshot + budget evaluation + selected template set.
+        Status flow: pending -> initializing -> provisioning -> building -> deploying -> completed / failed.
+        """
 
-id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
-tenant: str = Field(index=True)
-project_id: str = Field(index=True)
-pricing_snapshot_id: str = Field(index=True)
-budget_cap: float = Field(default=0.0)
-estimated_cost: float = Field(default=0.0)
-status: str = Field(default="pending", index=True)
-template_set: str = Field(default="default")
-policy_reason: str = Field(default="")
-created_at: datetime = Field(default_factory=datetime.utcnow)
-updated_at: datetime = Field(default_factory=datetime.utcnow)
+        id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
+        tenant: str = Field(index=True)
+        project_id: str = Field(index=True)
+        pricing_snapshot_id: str = Field(index=True)
+        budget_cap: float = Field(default=0.0)
+        estimated_cost: float = Field(default=0.0)
+        status: str = Field(default="pending", index=True)
+        template_set: str = Field(default="default")
+        policy_reason: str = Field(default="")
+        created_at: datetime = Field(default_factory=datetime.utcnow)
+        updated_at: datetime = Field(default_factory=datetime.utcnow)
 # Optional metadata for status updates (e.g., completion timestamps)
 # ``metadata`` is a reserved attribute in SQLAlchemy's declarative API, so we
 # store the JSON payload under a different name.
-metadata_json: dict = Field(sa_column=Column(JSON), default_factory=dict)
+        metadata_json: dict = Field(sa_column=Column(JSON), default_factory=dict)
 
 
-class AnalysisRun(SQLModel, table=True):
+        class AnalysisRun(SQLModel, table=True):
     """Represents a single analysis workflow execution snapshot.
 
     Used for Voyant integration workflows and analysis tracking.
@@ -80,66 +80,66 @@ class AnalysisRun(SQLModel, table=True):
     updated_at: datetime = Field(default_factory=datetime.utcnow)
 
 
-"""ORM/DTO models for storing project plan artifacts."""
+    """ORM/DTO models for storing project plan artifacts."""
 
 # NOTE: ``from __future__ import annotations`` must appear only once at the top
 # of the file. The duplicate import caused a ``SyntaxError`` during module
 # import. It has been removed.
 
 
-@dataclass
-class PlanRecord:
-"""Top-level plan metadata."""
+    @dataclass
+    class PlanRecord:
+        """Top-level plan metadata."""
 
-plan_id: str
-tenant: str
-capsule: str
-status: str
-created_at: datetime
-updated_at: datetime
-metadata: dict[str, Any] = field(default_factory=dict)
-
-
-@dataclass
-class PlanModuleRecord:
-"""State for a single plan module."""
-
-plan_id: str
-module_id: str
-status: str
-dependencies: list[str] = field(default_factory=list)
-answers: dict[str, Any] = field(default_factory=dict)
-last_updated_at: datetime = field(default_factory=datetime.utcnow)
+        plan_id: str
+        tenant: str
+        capsule: str
+        status: str
+        created_at: datetime
+        updated_at: datetime
+        metadata: dict[str, Any] = field(default_factory=dict)
 
 
-@dataclass
-class PlanEvent:
-"""Timeline event for auditing."""
+        @dataclass
+        class PlanModuleRecord:
+    """State for a single plan module."""
 
-plan_id: str
-event_type: str
-payload: dict[str, Any]
-created_at: datetime = field(default_factory=datetime.utcnow)
-
-
-@dataclass
-class ToolBindingRecord:
-"""Stores tool choices and related metadata."""
-
-plan_id: str
-capability: str
-tool_name: str
-status: str
-metadata: dict[str, Any] = field(default_factory=dict)
+    plan_id: str
+    module_id: str
+    status: str
+    dependencies: list[str] = field(default_factory=list)
+    answers: dict[str, Any] = field(default_factory=dict)
+    last_updated_at: datetime = field(default_factory=datetime.utcnow)
 
 
-@dataclass
-class ProvisioningTaskRecord:
-"""Tracks provisioning capsules triggered by a plan."""
+    @dataclass
+    class PlanEvent:
+        """Timeline event for auditing."""
 
-plan_id: str
-task_id: str
-capsule_id: str
-status: str
-metadata: dict[str, Any] = field(default_factory=dict)
-last_updated_at: datetime = field(default_factory=datetime.utcnow)
+        plan_id: str
+        event_type: str
+        payload: dict[str, Any]
+        created_at: datetime = field(default_factory=datetime.utcnow)
+
+
+        @dataclass
+        class ToolBindingRecord:
+            """Stores tool choices and related metadata."""
+
+            plan_id: str
+            capability: str
+            tool_name: str
+            status: str
+            metadata: dict[str, Any] = field(default_factory=dict)
+
+
+            @dataclass
+            class ProvisioningTaskRecord:
+                """Tracks provisioning capsules triggered by a plan."""
+
+                plan_id: str
+                task_id: str
+                capsule_id: str
+                status: str
+                metadata: dict[str, Any] = field(default_factory=dict)
+                last_updated_at: datetime = field(default_factory=datetime.utcnow)

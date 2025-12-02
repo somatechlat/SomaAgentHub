@@ -70,8 +70,8 @@ async def test_outbox_event_creation():
         logging.getLogger(__name__).info("✅ Outbox event emission verified")
 
 
-@pytest.mark.asyncio
-async def test_repository_methods():
+        @pytest.mark.asyncio
+        async def test_repository_methods():
     """Test all repository methods work correctly."""
 
     engine = create_async_engine("sqlite+aiosqlite:///:memory:")
@@ -121,7 +121,7 @@ async def test_repository_methods():
         logging.getLogger(__name__).info("✅ All repository methods working correctly")
 
 
-if __name__ == "__main__":
+        if __name__ == "__main__":
     asyncio.run(test_outbox_event_creation())
     asyncio.run(test_repository_methods())
     logging.getLogger(__name__).info("🎉 Async tests completed successfully!")

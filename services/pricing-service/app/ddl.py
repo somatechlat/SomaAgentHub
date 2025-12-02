@@ -1,5 +1,3 @@
-from services.common.config.base_settings import resolve_env
-
 DDL_PRICING_OFFERS_LIVE = """
 CREATE TABLE IF NOT EXISTS pricing_offers_live (
 id String,

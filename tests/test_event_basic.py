@@ -58,8 +58,8 @@ async def test_basic_outbox_event_creation() -> None:
 		assert events[0].event_type == "wizard.approved"
 
 
-@pytest.mark.asyncio
-async def test_event_publisher_basic() -> None:
+  @pytest.mark.asyncio
+  async def test_event_publisher_basic() -> None:
 	"""Test basic event publisher functionality."""
 	publisher = InMemoryEventPublisher(service_name="test-service")
 
@@ -72,7 +72,7 @@ async def test_event_publisher_basic() -> None:
 	assert publisher.events[0] == event_data
 
 
-if __name__ == "__main__":
+ if __name__ == "__main__":
 	# Run basic tests when executed directly
 	asyncio.run(test_basic_outbox_event_creation())
 	asyncio.run(test_event_publisher_basic())

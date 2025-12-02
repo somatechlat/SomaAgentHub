@@ -41,31 +41,31 @@ def _get_qdrant_api_key() -> str:
 
 
 # Convenience constants derived from the central ``settings`` object.
-SERVICE_PORT = int(getattr(settings, "service_port", 8082))
-DATABASE_URL = getattr(settings, "database_url", "postgresql://postgres:postgres@postgres:5432/soma")
-REDIS_URL = getattr(settings, "redis_url", "redis://redis:6379/0")
-QDRANT_URL = getattr(settings, "qdrant_url", "http://localhost:6333")
-QDRANT_API_KEY = _get_qdrant_api_key()
-OBJECT_STORE_BUCKET = getattr(settings, "object_store_bucket", "")
-OBJECT_STORE_REGION = getattr(settings, "object_store_region", "")
-ENVIRONMENT = getattr(settings, "environment", "development")
-DEPLOYMENT_MODE = getattr(settings, "deployment_mode", "DEV").upper()
+ SERVICE_PORT = int(getattr(settings, "service_port", 8082))
+ DATABASE_URL = getattr(settings, "database_url", "postgresql://postgres:postgres@postgres:5432/soma")
+ REDIS_URL = getattr(settings, "redis_url", "redis://redis:6379/0")
+ QDRANT_URL = getattr(settings, "qdrant_url", "http://localhost:6333")
+ QDRANT_API_KEY = _get_qdrant_api_key()
+ OBJECT_STORE_BUCKET = getattr(settings, "object_store_bucket", "")
+ OBJECT_STORE_REGION = getattr(settings, "object_store_region", "")
+ ENVIRONMENT = getattr(settings, "environment", "development")
+ DEPLOYMENT_MODE = getattr(settings, "deployment_mode", "DEV").upper()
 
 
-def get_service_url(service_name: str) -> str:
+ def get_service_url(service_name: str) -> str:
 	"""Return a URL for a dependent service using the central resolver.
 	"""
 	key = f"{service_name.upper().replace('-', '_')}_URL"
 	return getattr(settings, key.lower(), f"http://{service_name}")
 
 
-def get_env_var(name: str, default=None):
+ def get_env_var(name: str, default=None):
 	"""Thin wrapper around the central ``resolve_env``.
 	"""
 	return getattr(settings, name.lower(), default)
 
 
-class MemoryGatewayConfig:
+ class MemoryGatewayConfig:
 	"""Configuration class for the memory‑gateway service.
 
 	Mirrors the original public API while sourcing all values from the cached
@@ -85,7 +85,7 @@ class MemoryGatewayConfig:
 		self.region = OBJECT_STORE_REGION
 
 
-def get_settings():
+  def get_settings():
 	"""Return the cached ``BaseConfig`` for the memory‑gateway.
 	"""
 	return settings

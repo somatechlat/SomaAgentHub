@@ -8,6 +8,7 @@ to resolve to the actual service implementation located in the repository root.
 """
 
 import pkgutil
+
 from services.common.config.base_settings import resolve_env
 
 __path__ = pkgutil.extend_path(__path__, __name__)

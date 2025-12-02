@@ -3,12 +3,11 @@ from fastapi import status
 from httpx import AsyncClient
 
 from services.marketplace.app.main import app
-from services.common.config.base_settings import resolve_env
 
 
 @pytest.mark.asyncio
 async def test_capsule_crud():
-async with AsyncClient(app=app, base_url="http://test") as client:
+    async with AsyncClient(app=app, base_url="http://test") as client:
 # health
 health = await client.get("/health")
 assert health.status_code == status.HTTP_200_OK

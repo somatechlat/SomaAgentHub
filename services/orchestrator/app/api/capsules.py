@@ -35,7 +35,7 @@ class CapsuleCreateRequest(BaseModel):
     metadata: Optional[dict] = None
 
 
-class CapsuleResponse(BaseModel):
+    class CapsuleResponse(BaseModel):
     id: str
     capsule_id: str
     version: str
@@ -51,88 +51,88 @@ class CapsuleResponse(BaseModel):
     updated_at: str
 
 
-def get_repo(session=Depends(get_session)) -> CapsuleRepository:
+    def get_repo(session=Depends(get_session)) -> CapsuleRepository:
     return CapsuleRepository(session)
 
 
-@router.post("", response_model=CapsuleResponse, status_code=status.HTTP_201_CREATED)
-async def create_capsule(req: CapsuleCreateRequest, repo: CapsuleRepository = Depends(get_repo)):
+    @router.post("", response_model=CapsuleResponse, status_code=status.HTTP_201_CREATED)
+    async def create_capsule(req: CapsuleCreateRequest, repo: CapsuleRepository = Depends(get_repo)):
     capsule = await repo.create_capsule(
-        capsule_id=req.capsule_id,
-        version=req.version,
-        type=req.type,
-        kind=req.kind,
-        execution_mode=req.execution_mode,
-        required_roles=req.required_roles,
-        requires_payment=req.requires_payment,
-        http_config=req.http_config,
-        manifest_yaml=req.manifest_yaml,
-        metadata=req.metadata,
+    capsule_id=req.capsule_id,
+    version=req.version,
+    type=req.type,
+    kind=req.kind,
+    execution_mode=req.execution_mode,
+    required_roles=req.required_roles,
+    requires_payment=req.requires_payment,
+    http_config=req.http_config,
+    manifest_yaml=req.manifest_yaml,
+    metadata=req.metadata,
     )
     return CapsuleResponse(
-        id=str(capsule.id),
-        capsule_id=capsule.capsule_id,
-        version=capsule.version,
-        type=capsule.type,
-        kind=capsule.kind,
-        execution_mode=capsule.execution_mode,
-        required_roles=capsule.required_roles,
-        requires_payment=capsule.requires_payment,
-        http_config=capsule.http_config,
-        manifest_yaml=capsule.manifest_yaml,
-        metadata=capsule.metadata_json,
-        created_at=capsule.created_at.isoformat(),
-        updated_at=capsule.updated_at.isoformat(),
+    id=str(capsule.id),
+    capsule_id=capsule.capsule_id,
+    version=capsule.version,
+    type=capsule.type,
+    kind=capsule.kind,
+    execution_mode=capsule.execution_mode,
+    required_roles=capsule.required_roles,
+    requires_payment=capsule.requires_payment,
+    http_config=capsule.http_config,
+    manifest_yaml=capsule.manifest_yaml,
+    metadata=capsule.metadata_json,
+    created_at=capsule.created_at.isoformat(),
+    updated_at=capsule.updated_at.isoformat(),
     )
 
 
-@router.get("", response_model=List[CapsuleResponse])
-async def list_capsules(capsule_id: Optional[str] = None, repo: CapsuleRepository = Depends(get_repo)):
+    @router.get("", response_model=List[CapsuleResponse])
+    async def list_capsules(capsule_id: Optional[str] = None, repo: CapsuleRepository = Depends(get_repo)):
     caps = await repo.list_capsules(capsule_id=capsule_id)
     return [
-        CapsuleResponse(
-            id=str(c.id),
-            capsule_id=c.capsule_id,
-            version=c.version,
-            type=c.type,
-            kind=c.kind,
-            execution_mode=c.execution_mode,
-            required_roles=c.required_roles,
-            requires_payment=c.requires_payment,
-            http_config=c.http_config,
-            manifest_yaml=c.manifest_yaml,
-            metadata=c.metadata_json,
-            created_at=c.created_at.isoformat(),
-            updated_at=c.updated_at.isoformat(),
-        )
-        for c in caps
+    CapsuleResponse(
+    id=str(c.id),
+    capsule_id=c.capsule_id,
+    version=c.version,
+    type=c.type,
+    kind=c.kind,
+    execution_mode=c.execution_mode,
+    required_roles=c.required_roles,
+    requires_payment=c.requires_payment,
+    http_config=c.http_config,
+    manifest_yaml=c.manifest_yaml,
+    metadata=c.metadata_json,
+    created_at=c.created_at.isoformat(),
+    updated_at=c.updated_at.isoformat(),
+    )
+    for c in caps
     ]
 
 
-@router.get("/{capsule_id}/{version}", response_model=CapsuleResponse)
-async def get_capsule(capsule_id: str, version: str, repo: CapsuleRepository = Depends(get_repo)):
+    @router.get("/{capsule_id}/{version}", response_model=CapsuleResponse)
+    async def get_capsule(capsule_id: str, version: str, repo: CapsuleRepository = Depends(get_repo)):
     capsule = await repo.get_capsule(capsule_id, version)
     if not capsule:
         raise HTTPException(status_code=404, detail="Capsule not found")
     return CapsuleResponse(
-        id=str(capsule.id),
-        capsule_id=capsule.capsule_id,
-        version=capsule.version,
-        type=capsule.type,
-        kind=capsule.kind,
-        execution_mode=capsule.execution_mode,
-        required_roles=capsule.required_roles,
-        requires_payment=capsule.requires_payment,
-        http_config=capsule.http_config,
-        manifest_yaml=capsule.manifest_yaml,
-        metadata=capsule.metadata_json,
-        created_at=capsule.created_at.isoformat(),
-        updated_at=capsule.updated_at.isoformat(),
+    id=str(capsule.id),
+    capsule_id=capsule.capsule_id,
+    version=capsule.version,
+    type=capsule.type,
+    kind=capsule.kind,
+    execution_mode=capsule.execution_mode,
+    required_roles=capsule.required_roles,
+    requires_payment=capsule.requires_payment,
+    http_config=capsule.http_config,
+    manifest_yaml=capsule.manifest_yaml,
+    metadata=capsule.metadata_json,
+    created_at=capsule.created_at.isoformat(),
+    updated_at=capsule.updated_at.isoformat(),
     )
 
 
-@router.delete("/{capsule_id}/{version}", status_code=status.HTTP_204_NO_CONTENT)
-async def delete_capsule(capsule_id: str, version: str, repo: CapsuleRepository = Depends(get_repo)):
+    @router.delete("/{capsule_id}/{version}", status_code=status.HTTP_204_NO_CONTENT)
+    async def delete_capsule(capsule_id: str, version: str, repo: CapsuleRepository = Depends(get_repo)):
     try:
         await repo.delete_capsule(capsule_id, version)
     except ValueError:

@@ -72,8 +72,8 @@ async def readiness_check() -> Dict[str, Any]:
 	return health_status
 
 
-@router.get("/live", response_model=Dict[str, Any])
-async def liveness_check() -> Dict[str, Any]:
+ @router.get("/live", response_model=Dict[str, Any])
+ async def liveness_check() -> Dict[str, Any]:
 	"""Kubernetes liveness probe.
 
 	Basic check if the service is alive and responding.
@@ -87,8 +87,8 @@ async def liveness_check() -> Dict[str, Any]:
 	}
 
 
-@router.get("/startup", response_model=Dict[str, Any])
-async def startup_check() -> Dict[str, Any]:
+ @router.get("/startup", response_model=Dict[str, Any])
+ async def startup_check() -> Dict[str, Any]:
 	"""Kubernetes startup probe.
 
 	Checks if the service has finished initialization.
@@ -96,8 +96,8 @@ async def startup_check() -> Dict[str, Any]:
 	return {"status": "started", "timestamp": None, "service": "orchestrator-service"}
 
 
-@router.get("/dependencies", response_model=Dict[str, Any])
-async def dependency_health() -> Dict[str, Any]:
+ @router.get("/dependencies", response_model=Dict[str, Any])
+ async def dependency_health() -> Dict[str, Any]:
 	"""Detailed health check of all dependencies."""
 	checks: Dict[str, Any] = {}
 
@@ -130,8 +130,8 @@ async def dependency_health() -> Dict[str, Any]:
 	return {"status": "healthy", "timestamp": None, "dependencies": checks}
 
 
-@router.get("/metrics")
-async def metrics() -> None:
+ @router.get("/metrics")
+ async def metrics() -> None:
 	"""Prometheus metrics endpoint - handled by main app."""
 	# Metrics endpoint is configured in main.py
 	# No additional logic needed; FastAPI will serve the metrics via the

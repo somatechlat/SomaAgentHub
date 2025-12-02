@@ -11,7 +11,7 @@ class SomaAgentError(Exception):
     ...
 
 
-class APIError(SomaAgentError):
+    class APIError(SomaAgentError):
     """API request failed."""
 
     def __init__(self, message: str, status_code: int = None, response: dict = None):
@@ -20,19 +20,19 @@ class APIError(SomaAgentError):
         self.response = response or {}
 
 
-class AuthenticationError(SomaAgentError):
+        class AuthenticationError(SomaAgentError):
     """Authentication failed."""
 
     ...
 
 
-class RateLimitError(APIError):
+    class RateLimitError(APIError):
     """Rate limit exceeded."""
 
     ...
 
 
-class ValidationError(SomaAgentError):
+    class ValidationError(SomaAgentError):
     """Input validation failed."""
 
     ...

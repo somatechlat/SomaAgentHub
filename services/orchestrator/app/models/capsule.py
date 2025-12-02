@@ -24,19 +24,19 @@ class CapsuleType(str, enum.Enum):
     TOOL = "tool"
 
 
-class CapsuleKind(str, enum.Enum):
+    class CapsuleKind(str, enum.Enum):
     WORKFLOW = "workflow"
     STATIC = "static"
     EXTERNAL_SERVICE = "external_service"
     ANALYTIC = "analytic"
 
 
-class ExecutionMode(str, enum.Enum):
+    class ExecutionMode(str, enum.Enum):
     SYNC = "sync"
     ASYNC = "async"
 
 
-class Capsule(SQLModel, table=True):
+    class Capsule(SQLModel, table=True):
     """Persisted capsule metadata.
 
     The fields are deliberately simple and JSON‑serialisable so they can be
@@ -67,26 +67,26 @@ class Capsule(SQLModel, table=True):
     # Timestamps
     created_at: datetime = Field(default_factory=datetime.utcnow)
     updated_at: datetime = Field(default_factory=datetime.utcnow)
-"""Capsule model persisted in the orchestrator PostgreSQL database.
+    """Capsule model persisted in the orchestrator PostgreSQL database.
 
-Sprint 1 introduces a PostgreSQL‑backed capsule registry.  The model mirrors the
-schema used by the ``task‑capsule‑repo`` service but is defined with ``SQLModel``
-so it participates in the existing ``init_db`` routine (which calls
-``SQLModel.metadata.create_all``).  Only the fields required by the current
-API are stored – additional columns can be added later without breaking
-compatibility.
-"""
+    Sprint 1 introduces a PostgreSQL‑backed capsule registry.  The model mirrors the
+    schema used by the ``task‑capsule‑repo`` service but is defined with ``SQLModel``
+    so it participates in the existing ``init_db`` routine (which calls
+    ``SQLModel.metadata.create_all``).  Only the fields required by the current
+    API are stored – additional columns can be added later without breaking
+    compatibility.
+    """
 
-from __future__ import annotations
+    from __future__ import annotations
 
-import uuid
-from datetime import datetime
-from typing import Any, Dict, Optional
+    import uuid
+    from datetime import datetime
+    from typing import Any, Dict, Optional
 
-from sqlmodel import Field, SQLModel
+    from sqlmodel import Field, SQLModel
 
 
-class Capsule(SQLModel, table=True):
+    class Capsule(SQLModel, table=True):
     """Persisted capsule metadata.
 
     * ``id`` – internal UUID primary key.

@@ -13,26 +13,24 @@ from opentelemetry.sdk.trace.export import BatchSpanProcessor
 _CONFIGURED = False
 
 
-def configure_otel(
-app: FastAPI, service_name: str, endpoint: str | None = None
-) -> None:
-"""Configure OpenTelemetry tracing for the service."""
+def configure_otel(app: FastAPI, service_name: str, endpoint: str | None = None) -> None:
+    """Configure OpenTelemetry tracing for the service."""
 
-global _CONFIGURED
-FastAPIInstrumentor.instrument_app(app)
-if _CONFIGURED:
-return
+    global _CONFIGURED
+    FastAPIInstrumentor.instrument_app(app)
+    if _CONFIGURED:
+        return
 
-from services.common.config.base_settings import resolve_env
+        from services.common.config.base_settings import resolve_env
 
-target_endpoint = endpoint or resolve_env("OTEL_EXPORTER_OTLP_ENDPOINT")
-if not target_endpoint:
-_CONFIGURED = True
-return
+        target_endpoint = endpoint or resolve_env("OTEL_EXPORTER_OTLP_ENDPOINT")
+        if not target_endpoint:
+    _CONFIGURED = True
+    return
 
-resource = Resource.create({"service.name": service_name})
-provider = TracerProvider(resource=resource)
-exporter = OTLPSpanExporter(endpoint=target_endpoint)
-provider.add_span_processor(BatchSpanProcessor(exporter))
-trace.set_tracer_provider(provider)
-_CONFIGURED = True
+    resource = Resource.create({"service.name": service_name})
+    provider = TracerProvider(resource=resource)
+    exporter = OTLPSpanExporter(endpoint=target_endpoint)
+    provider.add_span_processor(BatchSpanProcessor(exporter))
+    trace.set_tracer_provider(provider)
+    _CONFIGURED = True

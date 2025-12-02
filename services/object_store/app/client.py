@@ -15,14 +15,14 @@ from typing import BinaryIO
 try:
 	from minio import Minio  # type: ignore
 	from minio.error import S3Error  # type: ignore
-except Exception:  # pragma: no cover
+ except Exception:  # pragma: no cover
 	Minio = None  # type: ignore
 	S3Error = Exception  # type: ignore
-from services.common.config.base_settings import resolve_env
+ from services.common.config.base_settings import resolve_env
 
 
-@dataclass
-class ObjectStoreSettings:
+ @dataclass
+ class ObjectStoreSettings:
 	endpoint: str
 	access_key: str
 	secret_key: str
@@ -39,7 +39,7 @@ class ObjectStoreSettings:
 		return cls(endpoint, access_key, secret_key, secure, default_bucket)
 
 
-class ObjectStoreClient:
+  class ObjectStoreClient:
 	def __init__(self, settings: ObjectStoreSettings | None = None) -> None:
 		self.settings = settings or ObjectStoreSettings.from_env()
 		if Minio is None:  # pragma: no cover

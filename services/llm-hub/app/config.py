@@ -23,43 +23,44 @@ settings = get_service_settings(_SERVICE_NAME)
 
 
 def _get_api_key(env_name: str, vault_key: str) -> str:
-	"""Return an API key from the environment or Vault.
+    """Return an API key from the environment or Vault.
 
-	The function first checks the environment variable; if it is missing it
-	attempts to read the secret from Vault using the service name as the role.
-	Any exception is swallowed and an empty string is returned – matching the
-	original behaviour while keeping the implementation explicit.
-	"""
+    The function first checks the environment variable; if it is missing it
+    attempts to read the secret from Vault using the service name as the role.
+    Any exception is swallowed and an empty string is returned – matching the
+    original behaviour while keeping the implementation explicit.
+    """
 
-	from services.common.config.base_settings import resolve_env
+    from services.common.config.base_settings import resolve_env
 
-	val = resolve_env(env_name)
-	if val:
-		return val
-	try:
-		client = init_vault(role=_SERVICE_NAME)
-		secret = client.read_secret("services/llm-hub").data.get(vault_key)
-		if secret:
-			return secret
-	except Exception:
-		# Real‑world production code would log the error; we keep the
-		# lightweight behaviour required by the VIBE rules.
-		import logging
-		logging.getLogger(__name__).warning(f"Failed to read secret {vault_key} from Vault")
-	return ""
+    val = resolve_env(env_name)
+    if val:
+        return val
+    try:
+        client = init_vault(role=_SERVICE_NAME)
+        secret = client.read_secret("services/llm-hub").data.get(vault_key)
+        if secret:
+    return secret
+    except Exception:
+# Real‑world production code would log the error; we keep the
+# lightweight behaviour required by the VIBE rules.
+        import logging
+
+        logging.getLogger(__name__).warning(f"Failed to read secret {vault_key} from Vault")
+    return ""
 
 
 # Convenience attributes that downstream code may import directly.
-OPENAI_API_KEY = _get_api_key("OPENAI_API_KEY", "openai_api_key")
-ANTHROPIC_API_KEY = _get_api_key("ANTHROPIC_API_KEY", "anthropic_api_key")
-GOOGLE_API_KEY = _get_api_key("GOOGLE_API_KEY", "google_api_key")
+    OPENAI_API_KEY = _get_api_key("OPENAI_API_KEY", "openai_api_key")
+    ANTHROPIC_API_KEY = _get_api_key("ANTHROPIC_API_KEY", "anthropic_api_key")
+    GOOGLE_API_KEY = _get_api_key("GOOGLE_API_KEY", "google_api_key")
 
 
-def get_settings():
-	"""Return the cached ``BaseConfig`` for the LLM hub.
+    def get_settings():
+    """Return the cached ``BaseConfig`` for the LLM hub.
 
-	Keeping a function wrapper mirrors the original module contract, so existing
-	imports (``from …config import get_settings``) remain functional.
-	"""
+    Keeping a function wrapper mirrors the original module contract, so existing
+    imports (``from …config import get_settings``) remain functional.
+    """
 
-	return settings
+    return settings

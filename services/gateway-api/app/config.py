@@ -74,7 +74,7 @@ def get_settings() -> GatewaySettings:
 	return settings
 
 
-def get_service_url(service_name: str) -> str:
+ def get_service_url(service_name: str) -> str:
 	"""Legacy helper – returns ``SOMA_AGENT_HUB_<NAME>_URL`` if set.
 	"""
 

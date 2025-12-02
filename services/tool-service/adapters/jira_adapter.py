@@ -1,400 +1,400 @@
-"""
-⚠️ WE DO NOT MOCK - Real Jira adapter for enterprise project management.
+        """
+        ⚠️ WE DO NOT MOCK - Real Jira adapter for enterprise project management.
 
-Provides comprehensive Jira integration:
-- Issue management (create, update, transition)
-- Project management
-- Sprint operations (Agile)
-- Board management
-- User and permission management
-- JQL queries
-"""
+        Provides comprehensive Jira integration:
+            - Issue management (create, update, transition)
+            - Project management
+            - Sprint operations (Agile)
+            - Board management
+            - User and permission management
+            - JQL queries
+            """
 
-import logging
-from typing import Any
+            import logging
+            from typing import Any
 
-import requests
-from services.common.config.base_settings import resolve_env
+            import requests
+            from services.common.config.base_settings import resolve_env
 
-logger = logging.getLogger(__name__)
+            logger = logging.getLogger(__name__)
 
 
-class JiraAdapter:
-"""
-Adapter for Jira REST API.
+            class JiraAdapter:
+            """
+            Adapter for Jira REST API.
 
-Jira Documentation: https://developer.atlassian.com/cloud/jira/platform/rest/v3
-"""
+            Jira Documentation: https://developer.atlassian.com/cloud/jira/platform/rest/v3
+            """
 
-def __init__(self, jira_url: str, email: str, api_token: str):
-"""
-Initialize Jira adapter.
+            def __init__(self, jira_url: str, email: str, api_token: str):
+                """
+                Initialize Jira adapter.
 
-Args:
-jira_url: Jira instance URL (e.g., https://yourcompany.atlassian.net)
-email: User email
-api_token: API token
-"""
-self.jira_url = jira_url.rstrip("/")
-self.email = email
-self.api_token = api_token
-self.auth = (email, api_token)
-self.headers = {
-"Content-Type": "application/json",
-"Accept": "application/json",
-}
-
-def _request(self, method: str, endpoint: str, **kwargs) -> Any:
-"""Make authenticated API request."""
-url = f"{self.jira_url}/rest/api/3/{endpoint}"
-
-response = requests.request(
-method=method,
-url=url,
-auth=self.auth,
-headers=self.headers,
-timeout=30,
-**kwargs,
-)
-
-response.raise_for_status()
-return response.json() if response.content else {}
-
-# Issue Management
-
-def create_issue(
-self,
-project_key: str,
-summary: str,
-issue_type: str = "Task",
-description: str | None = None,
-assignee: str | None = None,
-priority: str | None = None,
-labels: list[str] | None = None,
-custom_fields: dict[str, Any] | None = None,
-) -> dict[str, Any]:
-"""
-Create Jira issue.
-
-Args:
-project_key: Project key
-summary: Issue summary
-issue_type: Issue type (Task, Story, Bug, Epic)
-description: Issue description
-assignee: Assignee account ID
-priority: Priority name
-labels: Labels list
-custom_fields: Custom field values
-
-Returns:
-Created issue
-"""
-logger.info(f"Creating Jira issue: {summary}")
-
-fields = {
-"project": {"key": project_key},
-"summary": summary,
-"issuetype": {"name": issue_type},
-}
-
-if description:
-fields["description"] = {
-"type": "doc",
-"version": 1,
-"content": [
-    {
-        "type": "paragraph",
-        "content": [{"type": "text", "text": description}],
-    }
-],
-}
-
-if assignee:
-fields["assignee"] = {"id": assignee}
-
-if priority:
-fields["priority"] = {"name": priority}
-
-if labels:
-fields["labels"] = labels
-
-if custom_fields:
-fields.update(custom_fields)
-
-data = {"fields": fields}
-return self._request("POST", "issue", json=data)
-
-def get_issue(self, issue_key: str) -> dict[str, Any]:
-"""Get issue details."""
-return self._request("GET", f"issue/{issue_key}")
-
-def update_issue(self, issue_key: str, fields: dict[str, Any]) -> None:
-"""Update issue fields."""
-logger.info(f"Updating issue: {issue_key}")
-
-data = {"fields": fields}
-self._request("PUT", f"issue/{issue_key}", json=data)
-
-def transition_issue(
-self, issue_key: str, transition_id: str, comment: str | None = None
-) -> None:
-"""
-Transition issue to new status.
-
-Args:
-issue_key: Issue key
-transition_id: Transition ID
-comment: Optional comment
-"""
-logger.info(f"Transitioning issue {issue_key} to {transition_id}")
-
-data = {"transition": {"id": transition_id}}
-
-if comment:
-data["update"] = {
-"comment": [
-    {
-        "add": {
-            "body": {
-                "type": "doc",
-                "version": 1,
-                "content": [
-                    {
-                        "type": "paragraph",
-                        "content": [{"type": "text", "text": comment}],
+                Args:
+                    jira_url: Jira instance URL (e.g., https://yourcompany.atlassian.net)
+                    email: User email
+                    api_token: API token
+                    """
+                    self.jira_url = jira_url.rstrip("/")
+                    self.email = email
+                    self.api_token = api_token
+                    self.auth = (email, api_token)
+                    self.headers = {
+                    "Content-Type": "application/json",
+                    "Accept": "application/json",
                     }
-                ],
+
+                    def _request(self, method: str, endpoint: str, **kwargs) -> Any:
+                        """Make authenticated API request."""
+                        url = f"{self.jira_url}/rest/api/3/{endpoint}"
+
+                        response = requests.request(
+                        method=method,
+                        url=url,
+                        auth=self.auth,
+                        headers=self.headers,
+                        timeout=30,
+                        **kwargs,
+                        )
+
+                        response.raise_for_status()
+                        return response.json() if response.content else {}
+
+                        sue Management
+
+                        def create_issue(
+                        self,
+                        project_key: str,
+                        summary: str,
+                        issue_type: str = "Task",
+                        description: str | None = None,
+                        assignee: str | None = None,
+                        priority: str | None = None,
+                        labels: list[str] | None = None,
+                        custom_fields: dict[str, Any] | None = None,
+                        ) -> dict[str, Any]:
+                            """
+                            Create Jira issue.
+
+                            Args:
+                                project_key: Project key
+                                summary: Issue summary
+                                issue_type: Issue type (Task, Story, Bug, Epic)
+                                description: Issue description
+                                assignee: Assignee account ID
+                                priority: Priority name
+                                labels: Labels list
+                                custom_fields: Custom field values
+
+                                Returns:
+                                    Created issue
+                                    """
+                                    logger.info(f"Creating Jira issue: {summary}")
+
+                                    fields = {
+                                    "project": {"key": project_key},
+                                    "summary": summary,
+                                    "issuetype": {"name": issue_type},
+                                    }
+
+                                    if description:
+                                        fields["description"] = {
+                                        "type": "doc",
+                                        "version": 1,
+                                        "content": [
+                                        {
+            "type": "paragraph",
+            "content": [{"type": "text", "text": description}],
             }
-        }
-    }
-]
-}
+            ],
+            }
 
-self._request("POST", f"issue/{issue_key}/transitions", json=data)
+            if assignee:
+            fields["assignee"] = {"id": assignee}
 
-def add_comment(self, issue_key: str, comment: str) -> dict[str, Any]:
-"""Add comment to issue."""
-data = {
-"body": {
-"type": "doc",
-"version": 1,
-"content": [
-    {
-        "type": "paragraph",
-        "content": [{"type": "text", "text": comment}],
-    }
-],
-}
-}
+            if priority:
+                fields["priority"] = {"name": priority}
 
-return self._request("POST", f"issue/{issue_key}/comment", json=data)
+                if labels:
+                    fields["labels"] = labels
 
-def delete_issue(self, issue_key: str) -> None:
-"""Delete issue."""
-logger.warning(f"Deleting issue: {issue_key}")
-self._request("DELETE", f"issue/{issue_key}")
+                    if custom_fields:
+                        fields.update(custom_fields)
 
-# Search & JQL
+                        data = {"fields": fields}
+                        return self._request("POST", "issue", json=data)
 
-def search_issues(
-self, jql: str, max_results: int = 50, fields: list[str] | None = None
-) -> dict[str, Any]:
-"""
-Search issues using JQL.
+                        def get_issue(self, issue_key: str) -> dict[str, Any]:
+                            """Get issue details."""
+                            return self._request("GET", f"issue/{issue_key}")
 
-Args:
-jql: JQL query string
-max_results: Maximum results
-fields: Fields to return
+                            def update_issue(self, issue_key: str, fields: dict[str, Any]) -> None:
+                                """Update issue fields."""
+                                logger.info(f"Updating issue: {issue_key}")
 
-Returns:
-Search results
-"""
-logger.info(f"Searching Jira with JQL: {jql}")
+                                data = {"fields": fields}
+                                self._request("PUT", f"issue/{issue_key}", json=data)
 
-params = {
-"jql": jql,
-"maxResults": max_results,
-}
+                                def transition_issue(
+                                self, issue_key: str, transition_id: str, comment: str | None = None
+                                ) -> None:
+                                    """
+                                    Transition issue to new status.
 
-if fields:
-params["fields"] = ",".join(fields)
+                                    Args:
+                                        issue_key: Issue key
+                                        transition_id: Transition ID
+                                        comment: Optional comment
+                                        """
+                                        logger.info(f"Transitioning issue {issue_key} to {transition_id}")
 
-return self._request("GET", "search", params=params)
+                                        data = {"transition": {"id": transition_id}}
 
-# Project Management
+                                        if comment:
+                                            data["update"] = {
+                                            "comment": [
+                                            {
+            "add": {
+                "body": {
+                    "type": "doc",
+                    "version": 1,
+                    "content": [
+                        {
+                            "type": "paragraph",
+                            "content": [{"type": "text", "text": comment}],
+                        }
+                    ],
+                }
+            }
+            }
+            ]
+            }
 
-def create_project(
-self,
-key: str,
-name: str,
-project_type_key: str = "software",
-lead_account_id: str = None,
-description: str | None = None,
-) -> dict[str, Any]:
-"""Create project."""
-logger.info(f"Creating Jira project: {name}")
+            self._request("POST", f"issue/{issue_key}/transitions", json=data)
 
-data = {
-"key": key,
-"name": name,
-"projectTypeKey": project_type_key,
-}
+            def add_comment(self, issue_key: str, comment: str) -> dict[str, Any]:
+            """Add comment to issue."""
+            data = {
+            "body": {
+            "type": "doc",
+            "version": 1,
+            "content": [
+            {
+            "type": "paragraph",
+            "content": [{"type": "text", "text": comment}],
+            }
+            ],
+            }
+            }
 
-if lead_account_id:
-data["leadAccountId"] = lead_account_id
+            return self._request("POST", f"issue/{issue_key}/comment", json=data)
 
-if description:
-data["description"] = description
+            def delete_issue(self, issue_key: str) -> None:
+            """Delete issue."""
+            logger.warning(f"Deleting issue: {issue_key}")
+            self._request("DELETE", f"issue/{issue_key}")
 
-return self._request("POST", "project", json=data)
+            arch & JQL
 
-def get_project(self, project_key: str) -> dict[str, Any]:
-"""Get project details."""
-return self._request("GET", f"project/{project_key}")
+            def search_issues(
+            self, jql: str, max_results: int = 50, fields: list[str] | None = None
+            ) -> dict[str, Any]:
+                """
+                Search issues using JQL.
 
-def list_projects(self) -> list[dict[str, Any]]:
-"""List all projects."""
-return self._request("GET", "project")
+                Args:
+                    jql: JQL query string
+                    max_results: Maximum results
+                    fields: Fields to return
 
-# Sprint Management (Agile)
+                    Returns:
+                        Search results
+                        """
+                        logger.info(f"Searching Jira with JQL: {jql}")
 
-def create_sprint(
-self,
-board_id: int,
-name: str,
-start_date: str | None = None,
-end_date: str | None = None,
-goal: str | None = None,
-) -> dict[str, Any]:
-"""
-Create sprint.
+                        params = {
+                        "jql": jql,
+                        "maxResults": max_results,
+                        }
 
-Args:
-board_id: Board ID
-name: Sprint name
-start_date: Start date (ISO 8601)
-end_date: End date (ISO 8601)
-goal: Sprint goal
-"""
-logger.info(f"Creating sprint: {name}")
+                        if fields:
+                            params["fields"] = ",".join(fields)
 
-# Use Agile API (different base)
-url = f"{self.jira_url}/rest/agile/1.0/sprint"
+                            return self._request("GET", "search", params=params)
 
-data = {
-"name": name,
-"originBoardId": board_id,
-}
+                            oject Management
 
-if start_date:
-data["startDate"] = start_date
-if end_date:
-data["endDate"] = end_date
-if goal:
-data["goal"] = goal
+                            def create_project(
+                            self,
+                            key: str,
+                            name: str,
+                            project_type_key: str = "software",
+                            lead_account_id: str = None,
+                            description: str | None = None,
+                            ) -> dict[str, Any]:
+                                """Create project."""
+                                logger.info(f"Creating Jira project: {name}")
 
-response = requests.post(
-url, auth=self.auth, headers=self.headers, json=data, timeout=30
-)
+                                data = {
+                                "key": key,
+                                "name": name,
+                                "projectTypeKey": project_type_key,
+                                }
 
-response.raise_for_status()
-return response.json()
+                                if lead_account_id:
+                                    data["leadAccountId"] = lead_account_id
 
-def move_issues_to_sprint(self, sprint_id: int, issues: list[str]) -> None:
-"""Move issues to sprint."""
-logger.info(f"Moving {len(issues)} issues to sprint {sprint_id}")
+                                    if description:
+                                        data["description"] = description
 
-url = f"{self.jira_url}/rest/agile/1.0/sprint/{sprint_id}/issue"
+                                        return self._request("POST", "project", json=data)
 
-data = {"issues": issues}
+                                        def get_project(self, project_key: str) -> dict[str, Any]:
+                                            """Get project details."""
+                                            return self._request("GET", f"project/{project_key}")
 
-response = requests.post(
-url, auth=self.auth, headers=self.headers, json=data, timeout=30
-)
+                                            def list_projects(self) -> list[dict[str, Any]]:
+                                                """List all projects."""
+                                                return self._request("GET", "project")
 
-response.raise_for_status()
+                                                rint Management (Agile)
 
-# Board Management
+                                                def create_sprint(
+                                                self,
+                                                board_id: int,
+                                                name: str,
+                                                start_date: str | None = None,
+                                                end_date: str | None = None,
+                                                goal: str | None = None,
+                                                ) -> dict[str, Any]:
+                                                    """
+                                                    Create sprint.
 
-def create_board(
-self, name: str, board_type: str = "scrum", filter_id: int | None = None
-) -> dict[str, Any]:
-"""
-Create board.
+                                                    Args:
+                                                        board_id: Board ID
+                                                        name: Sprint name
+                                                        start_date: Start date (ISO 8601)
+                                                        end_date: End date (ISO 8601)
+                                                        goal: Sprint goal
+                                                        """
+                                                        logger.info(f"Creating sprint: {name}")
 
-Args:
-name: Board name
-board_type: Board type (scrum, kanban)
-filter_id: Filter ID for board
-"""
-logger.info(f"Creating {board_type} board: {name}")
+                                                        e Agile API (different base)
+                                                        url = f"{self.jira_url}/rest/agile/1.0/sprint"
 
-url = f"{self.jira_url}/rest/agile/1.0/board"
+                                                        data = {
+                                                        "name": name,
+                                                        "originBoardId": board_id,
+                                                        }
 
-data = {
-"name": name,
-"type": board_type,
-}
+                                                        if start_date:
+                                                            data["startDate"] = start_date
+                                                            if end_date:
+                                                                data["endDate"] = end_date
+                                                                if goal:
+                                                                    data["goal"] = goal
 
-if filter_id:
-data["filterId"] = filter_id
+                                                                    response = requests.post(
+                                                                    url, auth=self.auth, headers=self.headers, json=data, timeout=30
+                                                                    )
 
-response = requests.post(
-url, auth=self.auth, headers=self.headers, json=data, timeout=30
-)
+                                                                    response.raise_for_status()
+                                                                    return response.json()
 
-response.raise_for_status()
-return response.json()
+                                                                    def move_issues_to_sprint(self, sprint_id: int, issues: list[str]) -> None:
+                                                                        """Move issues to sprint."""
+                                                                        logger.info(f"Moving {len(issues)} issues to sprint {sprint_id}")
 
-def list_boards(self) -> dict[str, Any]:
-"""List all boards."""
-url = f"{self.jira_url}/rest/agile/1.0/board"
+                                                                        url = f"{self.jira_url}/rest/agile/1.0/sprint/{sprint_id}/issue"
 
-response = requests.get(url, auth=self.auth, headers=self.headers, timeout=30)
+                                                                        data = {"issues": issues}
 
-response.raise_for_status()
-return response.json()
+                                                                        response = requests.post(
+                                                                        url, auth=self.auth, headers=self.headers, json=data, timeout=30
+                                                                        )
 
-# User Management
+                                                                        response.raise_for_status()
 
-def search_users(self, query: str) -> list[dict[str, Any]]:
-"""Search for users."""
-return self._request("GET", "user/search", params={"query": query})
+                                                                        ard Management
 
-# Utility Methods
+                                                                        def create_board(
+                                                                        self, name: str, board_type: str = "scrum", filter_id: int | None = None
+                                                                        ) -> dict[str, Any]:
+                                                                            """
+                                                                            Create board.
 
-def bulk_create_issues(self, issues: list[dict[str, Any]]) -> dict[str, Any]:
-"""
-Bulk create issues.
+                                                                            Args:
+                                                                                name: Board name
+                                                                                board_type: Board type (scrum, kanban)
+                                                                                filter_id: Filter ID for board
+                                                                                """
+                                                                                logger.info(f"Creating {board_type} board: {name}")
 
-Args:
-issues: List of issue data dicts
+                                                                                url = f"{self.jira_url}/rest/agile/1.0/board"
 
-Returns:
-Bulk operation results
-"""
-logger.info(f"Bulk creating {len(issues)} issues")
+                                                                                data = {
+                                                                                "name": name,
+                                                                                "type": board_type,
+                                                                                }
 
-issue_updates = [{"fields": issue} for issue in issues]
-data = {"issueUpdates": issue_updates}
+                                                                                if filter_id:
+                                                                                    data["filterId"] = filter_id
 
-return self._request("POST", "issue/bulk", json=data)
+                                                                                    response = requests.post(
+                                                                                    url, auth=self.auth, headers=self.headers, json=data, timeout=30
+                                                                                    )
 
-def create_epic(
-self, project_key: str, summary: str, description: str | None = None
-) -> dict[str, Any]:
-"""Create epic."""
-return self.create_issue(
-project_key=project_key,
-summary=summary,
-issue_type="Epic",
-description=description,
-)
+                                                                                    response.raise_for_status()
+                                                                                    return response.json()
 
-def link_issue_to_epic(self, issue_key: str, epic_key: str) -> None:
-"""Link issue to epic."""
-logger.info(f"Linking {issue_key} to epic {epic_key}")
+                                                                                    def list_boards(self) -> dict[str, Any]:
+                                                                                        """List all boards."""
+                                                                                        url = f"{self.jira_url}/rest/agile/1.0/board"
 
-# This uses a custom field (customfield_10014 is common for epic link)
-self.update_issue(issue_key, {"customfield_10014": epic_key})
+                                                                                        response = requests.get(url, auth=self.auth, headers=self.headers, timeout=30)
+
+                                                                                        response.raise_for_status()
+                                                                                        return response.json()
+
+                                                                                        er Management
+
+                                                                                        def search_users(self, query: str) -> list[dict[str, Any]]:
+                                                                                            """Search for users."""
+                                                                                            return self._request("GET", "user/search", params={"query": query})
+
+                                                                                            ility Methods
+
+                                                                                            def bulk_create_issues(self, issues: list[dict[str, Any]]) -> dict[str, Any]:
+                                                                                                """
+                                                                                                Bulk create issues.
+
+                                                                                                Args:
+                                                                                                    issues: List of issue data dicts
+
+                                                                                                    Returns:
+                                                                                                        Bulk operation results
+                                                                                                        """
+                                                                                                        logger.info(f"Bulk creating {len(issues)} issues")
+
+                                                                                                        issue_updates = [{"fields": issue} for issue in issues]
+                                                                                                        data = {"issueUpdates": issue_updates}
+
+                                                                                                        return self._request("POST", "issue/bulk", json=data)
+
+                                                                                                        def create_epic(
+                                                                                                        self, project_key: str, summary: str, description: str | None = None
+                                                                                                        ) -> dict[str, Any]:
+                                                                                                            """Create epic."""
+                                                                                                            return self.create_issue(
+                                                                                                            project_key=project_key,
+                                                                                                            summary=summary,
+                                                                                                            issue_type="Epic",
+                                                                                                            description=description,
+                                                                                                            )
+
+                                                                                                            def link_issue_to_epic(self, issue_key: str, epic_key: str) -> None:
+                                                                                                                """Link issue to epic."""
+                                                                                                                logger.info(f"Linking {issue_key} to epic {epic_key}")
+
+                                                                                                                is uses a custom field (customfield_10014 is common for epic link)
+                                                                                                                self.update_issue(issue_key, {"customfield_10014": epic_key})

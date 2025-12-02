@@ -15,10 +15,10 @@ from sqlmodel import SQLModel
 # avoids circular dependencies because the OutboxEvent definition lives in the
 # orchestrator package but is needed by generic event tests.
 try:
-from services.orchestrator.app.repository.outbox import OutboxEvent
-except (
-Exception
-):  # pragma: no cover – during import time the orchestrator may not be loaded yet
-OutboxEvent = None
+    from services.orchestrator.app.repository.outbox import OutboxEvent
+    except (
+    Exception
+    ):  # pragma: no cover – during import time the orchestrator may not be loaded yet
+    OutboxEvent = None
 
-__all__ = ["SQLModel", "OutboxEvent"]
+    __all__ = ["SQLModel", "OutboxEvent"]

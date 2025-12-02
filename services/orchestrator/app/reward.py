@@ -13,7 +13,8 @@ return ``0.0`` – this is safe and avoids crashes in production.
 
 from __future__ import annotations
 
-from typing import Any, Mapping
+from collections.abc import Mapping
+from typing import Any
 
 
 def exact_match_reward(model_output: Mapping[str, Any] | str, expected: Any) -> float:
@@ -32,8 +33,8 @@ def exact_match_reward(model_output: Mapping[str, Any] | str, expected: Any) -> 
     Returns
     -------
     float
-        ``1.0`` for an exact match (ignoring surrounding whitespace),
-        otherwise ``0.0``.
+    ``1.0`` for an exact match (ignoring surrounding whitespace),
+    otherwise ``0.0``.
     """
 
     if model_output is None:

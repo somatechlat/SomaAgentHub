@@ -19,4 +19,4 @@ repo_common = repo_root / "common"
 if str(_repo_root) not in sys.path:
     sys.path.insert(0, str(repo_common))
 
-__path__ = pkgutil.extend_path(__path__, __name__)
+    __path__ = pkgutil.extend_path(__path__, __name__)

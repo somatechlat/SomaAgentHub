@@ -9,13 +9,10 @@ calling API layer can translate those into appropriate HTTP responses.
 
 from __future__ import annotations
 
-import uuid
-from typing import List, Optional
-
-from sqlmodel import select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlmodel import select
 
-from ..models.capsule import Capsule, CapsuleType, CapsuleKind, ExecutionMode
+from ..models.capsule import Capsule, CapsuleKind, CapsuleType, ExecutionMode
 
 
 class CapsuleRepository:
@@ -30,51 +27,49 @@ class CapsuleRepository:
         self.session = session
 
     async def create_capsule(
-        self,
-        capsule_id: str,
-        version: str = "latest",
-        type: Optional[CapsuleType] = None,
-        kind: Optional[CapsuleKind] = None,
-        execution_mode: Optional[ExecutionMode] = None,
-        required_roles: Optional[list[str]] = None,
-        requires_payment: str = "false",
-        http_config: Optional[dict] = None,
-        manifest_yaml: Optional[str] = None,
-        metadata: Optional[dict] = None,
+    self,
+    capsule_id: str,
+    version: str = "latest",
+    type: CapsuleType | None = None,
+    kind: CapsuleKind | None = None,
+    execution_mode: ExecutionMode | None = None,
+    required_roles: list[str] | None = None,
+    requires_payment: str = "false",
+    http_config: dict | None = None,
+    manifest_yaml: str | None = None,
+    metadata: dict | None = None,
     ) -> Capsule:
         capsule = Capsule(
-            capsule_id=capsule_id,
-            version=version,
-            type=type,
-            kind=kind,
-            execution_mode=execution_mode,
-            required_roles=required_roles or [],
-            requires_payment=requires_payment,
-            http_config=http_config or {},
-            manifest_yaml=manifest_yaml,
-            metadata_json=metadata or {},
-        )
-        self.session.add(capsule)
-        await self.session.flush()
-        return capsule
+    capsule_id=capsule_id,
+    version=version,
+    type=type,
+    kind=kind,
+    execution_mode=execution_mode,
+    required_roles=required_roles or [],
+    requires_payment=requires_payment,
+    http_config=http_config or {},
+    manifest_yaml=manifest_yaml,
+    metadata_json=metadata or {},
+    )
+    self.session.add(capsule)
+    await self.session.flush()
+    return capsule
 
-    async def get_capsule(self, capsule_id: str, version: str) -> Optional[Capsule]:
-        stmt = select(Capsule).where(
-            (Capsule.capsule_id == capsule_id) & (Capsule.version == version)
-        )
+    async def get_capsule(self, capsule_id: str, version: str) -> Capsule | None:
+        stmt = select(Capsule).where((Capsule.capsule_id == capsule_id) & (Capsule.version == version))
         result = await self.session.execute(stmt)
         return result.scalars().first()
 
-    async def list_capsules(self, capsule_id: Optional[str] = None) -> List[Capsule]:
+    async def list_capsules(self, capsule_id: str | None = None) -> list[Capsule]:
         stmt = select(Capsule)
         if capsule_id:
-            stmt = stmt.where(Capsule.capsule_id == capsule_id)
-        result = await self.session.execute(stmt)
-        return result.scalars().all()
+    stmt = stmt.where(Capsule.capsule_id == capsule_id)
+    result = await self.session.execute(stmt)
+    return result.scalars().all()
 
     async def delete_capsule(self, capsule_id: str, version: str) -> None:
         capsule = await self.get_capsule(capsule_id, version)
         if capsule is None:
-            raise ValueError("Capsule not found")
-        await self.session.delete(capsule)
-        await self.session.flush()
+    raise ValueError("Capsule not found")
+    await self.session.delete(capsule)
+    await self.session.flush()

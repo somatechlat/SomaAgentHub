@@ -14,8 +14,6 @@ from testcontainers.redis import RedisContainer
 # testcontainers modules.
 import sitecustomize  # noqa: F401
 
-
-
 SERVICE_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(SERVICE_ROOT))
 
@@ -23,44 +21,41 @@ sys.path.insert(0, str(SERVICE_ROOT))
 os.environ.setdefault("SOMA_AGENT_HUB_IDENTITY_JWT_SECRET", "test-secret")
 
 from app.main import create_app  # noqa: E402
-from services.common.config.base_settings import resolve_env
 
 
 @pytest.fixture(scope="session")
 def clickhouse_container() -> Generator[ClickHouseContainer, None, None]:
-container = ClickHouseContainer()
-container.start()
-host = container.get_container_host_ip()
-port = container.get_exposed_port("9000/tcp")
-# Use the canonical `SOMA_AGENT_HUB_` prefix for ClickHouse configuration
-os.environ["SOMA_AGENT_HUB_CLICKHOUSE_HOST"] = host
-os.environ["SOMA_AGENT_HUB_CLICKHOUSE_PORT"] = port
-os.environ["SOMA_AGENT_HUB_CLICKHOUSE_DATABASE"] = "somastack_audit"
-os.environ["SOMA_AGENT_HUB_IDENTITY_CLICKHOUSE_HOST"] = host
-os.environ["SOMA_AGENT_HUB_IDENTITY_CLICKHOUSE_PORT"] = port
-os.environ["SOMA_AGENT_HUB_IDENTITY_CLICKHOUSE_DATABASE"] = "somastack_audit"
-yield container
-container.stop()
+    container = ClickHouseContainer()
+    container.start()
+    host = container.get_container_host_ip()
+    port = container.get_exposed_port("9000/tcp")
+    # Use the canonical `SOMA_AGENT_HUB_` prefix for ClickHouse configuration
+    os.environ["SOMA_AGENT_HUB_CLICKHOUSE_HOST"] = host
+    os.environ["SOMA_AGENT_HUB_CLICKHOUSE_PORT"] = port
+    os.environ["SOMA_AGENT_HUB_CLICKHOUSE_DATABASE"] = "somastack_audit"
+    os.environ["SOMA_AGENT_HUB_IDENTITY_CLICKHOUSE_HOST"] = host
+    os.environ["SOMA_AGENT_HUB_IDENTITY_CLICKHOUSE_PORT"] = port
+    os.environ["SOMA_AGENT_HUB_IDENTITY_CLICKHOUSE_DATABASE"] = "somastack_audit"
+    yield container
+    container.stop()
 
-
-@pytest.fixture(scope="session")
-def redis_container(
-clickhouse_container: ClickHouseContainer,
-) -> Generator[RedisContainer, None, None]:
-container = RedisContainer(image="redis:7-alpine")
-container.start()
+    @pytest.fixture(scope="session")
+    def redis_container(
+    clickhouse_container: ClickHouseContainer,
+    ) -> Generator[RedisContainer, None, None]:
+        container = RedisContainer(image="redis:7-alpine")
+        container.start()
 # Debug: list attributes to verify patch applied
 
 # Use the canonical prefix for Redis URL in tests
-os.environ["SOMA_AGENT_HUB_IDENTITY_REDIS_URL"] = container.get_connection_url()
-yield container
-container.stop()
+        os.environ["SOMA_AGENT_HUB_IDENTITY_REDIS_URL"] = container.get_connection_url()
+        yield container
+        container.stop()
 
-
-@pytest.fixture
-def client(
-redis_container: RedisContainer, clickhouse_container: ClickHouseContainer
-) -> Generator[TestClient, None, None]:
-app = create_app()
-with TestClient(app) as test_client:
-yield test_client
+        @pytest.fixture
+        def client(
+    redis_container: RedisContainer, clickhouse_container: ClickHouseContainer
+    ) -> Generator[TestClient, None, None]:
+    app = create_app()
+    with TestClient(app) as test_client:
+        yield test_client

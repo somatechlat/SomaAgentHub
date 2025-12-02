@@ -226,16 +226,16 @@ class TestSprint1:
         assert uuid.UUID(tenant_id)
 
 
-@pytest.fixture(scope="session")
-def event_loop():
+        @pytest.fixture(scope="session")
+        def event_loop():
     """Create an async event loop for tests"""
     loop = asyncio.get_event_loop_policy().new_event_loop()
     yield loop
     loop.close()
 
 
-@pytest.fixture
-def db_session():
+    @pytest.fixture
+    def db_session():
     """Create a database session for tests (sync fixture for reliability).
 
     Runs the async generator synchronously so tests receive a concrete
@@ -258,5 +258,5 @@ def db_session():
             pass
 
 
-if __name__ == "__main__":
+            if __name__ == "__main__":
     pytest.main([__file__, "-v"])

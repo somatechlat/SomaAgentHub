@@ -27,7 +27,7 @@ class CapsuleCreateRequest(BaseModel):
     metadata: Optional[dict] = Field(default_factory=dict)
 
 
-class CapsuleResponse(BaseModel):
+    class CapsuleResponse(BaseModel):
     id: str
     capsule_id: str
     version: str
@@ -40,54 +40,54 @@ class CapsuleResponse(BaseModel):
     @classmethod
     def from_orm(cls, capsule: Capsule) -> "CapsuleResponse":
         return cls(
-            id=str(capsule.id),
-            capsule_id=capsule.capsule_id,
-            version=capsule.version,
-            type=capsule.type,
-            manifest_yaml=capsule.manifest_yaml,
-            metadata=capsule.metadata_json or {},
-            created_at=capsule.created_at.isoformat(),
-            updated_at=capsule.updated_at.isoformat(),
-        )
+    id=str(capsule.id),
+    capsule_id=capsule.capsule_id,
+    version=capsule.version,
+    type=capsule.type,
+    manifest_yaml=capsule.manifest_yaml,
+    metadata=capsule.metadata_json or {},
+    created_at=capsule.created_at.isoformat(),
+    updated_at=capsule.updated_at.isoformat(),
+    )
 
 
-@router.post("/capsules", response_model=CapsuleResponse, status_code=status.HTTP_201_CREATED)
-async def create_capsule(
+    @router.post("/capsules", response_model=CapsuleResponse, status_code=status.HTTP_201_CREATED)
+    async def create_capsule(
     payload: CapsuleCreateRequest,
     session=Depends(get_session),
-):
+    ):
     """Create a new capsule version.
 
     The combination of ``capsule_id`` and ``version`` must be unique.
     """
     # Ensure uniqueness
     stmt = select(Capsule).where(
-        (Capsule.capsule_id == payload.capsule_id) & (Capsule.version == payload.version)
+    (Capsule.capsule_id == payload.capsule_id) & (Capsule.version == payload.version)
     )
     existing = await session.execute(stmt)
     if existing.scalars().first():
         raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail="Capsule version already exists",
-        )
+    status_code=status.HTTP_409_CONFLICT,
+    detail="Capsule version already exists",
+    )
 
     capsule = Capsule(
-        capsule_id=payload.capsule_id,
-        version=payload.version,
-        type=payload.type,
-        manifest_yaml=payload.manifest_yaml,
-        metadata=payload.metadata or {},
+    capsule_id=payload.capsule_id,
+    version=payload.version,
+    type=payload.type,
+    manifest_yaml=payload.manifest_yaml,
+    metadata=payload.metadata or {},
     )
     session.add(capsule)
     await session.flush()  # assign primary key
     return CapsuleResponse.from_orm(capsule)
 
 
-@router.get("/capsules", response_model=List[CapsuleResponse])
-async def list_capsules(
+    @router.get("/capsules", response_model=List[CapsuleResponse])
+    async def list_capsules(
     capsule_id: Optional[str] = None,
     session=Depends(get_session),
-):
+    ):
     """List capsules, optionally filtered by ``capsule_id``."""
     stmt = select(Capsule)
     if capsule_id:
@@ -97,16 +97,16 @@ async def list_capsules(
     return [CapsuleResponse.from_orm(c) for c in capsules]
 
 
-@router.get(
+    @router.get(
     "/capsules/{capsule_id}/{version}", response_model=CapsuleResponse
-)
-async def get_capsule(
+    )
+    async def get_capsule(
     capsule_id: str,
     version: str,
     session=Depends(get_session),
-):
+    ):
     stmt = select(Capsule).where(
-        (Capsule.capsule_id == capsule_id) & (Capsule.version == version)
+    (Capsule.capsule_id == capsule_id) & (Capsule.version == version)
     )
     result = await session.execute(stmt)
     capsule = result.scalars().first()
@@ -115,17 +115,17 @@ async def get_capsule(
     return CapsuleResponse.from_orm(capsule)
 
 
-@router.put(
+    @router.put(
     "/capsules/{capsule_id}/{version}", response_model=CapsuleResponse
-)
-async def update_capsule(
+    )
+    async def update_capsule(
     capsule_id: str,
     version: str,
     payload: CapsuleCreateRequest,
     session=Depends(get_session),
-):
+    ):
     stmt = select(Capsule).where(
-        (Capsule.capsule_id == capsule_id) & (Capsule.version == version)
+    (Capsule.capsule_id == capsule_id) & (Capsule.version == version)
     )
     result = await session.execute(stmt)
     capsule = result.scalars().first()
@@ -139,16 +139,16 @@ async def update_capsule(
     return CapsuleResponse.from_orm(capsule)
 
 
-@router.delete(
+    @router.delete(
     "/capsules/{capsule_id}/{version}", status_code=status.HTTP_204_NO_CONTENT
-)
-async def delete_capsule(
+    )
+    async def delete_capsule(
     capsule_id: str,
     version: str,
     session=Depends(get_session),
-):
+    ):
     stmt = select(Capsule).where(
-        (Capsule.capsule_id == capsule_id) & (Capsule.version == version)
+    (Capsule.capsule_id == capsule_id) & (Capsule.version == version)
     )
     result = await session.execute(stmt)
     capsule = result.scalars().first()

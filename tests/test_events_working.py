@@ -24,8 +24,8 @@ class BuildRunStatus(str, Enum):
     CANCELLED = "cancelled"
 
 
-@pytest.mark.asyncio
-async def test_outbox_event_workflow() -> None:
+    @pytest.mark.asyncio
+    async def test_outbox_event_workflow() -> None:
     """Test complete outbox event workflow."""
 
     # Setup database
@@ -92,8 +92,8 @@ async def test_outbox_event_workflow() -> None:
     logging.getLogger(__name__).info("✅ All outbox workflow tests passed!")
 
 
-@pytest.mark.asyncio
-async def test_event_publisher_functionality() -> None:
+    @pytest.mark.asyncio
+    async def test_event_publisher_functionality() -> None:
     """Test event publisher capabilities."""
     publisher = InMemoryEventPublisher("test-service")
 
@@ -124,7 +124,7 @@ async def test_event_publisher_functionality() -> None:
     logging.getLogger(__name__).info("✅ Event publisher tests passed!")
 
 
-if __name__ == "__main__":
+    if __name__ == "__main__":
     asyncio.run(test_outbox_event_workflow())
     asyncio.run(test_event_publisher_functionality())
     import logging
