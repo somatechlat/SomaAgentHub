@@ -66,7 +66,8 @@ async def test_outbox_event_creation():
 		pending = await repo.get_pending_events()
 		assert len(pending) == 0  # Should be processed
 
-		print("✅ Outbox event emission verified")
+		import logging
+		logging.getLogger(__name__).info("✅ Outbox event emission verified")
 
 
 @pytest.mark.asyncio
@@ -117,10 +118,12 @@ events_after_retry = await repo.get_events_by_type("test.failed")
 assert len(events_after_retry) == 1
 # Note: retry_count is string in the model
 
-print("✅ All repository methods working correctly")
+    import logging
+    logging.getLogger(__name__).info("✅ All repository methods working correctly")
 
 
 if __name__ == "__main__":
 asyncio.run(test_outbox_event_creation())
 asyncio.run(test_repository_methods())
-print("🎉 Async tests completed successfully!")
+    import logging
+    logging.getLogger(__name__).info("🎉 Async tests completed successfully!")
