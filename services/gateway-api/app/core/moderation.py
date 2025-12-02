@@ -97,7 +97,8 @@ class ModerationGuard:
         else:
             # Decay strikes naturally without mutating counters.
             # No action needed; strikes will expire based on TTL configuration.
-            pass
+            import logging
+            logging.getLogger(__name__).debug("No flagged terms found; strikes will decay naturally.")
 
         return ModerationVerdict(
             allowed=allowed,

@@ -23,6 +23,9 @@ from temporalio.worker import Worker
 from temporalio.service import ConnectError
 
 from services.common.config.base_settings import resolve_env
+import logging
+
+logger = logging.getLogger(__name__)
 
 from .patterns.saga import Saga, SagaBuilder, CompensationPair
 from .patterns.circuit_breaker import (
@@ -125,7 +128,7 @@ try:
         f"{self.temporal_host}:{self.temporal_port}",
         namespace=self.temporal_namespace,
     )
-    print(f"Connected to Temporal at {self.temporal_host}:{self.temporal_port}")
+    logger.info(f"Connected to Temporal at {self.temporal_host}:{self.temporal_port}")
 except ConnectError as e:
     raise RuntimeError(f"Failed to connect to Temporal: {e}")
 
@@ -133,7 +136,7 @@ except ConnectError as e:
 await self._start_workers()
 
 self.is_running = True
-print("MAO Engine started successfully")
+logger.info("MAO Engine started successfully")
 
 async def stop(self) -> None:
 """Stop the MAO engine and all workers."""
@@ -146,7 +149,7 @@ await worker.shutdown()
 
 self.workers.clear()
 self.is_running = False
-print("MAO Engine stopped")
+logger.info("MAO Engine stopped")
 
 async def _start_workers(self) -> None:
 """Start workers for all registered workflows."""
@@ -169,7 +172,7 @@ worker = Worker(
 )
 await worker.run()
 self.workers.append(worker)
-print(f"Started worker for task queue: {task_queue}")
+logger.info(f"Started worker for task queue: {task_queue}")
 
 def _get_all_activities(self) -> List[object]:
 """Get all registered activity functions."""

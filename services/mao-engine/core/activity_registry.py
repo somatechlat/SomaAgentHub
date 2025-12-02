@@ -367,8 +367,6 @@ return []
 # Extract dependencies from activity function
 activity_func = definition.activity_func
 
-# TODO: Implement dependency analysis
-# For now, return empty list (dependency analysis will be implemented later)
 raise NotImplementedError("Dependency analysis not yet implemented")
 
 def get_statistics(self) -> Dict[str, Any]:

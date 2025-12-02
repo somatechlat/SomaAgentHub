@@ -401,32 +401,4 @@ return remediated_plan
 
 
 # Example usage
-if __name__ == "__main__":
-# Create healthcare governance overlay
-healthcare_gov = GovernanceOverlay(IndustryType.HEALTHCARE)
 
-# Validate a plan
-execution_plan = {
-"steps": [
-{
-"id": "db_setup",
-"tool": "aws",
-"parameters": {
-    "resources": ["database"],
-    "encryption_enabled": False,  # Violation!
-},
-}
-]
-}
-
-results = healthcare_gov.validate_project_plan(execution_plan)
-
-print(f"Compliant: {results['compliant']}")
-print(f"Violations: {len(results['violations'])}")
-
-if not results["compliant"]:
-# Apply remediations
-fixed_plan = healthcare_gov.apply_remediations(
-execution_plan, results["violations"]
-)
-print("✅ Plan remediated for HIPAA compliance")

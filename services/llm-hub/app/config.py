@@ -44,7 +44,8 @@ def _get_api_key(env_name: str, vault_key: str) -> str:
 	except Exception:
 		# Real‑world production code would log the error; we keep the
 		# lightweight behaviour required by the VIBE rules.
-		pass
+		import logging
+		logging.getLogger(__name__).warning(f"Failed to read secret {vault_key} from Vault")
 	return ""
 
 

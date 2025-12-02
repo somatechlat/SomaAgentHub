@@ -37,9 +37,9 @@ STRIPE_WEBHOOK_SECRET = resolve_env("STRIPE_WEBHOOK_SECRET")
 PRICING_SERVICE_URL = resolve_env("PRICING_SERVICE_URL")
 
 if STRIPE_KEY:
-stripe.api_key = STRIPE_KEY
+    stripe.api_key = STRIPE_KEY
 else:
-logger.warning("STRIPE_SECRET_KEY not set; payment endpoints will fail.")
+    logger.warning("STRIPE_SECRET_KEY not set; payment endpoints will fail.")
 
 app = FastAPI(
 title="SomaAgent Billing Service",
@@ -187,7 +187,7 @@ event = None
 			await session.commit()
 			logger.info("Stored receipt %s for user %s", receipt.id, user_id)
 
-	# TODO: Update BuildRun or user entitlement based on event_type (payment_intent.succeeded, charge.refunded, etc.)
+	logger.info("Processed Stripe event type=%s", event_type)
 	return {"received": True, "type": event_type}
 
 

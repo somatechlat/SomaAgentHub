@@ -14,10 +14,7 @@ from testcontainers.redis import RedisContainer
 # testcontainers modules.
 import sitecustomize  # noqa: F401
 
-print(
-'DEBUG: at import time, hasattr(RedisContainer, "get_connection_url") =',
-hasattr(RedisContainer, "get_connection_url"),
-)
+
 
 SERVICE_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(SERVICE_ROOT))
@@ -53,14 +50,7 @@ clickhouse_container: ClickHouseContainer,
 container = RedisContainer(image="redis:7-alpine")
 container.start()
 # Debug: list attributes to verify patch applied
-print(
-"DEBUG: RedisContainer attrs after start:",
-[m for m in dir(container) if not m.startswith("_")],
-)
-if not hasattr(container, "get_connection_url"):
-print("DEBUG: get_connection_url missing")
-else:
-print("DEBUG: get_connection_url present")
+
 # Use the canonical prefix for Redis URL in tests
 os.environ["SOMA_AGENT_HUB_IDENTITY_REDIS_URL"] = container.get_connection_url()
 yield container

@@ -48,8 +48,8 @@ logger.warning("[pricing-service] refresh loop failed to start: %s", e)
 yield
 try:
 stop_refresh_loop()
-except Exception:
-pass
+    except Exception as e:
+        logger.warning(f"[pricing-service] refresh loop failed to stop: {e}")
 
 
 class PricingServiceSettings(BaseServiceSettings):
