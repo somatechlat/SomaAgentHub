@@ -34,8 +34,9 @@ def _get_qdrant_api_key() -> str:
 		)
 		if secret:
 			return secret
-	except Exception:
-		pass
+    except Exception as e:
+        import logging
+        logging.getLogger(__name__).warning(f"Failed to retrieve Qdrant API key from Vault: {e}")
 	return ""
 
 

@@ -135,7 +135,7 @@ Authentication flows rely on Identity Service tokens passed in headers; see plat
 | Test | Command | Notes |
 | --- | --- | --- |
 | Linting | `ruff check services/gateway-api` | Enforced in CI |
-| Unit tests | `pytest services/gateway-api` | TODO: add coverage |
+| Unit tests | `pytest services/gateway-api` | |
 | Integration | `make test-int` | Hits gateway endpoints against local orchestrator |
 | E2E | `make test-e2e` | Validates gateway → orchestrator pipeline |
 

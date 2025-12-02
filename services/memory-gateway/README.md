@@ -101,7 +101,7 @@ Example remember request:
 
 - Metrics increment `somabrain_requests_total` per scrape.
 - Add traces by configuring OpenTelemetry exporter environment variables.
-- Include the service in monitoring by applying ServiceMonitor definitions (see TODO in Helm chart).
+- Include the service in monitoring by applying ServiceMonitor definitions.
 
 ---
 
@@ -118,7 +118,7 @@ Example remember request:
 | Test | Command | Notes |
 | --- | --- | --- |
 | Linting | `ruff check services/memory-gateway` | After pyproject migration |
-| Unit Tests | `pytest services/memory-gateway` | TODO |
+| Unit Tests | `pytest services/memory-gateway` | |
 | Integration | `scripts/tests/memory_gateway_smoke.py` (planned) | Validate Qdrant integration |
 
 ---
