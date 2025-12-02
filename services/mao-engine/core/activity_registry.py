@@ -348,9 +348,7 @@ definition = self.get_activity_definition(activity_name)
 if not definition or not definition.parameters_schema:
 return True  # No schema to validate against
 
-# TODO: Implement JSON schema validation
-# For now, return True (schema validation will be implemented later)
-return True
+raise NotImplementedError("JSON schema validation not yet implemented")
 
 def get_activity_dependencies(self, activity_name: str) -> List[str]:
 """
@@ -371,7 +369,7 @@ activity_func = definition.activity_func
 
 # TODO: Implement dependency analysis
 # For now, return empty list (dependency analysis will be implemented later)
-return []
+raise NotImplementedError("Dependency analysis not yet implemented")
 
 def get_statistics(self) -> Dict[str, Any]:
 """
