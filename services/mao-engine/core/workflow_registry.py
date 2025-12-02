@@ -347,9 +347,7 @@ definition = self.get_workflow_definition(workflow_name)
 if not definition or not definition.parameters_schema:
 return True  # No schema to validate against
 
-# TODO: Implement JSON schema validation
-# For now, return True (schema validation will be implemented later)
-return True
+        raise NotImplementedError("JSON schema validation not yet implemented")
 
 def get_workflow_dependencies(self, workflow_name: str) -> List[str]:
 """
@@ -368,9 +366,7 @@ return []
 # Extract dependencies from workflow class
 workflow_class = definition.workflow_class
 
-# TODO: Implement dependency analysis
-# For now, return empty list (dependency analysis will be implemented later)
-return []
+        raise NotImplementedError("Dependency analysis not yet implemented")
 
 def get_statistics(self) -> Dict[str, Any]:
 """
