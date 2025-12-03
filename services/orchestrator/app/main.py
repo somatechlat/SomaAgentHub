@@ -28,6 +28,15 @@ from .api.health import router as health_router
 from .api.mao import router as mao_router
 from .api.planner import router as planner_router
 from .api.routes import router as orchestrator_router
+from .api.tenants import router as tenants_router
+from .api.tasks import router as tasks_router
+from .api.roles import router as roles_router
+from .api.tools import router as tools_router
+from .api.memory import router as memory_router
+from .api.blueprints import router as blueprints_router
+from .api.rl import router as rl_router
+from .api.evaluations import router as evaluations_router
+from .api.hitl import router as hitl_router
 from .core.config import settings
 from .database import init_db
 from .services.security import security_manager
@@ -102,13 +111,22 @@ def build_app() -> FastAPI:
         security_manager.setup_trusted_hosts(app)
 
         # Register routers.
-        app.include_router(orchestrator_router, prefix="/v1") # Changed to use prefix
-        # Expose capsule CRUD endpoints under /v1/capsules.
-        app.include_router(capsules_router, prefix="/v1") # Changed to use prefix
-        app.include_router(mao_router, prefix="/v1/mao") # Changed to use prefix
-        app.include_router(planner_router) # Kept as is, assuming no prefix needed
-        app.include_router(registry_router, prefix="/v1") # Added registry router
+        app.include_router(orchestrator_router, prefix="/v1")
+        app.include_router(capsules_router, prefix="/v1")
+        app.include_router(mao_router, prefix="/v1/mao")
+        app.include_router(planner_router)
         app.include_router(health_router)
+        
+        # New SRS API Routers
+        app.include_router(tenants_router, prefix="/v1")
+        app.include_router(tasks_router, prefix="/v1")
+        app.include_router(roles_router, prefix="/v1")
+        app.include_router(tools_router, prefix="/v1")
+        app.include_router(memory_router, prefix="/v1")
+        app.include_router(blueprints_router, prefix="/v1")
+        app.include_router(rl_router, prefix="/v1")
+        app.include_router(evaluations_router, prefix="/v1")
+        app.include_router(hitl_router, prefix="/v1")
 
         # Start outbox publisher.
         setup_outbox_publisher(app)
