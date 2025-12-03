@@ -50,6 +50,8 @@ class GraphWorkflowEngine:
                 activities=[
                     self.graph_activities.save_checkpoint, 
                     self.graph_activities.load_checkpoint,
+                    self.graph_activities.record_node_execution_start,
+                    self.graph_activities.record_node_execution_end,
                     self.hitl_activities.create_human_review_session,
                     self.hitl_activities.get_human_review_status,
                     self.agent_activities.execute_agent,
@@ -243,128 +245,162 @@ class GraphWorkflowDef:
     async def _execute_node(self, workflow_id: str, node: Dict[str, Any], input_data: Dict[str, Any]) -> Any:
         node_type = node.get("type")
         node_id = node.get("id")
+        tenant_id = node.get("metadata", {}).get("tenant_id") # Ensure this is passed
         
         workflow.logger.info(f"Executing node {node_id} of type {node_type}")
         
-        # Fetch Capsule if defined
-        capsule_spec = None
-        capsule_ref = node.get("metadata", {}).get("capsule") # Expected format: "name:version"
-        if capsule_ref and ":" in capsule_ref:
-            c_name, c_ver = capsule_ref.split(":")
+        # 1. Record Start
+        try:
+            execution_id = await workflow.execute_activity(
+                "record_node_execution_start",
+                args=[workflow_id, node_id, input_data, tenant_id],
+                start_to_close_timeout=timedelta(seconds=10)
+            )
+        except Exception as e:
+            workflow.logger.error(f"Failed to record execution start: {e}")
+            execution_id = None
+
+        result = None
+        error = None
+        status = "SUCCEEDED"
+
+        try:
+            # Fetch Capsule if defined
+            capsule_spec = None
+            capsule_ref = node.get("metadata", {}).get("capsule") # Expected format: "name:version"
+            if capsule_ref and ":" in capsule_ref:
+                c_name, c_ver = capsule_ref.split(":")
+                try:
+                    capsule_spec = await workflow.execute_activity(
+                        "fetch_capsule",
+                        args=[c_name, c_ver],
+                        start_to_close_timeout=timedelta(seconds=10)
+                    )
+                except Exception as e:
+                    workflow.logger.error(f"Failed to fetch capsule {capsule_ref}: {e}")
+                    pass
+
+            if node_type == "human_interrupt":
+                # Create review session
+                session_id = await workflow.execute_activity(
+                    "create_human_review_session",
+                    args=[workflow_id, node_id, {"context": f"Review required for {node_id}"}],
+                    start_to_close_timeout=timedelta(hours=24)
+                )
+                
+                # Wait for signal
+                workflow.logger.info(f"Waiting for human review on session {session_id}")
+                await workflow.wait_condition(lambda: self._pending_review_action is not None)
+                
+                action = self._pending_review_action
+                decision = action.get("decision")
+                workflow.logger.info(f"Received human review decision: {decision}")
+                
+                self._pending_review_action = None # Reset
+                
+                if decision == "REJECTED":
+                    status = "FAILED"
+                    error = {"reason": "Human rejected"}
+                    result = {"status": "failed", "reason": "Human rejected"}
+                else:
+                    result = {"status": "completed", "decision": decision, "session_id": session_id}
+                
+            elif node_type == "agent":
+                # Execute real agent activity via Role System
+                workflow.logger.info(f"Calling execute_agent for {node_id}")
+                
+                role_id = node.get("metadata", {}).get("role_id")
+                if not role_id:
+                    role_id = node.get("metadata", {}).get("agent_id", node_id)
+                
+                # Retrieve context from memory
+                context_docs = await workflow.execute_activity(
+                    "retrieve_memory_context",
+                    args=[role_id, str(input_data), 5],
+                    start_to_close_timeout=timedelta(seconds=10)
+                )
+                
+                # Enrich input
+                input_data["memory_context"] = context_docs
+                if capsule_spec:
+                    input_data["capsule_spec"] = capsule_spec
+                
+                input_data["tenant_id"] = tenant_id
+                input_data["workflow_instance_id"] = workflow_id
+                input_data["node_execution_id"] = execution_id
+
+                agent_result = await workflow.execute_activity(
+                    "execute_agent",
+                    args=[role_id, input_data],
+                    start_to_close_timeout=timedelta(minutes=5)
+                )
+                
+                # Store experience
+                await workflow.execute_activity(
+                    "store_memory_experience",
+                    args=[role_id, str(agent_result.get("output")), {"workflow_id": workflow_id, "node_id": node_id}],
+                    start_to_close_timeout=timedelta(seconds=10)
+                )
+
+                # Audit Log
+                await workflow.execute_activity(
+                    "log_audit_event",
+                    args=["agent.execution", role_id, "execute", node_id, "success", {"result": str(agent_result)}],
+                    start_to_close_timeout=timedelta(seconds=10)
+                )
+                
+                result = {"status": "completed", "agent_result": agent_result}
+                
+            elif node_type == "tool":
+                # Execute real tool activity
+                workflow.logger.info(f"Calling execute_tool for {node_id}")
+                
+                tool_spec = node.get("parameters", {})
+                if "id" not in tool_spec:
+                    tool_spec["id"] = node.get("toolId", node_id)
+                
+                if capsule_spec:
+                    tool_spec["capsule_spec"] = capsule_spec
+                
+                arguments = {"context": node, "timestamp": str(workflow.now())}
+                
+                tool_result = await workflow.execute_activity(
+                    "execute_tool",
+                    args=[tool_spec, arguments],
+                    start_to_close_timeout=timedelta(minutes=1)
+                )
+                
+                result = {"status": "completed", "type": "tool", "result": tool_result}
+                
+            else:
+                status = "SKIPPED"
+                result = {"status": "skipped", "reason": "unknown_type"}
+
+        except Exception as e:
+            workflow.logger.error(f"Node execution failed: {e}")
+            status = "FAILED"
+            error = {"message": str(e)}
+            result = {"status": "failed", "error": str(e)}
+
+        # 2. Record End
+        if execution_id:
             try:
-                capsule_spec = await workflow.execute_activity(
-                    "fetch_capsule",
-                    args=[c_name, c_ver],
+                await workflow.execute_activity(
+                    "record_node_execution_end",
+                    args=[execution_id, status, result, error],
                     start_to_close_timeout=timedelta(seconds=10)
                 )
             except Exception as e:
-                workflow.logger.error(f"Failed to fetch capsule {capsule_ref}: {e}")
-                # Decide whether to fail or proceed without capsule. 
-                # SRS implies strict enforcement, so we should probably fail or treat as no capsule (if allowed).
-                # For now, let's proceed but log error.
-                pass
+                workflow.logger.error(f"Failed to record execution end: {e}")
 
-        if node_type == "human_interrupt":
-            # Create review session
-            session_id = await workflow.execute_activity(
-                "create_human_review_session",
-                args=[workflow_id, node_id, {"context": f"Review required for {node_id}"}],
-                start_to_close_timeout=timedelta(hours=24) # Long timeout for human review
-            )
-            
-            # Wait for signal
-            workflow.logger.info(f"Waiting for human review on session {session_id}")
-            await workflow.wait_condition(lambda: self._pending_review_action is not None)
-            
-            action = self._pending_review_action
-            decision = action.get("decision")
-            workflow.logger.info(f"Received human review decision: {decision}")
-            
-            self._pending_review_action = None # Reset
-            
-            if decision == "REJECTED":
-                return {"status": "failed", "reason": "Human rejected"}
-            
-            return {"status": "completed", "decision": decision, "session_id": session_id}
-            
-        elif node_type == "agent":
-            # Execute real agent activity via Role System
-            workflow.logger.info(f"Calling execute_agent for {node_id}")
-            
-            # Extract role_id from metadata
-            # We expect 'role_id' in metadata for new blueprints.
-            # Fallback to 'agent_id' for legacy compatibility (though agent_activities expects role_id now, so this implies migration)
-            role_id = node.get("metadata", {}).get("role_id")
-            if not role_id:
-                # Try agent_id as fallback, assuming migration mapped it
-                role_id = node.get("metadata", {}).get("agent_id", node_id)
-            
-            # Retrieve context from memory
-            context_docs = await workflow.execute_activity(
-                "retrieve_memory_context",
-                args=[role_id, str(input_data), 5],
-                start_to_close_timeout=timedelta(seconds=10)
-            )
-            
-            # Enrich input with context, capsule, and execution metadata
-            input_data["memory_context"] = context_docs
-            if capsule_spec:
-                input_data["capsule_spec"] = capsule_spec
-            
-            # Pass execution context for session binding
-            input_data["tenant_id"] = node.get("metadata", {}).get("tenant_id") # Should be passed down from workflow start
-            input_data["workflow_instance_id"] = workflow_id
-            input_data["node_execution_id"] = str(uuid.uuid4()) # Generate a node execution ID (or use actual if tracked)
-
-            agent_result = await workflow.execute_activity(
-                "execute_agent",
-                args=[role_id, input_data],
-                start_to_close_timeout=timedelta(minutes=5)
-            )
-            
-            # Store experience
+        # Checkpoint
+        try:
             await workflow.execute_activity(
-                "store_memory_experience",
-                args=[role_id, str(agent_result.get("output")), {"workflow_id": workflow_id, "node_id": node_id}],
-                start_to_close_timeout=timedelta(seconds=10)
-            )
-
-            # Audit Log
-            await workflow.execute_activity(
-                "log_audit_event",
-                args=["agent.execution", role_id, "execute", node_id, "success", {"result": str(agent_result)}],
-                start_to_close_timeout=timedelta(seconds=10)
-            )
-            
-            checkpoint_id = await workflow.execute_activity(
                 "save_checkpoint",
-                args=[workflow_id, node_id, {"status": "completed", "type": "agent", "timestamp": str(workflow.now()), "result": agent_result}],
+                args=[workflow_id, node_id, {"status": status, "timestamp": str(workflow.now()), "result": result}],
                 start_to_close_timeout=timedelta(seconds=10)
             )
-            return {"status": "completed", "checkpoint_id": checkpoint_id, "agent_result": agent_result}
-            
-        elif node_type == "tool":
-            # Execute real tool activity
-            workflow.logger.info(f"Calling execute_tool for {node_id}")
-            
-            tool_spec = node.get("parameters", {})
-            if "id" not in tool_spec:
-                tool_spec["id"] = node.get("toolId", node_id)
-            
-            if capsule_spec:
-                tool_spec["capsule_spec"] = capsule_spec
-            
-            # Arguments from input or context
-            arguments = {"context": node, "timestamp": str(workflow.now())}
-            
-            tool_result = await workflow.execute_activity(
-                "execute_tool",
-                args=[tool_spec, arguments],
-                start_to_close_timeout=timedelta(minutes=1)
-            )
-            
-            return {"status": "completed", "type": "tool", "result": tool_result}
-            
-        else:
-            # Unknown type, just pass
-            return {"status": "skipped", "reason": "unknown_type"}
+        except Exception as e:
+            workflow.logger.error(f"Failed to save checkpoint: {e}")
+
+        return result

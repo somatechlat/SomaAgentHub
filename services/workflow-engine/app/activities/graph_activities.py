@@ -49,3 +49,68 @@ class GraphActivities:
                 raise ValueError(f"Checkpoint not found: {checkpoint_id}")
             
             return checkpoint.state_snapshot
+
+    @activity.defn
+    async def record_node_execution_start(
+        self, 
+        workflow_id: str, 
+        node_id: str, 
+        input_snapshot: Dict[str, Any],
+        tenant_id: str
+    ) -> str:
+        """Record start of node execution"""
+        logger.info(f"Recording execution start for node {node_id} in workflow {workflow_id}")
+        
+        async with get_async_session() as session:
+            import uuid
+            from datetime import datetime
+            from services.common.models.node_execution import NodeExecution, NodeExecutionStatus
+            
+            execution = NodeExecution(
+                tenant_id=uuid.UUID(tenant_id) if tenant_id else None,
+                workflow_instance_id=uuid.UUID(workflow_id),
+                node_id=node_id,
+                status=NodeExecutionStatus.RUNNING,
+                started_at=datetime.utcnow(),
+                input_snapshot_ref=input_snapshot, # Storing inline for now, could be ref
+                attempt=1 # TODO: Pass attempt number from retry policy
+            )
+            session.add(execution)
+            await session.commit()
+            await session.refresh(execution)
+            return str(execution.id)
+
+    @activity.defn
+    async def record_node_execution_end(
+        self, 
+        execution_id: str, 
+        status: str, 
+        output_snapshot: Dict[str, Any] = None,
+        error_details: Dict[str, Any] = None
+    ) -> None:
+        """Record end of node execution"""
+        logger.info(f"Recording execution end for {execution_id} with status {status}")
+        
+        async with get_async_session() as session:
+            import uuid
+            from datetime import datetime
+            from services.common.models.node_execution import NodeExecution, NodeExecutionStatus
+            
+            stmt = select(NodeExecution).where(NodeExecution.id == uuid.UUID(execution_id))
+            result = await session.execute(stmt)
+            execution = result.scalar_one_or_none()
+            
+            if not execution:
+                logger.error(f"NodeExecution {execution_id} not found")
+                return
+
+            execution.status = NodeExecutionStatus(status)
+            execution.ended_at = datetime.utcnow()
+            
+            if output_snapshot:
+                execution.output_snapshot_ref = output_snapshot
+            
+            if error_details:
+                execution.error_details = error_details
+                
+            await session.commit()
