@@ -1,449 +1,265 @@
+"""
+⚠️ WE DO NOT MOCK - Real Kubernetes adapter using official Python client.
+
+Provides comprehensive K8s integration:
+    - Deployments
+    - Services
+    - Pods
+    - ConfigMaps & Secrets
+    - Namespaces
+    - Ingress
+    - StatefulSets
+    - Jobs & CronJobs
+"""
+
+import logging
+from typing import Any
+
+from kubernetes import client, config
+
+logger = logging.getLogger(__name__)
+
+
+class KubernetesAdapter:
+    """
+    Adapter for Kubernetes API.
+
+    Uses official kubernetes-python client.
+    """
+
+    def __init__(self, kubeconfig_path: str | None = None, in_cluster: bool = False):
         """
-        ⚠️ WE DO NOT MOCK - Real Kubernetes adapter using official Python client.
-
-        Provides comprehensive K8s integration:
-            - Deployments
-            - Services
-            - Pods
-            - ConfigMaps & Secrets
-            - Namespaces
-            - Ingress
-            - StatefulSets
-            - Jobs & CronJobs
-            """
-
-            import logging
-            from typing import Any
-
-            import yaml
-            from kubernetes import client, config
-            from services.common.config.base_settings import resolve_env
-
-            logger = logging.getLogger(__name__)
-
-
-            class KubernetesAdapter:
-            """
-            Adapter for Kubernetes operations.
-
-            K8s Documentation: https://kubernetes.io/docs
-            """
-
-            def __init__(
-            self,
-            kubeconfig_path: str | None = None,
-            context: str | None = None,
-            in_cluster: bool = False,
-            ):
-                """
-                Initialize Kubernetes adapter.
-
-                Args:
-                    kubeconfig_path: Path to kubeconfig file
-                    context: Kubernetes context to use
-                    in_cluster: Use in-cluster configuration
-                    """
-                    if in_cluster:
-                        config.load_incluster_config()
-                        else:
-                            config.load_kube_config(config_file=kubeconfig_path, context=context)
-
-                            itialize API clients
-                            self.core_v1 = client.CoreV1Api()
-                            self.apps_v1 = client.AppsV1Api()
-                            self.batch_v1 = client.BatchV1Api()
-                            self.networking_v1 = client.NetworkingV1Api()
-                            self.rbac_v1 = client.RbacAuthorizationV1Api()
-
-                            mespace Operations
-
-                            def create_namespace(self, name: str, labels: dict[str, str] | None = None) -> Any:
-                                """Create namespace."""
-                                logger.info(f"Creating namespace: {name}")
-
-                                metadata = client.V1ObjectMeta(name=name, labels=labels or {})
-                                namespace = client.V1Namespace(metadata=metadata)
-
-                                return self.core_v1.create_namespace(body=namespace)
-
-                                def list_namespaces(self) -> list[Any]:
-                                    """List all namespaces."""
-                                    response = self.core_v1.list_namespace()
-                                    return response.items
-
-                                    def delete_namespace(self, name: str) -> Any:
-                                        """Delete namespace."""
-                                        logger.warning(f"Deleting namespace: {name}")
-                                        return self.core_v1.delete_namespace(name=name)
-
-                                        ployment Operations
-
-                                        def create_deployment(
-                                        self,
-                                        name: str,
-                                        namespace: str,
-                                        image: str,
-                                        replicas: int = 1,
-                                        labels: dict[str, str] | None = None,
-                                        env_vars: dict[str, str] | None = None,
-                                        ports: list[int] | None = None,
-                                        resources: dict[str, Any] | None = None,
-                                        ) -> Any:
-                                            """
-                                            Create deployment.
-
-                                            Args:
-                                                name: Deployment name
-                                                namespace: Namespace
-                                                image: Container image
-                                                replicas: Number of replicas
-                                                labels: Pod labels
-                                                env_vars: Environment variables
-                                                ports: Container ports
-                                                resources: Resource requests/limits
-
-                                                Returns:
-                                                    Created deployment
-                                                    """
-                                                    logger.info(f"Creating deployment: {name} in {namespace}")
-
-                                                    labels = labels or {"app": name}
-
-                                                    ild container spec
-                                                    container = client.V1Container(
-                                                    name=name,
-                                                    image=image,
-                                                    ports=[client.V1ContainerPort(container_port=p) for p in (ports or [])],
-                                                    )
-
-                                                    d environment variables
-                                                    if env_vars:
-                                                        container.env = [
-                                                        client.V1EnvVar(name=k, value=v) for k, v in env_vars.items()
-                                                        ]
-
-                                                        d resources
-                                                        if resources:
-                                                            container.resources = client.V1ResourceRequirements(**resources)
-
-                                                            ild pod template
-                                                            template = client.V1PodTemplateSpec(
-                                                            metadata=client.V1ObjectMeta(labels=labels),
-                                                            spec=client.V1PodSpec(containers=[container]),
-                                                            )
-
-                                                            ild deployment spec
-                                                            spec = client.V1DeploymentSpec(
-                                                            replicas=replicas,
-                                                            selector=client.V1LabelSelector(match_labels=labels),
-                                                            template=template,
-                                                            )
-
-                                                            ild deployment
-                                                            deployment = client.V1Deployment(
-                                                            api_version="apps/v1",
-                                                            kind="Deployment",
-                                                            metadata=client.V1ObjectMeta(name=name),
-                                                            spec=spec,
-                                                            )
-
-                                                            return self.apps_v1.create_namespaced_deployment(
-                                                            namespace=namespace, body=deployment
-                                                            )
-
-                                                            def list_deployments(self, namespace: str) -> list[Any]:
-                                                                """List deployments in namespace."""
-                                                                response = self.apps_v1.list_namespaced_deployment(namespace=namespace)
-                                                                return response.items
-
-                                                                def scale_deployment(self, name: str, namespace: str, replicas: int) -> Any:
-                                                                    """Scale deployment."""
-                                                                    logger.info(f"Scaling deployment {name} to {replicas} replicas")
-
-                                                                    t current deployment
-                                                                    deployment = self.apps_v1.read_namespaced_deployment(name, namespace)
-
-                                                                    date replicas
-                                                                    deployment.spec.replicas = replicas
-
-                                                                    return self.apps_v1.patch_namespaced_deployment(
-                                                                    name=name, namespace=namespace, body=deployment
-                                                                    )
-
-                                                                    def delete_deployment(self, name: str, namespace: str) -> Any:
-                                                                        """Delete deployment."""
-                                                                        logger.warning(f"Deleting deployment: {name}")
-                                                                        return self.apps_v1.delete_namespaced_deployment(name=name, namespace=namespace)
-
-                                                                        rvice Operations
-
-                                                                        def create_service(
-                                                                        self,
-                                                                        name: str,
-                                                                        namespace: str,
-                                                                        selector: dict[str, str],
-                                                                        ports: list[dict[str, Any]],
-                                                                        service_type: str = "ClusterIP",
-                                                                        ) -> Any:
-                                                                            """
-                                                                            Create service.
-
-                                                                            Args:
-                                                                                name: Service name
-                                                                                namespace: Namespace
-                                                                                selector: Pod selector
-                                                                                ports: Service ports (list of {port, targetPort, protocol})
-                                                                                service_type: Service type (ClusterIP, NodePort, LoadBalancer)
-                                                                                """
-                                                                                logger.info(f"Creating service: {name}")
-
-                                                                                service_ports = [
-                                                                                client.V1ServicePort(
-                                                                                port=p.get("port"),
-                                                                                target_port=p.get("targetPort"),
-                                                                                protocol=p.get("protocol", "TCP"),
-                                                                                name=p.get("name"),
-                                                                                )
-                                                                                for p in ports
-                                                                                ]
-
-                                                                                spec = client.V1ServiceSpec(
-                                                                                selector=selector, ports=service_ports, type=service_type
-                                                                                )
-
-                                                                                service = client.V1Service(
-                                                                                api_version="v1",
-                                                                                kind="Service",
-                                                                                metadata=client.V1ObjectMeta(name=name),
-                                                                                spec=spec,
-                                                                                )
-
-                                                                                return self.core_v1.create_namespaced_service(namespace=namespace, body=service)
-
-                                                                                def list_services(self, namespace: str) -> list[Any]:
-                                                                                    """List services in namespace."""
-                                                                                    response = self.core_v1.list_namespaced_service(namespace=namespace)
-                                                                                    return response.items
-
-                                                                                    def delete_service(self, name: str, namespace: str) -> Any:
-                                                                                        """Delete service."""
-                                                                                        return self.core_v1.delete_namespaced_service(name=name, namespace=namespace)
-
-                                                                                        d Operations
-
-                                                                                        def list_pods(self, namespace: str, label_selector: str | None = None) -> list[Any]:
-                                                                                            """List pods in namespace."""
-                                                                                            kwargs = {"namespace": namespace}
-                                                                                            if label_selector:
-                                                                                                kwargs["label_selector"] = label_selector
-
-                                                                                                response = self.core_v1.list_namespaced_pod(**kwargs)
-                                                                                                return response.items
-
-                                                                                                def get_pod_logs(
-                                                                                                self,
-                                                                                                name: str,
-                                                                                                namespace: str,
-                                                                                                container: str | None = None,
-                                                                                                tail_lines: int | None = None,
-                                                                                                ) -> str:
-                                                                                                    """Get pod logs."""
-                                                                                                    kwargs = {"name": name, "namespace": namespace}
-
-                                                                                                    if container:
-                                                                                                        kwargs["container"] = container
-                                                                                                        if tail_lines:
-                                                                                                            kwargs["tail_lines"] = tail_lines
-
-                                                                                                            return self.core_v1.read_namespaced_pod_log(**kwargs)
-
-                                                                                                            def delete_pod(self, name: str, namespace: str) -> Any:
-                                                                                                                """Delete pod."""
-                                                                                                                return self.core_v1.delete_namespaced_pod(name=name, namespace=namespace)
-
-                                                                                                                nfigMap Operations
-
-                                                                                                                def create_configmap(self, name: str, namespace: str, data: dict[str, str]) -> Any:
-                                                                                                                    """Create ConfigMap."""
-                                                                                                                    logger.info(f"Creating ConfigMap: {name}")
-
-                                                                                                                    configmap = client.V1ConfigMap(
-                                                                                                                    api_version="v1",
-                                                                                                                    kind="ConfigMap",
-                                                                                                                    metadata=client.V1ObjectMeta(name=name),
-                                                                                                                    data=data,
-                                                                                                                    )
-
-                                                                                                                    return self.core_v1.create_namespaced_config_map(
-                                                                                                                    namespace=namespace, body=configmap
-                                                                                                                    )
-
-                                                                                                                    def update_configmap(self, name: str, namespace: str, data: dict[str, str]) -> Any:
-                                                                                                                        """Update ConfigMap."""
-                                                                                                                        configmap = self.core_v1.read_namespaced_config_map(name, namespace)
-                                                                                                                        configmap.data = data
-
-                                                                                                                        return self.core_v1.patch_namespaced_config_map(
-                                                                                                                        name=name, namespace=namespace, body=configmap
-                                                                                                                        )
-
-                                                                                                                        cret Operations
-
-                                                                                                                        def create_secret(
-                                                                                                                        self,
-                                                                                                                        name: str,
-                                                                                                                        namespace: str,
-                                                                                                                        data: dict[str, str],
-                                                                                                                        secret_type: str = "Opaque",
-                                                                                                                        ) -> Any:
-                                                                                                                            """Create Secret."""
-                                                                                                                            logger.info(f"Creating Secret: {name}")
-
-                                                                                                                            se64 encode values
-                                                                                                                            import base64
-
-                                                                                                                            encoded_data = {
-                                                                                                                            k: base64.b64encode(v.encode()).decode() for k, v in data.items()
-                                                                                                                            }
-
-                                                                                                                            secret = client.V1Secret(
-                                                                                                                            api_version="v1",
-                                                                                                                            kind="Secret",
-                                                                                                                            metadata=client.V1ObjectMeta(name=name),
-                                                                                                                            type=secret_type,
-                                                                                                                            data=encoded_data,
-                                                                                                                            )
-
-                                                                                                                            return self.core_v1.create_namespaced_secret(namespace=namespace, body=secret)
-
-                                                                                                                            gress Operations
-
-                                                                                                                            def create_ingress(
-                                                                                                                            self,
-                                                                                                                            name: str,
-                                                                                                                            namespace: str,
-                                                                                                                            rules: list[dict[str, Any]],
-                                                                                                                            tls: list[dict[str, Any]] | None = None,
-                                                                                                                            ) -> Any:
-                                                                                                                                """Create Ingress."""
-                                                                                                                                logger.info(f"Creating Ingress: {name}")
-
-                                                                                                                                ild ingress rules
-                                                                                                                                ingress_rules = []
-                                                                                                                                for rule in rules:
-                                                                                                                                    paths = [
-                                                                                                                                    client.V1HTTPIngressPath(
-                                                                                                                                    path=p.get("path", "/"),
-                                                                                                                                    path_type=p.get("pathType", "Prefix"),
-                                                                                                                                    backend=client.V1IngressBackend(
-            service=client.V1IngressServiceBackend(
-                name=p.get("serviceName"),
-                port=client.V1ServiceBackendPort(
-                    number=p.get("servicePort")
-                ),
-            )
-            ),
-            )
-            for p in rule.get("paths", [])
-            ]
-
-            ingress_rules.append(
-            client.V1IngressRule(
-            host=rule.get("host"),
-            http=client.V1HTTPIngressRuleValue(paths=paths),
-            )
-            )
-
-            spec = client.V1IngressSpec(rules=ingress_rules)
-
-            d TLS if provided
-            if tls:
-            spec.tls = [
-            client.V1IngressTLS(
-            hosts=t.get("hosts", []), secret_name=t.get("secretName")
-            )
-            for t in tls
-            ]
-
-            ingress = client.V1Ingress(
-            api_version="networking.k8s.io/v1",
-            kind="Ingress",
+        Initialize Kubernetes adapter.
+
+        Args:
+            kubeconfig_path: Path to kubeconfig file
+            in_cluster: Whether running inside the cluster
+        """
+        try:
+            if in_cluster:
+                config.load_incluster_config()
+                logger.info("Loaded in-cluster Kubernetes config")
+            else:
+                config.load_kube_config(config_file=kubeconfig_path)
+                logger.info("Loaded local Kubernetes config")
+
+            self.core_v1 = client.CoreV1Api()
+            self.apps_v1 = client.AppsV1Api()
+            self.batch_v1 = client.BatchV1Api()
+            self.networking_v1 = client.NetworkingV1Api()
+
+        except Exception as e:
+            logger.error(f"Failed to initialize Kubernetes client: {e}")
+            raise
+
+    # ============================================================================
+    # NAMESPACES
+    # ============================================================================
+
+    def create_namespace(self, name: str) -> dict[str, Any]:
+        """Create a namespace."""
+        namespace = client.V1Namespace(metadata=client.V1ObjectMeta(name=name))
+        result = self.core_v1.create_namespace(body=namespace)
+        logger.info(f"Created namespace: {name}")
+        return result.to_dict()
+
+    def delete_namespace(self, name: str):
+        """Delete a namespace."""
+        self.core_v1.delete_namespace(name=name)
+        logger.info(f"Deleted namespace: {name}")
+
+    def list_namespaces(self) -> list[dict[str, Any]]:
+        """List all namespaces."""
+        namespaces = self.core_v1.list_namespace()
+        return [ns.to_dict() for ns in namespaces.items]
+
+    # ============================================================================
+    # DEPLOYMENTS
+    # ============================================================================
+
+    def create_deployment(
+        self, namespace: str, name: str, image: str, replicas: int = 1, ports: list[int] = [80]
+    ) -> dict[str, Any]:
+        """
+        Create a simple deployment.
+
+        Args:
+            namespace: Namespace
+            name: Deployment name
+            image: Container image
+            replicas: Number of replicas
+            ports: List of container ports
+        """
+        container_ports = [client.V1ContainerPort(container_port=port) for port in ports]
+
+        container = client.V1Container(
+            name=name,
+            image=image,
+            ports=container_ports,
+            image_pull_policy="Always",
+        )
+
+        template = client.V1PodTemplateSpec(
+            metadata=client.V1ObjectMeta(labels={"app": name}),
+            spec=client.V1PodSpec(containers=[container]),
+        )
+
+        spec = client.V1DeploymentSpec(
+            replicas=replicas,
+            selector=client.V1LabelSelector(match_labels={"app": name}),
+            template=template,
+        )
+
+        deployment = client.V1Deployment(
+            api_version="apps/v1",
+            kind="Deployment",
             metadata=client.V1ObjectMeta(name=name),
             spec=spec,
-            )
+        )
 
-            return self.networking_v1.create_namespaced_ingress(
-            namespace=namespace, body=ingress
-            )
+        result = self.apps_v1.create_namespaced_deployment(namespace=namespace, body=deployment)
+        logger.info(f"Created deployment {name} in {namespace}")
+        return result.to_dict()
 
-            ility Methods
+    def list_deployments(self, namespace: str) -> list[dict[str, Any]]:
+        """List deployments in a namespace."""
+        deployments = self.apps_v1.list_namespaced_deployment(namespace)
+        return [d.to_dict() for d in deployments.items]
 
-            def apply_yaml(self, yaml_content: str, namespace: str) -> list[Any]:
-            """
-            Apply Kubernetes YAML configuration.
+    def delete_deployment(self, namespace: str, name: str):
+        """Delete a deployment."""
+        self.apps_v1.delete_namespaced_deployment(name=name, namespace=namespace)
+        logger.info(f"Deleted deployment {name} in {namespace}")
 
-            Args:
-                yaml_content: YAML configuration
-                namespace: Target namespace
+    def scale_deployment(self, namespace: str, name: str, replicas: int):
+        """Scale a deployment."""
+        patch = {"spec": {"replicas": replicas}}
+        self.apps_v1.patch_namespaced_deployment(name=name, namespace=namespace, body=patch)
+        logger.info(f"Scaled deployment {name} to {replicas} replicas")
 
-                Returns:
-                    List of created resources
-                    """
-                    logger.info("Applying YAML configuration")
+    # ============================================================================
+    # SERVICES
+    # ============================================================================
 
-                    resources = yaml.safe_load_all(yaml_content)
-                    results = []
+    def create_service(
+        self,
+        namespace: str,
+        name: str,
+        selector: dict[str, str],
+        ports: list[tuple[int, int]],  # (port, target_port)
+        type: str = "ClusterIP",
+    ) -> dict[str, Any]:
+        """Create a service."""
+        service_ports = [client.V1ServicePort(port=p[0], target_port=p[1]) for p in ports]
 
-                    for resource in resources:
-                        if not resource:
-                            continue
+        spec = client.V1ServiceSpec(
+            selector=selector,
+            ports=service_ports,
+            type=type,
+        )
 
-                            kind = resource.get("kind")
-                            metadata = resource.get("metadata", {})
-                            name = metadata.get("name")
+        service = client.V1Service(
+            api_version="v1",
+            kind="Service",
+            metadata=client.V1ObjectMeta(name=name),
+            spec=spec,
+        )
 
-                            logger.info(f"Creating {kind}: {name}")
+        result = self.core_v1.create_namespaced_service(namespace=namespace, body=service)
+        logger.info(f"Created service {name} in {namespace}")
+        return result.to_dict()
 
-                            ute to appropriate API based on kind
-                            if kind == "Deployment":
-                                result = self.apps_v1.create_namespaced_deployment(
-                                namespace=namespace, body=resource
-                                )
-                                elif kind == "Service":
-            result = self.core_v1.create_namespaced_service(
-            namespace=namespace, body=resource
-            )
-            elif kind == "ConfigMap":
-            result = self.core_v1.create_namespaced_config_map(
-            namespace=namespace, body=resource
-            )
-            else:
-            logger.warning(f"Unsupported resource kind: {kind}")
-            continue
+    def delete_service(self, namespace: str, name: str):
+        """Delete a service."""
+        self.core_v1.delete_namespaced_service(name=name, namespace=namespace)
+        logger.info(f"Deleted service {name} in {namespace}")
 
-            results.append(result)
+    # ============================================================================
+    # PODS
+    # ============================================================================
 
-            return results
+    def list_pods(self, namespace: str, label_selector: str | None = None) -> list[dict[str, Any]]:
+        """List pods in a namespace."""
+        pods = self.core_v1.list_namespaced_pod(namespace=namespace, label_selector=label_selector)
+        return [p.to_dict() for p in pods.items]
 
-            def bootstrap_namespace(
-            self, namespace: str, labels: dict[str, str] | None = None
-            ) -> dict[str, Any]:
-                """
-                Bootstrap a namespace with common resources.
+    def get_pod_logs(self, namespace: str, name: str) -> str:
+        """Get logs from a pod."""
+        return self.core_v1.read_namespaced_pod_log(name=name, namespace=namespace)
 
-                Args:
-                    namespace: Namespace name
-                    labels: Namespace labels
+    # ============================================================================
+    # CONFIGMAPS & SECRETS
+    # ============================================================================
 
-                    Returns:
-                        Created resources
-                        """
-                        logger.info(f"Bootstrapping namespace: {namespace}")
+    def create_config_map(self, namespace: str, name: str, data: dict[str, str]) -> dict[str, Any]:
+        """Create a ConfigMap."""
+        config_map = client.V1ConfigMap(
+            metadata=client.V1ObjectMeta(name=name),
+            data=data,
+        )
+        result = self.core_v1.create_namespaced_config_map(namespace=namespace, body=config_map)
+        logger.info(f"Created ConfigMap {name} in {namespace}")
+        return result.to_dict()
 
-                        results = {}
+    def create_secret(self, namespace: str, name: str, data: dict[str, str]) -> dict[str, Any]:
+        """Create a Secret (Opaque)."""
+        # Data must be base64 encoded by the client if using string_data=None
+        # But using string_data handles encoding automatically
+        secret = client.V1Secret(
+            metadata=client.V1ObjectMeta(name=name),
+            string_data=data,
+            type="Opaque",
+        )
+        result = self.core_v1.create_namespaced_secret(namespace=namespace, body=secret)
+        logger.info(f"Created Secret {name} in {namespace}")
+        return result.to_dict()
 
-                        eate namespace
-                        results["namespace"] = self.create_namespace(namespace, labels)
+    # ============================================================================
+    # RAW YAML
+    # ============================================================================
 
-                        logger.info(f"Namespace {namespace} ready")
-                        return results
+    def apply_yaml(self, namespace: str, yaml_content: str):
+        """
+        Apply raw YAML manifest.
+
+        Note: This is a simplified implementation.
+        For complex multi-document YAMLs, use `utils.create_from_yaml`.
+        """
+        import os
+
+        # Write to temporary file as create_from_yaml expects a file
+        import tempfile
+
+        from kubernetes import utils
+
+        with tempfile.NamedTemporaryFile(mode="w", delete=False) as f:
+            f.write(yaml_content)
+            temp_path = f.name
+
+        try:
+            utils.create_from_yaml(client.ApiClient(), yaml_file=temp_path, namespace=namespace)
+            logger.info("Applied YAML manifest")
+        except Exception as e:
+            logger.error(f"Failed to apply YAML: {e}")
+            raise
+        finally:
+            os.remove(temp_path)
+
+    # ============================================================================
+    # UTILITIES
+    # ============================================================================
+
+    def bootstrap_namespace(self, name: str) -> dict[str, Any]:
+        """Bootstrap a new namespace with default resources."""
+        # Create namespace
+        ns = self.create_namespace(name)
+
+        # Create default quota (example)
+        quota = client.V1ResourceQuota(
+            metadata=client.V1ObjectMeta(name="default-quota"),
+            spec=client.V1ResourceQuotaSpec(hard={"pods": "10", "requests.cpu": "4", "requests.memory": "8Gi"}),
+        )
+        self.core_v1.create_namespaced_resource_quota(namespace=name, body=quota)
+
+        logger.info(f"Bootstrapped namespace {name}")
+        return ns

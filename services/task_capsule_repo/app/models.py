@@ -7,7 +7,7 @@ from __future__ import annotations
 import uuid
 from datetime import datetime
 from enum import Enum
-from typing import Any, Dict, Optional
+from typing import Any
 
 from sqlalchemy import Column
 from sqlalchemy.dialects.postgresql import JSONB
@@ -21,19 +21,19 @@ class CapsuleType(str, Enum):
     TOOL = "tool"
 
 
-    class CapsuleKind(str, Enum):
+class CapsuleKind(str, Enum):
     WORKFLOW = "workflow"
     STATIC = "static"
     EXTERNAL_SERVICE = "external_service"
     ANALYTIC = "analytic"
 
 
-    class ExecutionMode(str, Enum):
+class ExecutionMode(str, Enum):
     SYNC = "sync"
     ASYNC = "async"
 
 
-    class Capsule(SQLModel, table=True):
+class Capsule(SQLModel, table=True):
     __tablename__ = "capsules"
 
     id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
@@ -42,10 +42,10 @@ class CapsuleType(str, Enum):
     type: CapsuleType
     kind: CapsuleKind = Field(default=CapsuleKind.STATIC)
     execution_mode: ExecutionMode = Field(default=ExecutionMode.SYNC)
-    required_roles: Dict[str, Any] = Field(default={}, sa_column=Column(JSONB))
+    required_roles: dict[str, Any] = Field(default={}, sa_column=Column(JSONB))
     requires_payment: str = Field(max_length=10, default="false")
-    http_config: Dict[str, Any] = Field(default={}, sa_column=Column(JSONB))
-    manifest_yaml: Optional[str] = Field(default=None)
-    metadata_: Dict[str, Any] = Field(default={}, sa_column=Column("metadata", JSONB))
+    http_config: dict[str, Any] = Field(default={}, sa_column=Column(JSONB))
+    manifest_yaml: str | None = Field(default=None)
+    metadata_: dict[str, Any] = Field(default={}, sa_column=Column("metadata", JSONB))
     created_at: datetime = Field(default_factory=datetime.utcnow)
     updated_at: datetime = Field(default_factory=datetime.utcnow)

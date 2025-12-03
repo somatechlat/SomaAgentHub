@@ -18,24 +18,24 @@ class CapsuleRepository:
         self.session = session
 
     async def create_capsule(
-    self,
-    capsule_id: str,
-    version: str,
-    type,
-    manifest_yaml: str,
-    metadata: dict | None = None,
+        self,
+        capsule_id: str,
+        version: str,
+        type,
+        manifest_yaml: str,
+        metadata: dict | None = None,
     ) -> Capsule:
         capsule = Capsule(
-    capsule_id=capsule_id,
-    version=version,
-    type=type,
-    manifest_yaml=manifest_yaml,
-    metadata_=metadata or {},
-    )
-    self.session.add(capsule)
-    await self.session.commit()
-    await self.session.refresh(capsule)
-    return capsule
+            capsule_id=capsule_id,
+            version=version,
+            type=type,
+            manifest_yaml=manifest_yaml,
+            metadata_=metadata or {},
+        )
+        self.session.add(capsule)
+        await self.session.commit()
+        await self.session.refresh(capsule)
+        return capsule
 
     async def get_capsule(self, capsule_id: str, version: str) -> Capsule | None:
         statement = select(Capsule).where(Capsule.capsule_id == capsule_id, Capsule.version == version)
@@ -45,6 +45,6 @@ class CapsuleRepository:
     async def list_capsules(self, capsule_id: str | None = None) -> list[Capsule]:
         statement = select(Capsule)
         if capsule_id:
-    statement = statement.where(Capsule.capsule_id == capsule_id)
-    results = await self.session.exec(statement)
-    return results.all()
+            statement = statement.where(Capsule.capsule_id == capsule_id)
+        results = await self.session.exec(statement)
+        return results.all()

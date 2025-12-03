@@ -4,16 +4,15 @@ Working event emission tests using actual project structure.
 
 import asyncio
 import uuid
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from enum import Enum
 
 import pytest
-from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
+from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.orm import sessionmaker
 
 from services.common.events.outbox import OutboxEvent, OutboxRepository
 from services.common.events.publisher import InMemoryEventPublisher
-from services.common.config.base_settings import resolve_env
 
 
 class BuildRunStatus(str, Enum):
@@ -24,8 +23,8 @@ class BuildRunStatus(str, Enum):
     CANCELLED = "cancelled"
 
 
-    @pytest.mark.asyncio
-    async def test_outbox_event_workflow() -> None:
+@pytest.mark.asyncio
+async def test_outbox_event_workflow() -> None:
     """Test complete outbox event workflow."""
 
     # Setup database
@@ -54,7 +53,7 @@ class BuildRunStatus(str, Enum):
                     "user_id": f"user-{i}",
                     "status": BuildRunStatus.PENDING.value,
                 },
-                created_at=datetime.now(timezone.utc),
+                created_at=datetime.now(UTC),
             )
             events.append(event)
 
@@ -89,11 +88,12 @@ class BuildRunStatus(str, Enum):
         assert len(wizard_events) == 3
 
     import logging
+
     logging.getLogger(__name__).info("✅ All outbox workflow tests passed!")
 
 
-    @pytest.mark.asyncio
-    async def test_event_publisher_functionality() -> None:
+@pytest.mark.asyncio
+async def test_event_publisher_functionality() -> None:
     """Test event publisher capabilities."""
     publisher = InMemoryEventPublisher("test-service")
 
@@ -121,11 +121,13 @@ class BuildRunStatus(str, Enum):
     assert len(publisher.events) == 3
 
     import logging
+
     logging.getLogger(__name__).info("✅ Event publisher tests passed!")
 
 
-    if __name__ == "__main__":
+if __name__ == "__main__":
     asyncio.run(test_outbox_event_workflow())
     asyncio.run(test_event_publisher_functionality())
     import logging
+
     logging.getLogger(__name__).info("🎉 All tests completed successfully!")

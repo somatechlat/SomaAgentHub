@@ -1,30 +1,29 @@
-rometheus metrics for orchestrator queue depth.
+"""Prometheus metrics for orchestrator queue depth.
 
-orchestrator runs Temporal workflows on a configurable task queue
-ttings.temporal_task_queue`).  This module provides a gauge metric that
-ses the current number of pending workflow executions for that queue.  The
-ic name follows the existing naming convention used across the repo:
+The orchestrator runs Temporal workflows on a configurable task queue
+(``settings.temporal_task_queue``).  This module provides a gauge metric that
+exposes the current number of pending workflow executions for that queue.  The
+metric name follows the existing naming convention used across the repo:
 
     orchestrator_queue_length{task_queue="<queue>"}
 
-    The gauge is updated by a background coroutine started from the Temporal worker
-    process (see ``services/orchestrator/temporal_worker.py``).
-    """
+The gauge is updated by a background coroutine started from the Temporal worker
+process (see ``services/orchestrator/temporal_worker.py``).
+"""
 
-    from __future__ import annotations
+from __future__ import annotations
 
-    from prometheus_client import Gauge
-    from services.common.config.base_settings import resolve_env
+from prometheus_client import Gauge
 
-    uge with a ``task_queue`` label so multiple queues can be tracked if needed.
-    ORCHESTRATOR_QUEUE_GAUGE = Gauge(
+# Gauge with a ``task_queue`` label so multiple queues can be tracked if needed.
+ORCHESTRATOR_QUEUE_GAUGE = Gauge(
     "orchestrator_queue_length",
     "Current number of pending Temporal workflow executions for the orchestrator's queue",
     ["task_queue"],
-    )
+)
 
 
-    def set_queue_length(queue_name: str, length: int) -> None:
+def set_queue_length(queue_name: str, length: int) -> None:
     """Set the gauge to ``length`` for the given ``queue_name``.
 
     The function is deliberately tiny – it is safe to call from any async
@@ -33,4 +32,4 @@ ic name follows the existing naming convention used across the repo:
     """
     if length < 0:
         length = 0
-        ORCHESTRATOR_QUEUE_GAUGE.labels(task_queue=queue_name).set(length)
+    ORCHESTRATOR_QUEUE_GAUGE.labels(task_queue=queue_name).set(length)

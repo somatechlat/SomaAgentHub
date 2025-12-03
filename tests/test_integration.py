@@ -5,25 +5,24 @@ Tests event emission using actual database and repository patterns.
 """
 
 import asyncio
-import uuid
-from datetime import datetime, timezone
 import logging
+import uuid
+from datetime import UTC, datetime
 
 import pytest
-from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
+from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.orm import sessionmaker
 from sqlmodel import SQLModel
 
+from services.orchestrator.app.planner.schemas import ModuleSpec, ProjectPlan
 from services.orchestrator.app.repository.outbox_event_repository import (
     OutboxEventRepository,
-    )
-    from services.orchestrator.app.services.event_emission import EventEmissionService
-    from services.orchestrator.app.planner.schemas import ProjectPlan, ModuleSpec
-    from services.common.config.base_settings import resolve_env
+)
+from services.orchestrator.app.services.event_emission import EventEmissionService
 
 
-    @pytest.mark.asyncio
-    async def test_event_emission():
+@pytest.mark.asyncio
+async def test_event_emission():
     """Test event emission with actual database integration."""
 
     # Setup database
@@ -31,8 +30,6 @@ from services.orchestrator.app.repository.outbox_event_repository import (
     async_session = sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
 
     # Create tables using SQLModel
-    from services.orchestrator.app.repository.outbox import OutboxEvent
-    from services.orchestrator.app.repository.models import BuildRun
 
     # Use SQLModel metadata
     SQLModel.metadata.create_all(engine.sync_engine)
@@ -47,7 +44,7 @@ from services.orchestrator.app.repository.outbox_event_repository import (
             "tenant": "test-tenant",
             "objective": "Test real event emission",
             "agent_ids": ["agent-1", "agent-2"],
-            "created_at": datetime.now(timezone.utc).isoformat(),
+            "created_at": datetime.now(UTC).isoformat(),
         }
 
         # Create real outbox event
@@ -88,9 +85,7 @@ from services.orchestrator.app.repository.outbox_event_repository import (
         )
 
         # Emit plan event
-        await emission_service.emit_plan_created_event(
-            plan=test_plan, session_id="test-session", initiator="test-user"
-        )
+        await emission_service.emit_plan_created_event(plan=test_plan, session_id="test-session", initiator="test-user")
 
         await session.commit()
 
@@ -109,14 +104,13 @@ from services.orchestrator.app.repository.outbox_event_repository import (
     return True
 
 
-    @pytest.mark.asyncio
-    async def test_build_run_events():
+@pytest.mark.asyncio
+async def test_build_run_events():
     """Test build run lifecycle events."""
 
     engine = create_async_engine("sqlite+aiosqlite:///:memory:")
     async_session = sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
 
-    from services.orchestrator.app.repository.outbox import OutboxEvent
 
     SQLModel.metadata.create_all(engine.sync_engine)
 
@@ -156,7 +150,7 @@ from services.orchestrator.app.repository.outbox_event_repository import (
     return True
 
 
-    if __name__ == "__main__":
+if __name__ == "__main__":
     asyncio.run(test_event_emission())
     asyncio.run(test_build_run_events())
     logging.getLogger(__name__).info("🎉 All real integration tests passed!")

@@ -7,10 +7,13 @@ from __future__ import annotations
 
 from collections.abc import Mapping, Sequence
 from datetime import UTC, datetime
+from pathlib import Path
 from typing import Any
 
 import httpx
 from temporalio import activity
+
+from services.common.config.base_settings import resolve_env
 
 from ..app.core.config import settings
 
@@ -75,7 +78,6 @@ def _normalize_env(env_mapping: Mapping[Any, Any]) -> dict[str, str]:
 # Real service endpoints (configured via environment)
 POLICY_ENGINE_URL = _ensure_endpoint(str(settings.policy_engine_url), "/v1/evaluate")
 LLM_HUB_URL = str(settings.llm_hub_url)
-from services.common.config.base_settings import resolve_env
 
 # Resolve the gateway API URL using the canonical resolver. The default points to the
 # standard development endpoint; runtime-specific overrides are handled elsewhere via

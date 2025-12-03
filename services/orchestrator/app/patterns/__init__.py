@@ -1,11 +1,13 @@
-ern library for enterprise workflow orchestration.
+"""Pattern library for enterprise workflow orchestration.
 
-ains production-ready patterns:
+Contains production-ready patterns:
     - Saga: Distributed transaction compensation
     - Circuit Breaker: Fail-fast protection for external services
-    """
+"""
 
-    from .circuit_breaker import (
+
+
+from .circuit_breaker import (
     CircuitBreaker,
     CircuitBreakerConfig,
     CircuitBreakerOpenError,
@@ -13,15 +15,14 @@ ains production-ready patterns:
     get_all_circuit_breakers,
     get_circuit_breaker,
     reset_all_circuit_breakers,
-    )
-    from .saga import Saga, SagaBuilder
-    from services.common.config.base_settings import resolve_env
+)
+from .saga import Saga, SagaBuilder
 
-    __all__ = [
-    ga pattern
+__all__ = [
+    # Saga pattern
     "Saga",
     "SagaBuilder",
-    rcuit breaker pattern
+    # Circuit breaker pattern
     "CircuitBreaker",
     "CircuitBreakerConfig",
     "CircuitBreakerOpenError",
@@ -29,4 +30,4 @@ ains production-ready patterns:
     "get_circuit_breaker",
     "get_all_circuit_breakers",
     "reset_all_circuit_breakers",
-    ]
+]

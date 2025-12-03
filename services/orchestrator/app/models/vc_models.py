@@ -14,10 +14,10 @@ from __future__ import annotations
 import uuid
 from datetime import datetime
 from enum import Enum
-from typing import Any, Optional
+from typing import Any
 
+from sqlalchemy import JSON, Column, String
 from sqlmodel import Field, SQLModel
-from sqlalchemy import Column, JSON, String
 
 
 class VCRole(str, Enum):
@@ -28,7 +28,7 @@ class VCRole(str, Enum):
     CORRECTOR = "corrector"
 
 
-    class VCEpisode(SQLModel, table=True):
+class VCEpisode(SQLModel, table=True):
     """Top‑level episode representing a single reasoning problem.
 
     An episode groups a series of ``VCStep`` records.  The ``status`` field is
@@ -45,7 +45,7 @@ class VCRole(str, Enum):
     updated_at: datetime = Field(default_factory=datetime.utcnow)
 
 
-    class VCStep(SQLModel, table=True):
+class VCStep(SQLModel, table=True):
     """A single step inside a V‑C episode.
 
     ``role`` identifies which part of the loop generated the step. ``input``

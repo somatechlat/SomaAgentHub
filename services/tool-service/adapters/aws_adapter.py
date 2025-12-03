@@ -1,463 +1,323 @@
-        """
-        ⚠️ WE DO NOT MOCK - Real AWS adapter using boto3.
-
-        Provides comprehensive AWS integration:
-            - EC2 (instances, security groups, key pairs)
-            - S3 (buckets, objects, lifecycle)
-            - Lambda (functions, layers, triggers)
-            - CloudFormation (stacks, templates)
-            - IAM (roles, policies, users)
-            - RDS (databases, snapshots)
-            - DynamoDB (tables, items)
-            """
-
-            import json
-            import logging
-            from typing import Any
-
-            import boto3
-            from services.common.config.base_settings import resolve_env
-
-            logger = logging.getLogger(__name__)
-
-
-            class AWSAdapter:
-            """
-            Adapter for AWS services using boto3.
-
-            AWS Documentation: https://docs.aws.amazon.com
-            """
-
-            def __init__(
-            self,
-            aws_access_key_id: str | None = None,
-            aws_secret_access_key: str | None = None,
-            region_name: str = "us-east-1",
-            profile_name: str | None = None,
-            ):
-                """
-                Initialize AWS adapter.
-
-                Args:
-                    aws_access_key_id: AWS access key
-                    aws_secret_access_key: AWS secret key
-                    region_name: AWS region
-                    profile_name: AWS profile name (alternative to keys)
-                    """
-                    self.region_name = region_name
-
-                    ssion configuration
-                    session_kwargs = {"region_name": region_name}
-
-                    if profile_name:
-                        session_kwargs["profile_name"] = profile_name
-                        elif aws_access_key_id and aws_secret_access_key:
-                            session_kwargs["aws_access_key_id"] = aws_access_key_id
-                            session_kwargs["aws_secret_access_key"] = aws_secret_access_key
-
-                            self.session = boto3.Session(**session_kwargs)
-
-                            itialize clients (lazy loading)
-                            self._ec2 = None
-                            self._s3 = None
-                            self._lambda = None
-                            self._cloudformation = None
-                            self._iam = None
-                            self._rds = None
-                            self._dynamodb = None
-
-                            @property
-                            def ec2(self):
-                                """Get EC2 client."""
-                                if not self._ec2:
-                                    self._ec2 = self.session.client("ec2")
-                                    return self._ec2
-
-                                    @property
-                                    def s3(self):
-                                        """Get S3 client."""
-                                        if not self._s3:
-                                            self._s3 = self.session.client("s3")
-                                            return self._s3
-
-                                            @property
-                                            def lambda_client(self):
-                                                """Get Lambda client."""
-                                                if not self._lambda:
-                                                    self._lambda = self.session.client("lambda")
-                                                    return self._lambda
-
-                                                    @property
-                                                    def cloudformation(self):
-                                                        """Get CloudFormation client."""
-                                                        if not self._cloudformation:
-                                                            self._cloudformation = self.session.client("cloudformation")
-                                                            return self._cloudformation
-
-                                                            @property
-                                                            def iam(self):
-                                                                """Get IAM client."""
-                                                                if not self._iam:
-                                                                    self._iam = self.session.client("iam")
-                                                                    return self._iam
-
-                                                                    @property
-                                                                    def rds(self):
-                                                                        """Get RDS client."""
-                                                                        if not self._rds:
-                                                                            self._rds = self.session.client("rds")
-                                                                            return self._rds
-
-                                                                            @property
-                                                                            def dynamodb(self):
-                                                                                """Get DynamoDB client."""
-                                                                                if not self._dynamodb:
-                                                                                    self._dynamodb = self.session.client("dynamodb")
-                                                                                    return self._dynamodb
-
-                                                                                    2 Operations
-
-                                                                                    def create_ec2_instance(
-                                                                                    self,
-                                                                                    ami_id: str,
-                                                                                    instance_type: str = "t2.micro",
-                                                                                    key_name: str | None = None,
-                                                                                    security_group_ids: list[str] | None = None,
-                                                                                    subnet_id: str | None = None,
-                                                                                    user_data: str | None = None,
-                                                                                    tags: dict[str, str] | None = None,
-                                                                                    min_count: int = 1,
-                                                                                    max_count: int = 1,
-                                                                                    ) -> dict[str, Any]:
-                                                                                        """Create EC2 instance."""
-                                                                                        logger.info(f"Creating EC2 instance: {instance_type}")
-
-                                                                                        kwargs = {
-                                                                                        "ImageId": ami_id,
-                                                                                        "InstanceType": instance_type,
-                                                                                        "MinCount": min_count,
-                                                                                        "MaxCount": max_count,
-                                                                                        }
-
-                                                                                        if key_name:
-                                                                                            kwargs["KeyName"] = key_name
-                                                                                            if security_group_ids:
-                                                                                                kwargs["SecurityGroupIds"] = security_group_ids
-                                                                                                if subnet_id:
-                                                                                                    kwargs["SubnetId"] = subnet_id
-                                                                                                    if user_data:
-                                                                                                        kwargs["UserData"] = user_data
-
-                                                                                                        response = self.ec2.run_instances(**kwargs)
-
-                                                                                                        g instances
-                                                                                                        if tags:
-                                                                                                            instance_ids = [i["InstanceId"] for i in response["Instances"]]
-                                                                                                            self.tag_resources(instance_ids, tags)
-
-                                                                                                            return response
-
-                                                                                                            def list_ec2_instances(
-                                                                                                            self, filters: list[dict[str, Any]] | None = None
-                                                                                                            ) -> list[dict[str, Any]]:
-                                                                                                                """List EC2 instances."""
-                                                                                                                kwargs = {}
-                                                                                                                if filters:
-                                                                                                                    kwargs["Filters"] = filters
-
-                                                                                                                    response = self.ec2.describe_instances(**kwargs)
-
-                                                                                                                    instances = []
-                                                                                                                    for reservation in response["Reservations"]:
-                                                                                                                        instances.extend(reservation["Instances"])
-
-                                                                                                                        return instances
-
-                                                                                                                        def stop_ec2_instance(self, instance_id: str) -> dict[str, Any]:
-                                                                                                                            """Stop EC2 instance."""
-                                                                                                                            logger.info(f"Stopping EC2 instance: {instance_id}")
-                                                                                                                            return self.ec2.stop_instances(InstanceIds=[instance_id])
-
-                                                                                                                            def terminate_ec2_instance(self, instance_id: str) -> dict[str, Any]:
-                                                                                                                                """Terminate EC2 instance."""
-                                                                                                                                logger.warning(f"Terminating EC2 instance: {instance_id}")
-                                                                                                                                return self.ec2.terminate_instances(InstanceIds=[instance_id])
-
-                                                                                                                                def tag_resources(
-                                                                                                                                self, resource_ids: list[str], tags: dict[str, str]
-                                                                                                                                ) -> dict[str, Any]:
-                                                                                                                                    """Tag AWS resources."""
-                                                                                                                                    tag_list = [{"Key": k, "Value": v} for k, v in tags.items()]
-                                                                                                                                    return self.ec2.create_tags(Resources=resource_ids, Tags=tag_list)
-
-         Operations
-
-                                                                                                                                    def create_s3_bucket(
-                                                                                                                                    self, bucket_name: str, region: str | None = None
-                                                                                                                                    ) -> dict[str, Any]:
-                                                                                                                                        """Create S3 bucket."""
-                                                                                                                                        logger.info(f"Creating S3 bucket: {bucket_name}")
-
-                                                                                                                                        kwargs = {"Bucket": bucket_name}
-
-                                                                                                                                        gion-specific configuration
-                                                                                                                                        if region and region != "us-east-1":
-                                                                                                                                            kwargs["CreateBucketConfiguration"] = {"LocationConstraint": region}
-
-                                                                                                                                            return self.s3.create_bucket(**kwargs)
-
-                                                                                                                                            def list_s3_buckets(self) -> list[dict[str, Any]]:
-                                                                                                                                                """List S3 buckets."""
-                                                                                                                                                response = self.s3.list_buckets()
-                                                                                                                                                return response.get("Buckets", [])
-
-                                                                                                                                                def upload_to_s3(
-                                                                                                                                                self,
-                                                                                                                                                bucket_name: str,
-                                                                                                                                                object_key: str,
-                                                                                                                                                file_path: str | None = None,
-                                                                                                                                                body: bytes | None = None,
-                                                                                                                                                metadata: dict[str, str] | None = None,
-                                                                                                                                                ) -> dict[str, Any]:
-                                                                                                                                                    """Upload file to S3."""
-                                                                                                                                                    logger.info(f"Uploading to S3: s3://{bucket_name}/{object_key}")
-
-                                                                                                                                                    kwargs = {
-                                                                                                                                                    "Bucket": bucket_name,
-                                                                                                                                                    "Key": object_key,
-                                                                                                                                                    }
-
-                                                                                                                                                    if file_path:
-                                                                                                                                                        with open(file_path, "rb") as f:
-                                                                                                                                                            kwargs["Body"] = f
-                                                                                                                                                            response = self.s3.put_object(**kwargs)
-                                                                                                                                                            elif body:
-                                                                                                                                                                kwargs["Body"] = body
-                                                                                                                                                                response = self.s3.put_object(**kwargs)
-                                                                                                                                                                else:
-                                                                                                                                                                    raise ValueError("Must provide either file_path or body")
-
-                                                                                                                                                                    if metadata:
-                                                                                                                                                                        kwargs["Metadata"] = metadata
-
-                                                                                                                                                                        return response
-
-                                                                                                                                                                        def download_from_s3(
-                                                                                                                                                                        self, bucket_name: str, object_key: str, file_path: str
-                                                                                                                                                                        ) -> None:
-                                                                                                                                                                            """Download file from S3."""
-                                                                                                                                                                            logger.info(f"Downloading from S3: s3://{bucket_name}/{object_key}")
-                                                                                                                                                                            self.s3.download_file(bucket_name, object_key, file_path)
-
-                                                                                                                                                                            def delete_s3_object(self, bucket_name: str, object_key: str) -> dict[str, Any]:
-                                                                                                                                                                                """Delete S3 object."""
-                                                                                                                                                                                return self.s3.delete_object(Bucket=bucket_name, Key=object_key)
-
-                                                                                                                                                                                mbda Operations
-
-                                                                                                                                                                                def create_lambda_function(
-                                                                                                                                                                                self,
-                                                                                                                                                                                function_name: str,
-                                                                                                                                                                                runtime: str,
-                                                                                                                                                                                role_arn: str,
-                                                                                                                                                                                handler: str,
-                                                                                                                                                                                zip_file: bytes,
-                                                                                                                                                                                environment: dict[str, str] | None = None,
-                                                                                                                                                                                timeout: int = 30,
-                                                                                                                                                                                memory_size: int = 128,
-                                                                                                                                                                                ) -> dict[str, Any]:
-                                                                                                                                                                                    """Create Lambda function."""
-                                                                                                                                                                                    logger.info(f"Creating Lambda function: {function_name}")
-
-                                                                                                                                                                                    kwargs = {
-                                                                                                                                                                                    "FunctionName": function_name,
-                                                                                                                                                                                    "Runtime": runtime,
-                                                                                                                                                                                    "Role": role_arn,
-                                                                                                                                                                                    "Handler": handler,
-                                                                                                                                                                                    "Code": {"ZipFile": zip_file},
-                                                                                                                                                                                    "Timeout": timeout,
-                                                                                                                                                                                    "MemorySize": memory_size,
-                                                                                                                                                                                    }
-
-                                                                                                                                                                                    if environment:
-                                                                                                                                                                                        kwargs["Environment"] = {"Variables": environment}
-
-                                                                                                                                                                                        return self.lambda_client.create_function(**kwargs)
-
-                                                                                                                                                                                        def invoke_lambda(
-                                                                                                                                                                                        self,
-                                                                                                                                                                                        function_name: str,
-                                                                                                                                                                                        payload: dict[str, Any] | None = None,
-                                                                                                                                                                                        invocation_type: str = "RequestResponse",
-                                                                                                                                                                                        ) -> dict[str, Any]:
-                                                                                                                                                                                            """Invoke Lambda function."""
-                                                                                                                                                                                            logger.info(f"Invoking Lambda: {function_name}")
-
-                                                                                                                                                                                            kwargs = {
-                                                                                                                                                                                            "FunctionName": function_name,
-                                                                                                                                                                                            "InvocationType": invocation_type,
-                                                                                                                                                                                            }
-
-                                                                                                                                                                                            if payload:
-                                                                                                                                                                                                kwargs["Payload"] = json.dumps(payload)
-
-                                                                                                                                                                                                response = self.lambda_client.invoke(**kwargs)
-
-                                                                                                                                                                                                rse response payload
-                                                                                                                                                                                                if "Payload" in response:
-                                                                                                                                                                                                    response["Payload"] = json.loads(response["Payload"].read())
-
-                                                                                                                                                                                                    return response
-
-                                                                                                                                                                                                    def update_lambda_code(self, function_name: str, zip_file: bytes) -> dict[str, Any]:
-                                                                                                                                                                                                        """Update Lambda function code."""
-                                                                                                                                                                                                        logger.info(f"Updating Lambda code: {function_name}")
-
-                                                                                                                                                                                                        return self.lambda_client.update_function_code(
-                                                                                                                                                                                                        FunctionName=function_name, ZipFile=zip_file
-                                                                                                                                                                                                        )
-
-                                                                                                                                                                                                        def delete_lambda_function(self, function_name: str) -> dict[str, Any]:
-                                                                                                                                                                                                            """Delete Lambda function."""
-                                                                                                                                                                                                            logger.warning(f"Deleting Lambda function: {function_name}")
-                                                                                                                                                                                                            return self.lambda_client.delete_function(FunctionName=function_name)
-
-                                                                                                                                                                                                            oudFormation Operations
-
-                                                                                                                                                                                                            def create_stack(
-                                                                                                                                                                                                            self,
-                                                                                                                                                                                                            stack_name: str,
-                                                                                                                                                                                                            template_body: str | None = None,
-                                                                                                                                                                                                            template_url: str | None = None,
-                                                                                                                                                                                                            parameters: list[dict[str, str]] | None = None,
-                                                                                                                                                                                                            capabilities: list[str] | None = None,
-                                                                                                                                                                                                            tags: dict[str, str] | None = None,
-                                                                                                                                                                                                            ) -> dict[str, Any]:
-                                                                                                                                                                                                                """Create CloudFormation stack."""
-                                                                                                                                                                                                                logger.info(f"Creating CloudFormation stack: {stack_name}")
-
-                                                                                                                                                                                                                kwargs = {"StackName": stack_name}
-
-                                                                                                                                                                                                                if template_body:
-                                                                                                                                                                                                                    kwargs["TemplateBody"] = template_body
-                                                                                                                                                                                                                    elif template_url:
-                                                                                                                                                                                                                        kwargs["TemplateURL"] = template_url
-                                                                                                                                                                                                                        else:
-                                                                                                                                                                                                                            raise ValueError("Must provide either template_body or template_url")
-
-                                                                                                                                                                                                                            if parameters:
-                                                                                                                                                                                                                                kwargs["Parameters"] = parameters
-                                                                                                                                                                                                                                if capabilities:
-                                                                                                                                                                                                                                    kwargs["Capabilities"] = capabilities
-                                                                                                                                                                                                                                    if tags:
-                                                                                                                                                                                                                                        kwargs["Tags"] = [{"Key": k, "Value": v} for k, v in tags.items()]
-
-                                                                                                                                                                                                                                        return self.cloudformation.create_stack(**kwargs)
-
-                                                                                                                                                                                                                                        def describe_stack(self, stack_name: str) -> dict[str, Any]:
-                                                                                                                                                                                                                                            """Describe CloudFormation stack."""
-                                                                                                                                                                                                                                            response = self.cloudformation.describe_stacks(StackName=stack_name)
-                                                                                                                                                                                                                                            return response["Stacks"][0] if response["Stacks"] else {}
-
-                                                                                                                                                                                                                                            def delete_stack(self, stack_name: str) -> dict[str, Any]:
-                                                                                                                                                                                                                                                """Delete CloudFormation stack."""
-                                                                                                                                                                                                                                                logger.warning(f"Deleting CloudFormation stack: {stack_name}")
-                                                                                                                                                                                                                                                return self.cloudformation.delete_stack(StackName=stack_name)
-
-                                                                                                                                                                                                                                                M Operations
-
-                                                                                                                                                                                                                                                def create_iam_role(
-                                                                                                                                                                                                                                                self,
-                                                                                                                                                                                                                                                role_name: str,
-                                                                                                                                                                                                                                                assume_role_policy: dict[str, Any],
-                                                                                                                                                                                                                                                description: str | None = None,
-                                                                                                                                                                                                                                                ) -> dict[str, Any]:
-                                                                                                                                                                                                                                                    """Create IAM role."""
-                                                                                                                                                                                                                                                    logger.info(f"Creating IAM role: {role_name}")
-
-                                                                                                                                                                                                                                                    kwargs = {
-                                                                                                                                                                                                                                                    "RoleName": role_name,
-                                                                                                                                                                                                                                                    "AssumeRolePolicyDocument": json.dumps(assume_role_policy),
-                                                                                                                                                                                                                                                    }
-
-                                                                                                                                                                                                                                                    if description:
-                                                                                                                                                                                                                                                        kwargs["Description"] = description
-
-                                                                                                                                                                                                                                                        return self.iam.create_role(**kwargs)
-
-                                                                                                                                                                                                                                                        def attach_role_policy(self, role_name: str, policy_arn: str) -> dict[str, Any]:
-                                                                                                                                                                                                                                                            """Attach policy to IAM role."""
-                                                                                                                                                                                                                                                            return self.iam.attach_role_policy(RoleName=role_name, PolicyArn=policy_arn)
-
-                                                                                                                                                                                                                                                            namoDB Operations
-
-                                                                                                                                                                                                                                                            def create_dynamodb_table(
-                                                                                                                                                                                                                                                            self,
-                                                                                                                                                                                                                                                            table_name: str,
-                                                                                                                                                                                                                                                            key_schema: list[dict[str, str]],
-                                                                                                                                                                                                                                                            attribute_definitions: list[dict[str, str]],
-                                                                                                                                                                                                                                                            billing_mode: str = "PAY_PER_REQUEST",
-                                                                                                                                                                                                                                                            ) -> dict[str, Any]:
-                                                                                                                                                                                                                                                                """Create DynamoDB table."""
-                                                                                                                                                                                                                                                                logger.info(f"Creating DynamoDB table: {table_name}")
-
-                                                                                                                                                                                                                                                                kwargs = {
-                                                                                                                                                                                                                                                                "TableName": table_name,
-                                                                                                                                                                                                                                                                "KeySchema": key_schema,
-                                                                                                                                                                                                                                                                "AttributeDefinitions": attribute_definitions,
-                                                                                                                                                                                                                                                                "BillingMode": billing_mode,
-                                                                                                                                                                                                                                                                }
-
-                                                                                                                                                                                                                                                                return self.dynamodb.create_table(**kwargs)
-
-                                                                                                                                                                                                                                                                def put_dynamodb_item(
-                                                                                                                                                                                                                                                                self, table_name: str, item: dict[str, Any]
-                                                                                                                                                                                                                                                                ) -> dict[str, Any]:
-                                                                                                                                                                                                                                                                    """Put item in DynamoDB table."""
-                                                                                                                                                                                                                                                                    return self.dynamodb.put_item(TableName=table_name, Item=item)
-
-                                                                                                                                                                                                                                                                    def get_dynamodb_item(self, table_name: str, key: dict[str, Any]) -> dict[str, Any]:
-                                                                                                                                                                                                                                                                        """Get item from DynamoDB table."""
-                                                                                                                                                                                                                                                                        response = self.dynamodb.get_item(TableName=table_name, Key=key)
-                                                                                                                                                                                                                                                                        return response.get("Item", {})
-
-                                                                                                                                                                                                                                                                        ility Methods
-
-                                                                                                                                                                                                                                                                        def bootstrap_infrastructure(
-                                                                                                                                                                                                                                                                        self, project_name: str, environment: str = "dev"
-                                                                                                                                                                                                                                                                        ) -> dict[str, Any]:
-                                                                                                                                                                                                                                                                            """
-                                                                                                                                                                                                                                                                            Bootstrap basic AWS infrastructure for a project.
-
-                                                                                                                                                                                                                                                                            Args:
-                                                                                                                                                                                                                                                                                project_name: Project name
-                                                                                                                                                                                                                                                                                environment: Environment (dev/staging/prod)
-
-                                                                                                                                                                                                                                                                                Returns:
-                                                                                                                                                                                                                                                                                    Created resources
-                                                                                                                                                                                                                                                                                    """
-                                                                                                                                                                                                                                                                                    logger.info(f"Bootstrapping infrastructure: {project_name}-{environment}")
-
-                                                                                                                                                                                                                                                                                    results = {}
-
-                                                                                                                                                                                                                                                                                    eate S3 bucket for artifacts
-                                                                                                                                                                                                                                                                                    bucket_name = (
-                                                                                                                                                                                                                                                                                    f"{project_name}-{environment}-artifacts-{self.session.region_name}"
-                                                                                                                                                                                                                                                                                    )
-                                                                                                                                                                                                                                                                                    try:
-                                                                                                                                                                                                                                                                                        results["s3_bucket"] = self.create_s3_bucket(bucket_name)
-                                                                                                                                                                                                                                                                                        except Exception as e:
-                                                                                                                                                                                                                                                                                            logger.warning(f"Bucket creation failed (may already exist): {e}")
-
-                                                                                                                                                                                                                                                                                            eate DynamoDB table for state/config
-                                                                                                                                                                                                                                                                                            table_name = f"{project_name}-{environment}-config"
-                                                                                                                                                                                                                                                                                            try:
-                                                                                                                                                                                                                                                                                                results["dynamodb_table"] = self.create_dynamodb_table(
-                                                                                                                                                                                                                                                                                                table_name=table_name,
-                                                                                                                                                                                                                                                                                                key_schema=[{"AttributeName": "id", "KeyType": "HASH"}],
-                                                                                                                                                                                                                                                                                                attribute_definitions=[{"AttributeName": "id", "AttributeType": "S"}],
-                                                                                                                                                                                                                                                                                                )
-                                                                                                                                                                                                                                                                                                except Exception as e:
-                                                                                                                                                                                                                                                                                                    logger.warning(f"Table creation failed (may already exist): {e}")
-
-                                                                                                                                                                                                                                                                                                    return results
+"""
+⚠️ WE DO NOT MOCK - Real AWS adapter using boto3.
+
+Provides comprehensive AWS integration:
+    - EC2 (instances, security groups, key pairs)
+    - S3 (buckets, objects, lifecycle)
+    - Lambda (functions, layers, triggers)
+    - CloudFormation (stacks, templates)
+    - IAM (roles, policies, users)
+    - RDS (databases, snapshots)
+    - DynamoDB (tables, items)
+"""
+
+import json
+import logging
+from typing import Any
+
+import boto3
+
+from services.common.config.base_settings import resolve_env
+
+logger = logging.getLogger(__name__)
+
+
+class AWSAdapter:
+    """
+    Real AWS adapter using boto3.
+
+    Requires:
+        - AWS_ACCESS_KEY_ID
+        - AWS_SECRET_ACCESS_KEY
+        - AWS_REGION
+    """
+
+    def __init__(self, region_name: str | None = None):
+        self.region_name = region_name or resolve_env("AWS_REGION", "us-east-1")
+        self.access_key = resolve_env("AWS_ACCESS_KEY_ID")
+        self.secret_key = resolve_env("AWS_SECRET_ACCESS_KEY")
+
+        if not self.access_key or not self.secret_key:
+            logger.warning("AWS credentials not found. Some operations may fail.")
+
+        self.session = boto3.Session(
+            aws_access_key_id=self.access_key,
+            aws_secret_access_key=self.secret_key,
+            region_name=self.region_name,
+        )
+
+    def _get_client(self, service_name: str) -> Any:
+        """Get boto3 client for service."""
+        return self.session.client(service_name)
+
+    # ----------------------------------------------------------------------
+    # EC2 Operations
+    # ----------------------------------------------------------------------
+
+    def run_instances(
+        self,
+        image_id: str,
+        instance_type: str,
+        min_count: int = 1,
+        max_count: int = 1,
+        key_name: str | None = None,
+        security_group_ids: list[str] | None = None,
+        subnet_id: str | None = None,
+        tags: dict[str, str] | None = None,
+    ) -> dict[str, Any]:
+        """Launch EC2 instances."""
+        ec2 = self._get_client("ec2")
+
+        params = {
+            "ImageId": image_id,
+            "InstanceType": instance_type,
+            "MinCount": min_count,
+            "MaxCount": max_count,
+        }
+
+        if key_name:
+            params["KeyName"] = key_name
+        if security_group_ids:
+            params["SecurityGroupIds"] = security_group_ids
+        if subnet_id:
+            params["SubnetId"] = subnet_id
+
+        if tags:
+            params["TagSpecifications"] = [
+                {
+                    "ResourceType": "instance",
+                    "Tags": [{"Key": k, "Value": v} for k, v in tags.items()],
+                }
+            ]
+
+        response = ec2.run_instances(**params)
+        return response
+
+    def terminate_instances(self, instance_ids: list[str]) -> dict[str, Any]:
+        """Terminate EC2 instances."""
+        ec2 = self._get_client("ec2")
+        return ec2.terminate_instances(InstanceIds=instance_ids)
+
+    def describe_instances(
+        self, instance_ids: list[str] | None = None, filters: list[dict] | None = None
+    ) -> dict[str, Any]:
+        """Describe EC2 instances."""
+        ec2 = self._get_client("ec2")
+        params = {}
+        if instance_ids:
+            params["InstanceIds"] = instance_ids
+        if filters:
+            params["Filters"] = filters
+        return ec2.describe_instances(**params)
+
+    # ----------------------------------------------------------------------
+    # S3 Operations
+    # ----------------------------------------------------------------------
+
+    def create_bucket(self, bucket_name: str) -> dict[str, Any]:
+        """Create S3 bucket."""
+        s3 = self._get_client("s3")
+        if self.region_name == "us-east-1":
+            return s3.create_bucket(Bucket=bucket_name)
+        return s3.create_bucket(
+            Bucket=bucket_name,
+            CreateBucketConfiguration={"LocationConstraint": self.region_name},
+        )
+
+    def put_object(
+        self, bucket_name: str, key: str, body: str | bytes, content_type: str | None = None
+    ) -> dict[str, Any]:
+        """Upload object to S3."""
+        s3 = self._get_client("s3")
+        params = {"Bucket": bucket_name, "Key": key, "Body": body}
+        if content_type:
+            params["ContentType"] = content_type
+        return s3.put_object(**params)
+
+    def get_object(self, bucket_name: str, key: str) -> dict[str, Any]:
+        """Download object from S3."""
+        s3 = self._get_client("s3")
+        response = s3.get_object(Bucket=bucket_name, Key=key)
+        # Read body stream
+        if "Body" in response:
+            response["Body"] = response["Body"].read()
+        return response
+
+    def list_objects(self, bucket_name: str, prefix: str = "", max_keys: int = 1000) -> dict[str, Any]:
+        """List objects in S3 bucket."""
+        s3 = self._get_client("s3")
+        return s3.list_objects_v2(Bucket=bucket_name, Prefix=prefix, MaxKeys=max_keys)
+
+    # ----------------------------------------------------------------------
+    # Lambda Operations
+    # ----------------------------------------------------------------------
+
+    def create_function(
+        self,
+        function_name: str,
+        runtime: str,
+        role: str,
+        handler: str,
+        code_zip: bytes,
+        description: str = "",
+        timeout: int = 3,
+        memory_size: int = 128,
+        environment: dict[str, str] | None = None,
+    ) -> dict[str, Any]:
+        """Create Lambda function."""
+        lambda_client = self._get_client("lambda")
+
+        params = {
+            "FunctionName": function_name,
+            "Runtime": runtime,
+            "Role": role,
+            "Handler": handler,
+            "Code": {"ZipFile": code_zip},
+            "Description": description,
+            "Timeout": timeout,
+            "MemorySize": memory_size,
+            "Publish": True,
+        }
+
+        if environment:
+            params["Environment"] = {"Variables": environment}
+
+        return lambda_client.create_function(**params)
+
+    def invoke_function(
+        self,
+        function_name: str,
+        payload: dict[str, Any] | None = None,
+        invocation_type: str = "RequestResponse",
+    ) -> dict[str, Any]:
+        """Invoke Lambda function."""
+        lambda_client = self._get_client("lambda")
+
+        params = {
+            "FunctionName": function_name,
+            "InvocationType": invocation_type,
+        }
+
+        if payload:
+            params["Payload"] = json.dumps(payload)
+
+        response = lambda_client.invoke(**params)
+
+        if "Payload" in response:
+            response["Payload"] = response["Payload"].read().decode("utf-8")
+
+        return response
+
+    # ----------------------------------------------------------------------
+    # CloudFormation Operations
+    # ----------------------------------------------------------------------
+
+    def create_stack(
+        self,
+        stack_name: str,
+        template_body: str,
+        parameters: list[dict] | None = None,
+        capabilities: list[str] | None = None,
+    ) -> dict[str, Any]:
+        """Create CloudFormation stack."""
+        cf = self._get_client("cloudformation")
+
+        params = {
+            "StackName": stack_name,
+            "TemplateBody": template_body,
+        }
+
+        if parameters:
+            params["Parameters"] = parameters
+        if capabilities:
+            params["Capabilities"] = capabilities
+
+        return cf.create_stack(**params)
+
+    def describe_stacks(self, stack_name: str | None = None) -> dict[str, Any]:
+        """Describe CloudFormation stacks."""
+        cf = self._get_client("cloudformation")
+        params = {}
+        if stack_name:
+            params["StackName"] = stack_name
+        return cf.describe_stacks(**params)
+
+    # ----------------------------------------------------------------------
+    # IAM Operations
+    # ----------------------------------------------------------------------
+
+    def create_role(self, role_name: str, assume_role_policy_document: str, description: str = "") -> dict[str, Any]:
+        """Create IAM role."""
+        iam = self._get_client("iam")
+        return iam.create_role(
+            RoleName=role_name,
+            AssumeRolePolicyDocument=assume_role_policy_document,
+            Description=description,
+        )
+
+    def attach_role_policy(self, role_name: str, policy_arn: str) -> dict[str, Any]:
+        """Attach managed policy to role."""
+        iam = self._get_client("iam")
+        return iam.attach_role_policy(RoleName=role_name, PolicyArn=policy_arn)
+
+    # ----------------------------------------------------------------------
+    # RDS Operations
+    # ----------------------------------------------------------------------
+
+    def create_db_instance(
+        self,
+        db_instance_identifier: str,
+        db_instance_class: str,
+        engine: str,
+        master_username: str,
+        master_user_password: str,
+        allocated_storage: int = 20,
+        tags: list[dict] | None = None,
+    ) -> dict[str, Any]:
+        """Create RDS instance."""
+        rds = self._get_client("rds")
+
+        params = {
+            "DBInstanceIdentifier": db_instance_identifier,
+            "DBInstanceClass": db_instance_class,
+            "Engine": engine,
+            "MasterUsername": master_username,
+            "MasterUserPassword": master_user_password,
+            "AllocatedStorage": allocated_storage,
+        }
+
+        if tags:
+            params["Tags"] = tags
+
+        return rds.create_db_instance(**params)
+
+    # ----------------------------------------------------------------------
+    # DynamoDB Operations
+    # ----------------------------------------------------------------------
+
+    def create_table(
+        self,
+        table_name: str,
+        key_schema: list[dict],
+        attribute_definitions: list[dict],
+        billing_mode: str = "PAY_PER_REQUEST",
+    ) -> dict[str, Any]:
+        """Create DynamoDB table."""
+        dynamodb = self._get_client("dynamodb")
+        return dynamodb.create_table(
+            TableName=table_name,
+            KeySchema=key_schema,
+            AttributeDefinitions=attribute_definitions,
+            BillingMode=billing_mode,
+        )
+
+    def put_item(self, table_name: str, item: dict[str, Any]) -> dict[str, Any]:
+        """Put item into DynamoDB table."""
+        dynamodb = self._get_client("dynamodb")
+        # Note: item must be in DynamoDB JSON format or use Table resource
+        return dynamodb.put_item(TableName=table_name, Item=item)
+
+    def get_item(self, table_name: str, key: dict[str, Any]) -> dict[str, Any]:
+        """Get item from DynamoDB table."""
+        dynamodb = self._get_client("dynamodb")
+        return dynamodb.get_item(TableName=table_name, Key=key)

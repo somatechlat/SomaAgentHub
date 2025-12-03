@@ -16,7 +16,7 @@ def create_app(
     version: str = "0.1.0",
     instrumentation: bool = True,
     lifespan: Callable | None = None,
-    ) -> FastAPI:
+) -> FastAPI:
     """Create a FastAPI app with unified logging and observability.
 
     - Initializes OpenTelemetry (metrics + tracing) if enabled
@@ -24,14 +24,14 @@ def create_app(
     """
     log_level_name = getattr(settings, "log_level", "INFO")
     logging.basicConfig(
-    level=getattr(logging, str(log_level_name).upper(), logging.INFO),
-    format="%(asctime)s %(levelname)s %(name)s %(message)s",
+        level=getattr(logging, str(log_level_name).upper(), logging.INFO),
+        format="%(asctime)s %(levelname)s %(name)s %(message)s",
     )
 
     app = FastAPI(
-    title=service_name.replace("-", " ").title(),
-    version=version,
-    lifespan=lifespan,
+        title=service_name.replace("-", " ").title(),
+        version=version,
+        lifespan=lifespan,
     )
 
     enable_tracing = getattr(settings, "enable_tracing", True)
@@ -40,13 +40,13 @@ def create_app(
 
     if instrumentation and (enable_tracing or enable_metrics):
         setup_observability(
-    service_name=service_name,
-    app=app,
-    service_version=version,
-    environment=environment,
-    )
+            service_name=service_name,
+            app=app,
+            service_version=version,
+            environment=environment,
+        )
 
     if routes_factory:
-    routes_factory(app)
+        routes_factory(app)
 
     return app

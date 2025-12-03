@@ -1,454 +1,463 @@
+"""
+⚠️ WE DO NOT MOCK - Real Terraform adapter for infrastructure as code.
+
+Provides comprehensive Terraform integration:
+    - Plan and apply infrastructure
+    - State management
+    - Workspace operations
+    - Variable injection
+    - Output parsing
+"""
+
+import json
+import logging
+import os
+import subprocess
+from pathlib import Path
+from typing import Any
+
+logger = logging.getLogger(__name__)
+
+
+class TerraformAdapter:
+    """
+    Adapter for Terraform CLI operations.
+
+    Terraform Documentation: https://www.terraform.io/docs
+    """
+
+    def __init__(
+        self,
+        working_dir: str,
+        terraform_bin: str = "terraform",
+        auto_approve: bool = False,
+    ):
         """
-        ⚠️ WE DO NOT MOCK - Real Terraform adapter for infrastructure as code.
+        Initialize Terraform adapter.
 
-        Provides comprehensive Terraform integration:
-            - Plan and apply infrastructure
-            - State management
-            - Workspace operations
-            - Variable injection
-            - Output parsing
-            """
+        Args:
+            working_dir: Directory containing Terraform files
+            terraform_bin: Path to terraform binary
+            auto_approve: Auto-approve applies (use with caution!)
+        """
+        self.working_dir = Path(working_dir)
+        self.terraform_bin = terraform_bin
+        self.auto_approve = auto_approve
 
-            import json
-            import logging
-            import os
-            import subprocess
-            from pathlib import Path
-            from typing import Any
-            from services.common.config.base_settings import resolve_env
+        # Ensure working directory exists
+        self.working_dir.mkdir(parents=True, exist_ok=True)
 
-            logger = logging.getLogger(__name__)
+    def _run_command(
+        self,
+        args: list[str],
+        capture_output: bool = True,
+        env: dict[str, str] | None = None,
+    ) -> subprocess.CompletedProcess:
+        """
+        Run terraform command.
 
+        Args:
+            args: Command arguments
+            capture_output: Capture stdout/stderr
+            env: Environment variables
 
-            class TerraformAdapter:
-            """
-            Adapter for Terraform CLI operations.
+        Returns:
+            Completed process
+        """
+        cmd = [self.terraform_bin] + args
 
-            Terraform Documentation: https://www.terraform.io/docs
-            """
+        logger.info(f"Running Terraform: {' '.join(cmd)}")
 
-            def __init__(
-            self,
-            working_dir: str,
-            terraform_bin: str = "terraform",
-            auto_approve: bool = False,
-            ):
-                """
-                Initialize Terraform adapter.
+        # Merge environment
+        process_env = os.environ.copy()
+        if env:
+            process_env.update(env)
 
-                Args:
-                    working_dir: Directory containing Terraform files
-                    terraform_bin: Path to terraform binary
-                    auto_approve: Auto-approve applies (use with caution!)
-                    """
-                    self.working_dir = Path(working_dir)
-                    self.terraform_bin = terraform_bin
-                    self.auto_approve = auto_approve
+        result = subprocess.run(
+            cmd,
+            cwd=str(self.working_dir),
+            capture_output=capture_output,
+            text=True,
+            env=process_env,
+            check=True,
+        )
 
-                    sure working directory exists
-                    self.working_dir.mkdir(parents=True, exist_ok=True)
+        return result
 
-                    def _run_command(
-                    self,
-                    args: list[str],
-                    capture_output: bool = True,
-                    env: dict[str, str] | None = None,
-                    ) -> subprocess.CompletedProcess:
-                        """
-                        Run terraform command.
+    # ============================================================================
+    # Core Terraform Operations
+    # ============================================================================
 
-                        Args:
-                            args: Command arguments
-                            capture_output: Capture stdout/stderr
-                            env: Environment variables
+    def init(
+        self,
+        backend_config: dict[str, str] | None = None,
+        upgrade: bool = False,
+        reconfigure: bool = False,
+    ) -> str:
+        """
+        Initialize Terraform working directory.
 
-                            Returns:
-                                Completed process
-                                """
-                                cmd = [self.terraform_bin] + args
+        Args:
+            backend_config: Backend configuration
+            upgrade: Upgrade modules and plugins
+            reconfigure: Reconfigure backend
 
-                                logger.info(f"Running Terraform: {' '.join(cmd)}")
+        Returns:
+            Command output
+        """
+        logger.info("Initializing Terraform")
 
-                                rge environment
-                                process_env = os.environ.copy()
-                                if env:
-                                    process_env.update(env)
+        args = ["init"]
 
-                                    result = subprocess.run(
-                                    cmd,
-                                    cwd=str(self.working_dir),
-                                    capture_output=capture_output,
-                                    text=True,
-                                    env=process_env,
-                                    check=True,
-                                    )
+        if backend_config:
+            for key, value in backend_config.items():
+                args.extend(["-backend-config", f"{key}={value}"])
 
-                                    return result
+        if upgrade:
+            args.append("-upgrade")
 
-                                    re Terraform Operations
+        if reconfigure:
+            args.append("-reconfigure")
 
-                                    def init(
-                                    self,
-                                    backend_config: dict[str, str] | None = None,
-                                    upgrade: bool = False,
-                                    reconfigure: bool = False,
-                                    ) -> str:
-                                        """
-                                        Initialize Terraform working directory.
+        result = self._run_command(args)
+        return result.stdout
 
-                                        Args:
-                                            backend_config: Backend configuration
-                                            upgrade: Upgrade modules and plugins
-                                            reconfigure: Reconfigure backend
+    def plan(
+        self,
+        var_file: str | None = None,
+        variables: dict[str, Any] | None = None,
+        out_file: str | None = None,
+        target: list[str] | None = None,
+        destroy: bool = False,
+    ) -> str:
+        """
+        Create execution plan.
 
-                                            Returns:
-                                                Command output
-                                                """
-                                                logger.info("Initializing Terraform")
+        Args:
+            var_file: Path to variables file
+            variables: Variables dict
+            out_file: Save plan to file
+            target: Specific resources to target
+            destroy: Create destroy plan
 
-                                                args = ["init"]
+        Returns:
+            Plan output
+        """
+        logger.info("Creating Terraform plan")
 
-                                                if backend_config:
-                                                    for key, value in backend_config.items():
-                                                        args.extend(["-backend-config", f"{key}={value}"])
+        args = ["plan"]
 
-                                                        if upgrade:
-                                                            args.append("-upgrade")
+        if var_file:
+            args.extend(["-var-file", var_file])
 
-                                                            if reconfigure:
-                                                                args.append("-reconfigure")
+        if variables:
+            for key, value in variables.items():
+                args.extend(["-var", f"{key}={value}"])
 
-                                                                result = self._run_command(args)
-                                                                return result.stdout
+        if out_file:
+            args.extend(["-out", out_file])
 
-                                                                def plan(
-                                                                self,
-                                                                var_file: str | None = None,
-                                                                variables: dict[str, Any] | None = None,
-                                                                out_file: str | None = None,
-                                                                target: list[str] | None = None,
-                                                                destroy: bool = False,
-                                                                ) -> str:
-                                                                    """
-                                                                    Create execution plan.
-
-                                                                    Args:
-                                                                        var_file: Path to variables file
-                                                                        variables: Variables dict
-                                                                        out_file: Save plan to file
-                                                                        target: Specific resources to target
-                                                                        destroy: Create destroy plan
-
-                                                                        Returns:
-                                                                            Plan output
-                                                                            """
-                                                                            logger.info("Creating Terraform plan")
-
-                                                                            args = ["plan"]
-
-                                                                            if var_file:
-                                                                                args.extend(["-var-file", var_file])
-
-                                                                                if variables:
-                                                                                    for key, value in variables.items():
-                                                                                        args.extend(["-var", f"{key}={value}"])
-
-                                                                                        if out_file:
-                                                                                            args.extend(["-out", out_file])
-
-                                                                                            if target:
-                                                                                                for resource in target:
-                                                                                                    args.extend(["-target", resource])
-
-                                                                                                    if destroy:
-                                                                                                        args.append("-destroy")
-
-                                                                                                        result = self._run_command(args)
-                                                                                                        return result.stdout
-
-                                                                                                        def apply(
-                                                                                                        self,
-                                                                                                        plan_file: str | None = None,
-                                                                                                        var_file: str | None = None,
-                                                                                                        variables: dict[str, Any] | None = None,
-                                                                                                        target: list[str] | None = None,
-                                                                                                        auto_approve: bool | None = None,
-                                                                                                        ) -> str:
-                                                                                                            """
-                                                                                                            Apply Terraform changes.
-
-                                                                                                            Args:
-                                                                                                                plan_file: Saved plan file
-                                                                                                                var_file: Variables file
-                                                                                                                variables: Variables dict
-                                                                                                                target: Specific resources
-                                                                                                                auto_approve: Override default auto_approve
-
-                                                                                                                Returns:
-                                                                                                                    Apply output
-                                                                                                                    """
-                                                                                                                    logger.info("Applying Terraform changes")
-
-                                                                                                                    args = ["apply"]
-
-                                                                                                                    to-approve
-                                                                                                                    should_approve = auto_approve if auto_approve is not None else self.auto_approve
-                                                                                                                    if should_approve:
-                                                                                                                        args.append("-auto-approve")
-
-                                                                                                                        if plan_file:
-                                                                                                                            args.append(plan_file)
-                                                                                                                            else:
-                                                                                                                                if var_file:
-                                                                                                                                    args.extend(["-var-file", var_file])
-
-                                                                                                                                    if variables:
-                                                                                                                                        for key, value in variables.items():
-                                                                                                                                            args.extend(["-var", f"{key}={value}"])
-
-                                                                                                                                            if target:
+        if target:
             for resource in target:
                 args.extend(["-target", resource])
 
-                result = self._run_command(args)
-                return result.stdout
+        if destroy:
+            args.append("-destroy")
 
-                def destroy(
-                self,
-                var_file: str | None = None,
-                variables: dict[str, Any] | None = None,
-                target: list[str] | None = None,
-                auto_approve: bool | None = None,
-                ) -> str:
-            """
-            Destroy Terraform-managed infrastructure.
+        result = self._run_command(args)
+        return result.stdout
 
-            Args:
-                var_file: Variables file
-                variables: Variables dict
-                target: Specific resources
-                auto_approve: Override default auto_approve
+    def apply(
+        self,
+        plan_file: str | None = None,
+        var_file: str | None = None,
+        variables: dict[str, Any] | None = None,
+        target: list[str] | None = None,
+        auto_approve: bool | None = None,
+    ) -> str:
+        """
+        Apply Terraform changes.
 
-                Returns:
-                    Destroy output
-                    """
-                    logger.info("Destroying Terraform infrastructure")
+        Args:
+            plan_file: Saved plan file
+            var_file: Variables file
+            variables: Variables dict
+            target: Specific resources
+            auto_approve: Override default auto_approve
 
-                    args = ["destroy"]
+        Returns:
+            Apply output
+        """
+        logger.info("Applying Terraform changes")
 
-                    should_approve = auto_approve if auto_approve is not None else self.auto_approve
-                    if should_approve:
-                        args.append("-auto-approve")
+        args = ["apply"]
 
-                        if var_file:
-                            args.extend(["-var-file", var_file])
+        # Auto-approve
+        should_approve = auto_approve if auto_approve is not None else self.auto_approve
+        if should_approve:
+            args.append("-auto-approve")
 
-                            if variables:
-                                for key, value in variables.items():
-                                    args.extend(["-var", f"{key}={value}"])
+        if plan_file:
+            args.append(plan_file)
+        else:
+            if var_file:
+                args.extend(["-var-file", var_file])
 
-                                    if target:
-                                        for resource in target:
-                                            args.extend(["-target", resource])
+            if variables:
+                for key, value in variables.items():
+                    args.extend(["-var", f"{key}={value}"])
 
-                                            result = self._run_command(args)
-                                            return result.stdout
+            if target:
+                for resource in target:
+                    args.extend(["-target", resource])
 
-                                            ate Management
+        result = self._run_command(args)
+        return result.stdout
 
-                                            def show(self, json_output: bool = True) -> Any:
-                                                """
-                                                Show current state or plan.
+    def destroy(
+        self,
+        var_file: str | None = None,
+        variables: dict[str, Any] | None = None,
+        target: list[str] | None = None,
+        auto_approve: bool | None = None,
+    ) -> str:
+        """
+        Destroy Terraform-managed infrastructure.
 
-                                                Args:
-                                                    json_output: Output as JSON
+        Args:
+            var_file: Variables file
+            variables: Variables dict
+            target: Specific resources
+            auto_approve: Override default auto_approve
 
-                                                    Returns:
-                                                        State data (dict if JSON, str otherwise)
-                                                        """
-                                                        args = ["show"]
+        Returns:
+            Destroy output
+        """
+        logger.info("Destroying Terraform infrastructure")
 
-                                                        if json_output:
-                                                            args.append("-json")
+        args = ["destroy"]
 
-                                                            result = self._run_command(args)
+        should_approve = auto_approve if auto_approve is not None else self.auto_approve
+        if should_approve:
+            args.append("-auto-approve")
 
-                                                            if json_output:
-                                                                return json.loads(result.stdout)
-                                                                return result.stdout
+        if var_file:
+            args.extend(["-var-file", var_file])
 
-                                                                def state_list(self) -> list[str]:
-                                                                    """List resources in state."""
-                                                                    result = self._run_command(["state", "list"])
-                                                                    return [line.strip() for line in result.stdout.split("\n") if line.strip()]
+        if variables:
+            for key, value in variables.items():
+                args.extend(["-var", f"{key}={value}"])
 
-                                                                    def state_show(self, resource: str) -> str:
-                                                                        """Show specific resource in state."""
-                                                                        result = self._run_command(["state", "show", resource])
-                                                                        return result.stdout
+        if target:
+            for resource in target:
+                args.extend(["-target", resource])
 
-                                                                        def state_rm(self, resource: str) -> str:
-                                                                            """Remove resource from state."""
-                                                                            logger.warning(f"Removing resource from state: {resource}")
-                                                                            result = self._run_command(["state", "rm", resource])
-                                                                            return result.stdout
+        result = self._run_command(args)
+        return result.stdout
 
-                                                                            def state_mv(self, source: str, destination: str) -> str:
-                                                                                """Move resource in state."""
-                                                                                result = self._run_command(["state", "mv", source, destination])
-                                                                                return result.stdout
+    # ============================================================================
+    # State Management
+    # ============================================================================
 
-                                                                                def state_pull(self) -> dict[str, Any]:
-                                                                                    """Pull current state."""
-                                                                                    result = self._run_command(["state", "pull"])
-                                                                                    return json.loads(result.stdout)
+    def show(self, json_output: bool = True) -> Any:
+        """
+        Show current state or plan.
 
-                                                                                    def state_push(self, state_file: str) -> str:
-                                                                                        """Push state file."""
-                                                                                        logger.warning("Pushing state file - use with extreme caution!")
-                                                                                        result = self._run_command(["state", "push", state_file])
-                                                                                        return result.stdout
+        Args:
+            json_output: Output as JSON
 
-                                                                                        rkspace Management
+        Returns:
+            State data (dict if JSON, str otherwise)
+        """
+        args = ["show"]
 
-                                                                                        def workspace_list(self) -> list[str]:
-                                                                                            """List workspaces."""
-                                                                                            result = self._run_command(["workspace", "list"])
-                                                                                            workspaces = []
-                                                                                            for line in result.stdout.split("\n"):
-                                                                                                line = line.strip()
-                                                                                                if line:
-                                                                                                    move * from current workspace
-                                                                                                    workspace = line.replace("*", "").strip()
-                                                                                                    workspaces.append(workspace)
-                                                                                                    return workspaces
+        if json_output:
+            args.append("-json")
 
-                                                                                                    def workspace_new(self, name: str) -> str:
-                                                                                                        """Create new workspace."""
-                                                                                                        logger.info(f"Creating workspace: {name}")
-                                                                                                        result = self._run_command(["workspace", "new", name])
-                                                                                                        return result.stdout
+        result = self._run_command(args)
 
-                                                                                                        def workspace_select(self, name: str) -> str:
-                                                                                                            """Select workspace."""
-                                                                                                            logger.info(f"Selecting workspace: {name}")
-                                                                                                            result = self._run_command(["workspace", "select", name])
-                                                                                                            return result.stdout
+        if json_output:
+            return json.loads(result.stdout)
+        return result.stdout
 
-                                                                                                            def workspace_delete(self, name: str) -> str:
-                                                                                                                """Delete workspace."""
-                                                                                                                logger.warning(f"Deleting workspace: {name}")
-                                                                                                                result = self._run_command(["workspace", "delete", name])
-                                                                                                                return result.stdout
+    def state_list(self) -> list[str]:
+        """List resources in state."""
+        result = self._run_command(["state", "list"])
+        return [line.strip() for line in result.stdout.split("\n") if line.strip()]
 
-                                                                                                                tput Management
+    def state_show(self, resource: str) -> str:
+        """Show specific resource in state."""
+        result = self._run_command(["state", "show", resource])
+        return result.stdout
 
-                                                                                                                def output(self, name: str | None = None, json_output: bool = True) -> Any:
-                                                                                                                    """
-                                                                                                                    Get output values.
+    def state_rm(self, resource: str) -> str:
+        """Remove resource from state."""
+        logger.warning(f"Removing resource from state: {resource}")
+        result = self._run_command(["state", "rm", resource])
+        return result.stdout
 
-                                                                                                                    Args:
-                                                                                                                        name: Specific output name
-                                                                                                                        json_output: Return as JSON
+    def state_mv(self, source: str, destination: str) -> str:
+        """Move resource in state."""
+        result = self._run_command(["state", "mv", source, destination])
+        return result.stdout
 
-                                                                                                                        Returns:
-                                                                                                                            Output value(s)
-                                                                                                                            """
-                                                                                                                            args = ["output"]
+    def state_pull(self) -> dict[str, Any]:
+        """Pull current state."""
+        result = self._run_command(["state", "pull"])
+        return json.loads(result.stdout)
 
-                                                                                                                            if json_output:
-                                                                                                                                args.append("-json")
+    def state_push(self, state_file: str) -> str:
+        """Push state file."""
+        logger.warning("Pushing state file - use with extreme caution!")
+        result = self._run_command(["state", "push", state_file])
+        return result.stdout
 
-                                                                                                                                if name:
-                                                                                                                                    args.append(name)
+    # ============================================================================
+    # Workspace Management
+    # ============================================================================
 
-                                                                                                                                    result = self._run_command(args)
+    def workspace_list(self) -> list[str]:
+        """List workspaces."""
+        result = self._run_command(["workspace", "list"])
+        workspaces = []
+        for line in result.stdout.split("\n"):
+            line = line.strip()
+            if line:
+                # Remove * from current workspace
+                workspace = line.replace("*", "").strip()
+                workspaces.append(workspace)
+        return workspaces
 
-                                                                                                                                    if json_output:
-                                                                                                                                        data = json.loads(result.stdout)
-         specific output, return just the value
-                                                                                                                                        if name and isinstance(data, dict):
-                                                                                                                                            return data.get("value")
-                                                                                                                                            return data
+    def workspace_new(self, name: str) -> str:
+        """Create new workspace."""
+        logger.info(f"Creating workspace: {name}")
+        result = self._run_command(["workspace", "new", name])
+        return result.stdout
 
-                                                                                                                                            return result.stdout.strip()
+    def workspace_select(self, name: str) -> str:
+        """Select workspace."""
+        logger.info(f"Selecting workspace: {name}")
+        result = self._run_command(["workspace", "select", name])
+        return result.stdout
 
-                                                                                                                                            lidation and Formatting
+    def workspace_delete(self, name: str) -> str:
+        """Delete workspace."""
+        logger.warning(f"Deleting workspace: {name}")
+        result = self._run_command(["workspace", "delete", name])
+        return result.stdout
 
-                                                                                                                                            def validate(self) -> str:
-                                                                                                                                                """Validate Terraform configuration."""
-                                                                                                                                                logger.info("Validating Terraform configuration")
-                                                                                                                                                result = self._run_command(["validate"])
-                                                                                                                                                return result.stdout
+    # ============================================================================
+    # Output Management
+    # ============================================================================
 
-                                                                                                                                                def fmt(self, check: bool = False, recursive: bool = True) -> str:
-                                                                                                                                                    """
-                                                                                                                                                    Format Terraform files.
+    def output(self, name: str | None = None, json_output: bool = True) -> Any:
+        """
+        Get output values.
 
-                                                                                                                                                    Args:
-                                                                                                                                                        check: Check if files are formatted
-                                                                                                                                                        recursive: Format recursively
+        Args:
+            name: Specific output name
+            json_output: Return as JSON
 
-                                                                                                                                                        Returns:
-                                                                                                                                                            Format output
-                                                                                                                                                            """
-                                                                                                                                                            args = ["fmt"]
+        Returns:
+            Output value(s)
+        """
+        args = ["output"]
 
-                                                                                                                                                            if check:
-                                                                                                                                                                args.append("-check")
+        if json_output:
+            args.append("-json")
 
-                                                                                                                                                                if recursive:
-                                                                                                                                                                    args.append("-recursive")
+        if name:
+            args.append(name)
 
-                                                                                                                                                                    result = self._run_command(args)
-                                                                                                                                                                    return result.stdout
+        result = self._run_command(args)
 
-                                                                                                                                                                    ility Methods
+        if json_output:
+            data = json.loads(result.stdout)
+            # If specific output, return just the value
+            if name and isinstance(data, dict):
+                return data.get("value")
+            return data
 
-                                                                                                                                                                    def create_backend_config(self, backend_type: str, config: dict[str, str]) -> str:
-                                                                                                                                                                        """
-                                                                                                                                                                        Create backend configuration file.
+        return result.stdout.strip()
 
-                                                                                                                                                                        Args:
-                                                                                                                                                                            backend_type: Backend type (s3, azurerm, gcs, etc.)
-                                                                                                                                                                            config: Backend configuration
+    # ============================================================================
+    # Validation and Formatting
+    # ============================================================================
 
-                                                                                                                                                                            Returns:
-                                                                                                                                                                                Path to backend config file
-                                                                                                                                                                                """
-                                                                                                                                                                                backend_hcl = f'terraform {{\n  backend "{backend_type}" {{\n'
+    def validate(self) -> str:
+        """Validate Terraform configuration."""
+        logger.info("Validating Terraform configuration")
+        result = self._run_command(["validate"])
+        return result.stdout
 
-                                                                                                                                                                                for key, value in config.items():
-                                                                                                                                                                                    backend_hcl += f'    {key} = "{value}"\n'
+    def fmt(self, check: bool = False, recursive: bool = True) -> str:
+        """
+        Format Terraform files.
 
-                                                                                                                                                                                    backend_hcl += "  }\n}\n"
+        Args:
+            check: Check if files are formatted
+            recursive: Format recursively
 
-                                                                                                                                                                                    backend_file = self.working_dir / "backend.tf"
-                                                                                                                                                                                    backend_file.write_text(backend_hcl)
+        Returns:
+            Format output
+        """
+        args = ["fmt"]
 
-                                                                                                                                                                                    logger.info(f"Created backend config: {backend_file}")
-                                                                                                                                                                                    return str(backend_file)
+        if check:
+            args.append("-check")
 
-                                                                                                                                                                                    def plan_and_apply(
-                                                                                                                                                                                    self, variables: dict[str, Any] | None = None, auto_approve: bool = False
-                                                                                                                                                                                    ) -> dict[str, str]:
-                                                                                                                                                                                        """
-                                                                                                                                                                                        Convenience method: plan and apply in one call.
+        if recursive:
+            args.append("-recursive")
 
-                                                                                                                                                                                        Args:
-                                                                                                                                                                                            variables: Terraform variables
-                                                                                                                                                                                            auto_approve: Auto-approve apply
+        result = self._run_command(args)
+        return result.stdout
 
-                                                                                                                                                                                            Returns:
-                                                                                                                                                                                                Dict with plan and apply outputs
-                                                                                                                                                                                                """
-                                                                                                                                                                                                logger.info("Running plan and apply")
+    # ============================================================================
+    # Utility Methods
+    # ============================================================================
 
-                                                                                                                                                                                                eate plan
-                                                                                                                                                                                                plan_file = "tfplan"
-                                                                                                                                                                                                plan_output = self.plan(variables=variables, out_file=plan_file)
+    def create_backend_config(self, backend_type: str, config: dict[str, str]) -> str:
+        """
+        Create backend configuration file.
 
-                                                                                                                                                                                                ply plan
-                                                                                                                                                                                                apply_output = self.apply(plan_file=plan_file, auto_approve=auto_approve)
+        Args:
+            backend_type: Backend type (s3, azurerm, gcs, etc.)
+            config: Backend configuration
 
-                                                                                                                                                                                                return {"plan": plan_output, "apply": apply_output}
+        Returns:
+            Path to backend config file
+        """
+        backend_hcl = f'terraform {{\n  backend "{backend_type}" {{\n'
+
+        for key, value in config.items():
+            backend_hcl += f'    {key} = "{value}"\n'
+
+        backend_hcl += "  }\n}\n"
+
+        backend_file = self.working_dir / "backend.tf"
+        backend_file.write_text(backend_hcl)
+
+        logger.info(f"Created backend config: {backend_file}")
+        return str(backend_file)
+
+    def plan_and_apply(self, variables: dict[str, Any] | None = None, auto_approve: bool = False) -> dict[str, str]:
+        """
+        Convenience method: plan and apply in one call.
+
+        Args:
+            variables: Terraform variables
+            auto_approve: Auto-approve apply
+
+        Returns:
+            Dict with plan and apply outputs
+        """
+        logger.info("Running plan and apply")
+
+        # Create plan
+        plan_file = "tfplan"
+        plan_output = self.plan(variables=variables, out_file=plan_file)
+
+        # Apply plan
+        apply_output = self.apply(plan_file=plan_file, auto_approve=auto_approve)
+
+        return {"plan": plan_output, "apply": apply_output}

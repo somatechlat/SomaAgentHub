@@ -12,7 +12,6 @@ from fastapi import APIRouter, Header, HTTPException, status
 from fastapi.responses import StreamingResponse
 from prometheus_client import Counter, Histogram
 from pydantic import BaseModel
-from services.common.config.base_settings import resolve_env
 
 router = APIRouter(prefix="/v1/conversation", tags=["conversation"])
 logger = logging.getLogger(__name__)
@@ -22,16 +21,16 @@ CONVERSATION_REQUESTS = Counter(
     "orchestrator_requests_total",
     "Total conversation requests",
     labelnames=("route", "decision"),
-    )
+)
 
-    CONVERSATION_LATENCY = Histogram(
+CONVERSATION_LATENCY = Histogram(
     "orchestrator_conversation_latency_seconds",
     "Conversation endpoint latency",
     labelnames=("route",),
-    )
+)
 
 
-    class ConversationStepRequest(BaseModel):
+class ConversationStepRequest(BaseModel):
     session_id: str
     tenant: str
     user: str
@@ -39,57 +38,55 @@ CONVERSATION_REQUESTS = Counter(
     metadata: dict = {}
 
 
-    class ConversationStepResponse(BaseModel):
+class ConversationStepResponse(BaseModel):
     session_id: str
     response: str
     constitution_hash: str | None = None
     policy_score: float | None = None
 
 
-    async def _emit_conversation_event(
-    session_id: str, tenant: str, event_type: str, data: dict
-    ) -> None:
+async def _emit_conversation_event(session_id: str, tenant: str, event_type: str, data: dict) -> None:
     """Emit conversation event to Kafka topic."""
     try:
         from services.common.kafka_client import get_kafka_client
 
         kafka_client = get_kafka_client()
 
-# Ensure producer is started
+        # Ensure producer is started
         if kafka_client._producer is None:
-    await kafka_client.start()
+            await kafka_client.start()
 
-    await kafka_client.send_event(
-    topic="conversation.events",
-    event={
-        "session_id": session_id,
-        "tenant": tenant,
-        "event_type": event_type,
-        "timestamp": time.time(),
-        "data": data,
-    },
-    key=session_id,
-    )
+        await kafka_client.send_event(
+            topic="conversation.events",
+            event={
+                "session_id": session_id,
+                "tenant": tenant,
+                "event_type": event_type,
+                "timestamp": time.time(),
+                "data": data,
+            },
+            key=session_id,
+        )
     except Exception as exc:
-# Log error but don't block request
+        # Log error but don't block request
         logger.warning("[KAFKA_ERROR] Failed to emit conversation event: %s", exc)
         event = {
-    "session_id": session_id,
-    "tenant": tenant,
-    "event_type": event_type,
-    "timestamp": time.time(),
-    "data": data,
-    }
-    logger.info("[CONVERSATION_EVENT] %s", json.dumps(event))
+            "session_id": session_id,
+            "tenant": tenant,
+            "event_type": event_type,
+            "timestamp": time.time(),
+            "data": data,
+        }
+        logger.info("[CONVERSATION_EVENT] %s", json.dumps(event))
 
 
-    @router.post("/step", response_model=ConversationStepResponse)
-    async def conversation_step(
+@router.post("/step", response_model=ConversationStepResponse)
+async def conversation_step(
     req: ConversationStepRequest,
     x_policy_decision: str | None = Header(None),
     x_policy_score: str | None = Header(None),
     x_constitution_hash: str | None = Header(None),
-    ) -> ConversationStepResponse:
+) -> ConversationStepResponse:
     """Synchronous conversation turn with policy enforcement."""
     start_time = time.perf_counter()
 
@@ -97,32 +94,33 @@ CONVERSATION_REQUESTS = Counter(
     if x_policy_decision and x_policy_decision.lower() == "deny":
         CONVERSATION_REQUESTS.labels(route="step", decision="deny").inc()
         raise HTTPException(
-    status_code=status.HTTP_403_FORBIDDEN,
-    detail="Policy evaluation denied this request",
-    )
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Policy evaluation denied this request",
+        )
 
     CONVERSATION_REQUESTS.labels(route="step", decision="allow").inc()
 
     # Emit conversation event
     await _emit_conversation_event(
-    req.session_id,
-    req.tenant,
-    "conversation.step",
-    {
-    "prompt": req.prompt,
-    "user": req.user,
-    "policy_score": float(x_policy_score) if x_policy_score else None,
-    },
+        req.session_id,
+        req.tenant,
+        "conversation.step",
+        {
+            "prompt": req.prompt,
+            "user": req.user,
+            "policy_score": float(x_policy_score) if x_policy_score else None,
+        },
     )
 
     # Call LLM Hub via synchronous endpoint
     try:
         from services.common.openai_provider import get_openai_provider
+
         openai_provider = get_openai_provider()
         response_text = await openai_provider.complete(
-    messages=[{"role": "user", "content": req.prompt}],
-    model="gpt-3.5-turbo",
-    )
+            messages=[{"role": "user", "content": req.prompt}],
+            model="gpt-3.5-turbo",
+        )
     except Exception as e:
         logger.error(f"Failed to call LLM Hub: {e}")
         raise HTTPException(status_code=503, detail="LLM Hub unavailable")
@@ -131,25 +129,23 @@ CONVERSATION_REQUESTS = Counter(
     CONVERSATION_LATENCY.labels(route="step").observe(elapsed)
 
     return ConversationStepResponse(
-    session_id=req.session_id,
-    response=response_text,
-    constitution_hash=x_constitution_hash,
-    policy_score=float(x_policy_score) if x_policy_score else None,
+        session_id=req.session_id,
+        response=response_text,
+        constitution_hash=x_constitution_hash,
+        policy_score=float(x_policy_score) if x_policy_score else None,
     )
 
 
-    async def _stream_conversation(
+async def _stream_conversation(
     session_id: str,
     tenant: str,
     prompt: str,
     constitution_hash: str | None,
     policy_score: str | None,
-    ) -> AsyncGenerator[str, None]:
+) -> AsyncGenerator[str, None]:
     """Generate SSE stream for conversation."""
     # Emit start event
-    await _emit_conversation_event(
-    session_id, tenant, "conversation.stream_start", {"prompt": prompt}
-    )
+    await _emit_conversation_event(session_id, tenant, "conversation.stream_start", {"prompt": prompt})
 
     # Use OpenAI provider for real streaming completions
     try:
@@ -159,40 +155,36 @@ CONVERSATION_REQUESTS = Counter(
 
         chunk_count = 0
         async for chunk in openai_provider.complete_stream(
-    messages=[{"role": "user", "content": prompt}],
-    model="gpt-3.5-turbo",
-    ):
-    chunk_count += 1
-    yield f"data: {json.dumps({'chunk': chunk})}\\n\\n"
+            messages=[{"role": "user", "content": prompt}],
+            model="gpt-3.5-turbo",
+        ):
+            chunk_count += 1
+            yield f"data: {json.dumps({'chunk': chunk})}\\n\\n"
 
-    yield f"data: {json.dumps({'done': True})}\\n\\n"
+        yield f"data: {json.dumps({'done': True})}\\n\\n"
 
-# Emit completion event
-    await _emit_conversation_event(
-    session_id, tenant, "conversation.stream_complete", {"chunks": chunk_count}
-    )
-    except Exception as exc:
-# Fallback to echo response if OpenAI unavailable
+        # Emit completion event
+        await _emit_conversation_event(session_id, tenant, "conversation.stream_complete", {"chunks": chunk_count})
+    except Exception:
+        # Fallback to echo response if OpenAI unavailable
         chunks = ["Hello", " from", " orchestrator", " streaming", " endpoint!"]
         for chunk in chunks:
-    yield f"data: {json.dumps({'chunk': chunk})}\\n\\n"
-    await asyncio.sleep(0.1)
+            yield f"data: {json.dumps({'chunk': chunk})}\\n\\n"
+            await asyncio.sleep(0.1)
 
-    yield f"data: {json.dumps({'done': True})}\\n\\n"
+        yield f"data: {json.dumps({'done': True})}\\n\\n"
 
-# Emit completion event
-    await _emit_conversation_event(
-    session_id, tenant, "conversation.stream_complete", {"chunks": len(chunks)}
-    )
+        # Emit completion event
+        await _emit_conversation_event(session_id, tenant, "conversation.stream_complete", {"chunks": len(chunks)})
 
 
-    @router.post("/stream")
-    async def conversation_stream(
+@router.post("/stream")
+async def conversation_stream(
     req: ConversationStepRequest,
     x_policy_decision: str | None = Header(None),
     x_policy_score: str | None = Header(None),
     x_constitution_hash: str | None = Header(None),
-    ) -> StreamingResponse:
+) -> StreamingResponse:
     """Streaming conversation endpoint using Server-Sent Events."""
     start_time = time.perf_counter()
 
@@ -200,9 +192,9 @@ CONVERSATION_REQUESTS = Counter(
     if x_policy_decision and x_policy_decision.lower() == "deny":
         CONVERSATION_REQUESTS.labels(route="stream", decision="deny").inc()
         raise HTTPException(
-    status_code=status.HTTP_403_FORBIDDEN,
-    detail="Policy evaluation denied this request",
-    )
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Policy evaluation denied this request",
+        )
 
     CONVERSATION_REQUESTS.labels(route="stream", decision="allow").inc()
 
@@ -211,12 +203,12 @@ CONVERSATION_REQUESTS = Counter(
     CONVERSATION_LATENCY.labels(route="stream").observe(elapsed)
 
     return StreamingResponse(
-    _stream_conversation(
-    req.session_id,
-    req.tenant,
-    req.prompt,
-    x_constitution_hash,
-    x_policy_score,
-    ),
-    media_type="text/event-stream",
+        _stream_conversation(
+            req.session_id,
+            req.tenant,
+            req.prompt,
+            x_constitution_hash,
+            x_policy_score,
+        ),
+        media_type="text/event-stream",
     )

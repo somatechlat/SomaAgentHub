@@ -3,8 +3,6 @@ Workflow module initialization.
 Real Temporal workflows for KAMACHIQ - Sprint-5.
 """
 
-from services.common.config.base_settings import resolve_env
-
 from .activities import (
     aggregate_results,
     create_task_plan,
@@ -12,10 +10,10 @@ from .activities import (
     execute_task,
     review_output,
     spawn_agent,
-    )
-    from .kamachiq_workflow import AgentTaskWorkflow, KAMACHIQProjectWorkflow
+)
+from .kamachiq_workflow import AgentTaskWorkflow, KAMACHIQProjectWorkflow
 
-    __all__ = [
+__all__ = [
     "KAMACHIQProjectWorkflow",
     "AgentTaskWorkflow",
     "decompose_project",
@@ -24,4 +22,4 @@ from .activities import (
     "execute_task",
     "review_output",
     "aggregate_results",
-    ]
+]

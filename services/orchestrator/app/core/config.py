@@ -5,8 +5,7 @@ backward-compatibility via the shared resolver. No external unified modules
 are required here to keep coupling low.
 """
 
-import os
-from services.common.config.base_settings import resolve_env, BaseServiceSettings
+from services.common.config.base_settings import BaseServiceSettings, resolve_env
 
 SERVICE_NAME = "orchestrator"
 
@@ -37,61 +36,55 @@ class Settings(BaseServiceSettings):
     defined, causing an ``ImportError`` during test collection.
     """
 
-# Service identification
+    # Service identification
     service_name: str = SERVICE_NAME
 
-# Temporal configuration
+    # Temporal configuration
     temporal_target_host: str = TEMPORAL_TARGET_HOST
     temporal_namespace: str = TEMPORAL_NAMESPACE
     temporal_task_queue: str = TEMPORAL_TASK_QUEUE
     temporal_enabled: bool = TEMPORAL_ENABLED
 
-# Kafka configuration
+    # Kafka configuration
     kafka_bootstrap_servers: str = KAFKA_BOOTSTRAP_SERVERS
     kafka_client_id: str = KAFKA_CLIENT_ID
     kafka_topic_prefix: str = KAFKA_TOPIC_PREFIX
     kafka_security_protocol: str = KAFKA_SECURITY_PROTOCOL
 
-# Additional service URLs (canonical env vars)
-    policy_engine_url: str = resolve_env(
-    "POLICY_ENGINE_URL", "http://policy-engine:10020"
-    )
+    # Additional service URLs (canonical env vars)
+    policy_engine_url: str = resolve_env("POLICY_ENGINE_URL", "http://policy-engine:10020")
     llm_hub_url: str = resolve_env("LLM_HUB_URL", "http://llm-hub:8000")
     gateway_api_url: str = resolve_env("GATEWAY_API_URL", "http://gateway-api:10000")
 
-
-
-# Database configuration (canonical prefix variables)
+    # Database configuration (canonical prefix variables)
     database_url: str = resolve_env(
-    "DATABASE_URL",
-    "postgresql+asyncpg://postgres:postgres@localhost:5432/orchestrator",
+        "DATABASE_URL",
+        "postgresql+asyncpg://postgres:postgres@localhost:5432/orchestrator",
     )
-# Flags and pool settings – converted to appropriate types
+    # Flags and pool settings – converted to appropriate types
     database_echo: bool = str(resolve_env("DATABASE_ECHO", "false")).lower() == "true"
     database_pool_size: int = int(resolve_env("DATABASE_POOL_SIZE", "5"))
     database_max_overflow: int = int(resolve_env("DATABASE_MAX_OVERFLOW", "10"))
     database_pool_timeout: int = int(resolve_env("DATABASE_POOL_TIMEOUT", "30"))
     database_pool_recycle: int = int(resolve_env("DATABASE_POOL_RECYCLE", "1800"))
 
-	# -----------------------------------------------------------------------
-	# Governance / RL data flag
-	# -----------------------------------------------------------------------
-	# Tenants can opt‑out of emitting RL training data.  The default is ``False``
-	# to stay safe.  Individual services (e.g., the VC workflow) should check
-	# this flag before publishing ``VC_STEP`` events.
-	allow_rl_training_data: bool = (
-		str(resolve_env("ALLOW_RL_TRAINING_DATA", "false")).lower() == "true"
-	)
+    # -----------------------------------------------------------------------
+    # Governance / RL data flag
+    # -----------------------------------------------------------------------
+    # Tenants can opt‑out of emitting RL training data.  The default is ``False``
+    # to stay safe.  Individual services (e.g., the VC workflow) should check
+    # this flag before publishing ``VC_STEP`` events.
+    allow_rl_training_data: bool = str(resolve_env("ALLOW_RL_TRAINING_DATA", "false")).lower() == "true"
 
 
 # Export a singleton instance for importers
- settings = Settings()
+settings = Settings()
 
 
- def get_settings() -> Settings:
-     """Return the singleton settings instance.
+def get_settings() -> Settings:
+    """Return the singleton settings instance.
 
-     Many modules import ``get_settings`` for consistency with other services.
-     Providing this thin wrapper maintains the existing import contract.
-     """
-     return settings
+    Many modules import ``get_settings`` for consistency with other services.
+    Providing this thin wrapper maintains the existing import contract.
+    """
+    return settings

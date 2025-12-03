@@ -9,8 +9,6 @@ from contextlib import suppress
 
 from temporalio.client import Client
 from temporalio.worker import Worker
-
-from services.common.config.base_settings import resolve_env
 from workflows import (
     AgentTaskWorkflow,
     KAMACHIQProjectWorkflow,
@@ -22,6 +20,8 @@ from workflows import (
     review_output,
     spawn_agent,
 )
+
+from services.common.config.base_settings import resolve_env
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)

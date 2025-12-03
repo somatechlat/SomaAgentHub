@@ -23,10 +23,10 @@ class OutboxEvent(Base):
 
     # Primary key using UUID for distributed systems compatibility
     id = Column(
-    UUID(as_uuid=True),
-    primary_key=True,
-    default=uuid.uuid4,
-    server_default=expression.text("gen_random_uuid()"),
+        UUID(as_uuid=True),
+        primary_key=True,
+        default=uuid.uuid4,
+        server_default=expression.text("gen_random_uuid()"),
     )
 
     # Event type identifier (e.g., 'gateway.wizard_approved.v1')
@@ -53,15 +53,15 @@ class OutboxEvent(Base):
     def __repr__(self) -> str:
         return f"<OutboxEvent(id={self.id}, type={self.event_type}, status={self.processing_status})>"
 
-        def to_dict(self) -> dict[str, Any]:
-    """Convert model to dictionary for serialization."""
-    return {
-        "id": str(self.id),
-        "event_type": self.event_type,
-        "event_data": self.event_data,
-        "created_at": self.created_at.isoformat() if self.created_at else None,
-        "processed_at": (self.processed_at.isoformat() if self.processed_at else None),
-        "processing_status": self.processing_status,
-        "retry_count": int(self.retry_count),
-        "last_error": self.last_error,
-    }
+    def to_dict(self) -> dict[str, Any]:
+        """Convert model to dictionary for serialization."""
+        return {
+            "id": str(self.id),
+            "event_type": self.event_type,
+            "event_data": self.event_data,
+            "created_at": self.created_at.isoformat() if self.created_at else None,
+            "processed_at": (self.processed_at.isoformat() if self.processed_at else None),
+            "processing_status": self.processing_status,
+            "retry_count": int(self.retry_count),
+            "last_error": self.last_error,
+        }

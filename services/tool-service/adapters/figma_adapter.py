@@ -9,7 +9,6 @@ import logging
 from typing import Any
 
 import requests
-from services.common.config.base_settings import resolve_env
 
 logger = logging.getLogger(__name__)
 
@@ -26,291 +25,213 @@ class FigmaAdapter:
         Initialize Figma adapter.
 
         Args:
-    access_token: Personal access token from Figma account settings
-    """
-    self.base_url = "https://api.figma.com/v1"
-    self.headers = {
-    "X-Figma-Token": access_token,
-    "Content-Type": "application/json",
-    }
-    logger.info("Figma adapter initialized")
+            access_token: Personal access token
+        """
+        self.access_token = access_token
+        self.base_url = "https://api.figma.com/v1"
+        self.headers = {
+            "X-Figma-Token": access_token,
+            "Content-Type": "application/json",
+        }
+        logger.info("Figma adapter initialized")
 
     def _request(self, method: str, endpoint: str, **kwargs) -> Any:
-                """Make API request."""
-                url = f"{self.base_url}/{endpoint}"
-                response = requests.request(
-                method, url, headers=self.headers, timeout=30, **kwargs
-                )
-                response.raise_for_status()
-                return response.json() if response.content else {}
+        """Make API request."""
+        url = f"{self.base_url}/{endpoint}"
+        response = requests.request(method, url, headers=self.headers, timeout=30, **kwargs)
+        response.raise_for_status()
+        return response.json()
 
-# ============================================================================
-# FILES
-# ============================================================================
+    # ============================================================================
+    # FILES
+    # ============================================================================
 
-    def get_file(self, file_key: str) -> dict[str, Any]:
-        """Get complete file data including all design components."""
-        return self._request("GET", f"files/{file_key}")
+    def get_file(self, file_key: str, depth: int | None = None) -> dict[str, Any]:
+        """
+        Get file content.
 
-    def get_file_nodes(self, file_key: str, node_ids: list[str]) -> dict[str, Any]:
+        Args:
+            file_key: File key from URL
+            depth: Depth of node tree to traverse
+        """
+        params = {}
+        if depth:
+            params["depth"] = depth
+        return self._request("GET", f"files/{file_key}", params=params)
+
+    def get_file_nodes(self, file_key: str, node_ids: list[str], depth: int | None = None) -> dict[str, Any]:
         """Get specific nodes from a file."""
-        ids = ",".join(node_ids)
-        return self._request("GET", f"files/{file_key}/nodes", params={"ids": ids})
+        params = {"ids": ",".join(node_ids)}
+        if depth:
+            params["depth"] = depth
+        return self._request("GET", f"files/{file_key}/nodes", params=params)
 
-    def get_file_images(
-                        self,
-                        file_key: str,
-                        node_ids: list[str],
-                        scale: float = 1.0,
-                        format: str = "png",
-                        ) -> dict[str, str]:
-                            """
-                            Render images from file nodes.
+    def get_image_fills(self, file_key: str) -> dict[str, Any]:
+        """Get image fills for a file."""
+        return self._request("GET", f"files/{file_key}/images")
 
-                            Args:
-                                file_key: File key
-                                node_ids: List of node IDs to render
-                                scale: Image scale (1.0, 2.0, 3.0, 4.0)
-                                format: Image format (png, jpg, svg, pdf)
-
-                                Returns:
-                                    Dictionary mapping node IDs to image URLs
-                                    """
-                                    ids = ",".join(node_ids)
-                                    params = {"ids": ids, "scale": scale, "format": format}
-                                    response = self._request("GET", f"images/{file_key}", params=params)
-                                    return response.get("images", {})
-
-# ============================================================================
-# COMMENTS
-# ============================================================================
+    # ============================================================================
+    # COMMENTS
+    # ============================================================================
 
     def get_comments(self, file_key: str) -> list[dict[str, Any]]:
-        """Get all comments on a file."""
+        """Get comments for a file."""
         response = self._request("GET", f"files/{file_key}/comments")
         return response.get("comments", [])
 
-    def post_comment(
-                                        self,
-                                        file_key: str,
-                                        message: str,
-                                        client_meta: dict[str, float] | None = None,
-                                        comment_id: str | None = None,
-                                        ) -> dict[str, Any]:
-                                            """
-                                            Post a comment on a file.
+    def post_comment(self, file_key: str, message: str, client_meta: dict[str, Any] | None = None) -> dict[str, Any]:
+        """
+        Post a comment to a file.
 
-                                            Args:
-                                                file_key: File key
-                                                message: Comment message
-                                                client_meta: Position data {"x": 0.5, "y": 0.5, "node_id": "123:456"}
-                                                comment_id: Reply to existing comment (optional)
-                                                """
-                                                data = {"message": message}
-                                                if client_meta:
-                                                    data["client_meta"] = client_meta
-                                                    if comment_id:
-                                                        data["comment_id"] = comment_id
+        Args:
+            file_key: File key
+            message: Comment text
+            client_meta: Position data (x, y, node_id)
+        """
+        data = {"message": message}
+        if client_meta:
+            data["client_meta"] = client_meta
 
-                                                        return self._request("POST", f"files/{file_key}/comments", json=data)
+        comment = self._request("POST", f"files/{file_key}/comments", json=data)
+        logger.info(f"Posted comment to file {file_key}")
+        return comment
 
-# ============================================================================
-# PROJECTS
-# ============================================================================
+    def delete_comment(self, file_key: str, comment_id: str):
+        """Delete a comment."""
+        self._request("DELETE", f"files/{file_key}/comments/{comment_id}")
+        logger.info(f"Deleted comment {comment_id}")
+
+    # ============================================================================
+    # IMAGES
+    # ============================================================================
+
+    def get_images(
+        self,
+        file_key: str,
+        node_ids: list[str],
+        scale: float = 1.0,
+        format: str = "png",
+    ) -> dict[str, str]:
+        """
+        Render nodes as images.
+
+        Args:
+            file_key: File key
+            node_ids: List of node IDs
+            scale: Image scale (0.01 - 4)
+            format: png, jpg, svg, pdf
+
+        Returns:
+            Dictionary mapping node IDs to image URLs
+        """
+        params = {
+            "ids": ",".join(node_ids),
+            "scale": scale,
+            "format": format,
+        }
+        response = self._request("GET", f"images/{file_key}", params=params)
+        return response.get("images", {})
+
+    # ============================================================================
+    # PROJECTS & TEAMS
+    # ============================================================================
+
+    def get_team_projects(self, team_id: str) -> list[dict[str, Any]]:
+        """List projects in a team."""
+        response = self._request("GET", f"teams/{team_id}/projects")
+        return response.get("projects", [])
 
     def get_project_files(self, project_id: str) -> list[dict[str, Any]]:
-        """Get all files in a project."""
+        """List files in a project."""
         response = self._request("GET", f"projects/{project_id}/files")
         return response.get("files", [])
 
-    def get_team_projects(self, team_id: str) -> list[dict[str, Any]]:
-                                                                """Get all projects in a team."""
-                                                                response = self._request("GET", f"teams/{team_id}/projects")
-                                                                return response.get("projects", [])
+    # ============================================================================
+    # COMPONENTS & STYLES
+    # ============================================================================
 
-# ============================================================================
-# COMPONENTS & STYLES
-# ============================================================================
-
-    def get_file_components(self, file_key: str) -> dict[str, Any]:
-        """Get all components from a file."""
-        response = self._request("GET", f"files/{file_key}/components")
-        return response.get("meta", {})
-
-    def get_file_styles(self, file_key: str) -> dict[str, Any]:
-        """Get all styles from a file."""
-        response = self._request("GET", f"files/{file_key}/styles")
-        return response.get("meta", {})
-
-    def get_team_components(self, team_id: str) -> list[dict[str, Any]]:
-        """Get all components published by a team."""
-        response = self._request("GET", f"teams/{team_id}/components")
+    def get_team_components(self, team_id: str, page_size: int = 30) -> list[dict[str, Any]]:
+        """List components in a team library."""
+        response = self._request("GET", f"teams/{team_id}/components", params={"page_size": page_size})
         return response.get("meta", {}).get("components", [])
 
-    def get_team_styles(self, team_id: str) -> list[dict[str, Any]]:
-                                                                                """Get all styles published by a team."""
-                                                                                response = self._request("GET", f"teams/{team_id}/styles")
-                                                                                return response.get("meta", {}).get("styles", [])
+    def get_team_styles(self, team_id: str, page_size: int = 30) -> list[dict[str, Any]]:
+        """List styles in a team library."""
+        response = self._request("GET", f"teams/{team_id}/styles", params={"page_size": page_size})
+        return response.get("meta", {}).get("styles", [])
 
-# ============================================================================
-# VERSIONS
-# ============================================================================
+    def get_file_components(self, file_key: str) -> list[dict[str, Any]]:
+        """List components in a file."""
+        response = self._request("GET", f"files/{file_key}/components")
+        return response.get("meta", {}).get("components", [])
 
-    def get_file_versions(self, file_key: str) -> list[dict[str, Any]]:
-                                                                                    """Get version history of a file."""
-                                                                                    response = self._request("GET", f"files/{file_key}/versions")
-                                                                                    return response.get("versions", [])
+    # ============================================================================
+    # UTILITIES
+    # ============================================================================
 
-# ============================================================================
-# USER
-# ============================================================================
-
-    def get_me(self) -> dict[str, Any]:
-                                                                                        """Get current user information."""
-                                                                                        return self._request("GET", "me")
-
-# ============================================================================
-# WEBHOOKS
-# ============================================================================
-
-    def create_webhook(
-    self,
-    team_id: str,
-    endpoint: str,
-    event_type: str,
-    passcode: str,
-    description: str | None = None,
-    ) -> dict[str, Any]:
-    """
-    Create a webhook for file updates.
-
-    Args:
-        team_id: Team ID
-        endpoint: Your webhook endpoint URL
-        event_type: Event type (FILE_UPDATE, FILE_VERSION_UPDATE, FILE_DELETE, LIBRARY_PUBLISH)
-        passcode: Secret passcode for webhook verification
-        description: Optional description
+    def export_design_assets(self, file_key: str, node_ids: list[str], output_dir: str) -> list[str]:
         """
-        data = {
-        "event_type": event_type,
-        "team_id": team_id,
-        "endpoint": endpoint,
-        "passcode": passcode,
+        Export nodes as images and save to disk.
+
+        Args:
+            file_key: File key
+            node_ids: List of node IDs
+            output_dir: Directory to save images
+
+        Returns:
+            List of saved file paths
+        """
+        import os
+
+        # Get image URLs
+        images = self.get_images(file_key, node_ids, scale=2.0, format="png")
+        saved_files = []
+
+        if not os.path.exists(output_dir):
+            os.makedirs(output_dir)
+
+        for node_id, url in images.items():
+            if not url:
+                continue
+
+            # Download image
+            response = requests.get(url)
+            if response.status_code == 200:
+                # Sanitize filename
+                filename = f"{node_id.replace(':', '_')}.png"
+                filepath = os.path.join(output_dir, filename)
+
+                with open(filepath, "wb") as f:
+                    f.write(response.content)
+
+                saved_files.append(filepath)
+                logger.info(f"Exported asset: {filepath}")
+
+        return saved_files
+
+    def inspect_node_properties(self, file_key: str, node_id: str) -> dict[str, Any]:
+        """
+        Inspect properties of a specific node (e.g., for CSS generation).
+
+        Args:
+            file_key: File key
+            node_id: Node ID
+        """
+        response = self.get_file_nodes(file_key, [node_id])
+        nodes = response.get("nodes", {})
+        node = nodes.get(node_id, {}).get("document", {})
+
+        # Extract relevant properties
+        properties = {
+            "name": node.get("name"),
+            "type": node.get("type"),
+            "fills": node.get("fills"),
+            "strokes": node.get("strokes"),
+            "strokeWeight": node.get("strokeWeight"),
+            "effects": node.get("effects"),
+            "style": node.get("style"),  # Text styles
+            "layoutMode": node.get("layoutMode"),
+            "constraints": node.get("constraints"),
         }
-        if description:
-            data["description"] = description
 
-            return self._request("POST", "webhooks", json=data)
-
-    def list_webhooks(self, team_id: str) -> list[dict[str, Any]]:
-        """List all webhooks for a team."""
-        response = self._request("GET", f"webhooks/{team_id}")
-        return response.get("webhooks", [])
-
-    def delete_webhook(self, webhook_id: str):
-                                                                                                            """Delete a webhook."""
-                                                                                                            self._request("DELETE", f"webhooks/{webhook_id}")
-                                                                                                            logger.info(f"Deleted webhook: {webhook_id}")
-
-# ============================================================================
-# UTILITIES
-# ============================================================================
-
-    def export_design_system(
-                                                                                                            self, file_key: str, export_path: str = "."
-                                                                                                            ) -> dict[str, Any]:
-                                                                                                                """
-                                                                                                                Export complete design system including components and styles.
-
-                                                                                                                Args:
-                                                                                                                    file_key: Figma file key
-                                                                                                                    export_path: Local path to export assets
-
-                                                                                                                    Returns:
-                                                                                                                        Summary of exported assets
-                                                                                                                        """
-# Get components and styles
-                                                                                                                        components = self.get_file_components(file_key)
-                                                                                                                        styles = self.get_file_styles(file_key)
-
-# Get component nodes
-                                                                                                                        component_ids = [comp["node_id"] for comp in components.get("components", [])]
-
-# Export component images
-                                                                                                                        images = {}
-                                                                                                                        if component_ids:
-                                                                                                                            images = self.get_file_images(
-                                                                                                                            file_key, component_ids, scale=2.0, format="png"
-                                                                                                                            )
-
-                                                                                                                            logger.info(f"Exported {len(component_ids)} components from {file_key}")
-
-                                                                                                                            return {
-                                                                                                                            "components": components,
-                                                                                                                            "styles": styles,
-                                                                                                                            "images": images,
-                                                                                                                            "export_path": export_path,
-                                                                                                                            }
-
-    def create_design_review_workflow(
-                                                                                                                            self, file_key: str, reviewers: list[str], review_message: str
-                                                                                                                            ) -> list[dict[str, Any]]:
-                                                                                                                                """
-                                                                                                                                Create design review workflow with comments.
-
-                                                                                                                                Args:
-                                                                                                                                    file_key: File to review
-                                                                                                                                    reviewers: List of reviewer names/emails
-                                                                                                                                    review_message: Review request message
-
-                                                                                                                                    Returns:
-                                                                                                                                        List of created comments
-                                                                                                                                        """
-                                                                                                                                        comments = []
-
-# Post review request comment
-                                                                                                                                        comment = self.post_comment(
-                                                                                                                                        file_key,
-                                                                                                                                        f"🎨 Design Review Request\n\n{review_message}\n\nReviewers: {', '.join(reviewers)}",
-                                                                                                                                        )
-                                                                                                                                        comments.append(comment)
-
-                                                                                                                                        logger.info(f"Created design review workflow for {file_key}")
-
-                                                                                                                                        return comments
-
-    def analyze_design_changes(
-                                                                                                                                    self, file_key: str, version_count: int = 5
-                                                                                                                                    ) -> dict[str, Any]:
-                                                                                                                                        """
-                                                                                                                                        Analyze recent design changes from version history.
-
-                                                                                                                                        Args:
-                                                                                                                                            file_key: File key
-                                                                                                                                            version_count: Number of recent versions to analyze
-
-                                                                                                                                            Returns:
-                                                                                                                                                Analysis of design changes
-                                                                                                                                                """
-                                                                                                                                                versions = self.get_file_versions(file_key)[:version_count]
-
-                                                                                                                                                analysis = {
-                                                                                                                                                "total_versions": len(versions),
-                                                                                                                                                "recent_versions": versions,
-                                                                                                                                                "contributors": list(
-                                                                                                                                                set(v.get("user", {}).get("handle", "Unknown") for v in versions)
-                                                                                                                                                ),
-                                                                                                                                                "timeline": [
-                                                                                                                                                {
-                                                                                                                                                "id": v.get("id"),
-                                                                                                                                                "label": v.get("label", "Unnamed"),
-                                                                                                                                                "created_at": v.get("created_at"),
-                                                                                                                                                "description": v.get("description", ""),
-                                                                                                                                                }
-                                                                                                                                                for v in versions
-                                                                                                                                                ],
-                                                                                                                                                }
-
-                                                                                                                                                logger.info(f"Analyzed {len(versions)} versions of {file_key}")
-
-                                                                                                                                                return analysis
+        return properties

@@ -1,400 +1,244 @@
+"""
+⚠️ WE DO NOT MOCK - Real Notion API adapter.
+
+Provides comprehensive Notion integration:
+    - Database creation and queries
+    - Page creation and updates
+    - Block management
+    - Team collaboration
+"""
+
+import logging
+from typing import Any
+
+import requests
+
+from services.common.config.base_settings import resolve_env
+
+logger = logging.getLogger(__name__)
+
+
+class NotionAdapter:
+    """
+    Adapter for Notion API.
+
+    API Documentation: https://developers.notion.com
+    """
+
+    def __init__(self, api_token: str | None = None):
+        self.api_token = api_token or resolve_env("NOTION_API_TOKEN")
+        self.base_url = "https://api.notion.com/v1"
+        self.headers = {
+            "Authorization": f"Bearer {self.api_token}",
+            "Notion-Version": "2022-06-28",
+            "Content-Type": "application/json",
+        }
+
+        if not self.api_token:
+            logger.warning("NOTION_API_TOKEN not found. API calls will fail.")
+
+    def _request(self, method: str, endpoint: str, **kwargs) -> dict[str, Any]:
+        """Make authenticated API request."""
+        url = f"{self.base_url}/{endpoint}"
+
+        response = requests.request(method=method, url=url, headers=self.headers, timeout=30, **kwargs)
+
+        response.raise_for_status()
+        return response.json()
+
+    # ----------------------------------------------------------------------
+    # Database Operations
+    # ----------------------------------------------------------------------
+
+    def query_database(
+        self,
+        database_id: str,
+        filter_criteria: dict[str, Any] | None = None,
+        sorts: list[dict[str, Any]] | None = None,
+        page_size: int = 100,
+    ) -> dict[str, Any]:
         """
-        ⚠️ WE DO NOT MOCK - Real Notion API adapter.
-
-        Provides comprehensive Notion integration:
-            - Database creation and queries
-            - Page creation and updates
-            - Block management
-            - Team collaboration
-            """
-
-            import logging
-            from typing import Any
-
-            import requests
-            from services.common.config.base_settings import resolve_env
-
-            logger = logging.getLogger(__name__)
-
-
-            class NotionAdapter:
-            """
-            Adapter for Notion API.
-
-            API Documentation: https://developers.notion.com
-            """
-
-            def __init__(self, api_token: str, notion_version: str = "2022-06-28"):
-                self.api_token = api_token
-                self.notion_version = notion_version
-                self.base_url = "https://api.notion.com/v1"
-                self.headers = {
-                "Authorization": f"Bearer {api_token}",
-                "Notion-Version": notion_version,
-                "Content-Type": "application/json",
-                }
-
-                def _request(self, method: str, endpoint: str, **kwargs) -> dict[str, Any]:
-                    """Make authenticated API request."""
-                    url = f"{self.base_url}/{endpoint}"
-
-                    response = requests.request(
-                    method=method, url=url, headers=self.headers, timeout=30, **kwargs
-                    )
-
-                    response.raise_for_status()
-                    return response.json() if response.content else {}
-
-                    tabase Management
-
-                    def create_database(
-                    self,
-                    parent_page_id: str,
-                    title: str,
-                    properties: dict[str, Any],
-                    ) -> dict[str, Any]:
-                        """
-                        Create a new database.
-
-                        Args:
-                            parent_page_id: Parent page ID
-                            title: Database title
-                            properties: Database schema properties
-
-                            Returns:
-                                Created database object
-                                """
-                                logger.info(f"Creating Notion database: {title}")
-
-                                data = {
-                                "parent": {"type": "page_id", "page_id": parent_page_id},
-                                "title": [{"type": "text", "text": {"content": title}}],
-                                "properties": properties,
-                                }
-
-                                return self._request("POST", "databases", json=data)
-
-                                def query_database(
-                                self,
-                                database_id: str,
-                                filter_conditions: dict[str, Any] | None = None,
-                                sorts: list[dict[str, Any]] | None = None,
-                                page_size: int = 100,
-                                ) -> dict[str, Any]:
-                                    """
-                                    Query database with filters and sorts.
-
-                                    Args:
-                                        database_id: Database ID
-                                        filter_conditions: Filter object
-                                        sorts: Sort configuration
-                                        page_size: Number of results per page
-
-                                        Returns:
-                                            Query results
-                                            """
-                                            data = {"page_size": page_size}
-
-                                            if filter_conditions:
-                                                data["filter"] = filter_conditions
-                                                if sorts:
-                                                    data["sorts"] = sorts
-
-                                                    return self._request("POST", f"databases/{database_id}/query", json=data)
-
-                                                    ge Management
-
-                                                    def create_page(
-                                                    self,
-                                                    parent_database_id: str | None = None,
-                                                    parent_page_id: str | None = None,
-                                                    properties: dict[str, Any] | None = None,
-                                                    children: list[dict[str, Any]] | None = None,
-                                                    ) -> dict[str, Any]:
-                                                        """
-                                                        Create a new page.
-
-                                                        Args:
-                                                            parent_database_id: Parent database ID
-                                                            parent_page_id: Parent page ID
-                                                            properties: Page properties
-                                                            children: Child blocks
-
-                                                            Returns:
-                                                                Created page object
-                                                                """
-                                                                logger.info("Creating Notion page")
-
-                                                                data = {}
-
-                                                                if parent_database_id:
-                                                                    data["parent"] = {"type": "database_id", "database_id": parent_database_id}
-                                                                    elif parent_page_id:
-                                                                        data["parent"] = {"type": "page_id", "page_id": parent_page_id}
-                                                                        else:
-                                                                            raise ValueError("Must provide either parent_database_id or parent_page_id")
-
-                                                                            if properties:
-                                                                                data["properties"] = properties
-                                                                                if children:
-                                                                                    data["children"] = children
-
-                                                                                    return self._request("POST", "pages", json=data)
-
-                                                                                    def update_page(
-                                                                                    self,
-                                                                                    page_id: str,
-                                                                                    properties: dict[str, Any],
-                                                                                    archived: bool = False,
-                                                                                    ) -> dict[str, Any]:
-                                                                                        """Update a page's properties."""
-                                                                                        data = {
-                                                                                        "properties": properties,
-                                                                                        "archived": archived,
-                                                                                        }
-
-                                                                                        return self._request("PATCH", f"pages/{page_id}", json=data)
-
-                                                                                        def get_page(self, page_id: str) -> dict[str, Any]:
-                                                                                            """Get page details."""
-                                                                                            return self._request("GET", f"pages/{page_id}")
-
-                                                                                            ock Management
-
-                                                                                            def append_blocks(
-                                                                                            self, block_id: str, children: list[dict[str, Any]]
-                                                                                            ) -> dict[str, Any]:
-                                                                                                """Append blocks to a page or block."""
-                                                                                                data = {"children": children}
-                                                                                                return self._request("PATCH", f"blocks/{block_id}/children", json=data)
-
-                                                                                                def get_block_children(self, block_id: str, page_size: int = 100) -> dict[str, Any]:
-                                                                                                    """Get child blocks."""
-                                                                                                    return self._request(
-                                                                                                    "GET", f"blocks/{block_id}/children", params={"page_size": page_size}
-                                                                                                    )
-
-                                                                                                    def delete_block(self, block_id: str) -> dict[str, Any]:
-                                                                                                        """Delete a block."""
-                                                                                                        return self._request("DELETE", f"blocks/{block_id}")
-
-                                                                                                        arch
-
-                                                                                                        def search(
-                                                                                                        self,
-                                                                                                        query: str,
-                                                                                                        filter_type: str | None = None,  # "page" or "database"
-                                                                                                        page_size: int = 100,
-                                                                                                        ) -> dict[str, Any]:
-                                                                                                            """
-                                                                                                            Search Notion workspace.
-
-                                                                                                            Args:
-                                                                                                                query: Search query
-                                                                                                                filter_type: Filter by type
-                                                                                                                page_size: Results per page
-
-                                                                                                                Returns:
-                                                                                                                    Search results
-                                                                                                                    """
-                                                                                                                    data = {
-                                                                                                                    "query": query,
-                                                                                                                    "page_size": page_size,
-                                                                                                                    }
-
-                                                                                                                    if filter_type:
-                                                                                                                        data["filter"] = {"property": "object", "value": filter_type}
-
-                                                                                                                        return self._request("POST", "search", json=data)
-
-                                                                                                                        ers
-
-                                                                                                                        def list_users(self, page_size: int = 100) -> dict[str, Any]:
-                                                                                                                            """List all users in workspace."""
-                                                                                                                            return self._request("GET", "users", params={"page_size": page_size})
-
-                                                                                                                            def get_user(self, user_id: str) -> dict[str, Any]:
-                                                                                                                                """Get user details."""
-                                                                                                                                return self._request("GET", f"users/{user_id}")
-
-                                                                                                                                lper Methods - Block Builders
-
-                                                                                                                                @staticmethod
-                                                                                                                                def build_heading_block(text: str, level: int = 1) -> dict[str, Any]:
-                                                                                                                                    """Build a heading block."""
-                                                                                                                                    heading_type = f"heading_{level}"
-                                                                                                                                    return {
-                                                                                                                                    "type": heading_type,
-                                                                                                                                    heading_type: {"rich_text": [{"type": "text", "text": {"content": text}}]},
-                                                                                                                                    }
-
-                                                                                                                                    @staticmethod
-                                                                                                                                    def build_paragraph_block(text: str) -> dict[str, Any]:
-                                                                                                                                        """Build a paragraph block."""
-                                                                                                                                        return {
-                                                                                                                                        "type": "paragraph",
-                                                                                                                                        "paragraph": {"rich_text": [{"type": "text", "text": {"content": text}}]},
-                                                                                                                                        }
-
-                                                                                                                                        @staticmethod
-                                                                                                                                        def build_code_block(code: str, language: str = "python") -> dict[str, Any]:
-                                                                                                                                            """Build a code block."""
-                                                                                                                                            return {
-                                                                                                                                            "type": "code",
-                                                                                                                                            "code": {
-                                                                                                                                            "rich_text": [{"type": "text", "text": {"content": code}}],
-                                                                                                                                            "language": language,
-                                                                                                                                            },
-                                                                                                                                            }
-
-                                                                                                                                            @staticmethod
-                                                                                                                                            def build_todo_block(text: str, checked: bool = False) -> dict[str, Any]:
-                                                                                                                                                """Build a to-do block."""
-                                                                                                                                                return {
-                                                                                                                                                "type": "to_do",
-                                                                                                                                                "to_do": {
-                                                                                                                                                "rich_text": [{"type": "text", "text": {"content": text}}],
-                                                                                                                                                "checked": checked,
-                                                                                                                                                },
-                                                                                                                                                }
-
-                                                                                                                                                @staticmethod
-                                                                                                                                                def build_bulleted_list_block(text: str) -> dict[str, Any]:
-                                                                                                                                                    """Build a bulleted list item."""
-                                                                                                                                                    return {
-                                                                                                                                                    "type": "bulleted_list_item",
-                                                                                                                                                    "bulleted_list_item": {
-                                                                                                                                                    "rich_text": [{"type": "text", "text": {"content": text}}]
-                                                                                                                                                    },
-                                                                                                                                                    }
-
-                                                                                                                                                    lper Methods - Property Builders
-
-                                                                                                                                                    @staticmethod
-                                                                                                                                                    def build_title_property(title: str) -> dict[str, Any]:
-                                                                                                                                                        """Build a title property."""
-                                                                                                                                                        return {"title": [{"type": "text", "text": {"content": title}}]}
-
-                                                                                                                                                        @staticmethod
-                                                                                                                                                        def build_rich_text_property(text: str) -> dict[str, Any]:
-                                                                                                                                                            """Build a rich text property."""
-                                                                                                                                                            return {"rich_text": [{"type": "text", "text": {"content": text}}]}
-
-                                                                                                                                                            @staticmethod
-                                                                                                                                                            def build_select_property(option: str) -> dict[str, Any]:
-                                                                                                                                                                """Build a select property."""
-                                                                                                                                                                return {"select": {"name": option}}
-
-                                                                                                                                                                @staticmethod
-                                                                                                                                                                def build_multi_select_property(options: list[str]) -> dict[str, Any]:
-                                                                                                                                                                    """Build a multi-select property."""
-                                                                                                                                                                    return {"multi_select": [{"name": option} for option in options]}
-
-                                                                                                                                                                    @staticmethod
-                                                                                                                                                                    def build_checkbox_property(checked: bool) -> dict[str, Any]:
-                                                                                                                                                                        """Build a checkbox property."""
-                                                                                                                                                                        return {"checkbox": checked}
-
-                                                                                                                                                                        @staticmethod
-                                                                                                                                                                        def build_date_property(start: str, end: str | None = None) -> dict[str, Any]:
-                                                                                                                                                                            """Build a date property."""
-                                                                                                                                                                            date_obj = {"start": start}
-                                                                                                                                                                            if end:
-                                                                                                                                                                                date_obj["end"] = end
-                                                                                                                                                                                return {"date": date_obj}
-
-                                                                                                                                                                                ility Methods
-
-                                                                                                                                                                                def create_task_database(
-                                                                                                                                                                                self, parent_page_id: str, title: str = "Tasks"
-                                                                                                                                                                                ) -> dict[str, Any]:
-                                                                                                                                                                                    """
-                                                                                                                                                                                    Create a standard task database with common properties.
-
-                                                                                                                                                                                    Args:
-                                                                                                                                                                                        parent_page_id: Parent page ID
-                                                                                                                                                                                        title: Database title
-
-                                                                                                                                                                                        Returns:
-                                                                                                                                                                                            Created database
-                                                                                                                                                                                            """
-                                                                                                                                                                                            logger.info(f"Creating task database: {title}")
-
-                                                                                                                                                                                            properties = {
-                                                                                                                                                                                            "Name": {"title": {}},
-                                                                                                                                                                                            "Status": {
-                                                                                                                                                                                            "select": {
-                                                                                                                                                                                            "options": [
-            {"name": "Not Started", "color": "gray"},
-            {"name": "In Progress", "color": "blue"},
-            {"name": "Completed", "color": "green"},
-            {"name": "Blocked", "color": "red"},
-            ]
-            }
+        Query a database.
+
+        Args:
+            database_id: Database ID
+            filter_criteria: Filter object
+            sorts: Sort object
+        """
+        data = {"page_size": page_size}
+        if filter_criteria:
+            data["filter"] = filter_criteria
+        if sorts:
+            data["sorts"] = sorts
+
+        return self._request("POST", f"databases/{database_id}/query", json=data)
+
+    def create_database(
+        self,
+        parent_page_id: str,
+        title: str,
+        properties: dict[str, Any],
+        icon: dict[str, Any] | None = None,
+        cover: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
+        """Create a new database."""
+        data = {
+            "parent": {"type": "page_id", "page_id": parent_page_id},
+            "title": [{"type": "text", "text": {"content": title}}],
+            "properties": properties,
+        }
+
+        if icon:
+            data["icon"] = icon
+        if cover:
+            data["cover"] = cover
+
+        return self._request("POST", "databases", json=data)
+
+    def retrieve_database(self, database_id: str) -> dict[str, Any]:
+        """Retrieve database metadata."""
+        return self._request("GET", f"databases/{database_id}")
+
+    # ----------------------------------------------------------------------
+    # Page Operations
+    # ----------------------------------------------------------------------
+
+    def create_page(
+        self,
+        parent_id: str,
+        properties: dict[str, Any],
+        children: list[dict[str, Any]] | None = None,
+        icon: dict[str, Any] | None = None,
+        cover: dict[str, Any] | None = None,
+        parent_type: str = "database_id",
+    ) -> dict[str, Any]:
+        """
+        Create a new page.
+
+        Args:
+            parent_id: Parent database or page ID
+            properties: Page properties (must match schema)
+            children: Page content (blocks)
+            parent_type: "database_id" or "page_id"
+        """
+        data = {
+            "parent": {parent_type: parent_id},
+            "properties": properties,
+        }
+
+        if children:
+            data["children"] = children
+        if icon:
+            data["icon"] = icon
+        if cover:
+            data["cover"] = cover
+
+        return self._request("POST", "pages", json=data)
+
+    def retrieve_page(self, page_id: str) -> dict[str, Any]:
+        """Retrieve page properties."""
+        return self._request("GET", f"pages/{page_id}")
+
+    def update_page_properties(
+        self,
+        page_id: str,
+        properties: dict[str, Any],
+        icon: dict[str, Any] | None = None,
+        cover: dict[str, Any] | None = None,
+        archived: bool | None = None,
+    ) -> dict[str, Any]:
+        """Update page properties."""
+        data = {"properties": properties}
+
+        if icon:
+            data["icon"] = icon
+        if cover:
+            data["cover"] = cover
+        if archived is not None:
+            data["archived"] = archived
+
+        return self._request("PATCH", f"pages/{page_id}", json=data)
+
+    # ----------------------------------------------------------------------
+    # Block Operations
+    # ----------------------------------------------------------------------
+
+    def retrieve_block_children(self, block_id: str, page_size: int = 100) -> dict[str, Any]:
+        """Retrieve children blocks of a block or page."""
+        return self._request("GET", f"blocks/{block_id}/children", params={"page_size": page_size})
+
+    def append_block_children(self, block_id: str, children: list[dict[str, Any]]) -> dict[str, Any]:
+        """Append blocks to a parent."""
+        return self._request("PATCH", f"blocks/{block_id}/children", json={"children": children})
+
+    def update_block(self, block_id: str, block_content: dict[str, Any]) -> dict[str, Any]:
+        """Update a block's content."""
+        return self._request("PATCH", f"blocks/{block_id}", json=block_content)
+
+    def delete_block(self, block_id: str) -> dict[str, Any]:
+        """Delete (archive) a block."""
+        return self._request("DELETE", f"blocks/{block_id}")
+
+    # ----------------------------------------------------------------------
+    # Search
+    # ----------------------------------------------------------------------
+
+    def search(
+        self,
+        query: str,
+        filter_criteria: dict[str, Any] | None = None,
+        sort: dict[str, Any] | None = None,
+        page_size: int = 100,
+    ) -> dict[str, Any]:
+        """Search pages and databases."""
+        data = {"query": query, "page_size": page_size}
+
+        if filter_criteria:
+            data["filter"] = filter_criteria
+        if sort:
+            data["sort"] = sort
+
+        return self._request("POST", "search", json=data)
+
+    # ----------------------------------------------------------------------
+    # Helpers
+    # ----------------------------------------------------------------------
+
+    @staticmethod
+    def build_text_block(content: str, style: str = "paragraph") -> dict[str, Any]:
+        """
+        Build a text block.
+
+        Args:
+            content: Text content
+            style: "paragraph", "heading_1", "heading_2", "heading_3", "bulleted_list_item", etc.
+        """
+        return {
+            "object": "block",
+            "type": style,
+            style: {"rich_text": [{"type": "text", "text": {"content": content}}]},
+        }
+
+    @staticmethod
+    def build_todo_block(content: str, checked: bool = False) -> dict[str, Any]:
+        """Build a to-do block."""
+        return {
+            "object": "block",
+            "type": "to_do",
+            "to_do": {
+                "rich_text": [{"type": "text", "text": {"content": content}}],
+                "checked": checked,
             },
-            "Priority": {
-            "select": {
-            "options": [
-            {"name": "Low", "color": "gray"},
-            {"name": "Medium", "color": "yellow"},
-            {"name": "High", "color": "orange"},
-            {"name": "Urgent", "color": "red"},
-            ]
-            }
+        }
+
+    @staticmethod
+    def build_code_block(content: str, language: str = "plain text") -> dict[str, Any]:
+        """Build a code block."""
+        return {
+            "object": "block",
+            "type": "code",
+            "code": {
+                "rich_text": [{"type": "text", "text": {"content": content}}],
+                "language": language,
             },
-            "Due Date": {"date": {}},
-            "Assignee": {"people": {}},
-            "Tags": {"multi_select": {}},
-            }
-
-            return self.create_database(parent_page_id, title, properties)
-
-            def create_meeting_notes_page(
-            self,
-            parent_database_id: str,
-            title: str,
-            date: str,
-            attendees: list[str],
-            notes: str = "",
-            ) -> dict[str, Any]:
-            """
-            Create a meeting notes page.
-
-            Args:
-                parent_database_id: Parent database ID
-                title: Meeting title
-                date: Meeting date
-                attendees: List of attendees
-                notes: Meeting notes
-
-                Returns:
-                    Created page
-                    """
-                    logger.info(f"Creating meeting notes: {title}")
-
-                    ild properties
-                    properties = {
-                    "Name": self.build_title_property(title),
-                    "Date": self.build_date_property(date),
-                    "Attendees": self.build_multi_select_property(attendees),
-                    }
-
-                    ild content blocks
-                    children = [
-                    self.build_heading_block("Agenda", 2),
-                    self.build_paragraph_block(""),
-                    self.build_heading_block("Discussion", 2),
-                    (
-                    self.build_paragraph_block(notes)
-                    if notes
-                    else self.build_paragraph_block("")
-                    ),
-                    self.build_heading_block("Action Items", 2),
-                    self.build_todo_block("Add action items here"),
-                    ]
-
-                    return self.create_page(
-                    parent_database_id=parent_database_id,
-                    properties=properties,
-                    children=children,
-                    )
+        }
