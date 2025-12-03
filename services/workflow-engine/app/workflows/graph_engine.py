@@ -288,44 +288,51 @@ class GraphWorkflowDef:
             return {"status": "completed", "decision": decision, "session_id": session_id}
             
         elif node_type == "agent":
-            # Execute real agent activity
+            # Execute real agent activity via Role System
             workflow.logger.info(f"Calling execute_agent for {node_id}")
             
-            # Assuming node['id'] is the agent_id or mapped to it. 
-            # If node['id'] is just a graph node ID, we need the actual agent_id from node config.
-            # For now, we assume node['metadata']['agent_id'] or similar holds the real UUID.
-            # Fallback to node['id'] if it looks like a UUID.
-            agent_id = node.get("metadata", {}).get("agent_id", node_id)
+            # Extract role_id from metadata
+            # We expect 'role_id' in metadata for new blueprints.
+            # Fallback to 'agent_id' for legacy compatibility (though agent_activities expects role_id now, so this implies migration)
+            role_id = node.get("metadata", {}).get("role_id")
+            if not role_id:
+                # Try agent_id as fallback, assuming migration mapped it
+                role_id = node.get("metadata", {}).get("agent_id", node_id)
             
             # Retrieve context from memory
             context_docs = await workflow.execute_activity(
                 "retrieve_memory_context",
-                args=[agent_id, str(input_data), 5],
+                args=[role_id, str(input_data), 5],
                 start_to_close_timeout=timedelta(seconds=10)
             )
             
-            # Enrich input with context and capsule
+            # Enrich input with context, capsule, and execution metadata
             input_data["memory_context"] = context_docs
             if capsule_spec:
                 input_data["capsule_spec"] = capsule_spec
+            
+            # Pass execution context for session binding
+            input_data["tenant_id"] = node.get("metadata", {}).get("tenant_id") # Should be passed down from workflow start
+            input_data["workflow_instance_id"] = workflow_id
+            input_data["node_execution_id"] = str(uuid.uuid4()) # Generate a node execution ID (or use actual if tracked)
 
             agent_result = await workflow.execute_activity(
                 "execute_agent",
-                args=[agent_id, input_data],
+                args=[role_id, input_data],
                 start_to_close_timeout=timedelta(minutes=5)
             )
             
             # Store experience
             await workflow.execute_activity(
                 "store_memory_experience",
-                args=[agent_id, str(agent_result.get("output")), {"workflow_id": workflow_id, "node_id": node_id}],
+                args=[role_id, str(agent_result.get("output")), {"workflow_id": workflow_id, "node_id": node_id}],
                 start_to_close_timeout=timedelta(seconds=10)
             )
 
             # Audit Log
             await workflow.execute_activity(
                 "log_audit_event",
-                args=["agent.execution", agent_id, "execute", node_id, "success", {"result": str(agent_result)}],
+                args=["agent.execution", role_id, "execute", node_id, "success", {"result": str(agent_result)}],
                 start_to_close_timeout=timedelta(seconds=10)
             )
             
