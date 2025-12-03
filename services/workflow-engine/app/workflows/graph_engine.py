@@ -313,10 +313,17 @@ class GraphWorkflowDef:
                 if not role_id:
                     role_id = node.get("metadata", {}).get("agent_id", node_id)
                 
+                # Prepare context
+                exec_context = {
+                    "tenant_id": tenant_id,
+                    "workflow_instance_id": workflow_id,
+                    "node_execution_id": execution_id
+                }
+
                 # Retrieve context from memory
                 context_docs = await workflow.execute_activity(
                     "retrieve_memory_context",
-                    args=[role_id, str(input_data), 5],
+                    args=[role_id, str(input_data), 5, exec_context],
                     start_to_close_timeout=timedelta(seconds=10)
                 )
                 
@@ -338,7 +345,7 @@ class GraphWorkflowDef:
                 # Store experience
                 await workflow.execute_activity(
                     "store_memory_experience",
-                    args=[role_id, str(agent_result.get("output")), {"workflow_id": workflow_id, "node_id": node_id}],
+                    args=[role_id, str(agent_result.get("output")), {"workflow_id": workflow_id, "node_id": node_id}, exec_context],
                     start_to_close_timeout=timedelta(seconds=10)
                 )
 
