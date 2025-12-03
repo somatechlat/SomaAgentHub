@@ -1,7 +1,0 @@
-capsule_id: example/capsule
-version: "1.0"
-params:
-  image: alpine
-  command: echo "Hello from capsule"
-metadata:
-  description: Sample capsule for CI validation
