@@ -57,6 +57,10 @@ router.include_router(conversation_router)
 router.include_router(projects_router)
 router.include_router(training_router)
 
+# Include Agent Registry Router
+from .registry import router as registry_router
+router.include_router(registry_router)
+
 # Metrics
 POLICY_FALLBACK_EVENTS = Counter(
     "policy_fallback_events_total",

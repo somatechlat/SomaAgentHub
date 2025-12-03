@@ -42,8 +42,10 @@ logger = logging.getLogger(__name__)
 settings = get_settings()
 DATABASE_URL: str = settings.database_url
 
-# Synchronous engine for metadata creation – use the regular SQLite driver.
-sync_engine = create_engine("sqlite:///:memory:", echo=False, future=True)
+# Synchronous engine for metadata creation – use Postgres (sync driver).
+# Convert asyncpg URL to sync URL (postgresql+asyncpg:// -> postgresql://)
+_sync_db_url = DATABASE_URL.replace("+asyncpg", "")
+sync_engine = create_engine(_sync_db_url, echo=False, future=True)
 
 # Async engine for runtime operations with production pooling
 _db_url = DATABASE_URL

@@ -7,6 +7,7 @@ from datetime import UTC, datetime
 import pytest
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.orm import sessionmaker
+from sqlmodel import SQLModel
 
 from services.common.events.outbox import OutboxEvent, OutboxRepository
 from services.common.events.publisher import InMemoryEventPublisher
@@ -15,14 +16,22 @@ from services.common.events.publisher import InMemoryEventPublisher
 @pytest.mark.asyncio
 async def test_basic_outbox_event_creation() -> None:
     """Test basic outbox event creation."""
-    engine = create_async_engine("sqlite+aiosqlite:///:memory:")
+    import os
+    # Use port 10004 as defined in docker-compose.yml for app-postgres
+    db_url = os.getenv("TEST_DATABASE_URL", "postgresql+asyncpg://somaagent:somaagent@localhost:10004/somaagent")
+    engine = create_async_engine(db_url)
     async_session = sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
-
+    
     # Create tables
-    from services.common.events.outbox import Base
+    from sqlalchemy.sql import expression
+    async with engine.connect() as conn:
+        await conn.execution_options(isolation_level="AUTOCOMMIT")
+        await conn.execute(expression.text('CREATE EXTENSION IF NOT EXISTS "pgcrypto"'))
+        await conn.execute(expression.text('CREATE EXTENSION IF NOT EXISTS "uuid-ossp"'))
 
     async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
+        await conn.run_sync(SQLModel.metadata.drop_all)
+        await conn.run_sync(SQLModel.metadata.create_all)
 
     async with async_session() as session:
         outbox_repo = OutboxRepository(session)

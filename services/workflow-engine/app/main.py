@@ -1,6 +1,6 @@
 """
 Workflow Engine Service - Consolidated orchestrator, mao-service, and kamachiq-service
-Supports multiple workflow types: capsule, mao, kamachiq
+Supports multiple workflow types: capsule, mao
 """
 
 from fastapi import FastAPI, HTTPException, Depends
@@ -12,14 +12,10 @@ from typing import Dict, Any, List, Optional
 
 # Consolidated workflow engines
 from .workflows.capsule_engine import CapsuleWorkflowEngine
-from .workflows.mao_engine import MAOWorkflowEngine  
-from .workflows.kamachiq_engine import KamachiqWorkflowEngine
-from .workflows.dynamic_engine import DynamicWorkflowEngine
+from .workflows.graph_engine import GraphWorkflowEngine
 
 # Consolidated activity handlers
 from .activities.capsule_activities import CapsuleActivities
-from .activities.mao_activities import MAOActivities
-from .activities.kamachiq_activities import KamachiqActivities
 from .activities.agent_activities import AgentActivities
 
 # Configuration
@@ -39,19 +35,22 @@ class WorkflowEngineService:
 
 # Initialize workflow engines
         self.workflow_engines = {
-    "capsule": CapsuleWorkflowEngine(),
-    "mao": MAOWorkflowEngine(),
-    "kamachiq": KamachiqWorkflowEngine(),
-    "dynamic": DynamicWorkflowEngine()
-    }
+            "capsule": CapsuleWorkflowEngine(),
+            "graph": GraphWorkflowEngine()
+        }
 
-# Initialize activity handlers
-    self.activity_handlers = {
-    "capsule": CapsuleActivities(),
-    "mao": MAOActivities(),
-    "kamachiq": KamachiqActivities(),
-    "agent": AgentActivities()
-    }
+        # Initialize activity handlers
+        self.activity_handlers = {
+            "capsule": CapsuleActivities(),
+            "agent": AgentActivities()
+        }
+
+    async def initialize(self):
+        """Initialize all workflow engines"""
+        for name, engine in self.workflow_engines.items():
+            if hasattr(engine, "initialize"):
+                logger.info(f"Initializing {name} workflow engine...")
+                await engine.initialize()
     
     async def start_workflow(self, workflow_type: str, workflow_request: Dict[str, Any]) -> Dict[str, Any]:
         """Start workflow of specified type"""
@@ -144,6 +143,9 @@ class WorkflowEngineService:
 
         return None
 
+# Observability
+from services.common.observability import setup_observability
+
 # FastAPI application
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -152,6 +154,7 @@ async def lifespan(app: FastAPI):
     
     # Initialize workflow engines
     workflow_service = WorkflowEngineService()
+    await workflow_service.initialize()
     app.state.workflow_service = workflow_service
     
     yield
@@ -163,6 +166,13 @@ app = FastAPI(
     description="Consolidated workflow orchestration service",
     version="1.0.0",
     lifespan=lifespan
+)
+
+# Setup Observability
+setup_observability(
+    service_name="workflow-engine",
+    app=app,
+    service_version="1.0.0"
 )
 
 # CORS middleware

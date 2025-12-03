@@ -28,14 +28,25 @@ async def test_outbox_event_workflow() -> None:
     """Test complete outbox event workflow."""
 
     # Setup database
-    engine = create_async_engine("sqlite+aiosqlite:///:memory:")
+    import os
+    # Use port 10004 as defined in docker-compose.yml for app-postgres
+    db_url = os.getenv("TEST_DATABASE_URL", "postgresql+asyncpg://somaagent:somaagent@localhost:10004/somaagent")
+    engine = create_async_engine(db_url)
     async_session = sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
 
     # Create tables
     from services.common.events.outbox import Base
 
+    # Create tables
+    async with engine.connect() as conn:
+        from sqlalchemy.sql import expression
+        await conn.execution_options(isolation_level="AUTOCOMMIT")
+        await conn.execute(expression.text('CREATE EXTENSION IF NOT EXISTS "pgcrypto"'))
+        await conn.execute(expression.text('CREATE EXTENSION IF NOT EXISTS "uuid-ossp"'))
+    
     async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
+        await conn.run_sync(Base.drop_all)
+        await conn.run_sync(Base.create_all)
 
     async with async_session() as session:
         outbox_repo = OutboxRepository(session)

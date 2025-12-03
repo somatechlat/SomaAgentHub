@@ -1,196 +1,120 @@
-        """Entry point for the SomaAgentHub (SAH) service."""
+"""Entry point for the SomaAgentHub (SAH) service."""
 
-        from __future__ import annotations
+from __future__ import annotations
 
-        import asyncio
-        import logging
-        from contextlib import asynccontextmanager
-        from typing import Any
+import asyncio
+import logging
+import importlib
+from contextlib import asynccontextmanager
+from typing import Any
 
-        import httpx
-        from fastapi import FastAPI, HTTPException
-        from fastapi.responses import Response
-        from prometheus_client import CONTENT_TYPE_LATEST, generate_latest
-        from pydantic import BaseModel
+import httpx
+from fastapi import FastAPI
+from fastapi.responses import Response
+from prometheus_client import CONTENT_TYPE_LATEST, generate_latest
 
-        from services.common.fastapi.bootstrap import create_app
-        from services.common.spiffe_auth import init_spiffe
+from services.common.fastapi.bootstrap import create_app
+from services.common.spiffe_auth import init_spiffe
 
-        # Import app-local modules in a way that works when loaded as a loose module
-        import importlib
-        from services.common.config.base_settings import resolve_env
+# Import app-local modules
+api_router = importlib.import_module("app.api.routes").router
+get_settings = importlib.import_module("app.config").get_settings
+ContextMiddleware = importlib.import_module("app.core.middleware").ContextMiddleware
+close_redis_client = importlib.import_module("app.core.redis").close_redis_client
+get_redis_client = importlib.import_module("app.core.redis").get_redis_client
 
-        api_router = importlib.import_module("app.api.routes").router  # type: ignore[attr-defined]
-        get_settings = importlib.import_module("app.config").get_settings  # type: ignore[attr-defined]
-        ContextMiddleware = importlib.import_module("app.core.middleware").ContextMiddleware  # type: ignore[attr-defined]
-        close_redis_client = importlib.import_module("app.core.redis").close_redis_client  # type: ignore[attr-defined]
-        get_redis_client = importlib.import_module("app.core.redis").get_redis_client  # type: ignore[attr-defined]
-        wizard_engine = importlib.import_module("app.wizard_engine").wizard_engine  # type: ignore[attr-defined]
+logger = logging.getLogger(__name__)
+settings = get_settings()
 
-        logger = logging.getLogger(__name__)
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Startup: initialize SPIFFE early
+    spiffe_identity = init_spiffe(settings.service_name or "sah")
+    if spiffe_identity:
+        logger.info("SPIFFE identity loaded", extra={"spiffe_id": spiffe_identity.spiffe_id})
+    else:
+        logger.info("SPIFFE identity not initialized; falling back to non-mTLS workload identity")
 
-        settings = get_settings()
+    yield
+    # Shutdown: ensure Redis client closes cleanly
+    await close_redis_client()
 
+def _attach_routes(app: FastAPI) -> None:
+    app.add_middleware(ContextMiddleware)
+    app.include_router(api_router)
 
-        @asynccontextmanager
-        async def lifespan(app: FastAPI):
-        # Startup: initialize SPIFFE early so SVID is ready for downstream calls
-        spiffe_identity = init_spiffe(settings.service_name or "sah")
-        if spiffe_identity:
-            logger.info(
-            "SPIFFE identity loaded", extra={"spiffe_id": spiffe_identity.spiffe_id}
+    @app.get("/healthz", tags=["system"])
+    async def healthz() -> dict[str, Any]:
+        kafka_ok, auth_ok, redis_ok = await asyncio.gather(
+            _check_kafka(),
+            _check_auth(),
+            _check_redis(),
+        )
+        status = kafka_ok and auth_ok and redis_ok
+        return {
+            "status": "ok" if status else "degraded",
+            "checks": {
+                "kafka": kafka_ok,
+                "auth": auth_ok,
+                "redis": redis_ok,
+            },
+        }
+
+    @app.get("/health", tags=["system"])
+    async def health() -> dict[str, Any]:
+        return await healthz()
+
+    @app.get("/ready", tags=["system"])
+    async def ready() -> dict[str, Any]:
+        health = await healthz()
+        return {"status": health["status"], "details": health["checks"]}
+
+    @app.get("/metrics", tags=["system"])
+    def metrics() -> Response:
+        return Response(generate_latest(), media_type=CONTENT_TYPE_LATEST)
+
+    @app.get("/")
+    def root() -> dict[str, str]:
+        return {"message": "SomaAgentHub Service"}
+
+async def _check_kafka() -> bool:
+    if not settings.kafka.bootstrap_servers:
+        return False
+    for endpoint in settings.kafka.bootstrap_servers:
+        host, _, port_raw = endpoint.partition(":")
+        port = int(port_raw or 9092)
+        try:
+            _, writer = await asyncio.wait_for(
+                asyncio.open_connection(host, port), timeout=3
             )
-            else:
-                logger.info(
-                "SPIFFE identity not initialized; falling back to non-mTLS workload identity"
-                )
+            writer.close()
+            await writer.wait_closed()
+            return True
+        except Exception:
+            continue
+    return False
 
-                yield
-        # Shutdown: ensure Redis client closes cleanly
-                await close_redis_client()
+async def _check_auth() -> bool:
+    if not settings.auth.url:
+        return False
+    url = settings.auth.url.rstrip("/") + "/health"
+    try:
+        async with httpx.AsyncClient(timeout=5.0) as client:
+            resp = await client.get(url)
+            return resp.status_code < 500
+    except Exception:
+        return False
 
+async def _check_redis() -> bool:
+    client = get_redis_client()
+    return await client.health_check()
 
-                class WizardStartRequest(BaseModel):
-                    wizard_id: str
-                    user_id: str = "demo-user"
-                    metadata: dict[str, Any] | None = None
+app = create_app(
+    service_name=settings.service_name or "sah",
+    settings=settings,
+    routes_factory=_attach_routes,
+    version=settings.service_version,
+    instrumentation=True,
+    lifespan=lifespan,
+)
 
-
-                    class WizardAnswerRequest(BaseModel):
-                        value: Any
-
-
-                        def _attach_routes(app: FastAPI) -> None:
-                            app.add_middleware(ContextMiddleware)
-                            app.include_router(api_router)
-
-                            @app.get("/healthz", tags=["system"])
-                            async def healthz() -> dict[str, Any]:
-                                kafka_ok, auth_ok, redis_ok = await asyncio.gather(
-                                _check_kafka(),
-                                _check_auth(),
-                                _check_redis(),
-                                )
-                                status = kafka_ok and auth_ok and redis_ok
-                                return {
-                                "status": "ok" if status else "degraded",
-                                "checks": {
-                                "kafka": kafka_ok,
-                                "auth": auth_ok,
-                                "redis": redis_ok,
-                                },
-                                }
-
-                                @app.get("/health", tags=["system"])
-                                async def health() -> dict[str, Any]:
-                                    return await healthz()
-
-                                    @app.get("/ready", tags=["system"])
-                                    async def ready() -> dict[str, Any]:
-                                        health = await healthz()
-                                        return {"status": health["status"], "details": health["checks"]}
-
-                                        @app.get("/metrics", tags=["system"])
-                                        def metrics() -> Response:
-                                            return Response(generate_latest(), media_type=CONTENT_TYPE_LATEST)
-
-                                            @app.get("/")
-                                            def root() -> dict[str, str]:
-                                                return {"message": "SomaAgentHub Service"}
-
-                                                @app.get("/v1/wizards", tags=["wizard"])
-                                                def list_wizards() -> dict[str, Any]:
-                                                    return {"wizards": wizard_engine.list_wizards()}
-
-                                                    from fastapi import Body
-
-                                                    @app.post("/v1/wizards/start", tags=["wizard"])
-                                                    def start_wizard(
-                                                    request: WizardStartRequest = Body(...),
-                                                    ) -> dict[str, Any]:  # pragma: no cover - interacts with external services
-                                                    try:
-                                                        return wizard_engine.start_wizard(
-                                                        wizard_id=request.wizard_id,
-                                                        user_id=request.user_id,
-                                                        metadata=request.metadata,
-                                                        )
-                                                        except ValueError as exc:  # pragma: no cover - input validation
-                                                        raise HTTPException(status_code=404, detail=str(exc))
-                                                        except Exception as exc:  # pragma: no cover - unexpected failure
-                                                        raise HTTPException(status_code=500, detail=str(exc))
-
-                                                        @app.post("/v1/wizards/{session_id}/answer", tags=["wizard"])
-                                                        def submit_wizard_answer(
-                                                        session_id: str, answer: WizardAnswerRequest
-                                                        ) -> dict[str, Any]:
-                                                            try:
-                                                                return wizard_engine.submit_answer(
-                                                                session_id=session_id, answer={"value": answer.value}
-                                                                )
-                                                                except ValueError as exc:
-                                                                    raise HTTPException(status_code=404, detail=str(exc))
-                                                                    except Exception as exc:
-                                                                        raise HTTPException(status_code=500, detail=str(exc))
-
-                                                                        @app.get("/v1/wizards/{session_id}", tags=["wizard"])
-                                                                        def get_wizard_session(session_id: str) -> dict[str, Any]:
-                                                                            session = wizard_engine.get_session(session_id)
-                                                                            if not session:
-                                                                                raise HTTPException(
-                                                                                status_code=404, detail=f"Session '{session_id}' not found"
-                                                                                )
-                                                                                return session
-
-                                                                                @app.post("/v1/wizards/{session_id}/approve", tags=["wizard"])
-                                                                                def approve_wizard_execution(session_id: str) -> dict[str, Any]:
-                                                                                    try:
-                                                                                        return wizard_engine.approve_execution(session_id)
-                                                                                        except ValueError as exc:
-                                                                                            raise HTTPException(status_code=400, detail=str(exc))
-                                                                                            except Exception as exc:
-                                                                                                raise HTTPException(status_code=500, detail=str(exc))
-
-
-                                                                                                app = create_app(
-                                                                                                service_name=settings.service_name or "sah",
-                                                                                                settings=settings,  # type: ignore[arg-type]
-                                                                                                routes_factory=_attach_routes,
-                                                                                                version=settings.service_version,
-                                                                                                instrumentation=True,
-                                                                                                lifespan=lifespan,
-                                                                                                )
-
-
-                                                                                                async def _check_kafka() -> bool:
-                                                                                                    if not settings.kafka.bootstrap_servers:
-                                                                                                        return False
-                                                                                                        for endpoint in settings.kafka.bootstrap_servers:
-                                                                                                            host, _, port_raw = endpoint.partition(":")
-                                                                                                            port = int(port_raw or 9092)
-                                                                                                            try:
-                                                                                                                _reader, writer = await asyncio.wait_for(
-                                                                                                                asyncio.open_connection(host, port), timeout=3
-                                                                                                                )
-                                                                                                                except Exception:
-                                                                                                                    continue
-                                                                                                                    writer.close()
-                                                                                                                    await writer.wait_closed()
-                                                                                                                    return True
-                                                                                                                    return False
-
-
-                                                                                                                    async def _check_auth() -> bool:
-                                                                                                                        if not settings.auth.url:
-                                                                                                                            return False
-                                                                                                                            url = settings.auth.url.rstrip("/") + "/health"
-                                                                                                                            try:
-                                                                                                                                async with httpx.AsyncClient(timeout=5.0) as client:
-                                                                                                                                    resp = await client.get(url)
-                                                                                                                                    return resp.status_code < 500
-                                                                                                                                    except Exception:
-                                                                                                                                        return False
-
-
-                                                                                                                                        async def _check_redis() -> bool:
-                                                                                                                                            client = get_redis_client()
-                                                                                                                                            return await client.health_check()

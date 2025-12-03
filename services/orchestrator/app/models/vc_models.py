@@ -4,7 +4,7 @@ These tables store each *episode* (a full problem‑solving session) and the
 individual *steps* performed by the Solver, Verifier, and Corrector agents.
 
 The design mirrors the existing SQLModel usage throughout the orchestrator
-service – a lightweight ORM that works with both PostgreSQL and SQLite.  The
+service – a lightweight ORM that works with PostgreSQL.  The
 models are deliberately simple: they capture identifiers, timestamps, role
 information, input/output payloads, and a numeric reward.
 """

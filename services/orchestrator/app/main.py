@@ -102,11 +102,12 @@ def build_app() -> FastAPI:
         security_manager.setup_trusted_hosts(app)
 
         # Register routers.
-        app.include_router(orchestrator_router)
+        app.include_router(orchestrator_router, prefix="/v1") # Changed to use prefix
         # Expose capsule CRUD endpoints under /v1/capsules.
-        app.include_router(capsules_router)
-        app.include_router(mao_router)
-        app.include_router(planner_router)
+        app.include_router(capsules_router, prefix="/v1") # Changed to use prefix
+        app.include_router(mao_router, prefix="/v1/mao") # Changed to use prefix
+        app.include_router(planner_router) # Kept as is, assuming no prefix needed
+        app.include_router(registry_router, prefix="/v1") # Added registry router
         app.include_router(health_router)
 
         # Start outbox publisher.

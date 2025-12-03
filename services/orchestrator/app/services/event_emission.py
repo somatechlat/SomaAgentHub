@@ -43,8 +43,8 @@ class EventEmissionService:
             "modules": [
                 {
                     "module_id": m.module_id,
-                    "agent_id": m.agent_id,
-                    "goal": m.goal,
+                    "agent_id": m.metadata.get("agent_id"),
+                    "goal": m.summary,
                     "dependencies": m.dependencies,
                 }
                 for m in plan.modules

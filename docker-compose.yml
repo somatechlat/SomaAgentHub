@@ -27,7 +27,7 @@ services:
       redis:
         condition: service_healthy
     healthcheck:
-      test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://127.0.0.1:10000/ready', timeout=3)\""]
+      test: [ "CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://127.0.0.1:10000/ready', timeout=3)\"" ]
       interval: 10s
       timeout: 5s
       retries: 6
@@ -51,7 +51,7 @@ services:
       - SOMA_AGENT_HUB_CAPSULE_REPO_URL=http://capsule-repo:8002/v1/capsules
       - SOMA_AGENT_HUB_OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4317
     healthcheck:
-      test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/ready', timeout=3)\""]
+      test: [ "CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/ready', timeout=3)\"" ]
       interval: 10s
       timeout: 5s
       retries: 6
@@ -75,7 +75,7 @@ services:
       redis:
         condition: service_healthy
     healthcheck:
-      test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://127.0.0.1:10002/health', timeout=3)\""]
+      test: [ "CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://127.0.0.1:10002/health', timeout=3)\"" ]
       interval: 10s
       timeout: 5s
       retries: 6
@@ -96,7 +96,7 @@ services:
       # Optional Kafka for cache invalidation – canonical prefixed var
       - SOMA_AGENT_HUB_KAFKA_BOOTSTRAP_SERVERS=${KAFKA_BOOTSTRAP_SERVERS:-}
     healthcheck:
-      test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://127.0.0.1:10020/health', timeout=3)\""]
+      test: [ "CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://127.0.0.1:10020/health', timeout=3)\"" ]
       interval: 10s
       timeout: 5s
       retries: 6
@@ -112,11 +112,11 @@ services:
       dockerfile: services/constitution-service/Dockerfile
     container_name: somaagenthub_constitution-service
     restart: unless-stopped
-    command: ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "10024"]
+    command: [ "uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "10024" ]
     ports:
       - "${CONSTITUTION_SERVICE_PORT:-10024}:10024"
     healthcheck:
-      test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://127.0.0.1:10024/health', timeout=3)\""]
+      test: [ "CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://127.0.0.1:10024/health', timeout=3)\"" ]
       interval: 10s
       timeout: 5s
       retries: 6
@@ -136,7 +136,7 @@ services:
     environment:
       - SOMA_AGENT_HUB_OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4317
     healthcheck:
-      test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=3)\""]
+      test: [ "CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=3)\"" ]
       interval: 10s
       timeout: 5s
       retries: 6
@@ -161,8 +161,12 @@ services:
       - POSTGRES_DB=${APP_POSTGRES_DB:-somaagent}
     volumes:
       - app-postgres-data:/var/lib/postgresql/data
+    deploy:
+      resources:
+        limits:
+          memory: 1G
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${APP_POSTGRES_USER:-somaagent} -d ${APP_POSTGRES_DB:-somaagent}"]
+      test: [ "CMD-SHELL", "pg_isready -U ${APP_POSTGRES_USER:-somaagent} -d ${APP_POSTGRES_DB:-somaagent}" ]
       interval: 10s
       timeout: 5s
       retries: 6
@@ -179,8 +183,12 @@ services:
       - POSTGRES_DB=${TEMPORAL_POSTGRES_DB:-temporal}
     volumes:
       - temporal-postgres-data:/var/lib/postgresql/data
+    deploy:
+      resources:
+        limits:
+          memory: 512M
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${TEMPORAL_POSTGRES_USER:-temporal} -d ${TEMPORAL_POSTGRES_DB:-temporal}"]
+      test: [ "CMD-SHELL", "pg_isready -U ${TEMPORAL_POSTGRES_USER:-temporal} -d ${TEMPORAL_POSTGRES_DB:-temporal}" ]
       interval: 10s
       timeout: 5s
       retries: 6
@@ -201,8 +209,12 @@ services:
     depends_on:
       temporal-postgres:
         condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          memory: 2G
     healthcheck:
-      test: ["CMD-SHELL", "echo 'health' | nc -w 1 localhost 7233"]
+      test: [ "CMD-SHELL", "echo 'health' | nc -w 1 localhost 7233" ]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -217,8 +229,12 @@ services:
       - "${REDIS_PORT:-10003}:6379"
     volumes:
       - redis-data:/data
+    deploy:
+      resources:
+        limits:
+          memory: 512M
     healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
+      test: [ "CMD", "redis-cli", "ping" ]
       interval: 10s
       timeout: 5s
       retries: 6
@@ -234,7 +250,7 @@ services:
     volumes:
       - qdrant-data:/qdrant/storage
     healthcheck:
-      test: ["CMD-SHELL", "curl -f http://127.0.0.1:6333/healthz || exit 1"]
+      test: [ "CMD-SHELL", "curl -f http://127.0.0.1:6333/healthz || exit 1" ]
       interval: 15s
       timeout: 5s
       retries: 6
@@ -250,7 +266,7 @@ services:
     volumes:
       - clickhouse-data:/var/lib/clickhouse
     healthcheck:
-      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:8123/ping || exit 1"]
+      test: [ "CMD-SHELL", "wget -qO- http://127.0.0.1:8123/ping || exit 1" ]
       interval: 15s
       timeout: 5s
       retries: 6
@@ -271,7 +287,7 @@ services:
     volumes:
       - minio-data:/data
     healthcheck:
-      test: ["CMD-SHELL", "curl -f http://127.0.0.1:9000/minio/health/live || exit 1"]
+      test: [ "CMD-SHELL", "curl -f http://127.0.0.1:9000/minio/health/live || exit 1" ]
       interval: 15s
       timeout: 5s
       retries: 6
@@ -300,15 +316,7 @@ services:
       - prometheus-data:/prometheus
     healthcheck:
       # Use wget which is available in the Prometheus image instead of curl
-      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:9090/-/healthy | grep -q Healthy || exit 1"]
-      interval: 10s
-      timeout: 5s
-      retries: 6
-    networks:
-      - somaagenthub-network
-
-  
-      test: ["CMD-SHELL", "curl -f http://127.0.0.1:3000/api/health || exit 1"]
+      test: [ "CMD-SHELL", "wget -qO- http://127.0.0.1:9090/-/healthy | grep -q Healthy || exit 1" ]
       interval: 10s
       timeout: 5s
       retries: 6
@@ -319,14 +327,14 @@ services:
     image: otel/opentelemetry-collector-contrib:0.96.0
     container_name: somaagenthub_otel_collector
     restart: unless-stopped
-    command: ["--config=/etc/otel-collector-config.yaml"]
+    command: [ "--config=/etc/otel-collector-config.yaml" ]
     ports:
-      - "${OTEL_COLLECTOR_OTLP_PORT:-10015}:4317"  # OTLP gRPC
-      - "${OTEL_COLLECTOR_OTLP_HTTP_PORT:-10016}:4318"  # OTLP HTTP
+      - "${OTEL_COLLECTOR_OTLP_PORT:-10015}:4317" # OTLP gRPC
+      - "${OTEL_COLLECTOR_OTLP_HTTP_PORT:-10016}:4318" # OTLP HTTP
     volumes:
       - ./infra/observability/otel-collector-config.yaml:/etc/otel-collector-config.yaml:ro
     healthcheck:
-      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:4318 || exit 1"]
+      test: [ "CMD-SHELL", "wget -qO- http://127.0.0.1:4318 || exit 1" ]
       interval: 15s
       timeout: 5s
       retries: 6
@@ -351,7 +359,7 @@ services:
       clickhouse:
         condition: service_healthy
     healthcheck:
-      test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://127.0.0.1:10026/health', timeout=3)\""]
+      test: [ "CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://127.0.0.1:10026/health', timeout=3)\"" ]
       interval: 10s
       timeout: 5s
       retries: 6
@@ -362,14 +370,14 @@ services:
     image: grafana/tempo:2.5.0
     container_name: somaagenthub_tempo
     restart: unless-stopped
-    command: ["-config.file=/etc/tempo.yaml"]
+    command: [ "-config.file=/etc/tempo.yaml" ]
     volumes:
       - ./infra/observability/tempo.yaml:/etc/tempo.yaml:ro
     ports:
       - "${TEMPO_HTTP_PORT:-10012}:3200"
       - "${TEMPO_OTLP_GRPC_PORT:-10014}:4317"
     healthcheck:
-      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:3200/metrics || exit 1"]
+      test: [ "CMD-SHELL", "wget -qO- http://127.0.0.1:3200/metrics || exit 1" ]
     networks:
       - somaagenthub-network
 
@@ -377,11 +385,11 @@ services:
     image: grafana/loki:2.9.6
     container_name: somaagenthub_loki
     restart: unless-stopped
-    command: ["-config.file=/etc/loki/local-config.yaml"]
+    command: [ "-config.file=/etc/loki/local-config.yaml" ]
     ports:
       - "${LOKI_HTTP_PORT:-10018}:3100"
     healthcheck:
-      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:3100/ready || exit 1"]
+      test: [ "CMD-SHELL", "wget -qO- http://127.0.0.1:3100/ready || exit 1" ]
     networks:
       - somaagenthub-network
 
@@ -397,7 +405,7 @@ services:
     ports:
       - "${NOTIFICATION_SERVICE_PORT:-10027}:10026"
     healthcheck:
-      test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://127.0.0.1:10026/health', timeout=3)\""]
+      test: [ "CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://127.0.0.1:10026/health', timeout=3)\"" ]
       interval: 10s
       timeout: 5s
       retries: 6
@@ -410,7 +418,7 @@ services:
       dockerfile: services/task-capsule-repo/Dockerfile
     container_name: somaagenthub_capsule-repo
     restart: unless-stopped
-    command: ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8002"]
+    command: [ "uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8002" ]
     ports:
       - "${CAPSULE_REPO_PORT:-10023}:8002"
     environment:
@@ -419,7 +427,7 @@ services:
       app-postgres:
         condition: service_healthy
     healthcheck:
-      test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://127.0.0.1:8002/health', timeout=3)\""]
+      test: [ "CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://127.0.0.1:8002/health', timeout=3)\"" ]
       interval: 10s
       timeout: 5s
       retries: 6
@@ -451,8 +459,6 @@ volumes:
   prometheus-data:
     driver: local
     name: somaagenthub_prometheus_data
-  
-    
 
 networks:
   somaagenthub-network:

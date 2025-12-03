@@ -10,6 +10,8 @@ from datetime import UTC, datetime
 import pytest
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 from sqlmodel import SQLModel
+from sqlalchemy.sql import expression
+from services.orchestrator.app.repository.outbox_event_repository import OutboxEventRepository
 
 
 @pytest.mark.asyncio
@@ -17,11 +19,21 @@ async def test_outbox_event_creation():
     """Test real outbox event creation with async database."""
 
     # Setup async database
-    engine = create_async_engine("sqlite+aiosqlite:///:memory:")
+    import os
+    # Use port 10004 as defined in docker-compose.yml for app-postgres
+    db_url = os.getenv("TEST_DATABASE_URL", "postgresql+asyncpg://somaagent:somaagent@localhost:10004/somaagent")
+    engine = create_async_engine(db_url)
     async_session = async_sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
 
     # Create tables asynchronously
+    # Enable pgcrypto extension (requires autocommit)
+    async with engine.connect() as conn:
+        await conn.execution_options(isolation_level="AUTOCOMMIT")
+        await conn.execute(expression.text('CREATE EXTENSION IF NOT EXISTS "pgcrypto"'))
+        await conn.execute(expression.text('CREATE EXTENSION IF NOT EXISTS "uuid-ossp"'))
+    
     async with engine.begin() as conn:
+        await conn.run_sync(SQLModel.metadata.drop_all)
         await conn.run_sync(SQLModel.metadata.create_all)
 
     async with async_session() as session:
@@ -49,12 +61,12 @@ async def test_outbox_event_creation():
         # Verify event was stored
         assert event.id is not None
         assert event.topic == "orchestrator.events"
-        assert event.payload["tenant"] == "test-tenant"
+        assert event.event_data["tenant"] == "test-tenant"
 
         # Retrieve events
         events = await repo.get_events_by_type("orchestration.plan_created")
         assert len(events) >= 1
-        assert events[0].payload["plan_id"] == event_data["plan_id"]
+        assert events[0].event_data["plan_id"] == event_data["plan_id"]
 
         # Test marking as processed
         await repo.mark_as_processed(event.id)
@@ -70,9 +82,17 @@ async def test_outbox_event_creation():
 async def test_repository_methods():
     """Test all repository methods work correctly."""
 
-    engine = create_async_engine("sqlite+aiosqlite:///:memory:")
+    import os
+    # Use port 10004 as defined in docker-compose.yml for app-postgres
+    db_url = os.getenv("TEST_DATABASE_URL", "postgresql+asyncpg://somaagent:somaagent@localhost:10004/somaagent")
+    engine = create_async_engine(db_url)
     async_session = async_sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
 
+    async with engine.connect() as conn:
+        await conn.execution_options(isolation_level="AUTOCOMMIT")
+        await conn.execute(expression.text('CREATE EXTENSION IF NOT EXISTS "pgcrypto"'))
+        await conn.execute(expression.text('CREATE EXTENSION IF NOT EXISTS "uuid-ossp"'))
+    
     async with engine.begin() as conn:
         await conn.run_sync(SQLModel.metadata.create_all)
 
@@ -93,7 +113,7 @@ async def test_repository_methods():
         # Test batch retrieval
         events = await repo.get_events_by_type("test.event.1")
         assert len(events) == 1
-        assert events[0].payload["index"] == 1
+        assert events[0].event_data["index"] == 1
 
         # Test topic filtering
         topic_events = await repo.get_events_by_topic("test.topic")

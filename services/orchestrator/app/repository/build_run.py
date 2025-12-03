@@ -42,14 +42,18 @@ class SQLBuildRunRepository(BuildRunRepository):
     async def create_build_run(
         self,
         build_id: str,
+        tenant: str,
         project_id: str,
+        pricing_snapshot_id: str,
         workflow_type: str,
         status: str,
         emit_event: bool = False,
     ) -> BuildRun:
         br = BuildRun(
             id=uuid.UUID(build_id) if isinstance(build_id, str) else build_id,
+            tenant=tenant,
             project_id=project_id,
+            pricing_snapshot_id=pricing_snapshot_id,
             workflow_type=workflow_type,
             status=status,
             created_at=datetime.utcnow(),
@@ -58,7 +62,8 @@ class SQLBuildRunRepository(BuildRunRepository):
         await self.session.flush()
         if emit_event:
             # create an orchestration.started outbox event
-            from .outbox import OutboxEvent
+            # create an orchestration.started outbox event
+            from services.common.events.outbox import OutboxEvent
 
             event = OutboxEvent(
                 event_type="orchestration.started",
@@ -96,9 +101,11 @@ class SQLBuildRunRepository(BuildRunRepository):
         )
         result = await self.session.execute(stmt)
         await self.session.commit()
-        updated_br = result.fetchone()
+        updated_br = result.scalar_one_or_none()
+        if updated_br is None:
+            print(f"DEBUG: update_build_run_status failed to find row with id {build_id}")
         if emit_event and updated_br:
-            from .outbox import OutboxEvent
+            from services.common.events.outbox import OutboxEvent
 
             event = OutboxEvent(
                 event_type="orchestration.completed",

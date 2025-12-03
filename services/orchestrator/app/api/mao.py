@@ -18,7 +18,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from services.common.contracts.orchestrator import OrchestrationStartedEvent
 
 from ..database import get_session
-from ..repository.outbox import OutboxEvent
+from services.common.events.outbox import OutboxEvent
 from ..repository.outbox_event_repository import OutboxEventRepository
 from ..workflows.mao import (
     AgentDirective,
@@ -154,16 +154,33 @@ async def start_orchestration(
             metadata=request.metadata,
         )
 
-        # Start Temporal workflow (simplified - would use Temporal client in real implementation)
-        # For now, we'll simulate workflow start
-        workflow_id = f"mao-{orchestration_id}"
-
+        # Start Temporal workflow
+        from temporalio.client import Client
+        from ..core.config import settings
+        
+        temporal_url = getattr(settings, "temporal_url", "localhost:7233")
+        client = await Client.connect(temporal_url)
+        
+        handle = await client.start_workflow(
+            "multi-agent-orchestration-workflow",
+            MAOStartInput(
+                orchestration_id=orchestration_id,
+                tenant=request.tenant,
+                initiator=request.initiator,
+                directives=agent_directives,
+                notification_channel=request.notification_channel,
+                metadata=request.metadata,
+            ),
+            id=orchestration_id,
+            task_queue="mao-task-queue",
+        )
+        
         return MAOStartResponse(
             orchestration_id=orchestration_id,
             status="started",
-            message="Multi-agent orchestration started successfully",
-            estimated_duration=3600,  # 1 hour in seconds
-            workflow_url=f"/v1/workflows/{workflow_id}",
+            message="Orchestration started successfully",
+            estimated_duration=None,
+            workflow_url=f"/v1/mao/{orchestration_id}/status",
         )
 
     except Exception as e:
@@ -178,19 +195,23 @@ async def get_orchestration_status(
     orchestration_id: str, db_session: AsyncSession = Depends(get_session)
 ) -> dict[str, Any]:
     """Get current status of an orchestration."""
-    # This would integrate with Temporal workflow queries
-    return {
-        "orchestration_id": orchestration_id,
-        "status": "running",
-        "progress": {"completed_agents": 2, "total_agents": 5, "percentage": 40},
-        "agents": [
-            {"agent_id": "agent-1", "status": "completed"},
-            {"agent_id": "agent-2", "status": "completed"},
-            {"agent_id": "agent-3", "status": "running"},
-            {"agent_id": "agent-4", "status": "pending"},
-            {"agent_id": "agent-5", "status": "pending"},
-        ],
-    }
+    from temporalio.client import Client
+    from ..core.config import settings
+    
+    try:
+        temporal_url = getattr(settings, "temporal_url", "localhost:7233")
+        client = await Client.connect(temporal_url)
+        handle = client.get_workflow_handle(orchestration_id)
+        desc = await handle.describe()
+        
+        return {
+            "orchestration_id": orchestration_id,
+            "status": desc.status.name,
+            "start_time": desc.start_time.isoformat() if desc.start_time else None,
+            "close_time": desc.close_time.isoformat() if desc.close_time else None,
+        }
+    except Exception as e:
+        raise HTTPException(status_code=404, detail=f"Orchestration not found or error: {str(e)}")
 
 
 @router.post("/{orchestration_id}/cancel")
@@ -198,9 +219,14 @@ async def cancel_orchestration(
     orchestration_id: str, db_session: AsyncSession = Depends(get_session)
 ) -> dict[str, str]:
     """Cancel a running orchestration."""
-    # This would integrate with Temporal workflow cancellation
-    return {
-        "orchestration_id": orchestration_id,
-        "status": "cancelled",
-        "message": "Orchestration cancelled successfully",
-    }
+    from temporalio.client import Client
+    from ..core.config import settings
+    
+    try:
+        temporal_url = getattr(settings, "temporal_url", "localhost:7233")
+        client = await Client.connect(temporal_url)
+        handle = client.get_workflow_handle(orchestration_id)
+        await handle.cancel()
+        return {"status": "cancelled", "orchestration_id": orchestration_id}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to cancel orchestration: {str(e)}")

@@ -13,6 +13,7 @@ import pytest
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.orm import sessionmaker
 from sqlmodel import SQLModel
+from sqlalchemy.sql import expression
 
 from services.orchestrator.app.planner.schemas import ModuleSpec, ProjectPlan
 from services.orchestrator.app.repository.outbox_event_repository import (
@@ -26,13 +27,24 @@ async def test_event_emission():
     """Test event emission with actual database integration."""
 
     # Setup database
-    engine = create_async_engine("sqlite+aiosqlite:///:memory:")
+    import os
+    # Use port 10004 as defined in docker-compose.yml for app-postgres
+    db_url = os.getenv("TEST_DATABASE_URL", "postgresql+asyncpg://somaagent:somaagent@localhost:10004/somaagent")
+    engine = create_async_engine(db_url)
     async_session = sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
 
     # Create tables using SQLModel
-
     # Use SQLModel metadata
-    SQLModel.metadata.create_all(engine.sync_engine)
+    # For async engine, we need to run sync operation on connection
+    from sqlalchemy.sql import expression
+    async with engine.connect() as conn:
+        await conn.execution_options(isolation_level="AUTOCOMMIT")
+        await conn.execute(expression.text('CREATE EXTENSION IF NOT EXISTS "pgcrypto"'))
+        await conn.execute(expression.text('CREATE EXTENSION IF NOT EXISTS "uuid-ossp"'))
+
+    async with engine.begin() as conn:
+        await conn.run_sync(SQLModel.metadata.drop_all)
+        await conn.run_sync(SQLModel.metadata.create_all)
 
     async with async_session() as session:
         # Test repository
@@ -60,7 +72,7 @@ async def test_event_emission():
         # Verify event was stored
         assert event.id is not None
         assert event.event_type == "orchestration.plan_created"
-        assert event.payload["plan_id"] == event_data["plan_id"]
+        assert event.event_data["plan_id"] == event_data["plan_id"]
 
         # Retrieve events
         events = await repo.get_events_by_type("orchestration.plan_created")
@@ -74,12 +86,13 @@ async def test_event_emission():
             plan_id="test-plan-456",
             tenant="test-tenant",
             objective="Test objective",
+            capsule="test-capsule",
             modules=[
                 ModuleSpec(
                     module_id="module-1",
-                    agent_id="agent-1",
-                    goal="Test goal",
-                    prompt="Test prompt",
+                    title="Test Module",
+                    summary="Test goal",
+                    metadata={"agent_id": "agent-1", "prompt": "Test prompt"},
                 )
             ],
         )
@@ -108,11 +121,21 @@ async def test_event_emission():
 async def test_build_run_events():
     """Test build run lifecycle events."""
 
-    engine = create_async_engine("sqlite+aiosqlite:///:memory:")
+    import os
+    # Use port 10004 as defined in docker-compose.yml for app-postgres
+    db_url = os.getenv("TEST_DATABASE_URL", "postgresql+asyncpg://somaagent:somaagent@localhost:10004/somaagent")
+    engine = create_async_engine(db_url)
     async_session = sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
 
 
-    SQLModel.metadata.create_all(engine.sync_engine)
+    async with engine.connect() as conn:
+        await conn.execution_options(isolation_level="AUTOCOMMIT")
+        await conn.execute(expression.text('CREATE EXTENSION IF NOT EXISTS "pgcrypto"'))
+        await conn.execute(expression.text('CREATE EXTENSION IF NOT EXISTS "uuid-ossp"'))
+
+    async with engine.begin() as conn:
+        await conn.run_sync(SQLModel.metadata.drop_all)
+        await conn.run_sync(SQLModel.metadata.create_all)
 
     async with async_session() as session:
         event_service = EventEmissionService(session)
