@@ -1,11 +1,17 @@
 """
-Tool Activities - Handles Tool execution
+Tool Activities - Handles Tool execution with SRS tracking
 """
 
 import logging
 import httpx
+import uuid
+from datetime import datetime
 from typing import Dict, Any
 from temporalio import activity
+from sqlmodel import select
+
+from services.orchestrator.app.database import get_async_session
+from services.common.models.tool import ToolInvocationRecord, ToolInvocationStatus, ToolDefinition
 
 logger = logging.getLogger(__name__)
 
@@ -15,29 +21,101 @@ class ToolActivities:
 
     @activity.defn
     async def execute_tool(self, tool_spec: Dict[str, Any], arguments: Dict[str, Any]) -> Dict[str, Any]:
-        """Execute a tool based on its spec"""
+        """Execute a tool based on its spec and record invocation"""
         tool_type = tool_spec.get("type", "http").lower()
-        tool_id = tool_spec.get("id", "unknown")
+        tool_identifier = tool_spec.get("id", "unknown")
+        
+        # Context extraction
+        context = arguments.get("context", {})
+        metadata = context.get("metadata", {})
+        tenant_id_str = metadata.get("tenant_id")
+        workflow_instance_id_str = arguments.get("workflow_instance_id") # Should be passed in arguments
+        node_execution_id_str = arguments.get("node_execution_id") # Should be passed in arguments
         
         # Capsule Enforcement
         capsule_spec = tool_spec.get("capsule_spec")
+        policy_decision = "ALLOWED"
         if capsule_spec:
             whitelist = capsule_spec.get("toolWhitelist", [])
-            # Check if tool_id (or name) is in whitelist
-            # Whitelist item: {"name": "...", "version": "..."}
-            allowed = any(item.get("name") == tool_id for item in whitelist)
+            allowed = any(item.get("name") == tool_identifier for item in whitelist)
             if not allowed:
-                logger.warning(f"Tool {tool_id} blocked by capsule {capsule_spec.get('metadata', {}).get('name')}")
+                logger.warning(f"Tool {tool_identifier} blocked by capsule {capsule_spec.get('metadata', {}).get('name')}")
+                policy_decision = "DENIED"
                 return {"status": "failed", "reason": "policy_violation: tool_not_whitelisted"}
-        
-        logger.info(f"Executing tool {tool_id} ({tool_type}) with args {arguments}")
-        
-        if tool_type == "http":
-            return await self._execute_http_tool(tool_spec, arguments)
-        elif tool_type == "native":
-            return await self._execute_native_tool(tool_spec, arguments)
-        else:
-            raise ValueError(f"Unsupported tool type: {tool_type}")
+
+        logger.info(f"Executing tool {tool_identifier} ({tool_type}) with args {arguments}")
+
+        # 1. Record Invocation Start
+        invocation_id = None
+        async with get_async_session() as session:
+            try:
+                tenant_uuid = uuid.UUID(tenant_id_str) if tenant_id_str else None
+                workflow_uuid = uuid.UUID(workflow_instance_id_str) if workflow_instance_id_str else None
+                node_exec_uuid = uuid.UUID(node_execution_id_str) if node_execution_id_str else None
+                
+                # Try to resolve ToolDefinition
+                tool_def_id = None
+                try:
+                    tool_def_id = uuid.UUID(tool_identifier)
+                except ValueError:
+                    # If identifier is not UUID, try to find by name
+                    stmt = select(ToolDefinition).where(ToolDefinition.name == tool_identifier)
+                    if tenant_uuid:
+                        stmt = stmt.where(ToolDefinition.tenant_id == tenant_uuid)
+                    result = await session.execute(stmt)
+                    tool_def = result.scalars().first()
+                    if tool_def:
+                        tool_def_id = tool_def.id
+
+                invocation = ToolInvocationRecord(
+                    tenant_id=tenant_uuid,
+                    tool_definition_id=tool_def_id,
+                    workflow_instance_id=workflow_uuid,
+                    node_execution_id=node_exec_uuid,
+                    status=ToolInvocationStatus.RUNNING,
+                    started_at=datetime.utcnow(),
+                    request_payload_ref=arguments, # Storing inline for now
+                    policy_decision=policy_decision
+                )
+                session.add(invocation)
+                await session.commit()
+                await session.refresh(invocation)
+                invocation_id = invocation.id
+            except Exception as e:
+                logger.error(f"Failed to record tool invocation start: {e}")
+
+        # 2. Execute Tool
+        result = {"status": "failed", "reason": "unknown_error"}
+        try:
+            if tool_type == "http":
+                result = await self._execute_http_tool(tool_spec, arguments)
+            elif tool_type == "native":
+                result = await self._execute_native_tool(tool_spec, arguments)
+            else:
+                raise ValueError(f"Unsupported tool type: {tool_type}")
+        except Exception as e:
+            result = {"status": "failed", "reason": str(e)}
+
+        # 3. Record Invocation End
+        if invocation_id:
+            async with get_async_session() as session:
+                try:
+                    stmt = select(ToolInvocationRecord).where(ToolInvocationRecord.id == invocation_id)
+                    res = await session.execute(stmt)
+                    inv = res.scalar_one_or_none()
+                    if inv:
+                        inv.finished_at = datetime.utcnow()
+                        inv.response_payload_ref = result
+                        if result.get("status") == "completed":
+                            inv.status = ToolInvocationStatus.SUCCEEDED
+                        else:
+                            inv.status = ToolInvocationStatus.FAILED
+                            inv.error_details = {"reason": result.get("reason")}
+                        await session.commit()
+                except Exception as e:
+                    logger.error(f"Failed to record tool invocation end: {e}")
+
+        return result
 
     async def _execute_http_tool(self, tool_spec: Dict[str, Any], arguments: Dict[str, Any]) -> Dict[str, Any]:
         endpoint = tool_spec.get("endpoint")

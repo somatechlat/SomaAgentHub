@@ -361,8 +361,15 @@ class GraphWorkflowDef:
                 
                 if capsule_spec:
                     tool_spec["capsule_spec"] = capsule_spec
-                
-                arguments = {"context": node, "timestamp": str(workflow.now())}
+               # Arguments from input or context
+                arguments = {
+                    "context": node, 
+                    "timestamp": str(workflow.now()),
+                    "workflow_instance_id": workflow_id,
+                    "node_execution_id": execution_id
+                }
+                # Also pass input_data as arguments for the tool itself
+                arguments.update(input_data)
                 
                 tool_result = await workflow.execute_activity(
                     "execute_tool",
