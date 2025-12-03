@@ -35,12 +35,14 @@ class GraphWorkflowEngine:
             from ..activities.agent_activities import AgentActivities
             from ..activities.tool_activities import ToolActivities
             from ..activities.advanced_activities import AdvancedActivities
+            from ..activities.rl_activities import RLActivities
             
             self.graph_activities = GraphActivities()
             self.hitl_activities = HITLActivities()
             self.agent_activities = AgentActivities()
             self.tool_activities = ToolActivities()
             self.advanced_activities = AdvancedActivities()
+            self.rl_activities = RLActivities()
             
             task_queue = "graph-workflow-queue"
             self.worker = Worker(
@@ -59,7 +61,9 @@ class GraphWorkflowEngine:
                     self.advanced_activities.log_audit_event,
                     self.advanced_activities.retrieve_memory_context,
                     self.advanced_activities.store_memory_experience,
-                    self.advanced_activities.fetch_capsule
+                    self.advanced_activities.fetch_capsule,
+                    self.rl_activities.record_trajectory_step,
+                    self.rl_activities.finalize_trajectory
                 ]
             )
             
@@ -356,6 +360,28 @@ class GraphWorkflowDef:
                     start_to_close_timeout=timedelta(seconds=10)
                 )
                 
+                # RL Trajectory Recording
+                # Check if this workflow is part of an RL pipeline (flag passed in input or metadata)
+                # For now, we check if 'reasoning_pipeline_id' is in input_data or workflow metadata
+                # We need access to workflow-level metadata here. 
+                # Assuming input_data contains it or we pass it.
+                # Let's assume input_data has 'rl_context' if applicable.
+                rl_context = input_data.get("rl_context")
+                if rl_context:
+                    try:
+                        step_data = {
+                            "observation": input_data.get("content"), # Simplified
+                            "action": agent_result.get("output"),
+                            "reward": 0.0 # Placeholder, reward calc happens later or via signal
+                        }
+                        await workflow.execute_activity(
+                            "record_trajectory_step",
+                            args=[workflow_id, node_id, role_id, step_data, rl_context],
+                            start_to_close_timeout=timedelta(seconds=10)
+                        )
+                    except Exception as e:
+                        workflow.logger.error(f"Failed to record trajectory step: {e}")
+
                 result = {"status": "completed", "agent_result": agent_result}
                 
             elif node_type == "tool":
