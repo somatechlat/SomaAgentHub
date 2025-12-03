@@ -469,49 +469,4 @@ async def aggregate_results(task_results: list[dict[str, Any]], review_result: d
     }
 
 
-@activity.defn
-async def copy_templates(app_name: str, image: str, service_port: int = 8000) -> dict[str, Any]:
-    """Render static template sets for an application.
 
-    Copies ``fastapi`` + ``helm/generated-app`` + ``react`` + monitoring & ci templates
-    into a workflow-local artefacts directory under ``/tmp/taxi-builder/<workflow-id>``.
-    In a production deployment this base path would be a shared PVC.
-    """
-    workflow_id = activity.info().workflow_id
-    from services.common.config.base_settings import resolve_env
-
-    base_dir = Path(resolve_env("TAXI_BUILDER_OUTPUT_ROOT", "/tmp/taxi-builder")) / workflow_id
-    base_dir.mkdir(parents=True, exist_ok=True)
-
-    from ..app.static_templates.engine import (
-        build_default_tokens,
-        render_template_set,
-    )
-
-    tokens = build_default_tokens(app_name=app_name, image=image, service_port=service_port)
-
-    template_sets = ["fastapi", "helm/generated-app", "react", "ci", "monitoring"]
-    rendered: list[dict[str, Any]] = []
-    for ts in template_sets:
-        try:
-            result = render_template_set(ts, base_dir, tokens, zip_output=False)
-            rendered.append(
-                {
-                    "template_set": ts,
-                    "files_rendered": result.files_rendered,
-                    "output_dir": str(result.output_dir),
-                }
-            )
-        except Exception as exc:
-            # Fail fast: bubble up to workflow for retry
-            raise RuntimeError(f"Template rendering failed for {ts}: {exc}") from exc
-
-    return {
-        "status": "rendered",
-        "workflow_id": workflow_id,
-        "app_name": app_name,
-        "image": image,
-        "service_port": service_port,
-        "artefact_root": str(base_dir),
-        "sets": rendered,
-    }
