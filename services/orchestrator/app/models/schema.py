@@ -6,9 +6,7 @@ from typing import Any
 
 from sqlalchemy import Column, String, Text, Boolean, Integer, DateTime, ForeignKey, ARRAY
 from sqlalchemy.dialects.postgresql import UUID, JSONB
-from sqlalchemy.orm import declarative_base, relationship
-
-Base = declarative_base()
+from services.common.models.base import Base
 
 class AgentModel(Base):
     __tablename__ = "agents"

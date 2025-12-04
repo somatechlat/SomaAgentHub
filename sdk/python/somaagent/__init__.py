@@ -15,21 +15,34 @@ from .exceptions import (
     SomaAgentError,
     ValidationError,
     )
-    from .models import Agent, Capsule, Conversation, Message, Task, WorkflowRun
-    from services.common.config.base_settings import resolve_env
+from .models import (
+    Agent, Capsule, Conversation, Message, WorkflowRun,
+    TenantRef, TaskRecord, RoleDefinition, ToolDefinition,
+    MemoryBindingSpec, BlueprintDefinition, ReasoningPipelineSpec,
+    EvaluationScenarioDefinition, HumanReviewerAssignment
+)
+from services.common.config.base_settings import resolve_env
 
-    __all__ = [
+__all__ = [
     "SomaAgentClient",
     "AsyncSomaAgentClient",
     "Message",
     "Conversation",
     "Capsule",
     "Agent",
-    "Task",
     "WorkflowRun",
+    "TenantRef",
+    "TaskRecord",
+    "RoleDefinition",
+    "ToolDefinition",
+    "MemoryBindingSpec",
+    "BlueprintDefinition",
+    "ReasoningPipelineSpec",
+    "EvaluationScenarioDefinition",
+    "HumanReviewerAssignment",
     "SomaAgentError",
     "APIError",
     "AuthenticationError",
     "RateLimitError",
     "ValidationError",
-    ]
+]

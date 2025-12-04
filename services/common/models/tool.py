@@ -13,9 +13,7 @@ from typing import Optional
 
 from sqlalchemy import Column, String, Text, Integer, DateTime, ForeignKey, Enum as SQLEnum
 from sqlalchemy.dialects.postgresql import UUID, JSONB
-from sqlalchemy.orm import declarative_base
-
-Base = declarative_base()
+from .base import Base
 
 
 # Enums
@@ -84,7 +82,7 @@ class ToolDefinition(Base):
     
     risk_level = Column(SQLEnum(ToolRiskLevel), nullable=False, default=ToolRiskLevel.LOW, index=True)
     default_timeout_seconds = Column(Integer, nullable=False, default=30)
-    metadata = Column(JSONB, nullable=False, default=dict)
+    meta_data = Column("metadata", JSONB, nullable=False, default=dict)
     
     created_at = Column(DateTime(timezone=True), default=datetime.utcnow, nullable=False)
     updated_at = Column(DateTime(timezone=True), default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)

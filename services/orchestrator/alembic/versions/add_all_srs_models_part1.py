@@ -21,7 +21,7 @@ import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
 
 # revision identifiers
-revision = 'add_all_srs_models'
+revision = 'add_all_srs_models_part1'
 down_revision = 'add_multi_tenancy'
 branch_labels = None
 depends_on = None

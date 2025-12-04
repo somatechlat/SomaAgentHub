@@ -8,7 +8,7 @@ from typing import List, Optional, Dict, Any
 from uuid import UUID
 from datetime import datetime
 
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from fastapi import HTTPException, status
 
@@ -22,12 +22,12 @@ from services.common.models.memory import (
 class MemoryService:
     """Service for managing memory bindings and operations"""
 
-    def __init__(self, db: Session):
+    def __init__(self, db: AsyncSession):
         self.db = db
 
     # ========== Memory Bindings ==========
 
-    def create_binding_spec(self, spec_create: MemoryBindingSpecCreate) -> MemoryBindingSpec:
+    async def create_binding_spec(self, spec_create: MemoryBindingSpecCreate) -> MemoryBindingSpec:
         """Create a new memory binding specification"""
         # Validate workflow instance exists (would check WorkflowService)
         
@@ -43,34 +43,36 @@ class MemoryService:
         )
         
         self.db.add(binding)
-        self.db.commit()
-        self.db.refresh(binding)
+        await self.db.commit()
+        await self.db.refresh(binding)
         return binding
 
-    def get_binding_spec(self, binding_id: UUID, tenant_id: UUID) -> Optional[MemoryBindingSpec]:
+    async def get_binding_spec(self, binding_id: UUID, tenant_id: UUID) -> Optional[MemoryBindingSpec]:
         """Get a memory binding spec by ID"""
-        return self.db.execute(
+        result = await self.db.execute(
             select(MemoryBindingSpec).where(
                 MemoryBindingSpec.id == binding_id,
                 MemoryBindingSpec.tenant_id == tenant_id
             )
-        ).scalar_one_or_none()
+        )
+        return result.scalar_one_or_none()
 
-    def get_binding_for_workflow(self, workflow_instance_id: UUID, tenant_id: UUID) -> Optional[MemoryBindingSpec]:
+    async def get_binding_for_workflow(self, workflow_instance_id: UUID, tenant_id: UUID) -> Optional[MemoryBindingSpec]:
         """Get the memory binding for a specific workflow instance"""
-        return self.db.execute(
+        result = await self.db.execute(
             select(MemoryBindingSpec).where(
                 MemoryBindingSpec.workflow_instance_id == workflow_instance_id,
                 MemoryBindingSpec.tenant_id == tenant_id
             )
-        ).scalar_one_or_none()
+        )
+        return result.scalar_one_or_none()
 
     # ========== Memory Operations ==========
 
-    def record_operation(self, op_create: MemoryOperationRecordCreate) -> MemoryOperationRecord:
+    async def record_operation(self, op_create: MemoryOperationRecordCreate) -> MemoryOperationRecord:
         """Record a memory operation (read/write)"""
         # Validate binding exists for context
-        binding = self.get_binding_for_workflow(op_create.workflow_instance_id, op_create.tenant_id)
+        binding = await self.get_binding_for_workflow(op_create.workflow_instance_id, op_create.tenant_id)
         if not binding:
             # Depending on policy, might allow unbound operations or require binding
             # For now, we log it but don't block, assuming ad-hoc memory access is possible
@@ -88,15 +90,16 @@ class MemoryService:
         )
         
         self.db.add(record)
-        self.db.commit()
-        self.db.refresh(record)
+        await self.db.commit()
+        await self.db.refresh(record)
         return record
 
-    def list_operations_for_workflow(self, workflow_instance_id: UUID, tenant_id: UUID) -> List[MemoryOperationRecord]:
+    async def list_operations_for_workflow(self, workflow_instance_id: UUID, tenant_id: UUID) -> List[MemoryOperationRecord]:
         """List all memory operations for a workflow"""
-        return self.db.execute(
+        result = await self.db.execute(
             select(MemoryOperationRecord).where(
                 MemoryOperationRecord.workflow_instance_id == workflow_instance_id,
                 MemoryOperationRecord.tenant_id == tenant_id
             ).order_by(MemoryOperationRecord.created_at)
-        ).scalars().all()
+        )
+        return result.scalars().all()

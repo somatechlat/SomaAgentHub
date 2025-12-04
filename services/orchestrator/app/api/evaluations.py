@@ -8,9 +8,9 @@ from typing import List
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, status, Header
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
 
-from services.orchestrator.app.database import get_db
+from services.orchestrator.app.database import get_session
 from services.orchestrator.app.services.evaluation_service import EvaluationService
 from services.common.models.observability import (
     EvaluationScenarioDefinitionCreate, EvaluationScenarioDefinitionResponse,
@@ -21,12 +21,12 @@ from services.common.models.observability import (
 router = APIRouter(prefix="/evaluations", tags=["evaluations"])
 
 
-def get_evaluation_service(db: Session = Depends(get_db)) -> EvaluationService:
+def get_evaluation_service(db: AsyncSession = Depends(get_session)) -> EvaluationService:
     return EvaluationService(db)
 
 
 @router.post("/scenarios", response_model=EvaluationScenarioDefinitionResponse, status_code=status.HTTP_201_CREATED)
-def create_scenario(
+async def create_scenario(
     scenario_create: EvaluationScenarioDefinitionCreate,
     x_tenant_id: UUID = Header(..., alias="X-Tenant-ID"),
     service: EvaluationService = Depends(get_evaluation_service)
@@ -37,17 +37,17 @@ def create_scenario(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Tenant ID mismatch"
         )
-    return service.create_scenario(scenario_create)
+    return await service.create_scenario(scenario_create)
 
 
 @router.get("/scenarios/{scenario_id}", response_model=EvaluationScenarioDefinitionResponse)
-def get_scenario(
+async def get_scenario(
     scenario_id: UUID,
     x_tenant_id: UUID = Header(..., alias="X-Tenant-ID"),
     service: EvaluationService = Depends(get_evaluation_service)
 ):
     """Get a scenario by ID"""
-    scenario = service.get_scenario(scenario_id, x_tenant_id)
+    scenario = await service.get_scenario(scenario_id, x_tenant_id)
     if not scenario:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -57,16 +57,16 @@ def get_scenario(
 
 
 @router.get("/scenarios", response_model=List[EvaluationScenarioDefinitionResponse])
-def list_scenarios(
+async def list_scenarios(
     x_tenant_id: UUID = Header(..., alias="X-Tenant-ID"),
     service: EvaluationService = Depends(get_evaluation_service)
 ):
     """List all scenarios for a tenant"""
-    return service.list_scenarios(x_tenant_id)
+    return await service.list_scenarios(x_tenant_id)
 
 
 @router.post("/runs", response_model=EvaluationRunResponse, status_code=status.HTTP_201_CREATED)
-def create_run(
+async def create_run(
     run_create: EvaluationRunCreate,
     x_tenant_id: UUID = Header(..., alias="X-Tenant-ID"),
     service: EvaluationService = Depends(get_evaluation_service)
@@ -77,17 +77,17 @@ def create_run(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Tenant ID mismatch"
         )
-    return service.create_evaluation_run(run_create)
+    return await service.create_evaluation_run(run_create)
 
 
 @router.get("/runs/{run_id}", response_model=EvaluationRunResponse)
-def get_run(
+async def get_run(
     run_id: UUID,
     x_tenant_id: UUID = Header(..., alias="X-Tenant-ID"),
     service: EvaluationService = Depends(get_evaluation_service)
 ):
     """Get an evaluation run by ID"""
-    run = service.get_run(run_id, x_tenant_id)
+    run = await service.get_run(run_id, x_tenant_id)
     if not run:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -97,17 +97,17 @@ def get_run(
 
 
 @router.get("/runs/{run_id}/metrics", response_model=List[EvaluationMetricRecordResponse])
-def get_run_metrics(
+async def get_run_metrics(
     run_id: UUID,
     x_tenant_id: UUID = Header(..., alias="X-Tenant-ID"),
     service: EvaluationService = Depends(get_evaluation_service)
 ):
     """Get metrics for a specific run"""
     # Validate run access first
-    run = service.get_run(run_id, x_tenant_id)
+    run = await service.get_run(run_id, x_tenant_id)
     if not run:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Run {run_id} not found"
         )
-    return service.get_metrics_for_run(run_id)
+    return await service.get_metrics_for_run(run_id)

@@ -8,7 +8,7 @@ from typing import List, Optional, Dict, Any
 from uuid import UUID
 from datetime import datetime
 
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from fastapi import HTTPException, status
 
@@ -23,21 +23,22 @@ from services.common.models.rl import (
 class RLService:
     """Service for managing RL/MARL infrastructure"""
 
-    def __init__(self, db: Session):
+    def __init__(self, db: AsyncSession):
         self.db = db
 
     # ========== Reasoning Pipelines ==========
 
-    def create_reasoning_pipeline(self, pipeline_create: ReasoningPipelineSpecCreate) -> ReasoningPipelineSpec:
+    async def create_reasoning_pipeline(self, pipeline_create: ReasoningPipelineSpecCreate) -> ReasoningPipelineSpec:
         """Create a new reasoning pipeline specification"""
         # Check if name exists in tenant
-        existing = self.db.execute(
+        result = await self.db.execute(
             select(ReasoningPipelineSpec).where(
                 ReasoningPipelineSpec.tenant_id == pipeline_create.tenant_id,
                 ReasoningPipelineSpec.name == pipeline_create.name,
                 ReasoningPipelineSpec.version == pipeline_create.version
             )
-        ).scalar_one_or_none()
+        )
+        existing = result.scalar_one_or_none()
         
         if existing:
             raise HTTPException(
@@ -57,30 +58,32 @@ class RLService:
         )
         
         self.db.add(pipeline)
-        self.db.commit()
-        self.db.refresh(pipeline)
+        await self.db.commit()
+        await self.db.refresh(pipeline)
         return pipeline
 
-    def get_reasoning_pipeline(self, pipeline_id: UUID, tenant_id: UUID) -> Optional[ReasoningPipelineSpec]:
+    async def get_reasoning_pipeline(self, pipeline_id: UUID, tenant_id: UUID) -> Optional[ReasoningPipelineSpec]:
         """Get a reasoning pipeline by ID"""
-        return self.db.execute(
+        result = await self.db.execute(
             select(ReasoningPipelineSpec).where(
                 ReasoningPipelineSpec.id == pipeline_id,
                 ReasoningPipelineSpec.tenant_id == tenant_id
             )
-        ).scalar_one_or_none()
+        )
+        return result.scalar_one_or_none()
 
     # ========== Game Specs ==========
 
-    def create_game_spec(self, game_create: GameSpecCreate) -> GameSpec:
+    async def create_game_spec(self, game_create: GameSpecCreate) -> GameSpec:
         """Create a new game specification"""
-        existing = self.db.execute(
+        result = await self.db.execute(
             select(GameSpec).where(
                 GameSpec.tenant_id == game_create.tenant_id,
                 GameSpec.name == game_create.name,
                 GameSpec.version == game_create.version
             )
-        ).scalar_one_or_none()
+        )
+        existing = result.scalar_one_or_none()
         
         if existing:
             raise HTTPException(
@@ -102,22 +105,23 @@ class RLService:
         )
         
         self.db.add(game)
-        self.db.commit()
-        self.db.refresh(game)
+        await self.db.commit()
+        await self.db.refresh(game)
         return game
 
-    def get_game_spec(self, game_id: UUID, tenant_id: UUID) -> Optional[GameSpec]:
+    async def get_game_spec(self, game_id: UUID, tenant_id: UUID) -> Optional[GameSpec]:
         """Get a game spec by ID"""
-        return self.db.execute(
+        result = await self.db.execute(
             select(GameSpec).where(
                 GameSpec.id == game_id,
                 GameSpec.tenant_id == tenant_id
             )
-        ).scalar_one_or_none()
+        )
+        return result.scalar_one_or_none()
 
     # ========== Trajectories ==========
 
-    def record_trajectory(self, trajectory_create: TrajectoryRecordCreate) -> TrajectoryRecord:
+    async def record_trajectory(self, trajectory_create: TrajectoryRecordCreate) -> TrajectoryRecord:
         """Record a completed trajectory"""
         # Validate task/workflow exists (omitted for brevity)
         
@@ -136,22 +140,23 @@ class RLService:
         )
         
         self.db.add(trajectory)
-        self.db.commit()
-        self.db.refresh(trajectory)
+        await self.db.commit()
+        await self.db.refresh(trajectory)
         return trajectory
 
-    def get_trajectory(self, trajectory_id: UUID, tenant_id: UUID) -> Optional[TrajectoryRecord]:
+    async def get_trajectory(self, trajectory_id: UUID, tenant_id: UUID) -> Optional[TrajectoryRecord]:
         """Get a trajectory record by ID"""
-        return self.db.execute(
+        result = await self.db.execute(
             select(TrajectoryRecord).where(
                 TrajectoryRecord.id == trajectory_id,
                 TrajectoryRecord.tenant_id == tenant_id
             )
-        ).scalar_one_or_none()
+        )
+        return result.scalar_one_or_none()
 
     # ========== Export Jobs ==========
 
-    def create_export_job(self, job_create: RLExportJobCreate) -> RLExportJob:
+    async def create_export_job(self, job_create: RLExportJobCreate) -> RLExportJob:
         """Create a new RL export job"""
         job = RLExportJob(
             tenant_id=job_create.tenant_id,
@@ -161,15 +166,16 @@ class RLService:
         )
         
         self.db.add(job)
-        self.db.commit()
-        self.db.refresh(job)
+        await self.db.commit()
+        await self.db.refresh(job)
         return job
 
-    def get_export_job(self, job_id: UUID, tenant_id: UUID) -> Optional[RLExportJob]:
+    async def get_export_job(self, job_id: UUID, tenant_id: UUID) -> Optional[RLExportJob]:
         """Get an export job by ID"""
-        return self.db.execute(
+        result = await self.db.execute(
             select(RLExportJob).where(
                 RLExportJob.id == job_id,
                 RLExportJob.tenant_id == tenant_id
             )
-        ).scalar_one_or_none()
+        )
+        return result.scalar_one_or_none()

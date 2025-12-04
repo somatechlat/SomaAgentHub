@@ -213,6 +213,13 @@ class BaseConfig(BaseSettings):
             return values["service_name"]
         return v
 
+    @validator("deployment_mode", pre=True)
+    def lowercase_deployment_mode(cls, v):
+        """Ensure deployment mode is lowercase."""
+        if isinstance(v, str):
+            return v.lower()
+        return v
+
     @property
     def is_dev(self) -> bool:
         """Check if running in development mode."""

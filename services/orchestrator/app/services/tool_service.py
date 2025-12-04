@@ -8,7 +8,7 @@ from typing import List, Optional, Dict, Any
 from uuid import UUID
 from datetime import datetime
 
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from fastapi import HTTPException, status
 
@@ -23,21 +23,22 @@ from services.common.models.tool import (
 class ToolService:
     """Service for managing tools and MCP servers"""
 
-    def __init__(self, db: Session):
+    def __init__(self, db: AsyncSession):
         self.db = db
 
     # ========== Tool Definitions ==========
 
-    def create_tool_definition(self, tool_create: ToolDefinitionCreate) -> ToolDefinition:
+    async def create_tool_definition(self, tool_create: ToolDefinitionCreate) -> ToolDefinition:
         """Create a new tool definition"""
         # Check if name exists in tenant
-        existing = self.db.execute(
+        result = await self.db.execute(
             select(ToolDefinition).where(
                 ToolDefinition.tenant_id == tool_create.tenant_id,
                 ToolDefinition.name == tool_create.name,
                 ToolDefinition.version == tool_create.version
             )
-        ).scalar_one_or_none()
+        )
+        existing = result.scalar_one_or_none()
         
         if existing:
             raise HTTPException(
@@ -58,37 +59,40 @@ class ToolService:
         )
         
         self.db.add(tool)
-        self.db.commit()
-        self.db.refresh(tool)
+        await self.db.commit()
+        await self.db.refresh(tool)
         return tool
 
-    def get_tool_definition(self, tool_id: UUID, tenant_id: UUID) -> Optional[ToolDefinition]:
+    async def get_tool_definition(self, tool_id: UUID, tenant_id: UUID) -> Optional[ToolDefinition]:
         """Get a tool definition by ID"""
-        return self.db.execute(
+        result = await self.db.execute(
             select(ToolDefinition).where(
                 ToolDefinition.id == tool_id,
                 ToolDefinition.tenant_id == tenant_id
             )
-        ).scalar_one_or_none()
+        )
+        return result.scalar_one_or_none()
 
-    def list_tool_definitions(self, tenant_id: UUID, tool_type: Optional[ToolType] = None) -> List[ToolDefinition]:
+    async def list_tool_definitions(self, tenant_id: UUID, tool_type: Optional[ToolType] = None) -> List[ToolDefinition]:
         """List all tool definitions for a tenant"""
         query = select(ToolDefinition).where(ToolDefinition.tenant_id == tenant_id)
         if tool_type:
             query = query.where(ToolDefinition.type == tool_type)
-        return self.db.execute(query).scalars().all()
+        result = await self.db.execute(query)
+        return result.scalars().all()
 
     # ========== MCP Servers ==========
 
-    def create_mcp_server(self, server_create: MCPServerDefinitionCreate) -> MCPServerDefinition:
+    async def create_mcp_server(self, server_create: MCPServerDefinitionCreate) -> MCPServerDefinition:
         """Register a new MCP server"""
         # Check if name exists
-        existing = self.db.execute(
+        result = await self.db.execute(
             select(MCPServerDefinition).where(
                 MCPServerDefinition.tenant_id == server_create.tenant_id,
                 MCPServerDefinition.name == server_create.name
             )
-        ).scalar_one_or_none()
+        )
+        existing = result.scalar_one_or_none()
         
         if existing:
             raise HTTPException(
@@ -105,25 +109,26 @@ class ToolService:
         )
         
         self.db.add(server)
-        self.db.commit()
-        self.db.refresh(server)
+        await self.db.commit()
+        await self.db.refresh(server)
         return server
 
-    def get_mcp_server(self, server_id: UUID, tenant_id: UUID) -> Optional[MCPServerDefinition]:
+    async def get_mcp_server(self, server_id: UUID, tenant_id: UUID) -> Optional[MCPServerDefinition]:
         """Get an MCP server by ID"""
-        return self.db.execute(
+        result = await self.db.execute(
             select(MCPServerDefinition).where(
                 MCPServerDefinition.id == server_id,
                 MCPServerDefinition.tenant_id == tenant_id
             )
-        ).scalar_one_or_none()
+        )
+        return result.scalar_one_or_none()
 
     # ========== Tool Invocations ==========
 
-    def record_invocation_start(self, record_create: ToolInvocationRecordCreate) -> ToolInvocationRecord:
+    async def record_invocation_start(self, record_create: ToolInvocationRecordCreate) -> ToolInvocationRecord:
         """Record the start of a tool invocation"""
         # Validate tool exists
-        tool = self.get_tool_definition(record_create.tool_definition_id, record_create.tenant_id)
+        tool = await self.get_tool_definition(record_create.tool_definition_id, record_create.tenant_id)
         if not tool:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
@@ -144,11 +149,11 @@ class ToolService:
         )
         
         self.db.add(record)
-        self.db.commit()
-        self.db.refresh(record)
+        await self.db.commit()
+        await self.db.refresh(record)
         return record
 
-    def update_invocation_status(
+    async def update_invocation_status(
         self, 
         invocation_id: UUID, 
         tenant_id: UUID, 
@@ -158,12 +163,13 @@ class ToolService:
         error_details: Optional[Dict] = None
     ) -> ToolInvocationRecord:
         """Update the status of a tool invocation (e.g., completion)"""
-        record = self.db.execute(
+        result = await self.db.execute(
             select(ToolInvocationRecord).where(
                 ToolInvocationRecord.id == invocation_id,
                 ToolInvocationRecord.tenant_id == tenant_id
             )
-        ).scalar_one_or_none()
+        )
+        record = result.scalar_one_or_none()
         
         if not record:
             raise HTTPException(
@@ -185,6 +191,6 @@ class ToolService:
         if error_details:
             record.error_details = error_details
             
-        self.db.commit()
-        self.db.refresh(record)
+        await self.db.commit()
+        await self.db.refresh(record)
         return record

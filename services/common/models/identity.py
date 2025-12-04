@@ -13,9 +13,7 @@ from typing import Optional
 
 from sqlalchemy import Column, String, Text, DateTime, ForeignKey, Enum as SQLEnum
 from sqlalchemy.dialects.postgresql import UUID, JSONB
-from sqlalchemy.orm import declarative_base
-
-Base = declarative_base()
+from .base import Base
 
 
 # Enums
@@ -107,7 +105,7 @@ class ExternalRef(Base):
     type = Column(Text, nullable=False)  # e.g., "AGENT", "SESSION", "PERSONA", "MEMORY_BANK"
     external_id = Column(Text, nullable=False)  # ID in the external system
     uri = Column(Text, nullable=True)  # Optional structured URI
-    metadata = Column(JSONB, nullable=False, default=dict)  # System-specific metadata
+    meta_data = Column("metadata", JSONB, nullable=False, default=dict)  # System-specific metadata
     
     created_at = Column(DateTime(timezone=True), default=datetime.utcnow, nullable=False)
     

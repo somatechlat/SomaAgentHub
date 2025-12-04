@@ -41,12 +41,6 @@ from ..capsule_executor import CapsuleRunInput as ExecCapsuleRunInput
 from ..capsule_executor import execute_capsule
 from ..core.config import settings
 from ..database import get_session
-from ..repository.interfaces import BuildRunRepository
-from ..repository.models import BuildRun
-from ..repository.sql_build_run_repository import (
-    SQLBuildRunRepository,
-)
-
 # Import conversation and training endpoints
 from .conversation import router as conversation_router
 from .projects import router as projects_router
@@ -61,91 +55,16 @@ router.include_router(training_router)
 from .registry import router as registry_router
 router.include_router(registry_router)
 
+# Include Tenant Router
+from .routes.tenants import router as tenants_router
+router.include_router(tenants_router)
+
 # Metrics
 POLICY_FALLBACK_EVENTS = Counter(
     "policy_fallback_events_total",
     "Total policy fallback events",
     ["route", "reason"],
 )
-
-
-class BuildRunCreate(BaseModel):
-    tenant: str
-    project_id: str
-    pricing_snapshot_id: str
-    budget_cap: float
-    estimated_cost: float
-    template_set: str = "default"
-    policy_reason: str = ""
-
-
-class BuildRunResponse(BaseModel):
-    id: uuid.UUID
-    tenant: str
-    project_id: str
-    pricing_snapshot_id: str
-    budget_cap: float
-    estimated_cost: float
-    status: str
-    template_set: str
-    policy_reason: str
-    created_at: str
-    updated_at: str
-
-
-def get_build_run_repo(session: Session = Depends(get_session)) -> BuildRunRepository:
-    return SQLBuildRunRepository(session)
-
-
-@router.post("/build-runs", response_model=BuildRunResponse, tags=["build"])
-def create_build_run(payload: BuildRunCreate, repo: BuildRunRepository = Depends(get_build_run_repo)):
-    br = BuildRun(
-        tenant=payload.tenant,
-        project_id=payload.project_id,
-        pricing_snapshot_id=payload.pricing_snapshot_id,
-        budget_cap=payload.budget_cap,
-        estimated_cost=payload.estimated_cost,
-        template_set=payload.template_set,
-        policy_reason=payload.policy_reason,
-    )
-    br = repo.create(br)
-    return BuildRunResponse(
-        id=br.id,
-        tenant=br.tenant,
-        project_id=br.project_id,
-        pricing_snapshot_id=br.pricing_snapshot_id,
-        budget_cap=br.budget_cap,
-        estimated_cost=br.estimated_cost,
-        status=br.status,
-        template_set=br.template_set,
-        policy_reason=br.policy_reason,
-        created_at=br.created_at.isoformat(),
-        updated_at=br.updated_at.isoformat(),
-    )
-
-
-@router.get("/build-runs/{build_run_id}", response_model=BuildRunResponse, tags=["build"])
-def get_build_run(build_run_id: str, repo: BuildRunRepository = Depends(get_build_run_repo)):
-    try:
-        bid = uuid.UUID(build_run_id)
-    except Exception:
-        raise HTTPException(status_code=400, detail="Invalid build_run_id")
-    br = repo.get(bid)
-    if not br:
-        raise HTTPException(status_code=404, detail="BuildRun not found")
-    return BuildRunResponse(
-        id=br.id,
-        tenant=br.tenant,
-        project_id=br.project_id,
-        pricing_snapshot_id=br.pricing_snapshot_id,
-        budget_cap=br.budget_cap,
-        estimated_cost=br.estimated_cost,
-        status=br.status,
-        template_set=br.template_set,
-        policy_reason=br.policy_reason,
-        created_at=br.created_at.isoformat(),
-        updated_at=br.updated_at.isoformat(),
-    )
 
 
 class BuildPrecheckRequest(BaseModel):

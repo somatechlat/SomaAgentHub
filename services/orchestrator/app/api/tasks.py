@@ -7,28 +7,25 @@ Exposes task creation, retrieval, and status management via REST API.
 from typing import List, Optional
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, status, Query
-from sqlalchemy.orm import Session
+from fastapi import APIRouter, Depends, HTTPException, status, Query, Header
+from sqlalchemy.ext.asyncio import AsyncSession
 
-from services.orchestrator.app.database import get_db
+from services.orchestrator.app.database import get_session
 from services.orchestrator.app.services.task_service import TaskService
 from services.common.models.task import (
     TaskRecord, TaskStatus,
-    TaskRecordCreate, TaskRecordResponse
+    TaskRecordCreate, TaskRecordResponse, TaskRecordUpdate
 )
-# In a real implementation, we would extract tenant_id from the auth token
-# For now, we accept it as a header or query param for demonstration
-from fastapi import Header
 
 router = APIRouter(prefix="/tasks", tags=["tasks"])
 
 
-def get_task_service(db: Session = Depends(get_db)) -> TaskService:
+def get_task_service(db: AsyncSession = Depends(get_session)) -> TaskService:
     return TaskService(db)
 
 
 @router.post("/", response_model=TaskRecordResponse, status_code=status.HTTP_201_CREATED)
-def create_task(
+async def create_task(
     task_create: TaskRecordCreate,
     x_tenant_id: UUID = Header(..., alias="X-Tenant-ID"),
     service: TaskService = Depends(get_task_service)
@@ -41,17 +38,17 @@ def create_task(
             detail="Tenant ID mismatch between header and body"
         )
         
-    return service.create_task(task_create)
+    return await service.create_task(task_create)
 
 
 @router.get("/{task_id}", response_model=TaskRecordResponse)
-def get_task(
+async def get_task(
     task_id: UUID,
     x_tenant_id: UUID = Header(..., alias="X-Tenant-ID"),
     service: TaskService = Depends(get_task_service)
 ):
     """Get a task by ID"""
-    task = service.get_task(task_id, x_tenant_id)
+    task = await service.get_task(task_id, x_tenant_id)
     if not task:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -61,17 +58,17 @@ def get_task(
 
 
 @router.get("/", response_model=List[TaskRecordResponse])
-def list_tasks(
+async def list_tasks(
     status: Optional[TaskStatus] = Query(None),
     x_tenant_id: UUID = Header(..., alias="X-Tenant-ID"),
     service: TaskService = Depends(get_task_service)
 ):
     """List all tasks for a tenant"""
-    return service.list_tasks(x_tenant_id, status)
+    return await service.list_tasks(tenant_id=x_tenant_id, status=status)
 
 
 @router.patch("/{task_id}/status", response_model=TaskRecordResponse)
-def update_task_status(
+async def update_task_status(
     task_id: UUID,
     status: TaskStatus,
     reason: Optional[str] = None,
@@ -80,19 +77,22 @@ def update_task_status(
     service: TaskService = Depends(get_task_service)
 ):
     """Update a task's status"""
-    try:
-        return service.update_task_status(
-            task_id, x_tenant_id, status, reason, actor_principal_id
-        )
-    except ValueError as e:
+    update_data = TaskRecordUpdate(
+        status=status,
+        reason=reason,
+        actor_principal_id=actor_principal_id
+    )
+    task = await service.update_task_status(task_id, x_tenant_id, update_data)
+    if not task:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=str(e)
+            detail=f"Task {task_id} not found"
         )
+    return task
 
 
 @router.delete("/{task_id}", status_code=status.HTTP_204_NO_CONTENT)
-def cancel_task(
+async def cancel_task(
     task_id: UUID,
     reason: str = Query(..., min_length=1),
     actor_principal_id: Optional[UUID] = Query(None),
@@ -100,10 +100,14 @@ def cancel_task(
     service: TaskService = Depends(get_task_service)
 ):
     """Cancel a task"""
-    try:
-        service.cancel_task(task_id, x_tenant_id, reason, actor_principal_id)
-    except ValueError as e:
+    update_data = TaskRecordUpdate(
+        status=TaskStatus.CANCELLED,
+        reason=reason,
+        actor_principal_id=actor_principal_id
+    )
+    task = await service.update_task_status(task_id, x_tenant_id, update_data)
+    if not task:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=str(e)
+            detail=f"Task {task_id} not found"
         )

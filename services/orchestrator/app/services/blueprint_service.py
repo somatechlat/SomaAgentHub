@@ -8,7 +8,7 @@ from typing import List, Optional, Dict, Any
 from uuid import UUID
 from datetime import datetime
 
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from fastapi import HTTPException, status
 
@@ -21,21 +21,22 @@ from services.common.models.blueprint import (
 class BlueprintService:
     """Service for managing blueprints and plans"""
 
-    def __init__(self, db: Session):
+    def __init__(self, db: AsyncSession):
         self.db = db
 
     # ========== Blueprint Definitions ==========
 
-    def create_blueprint(self, blueprint_create: BlueprintDefinitionCreate) -> BlueprintDefinition:
+    async def create_blueprint(self, blueprint_create: BlueprintDefinitionCreate) -> BlueprintDefinition:
         """Create a new blueprint definition"""
         # Check if name exists in tenant
-        existing = self.db.execute(
+        result = await self.db.execute(
             select(BlueprintDefinition).where(
                 BlueprintDefinition.tenant_id == blueprint_create.tenant_id,
                 BlueprintDefinition.name == blueprint_create.name,
                 BlueprintDefinition.version == blueprint_create.version
             )
-        ).scalar_one_or_none()
+        )
+        existing = result.scalar_one_or_none()
         
         if existing:
             raise HTTPException(
@@ -59,32 +60,34 @@ class BlueprintService:
         )
         
         self.db.add(blueprint)
-        self.db.commit()
-        self.db.refresh(blueprint)
+        await self.db.commit()
+        await self.db.refresh(blueprint)
         return blueprint
 
-    def get_blueprint(self, blueprint_id: UUID, tenant_id: UUID) -> Optional[BlueprintDefinition]:
+    async def get_blueprint(self, blueprint_id: UUID, tenant_id: UUID) -> Optional[BlueprintDefinition]:
         """Get a blueprint by ID"""
-        return self.db.execute(
+        result = await self.db.execute(
             select(BlueprintDefinition).where(
                 BlueprintDefinition.id == blueprint_id,
                 BlueprintDefinition.tenant_id == tenant_id
             )
-        ).scalar_one_or_none()
+        )
+        return result.scalar_one_or_none()
 
-    def list_blueprints(self, tenant_id: UUID, status_filter: Optional[BlueprintStatus] = None) -> List[BlueprintDefinition]:
+    async def list_blueprints(self, tenant_id: UUID, status_filter: Optional[BlueprintStatus] = None) -> List[BlueprintDefinition]:
         """List all blueprints for a tenant"""
         query = select(BlueprintDefinition).where(BlueprintDefinition.tenant_id == tenant_id)
         if status_filter:
             query = query.where(BlueprintDefinition.status == status_filter)
-        return self.db.execute(query).scalars().all()
+        result = await self.db.execute(query)
+        return result.scalars().all()
 
     # ========== Plans ==========
 
-    def create_plan_spec(self, plan_create: PlanSpecCreate) -> PlanSpec:
+    async def create_plan_spec(self, plan_create: PlanSpecCreate) -> PlanSpec:
         """Create a new execution plan from a blueprint"""
         # Validate blueprint exists
-        blueprint = self.get_blueprint(plan_create.blueprint_definition_id, plan_create.tenant_id)
+        blueprint = await self.get_blueprint(plan_create.blueprint_definition_id, plan_create.tenant_id)
         if not blueprint:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
@@ -107,24 +110,26 @@ class BlueprintService:
         )
         
         self.db.add(plan)
-        self.db.commit()
-        self.db.refresh(plan)
+        await self.db.commit()
+        await self.db.refresh(plan)
         return plan
 
-    def get_plan(self, plan_id: UUID, tenant_id: UUID) -> Optional[PlanSpec]:
+    async def get_plan(self, plan_id: UUID, tenant_id: UUID) -> Optional[PlanSpec]:
         """Get a plan by ID"""
-        return self.db.execute(
+        result = await self.db.execute(
             select(PlanSpec).where(
                 PlanSpec.id == plan_id,
                 PlanSpec.tenant_id == tenant_id
             )
-        ).scalar_one_or_none()
+        )
+        return result.scalar_one_or_none()
 
-    def get_plan_for_task(self, task_id: UUID, tenant_id: UUID) -> Optional[PlanSpec]:
+    async def get_plan_for_task(self, task_id: UUID, tenant_id: UUID) -> Optional[PlanSpec]:
         """Get the plan associated with a task"""
-        return self.db.execute(
+        result = await self.db.execute(
             select(PlanSpec).where(
                 PlanSpec.task_id == task_id,
                 PlanSpec.tenant_id == tenant_id
             )
-        ).scalar_one_or_none()
+        )
+        return result.scalar_one_or_none()

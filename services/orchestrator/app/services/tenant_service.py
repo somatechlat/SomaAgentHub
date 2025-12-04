@@ -16,6 +16,9 @@ from services.orchestrator.app.database import get_async_session
 class TenantService:
     """Service for managing tenants"""
     
+    def __init__(self, session: Optional[AsyncSession] = None):
+        self.session = session
+
     async def create_tenant(self, tenant_data: TenantRefCreate) -> TenantRefResponse:
         """
         Create a new tenant.
@@ -29,26 +32,31 @@ class TenantService:
         Raises:
             ValueError: If tenant name already exists
         """
+        if self.session:
+            return await self._create_tenant_impl(self.session, tenant_data)
         async with get_async_session() as session:
-            # Check if tenant name already exists
-            stmt = select(TenantRef).where(TenantRef.name == tenant_data.name)
-            result = await session.execute(stmt)
-            existing = result.scalar_one_or_none()
-            
-            if existing:
-                raise ValueError(f"Tenant with name '{tenant_data.name}' already exists")
-            
-            # Create new tenant
-            tenant = TenantRef(
-                name=tenant_data.name,
-                status=TenantStatus.ACTIVE
-            )
-            
-            session.add(tenant)
-            await session.commit()
-            await session.refresh(tenant)
-            
-            return TenantRefResponse.from_orm(tenant)
+            return await self._create_tenant_impl(session, tenant_data)
+
+    async def _create_tenant_impl(self, session: AsyncSession, tenant_data: TenantRefCreate) -> TenantRefResponse:
+        # Check if tenant name already exists
+        stmt = select(TenantRef).where(TenantRef.name == tenant_data.name)
+        result = await session.execute(stmt)
+        existing = result.scalar_one_or_none()
+        
+        if existing:
+            raise ValueError(f"Tenant with name '{tenant_data.name}' already exists")
+        
+        # Create new tenant
+        tenant = TenantRef(
+            name=tenant_data.name,
+            status=TenantStatus.ACTIVE
+        )
+        
+        session.add(tenant)
+        await session.commit()
+        await session.refresh(tenant)
+        
+        return TenantRefResponse.from_orm(tenant)
     
     async def get_tenant(self, tenant_id: UUID) -> Optional[TenantRefResponse]:
         """
@@ -60,14 +68,19 @@ class TenantService:
         Returns:
             Tenant if found, None otherwise
         """
+        if self.session:
+            return await self._get_tenant_impl(self.session, tenant_id)
         async with get_async_session() as session:
-            stmt = select(TenantRef).where(TenantRef.id == tenant_id)
-            result = await session.execute(stmt)
-            tenant = result.scalar_one_or_none()
-            
-            if tenant:
-                return TenantRefResponse.from_orm(tenant)
-            return None
+            return await self._get_tenant_impl(session, tenant_id)
+
+    async def _get_tenant_impl(self, session: AsyncSession, tenant_id: UUID) -> Optional[TenantRefResponse]:
+        stmt = select(TenantRef).where(TenantRef.id == tenant_id)
+        result = await session.execute(stmt)
+        tenant = result.scalar_one_or_none()
+        
+        if tenant:
+            return TenantRefResponse.from_orm(tenant)
+        return None
     
     async def list_tenants(self, status: Optional[TenantStatus] = None) -> List[TenantRefResponse]:
         """
@@ -79,18 +92,23 @@ class TenantService:
         Returns:
             List of tenants
         """
+        if self.session:
+            return await self._list_tenants_impl(self.session, status)
         async with get_async_session() as session:
-            stmt = select(TenantRef)
-            
-            if status:
-                stmt = stmt.where(TenantRef.status == status)
-            
-            stmt = stmt.order_by(TenantRef.created_at.desc())
-            
-            result = await session.execute(stmt)
-            tenants = result.scalars().all()
-            
-            return [TenantRefResponse.from_orm(t) for t in tenants]
+            return await self._list_tenants_impl(session, status)
+
+    async def _list_tenants_impl(self, session: AsyncSession, status: Optional[TenantStatus]) -> List[TenantRefResponse]:
+        stmt = select(TenantRef)
+        
+        if status:
+            stmt = stmt.where(TenantRef.status == status)
+        
+        stmt = stmt.order_by(TenantRef.created_at.desc())
+        
+        result = await session.execute(stmt)
+        tenants = result.scalars().all()
+        
+        return [TenantRefResponse.from_orm(t) for t in tenants]
     
     async def update_tenant_status(self, tenant_id: UUID, status: TenantStatus) -> Optional[TenantRefResponse]:
         """
@@ -103,19 +121,24 @@ class TenantService:
         Returns:
             Updated tenant if found, None otherwise
         """
+        if self.session:
+            return await self._update_tenant_status_impl(self.session, tenant_id, status)
         async with get_async_session() as session:
-            stmt = select(TenantRef).where(TenantRef.id == tenant_id)
-            result = await session.execute(stmt)
-            tenant = result.scalar_one_or_none()
-            
-            if not tenant:
-                return None
-            
-            tenant.status = status
-            await session.commit()
-            await session.refresh(tenant)
-            
-            return TenantRefResponse.from_orm(tenant)
+            return await self._update_tenant_status_impl(session, tenant_id, status)
+
+    async def _update_tenant_status_impl(self, session: AsyncSession, tenant_id: UUID, status: TenantStatus) -> Optional[TenantRefResponse]:
+        stmt = select(TenantRef).where(TenantRef.id == tenant_id)
+        result = await session.execute(stmt)
+        tenant = result.scalar_one_or_none()
+        
+        if not tenant:
+            return None
+        
+        tenant.status = status
+        await session.commit()
+        await session.refresh(tenant)
+        
+        return TenantRefResponse.from_orm(tenant)
     
     async def delete_tenant(self, tenant_id: UUID) -> bool:
         """

@@ -8,7 +8,7 @@ from typing import List, Optional, Dict, Any
 from uuid import UUID
 from datetime import datetime
 
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from fastapi import HTTPException, status
 
@@ -22,20 +22,21 @@ from services.common.models.observability import (
 class EvaluationService:
     """Service for managing evaluations"""
 
-    def __init__(self, db: Session):
+    def __init__(self, db: AsyncSession):
         self.db = db
 
     # ========== Scenarios ==========
 
-    def create_scenario(self, scenario_create: EvaluationScenarioDefinitionCreate) -> EvaluationScenarioDefinition:
+    async def create_scenario(self, scenario_create: EvaluationScenarioDefinitionCreate) -> EvaluationScenarioDefinition:
         """Create a new evaluation scenario"""
         # Check if name exists in tenant
-        existing = self.db.execute(
+        result = await self.db.execute(
             select(EvaluationScenarioDefinition).where(
                 EvaluationScenarioDefinition.tenant_id == scenario_create.tenant_id,
                 EvaluationScenarioDefinition.name == scenario_create.name
             )
-        ).scalar_one_or_none()
+        )
+        existing = result.scalar_one_or_none()
         
         if existing:
             raise HTTPException(
@@ -53,33 +54,35 @@ class EvaluationService:
         )
         
         self.db.add(scenario)
-        self.db.commit()
-        self.db.refresh(scenario)
+        await self.db.commit()
+        await self.db.refresh(scenario)
         return scenario
 
-    def get_scenario(self, scenario_id: UUID, tenant_id: UUID) -> Optional[EvaluationScenarioDefinition]:
+    async def get_scenario(self, scenario_id: UUID, tenant_id: UUID) -> Optional[EvaluationScenarioDefinition]:
         """Get a scenario by ID"""
-        return self.db.execute(
+        result = await self.db.execute(
             select(EvaluationScenarioDefinition).where(
                 EvaluationScenarioDefinition.id == scenario_id,
                 EvaluationScenarioDefinition.tenant_id == tenant_id
             )
-        ).scalar_one_or_none()
+        )
+        return result.scalar_one_or_none()
 
-    def list_scenarios(self, tenant_id: UUID) -> List[EvaluationScenarioDefinition]:
+    async def list_scenarios(self, tenant_id: UUID) -> List[EvaluationScenarioDefinition]:
         """List all scenarios for a tenant"""
-        return self.db.execute(
+        result = await self.db.execute(
             select(EvaluationScenarioDefinition).where(
                 EvaluationScenarioDefinition.tenant_id == tenant_id
             )
-        ).scalars().all()
+        )
+        return result.scalars().all()
 
     # ========== Evaluation Runs ==========
 
-    def create_evaluation_run(self, run_create: EvaluationRunCreate) -> EvaluationRun:
+    async def create_evaluation_run(self, run_create: EvaluationRunCreate) -> EvaluationRun:
         """Start a new evaluation run"""
         # Validate scenario exists
-        scenario = self.get_scenario(run_create.scenario_id, run_create.tenant_id)
+        scenario = await self.get_scenario(run_create.scenario_id, run_create.tenant_id)
         if not scenario:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
@@ -94,22 +97,23 @@ class EvaluationService:
         )
         
         self.db.add(run)
-        self.db.commit()
-        self.db.refresh(run)
+        await self.db.commit()
+        await self.db.refresh(run)
         return run
 
-    def get_run(self, run_id: UUID, tenant_id: UUID) -> Optional[EvaluationRun]:
+    async def get_run(self, run_id: UUID, tenant_id: UUID) -> Optional[EvaluationRun]:
         """Get an evaluation run by ID"""
-        return self.db.execute(
+        result = await self.db.execute(
             select(EvaluationRun).where(
                 EvaluationRun.id == run_id,
                 EvaluationRun.tenant_id == tenant_id
             )
-        ).scalar_one_or_none()
+        )
+        return result.scalar_one_or_none()
 
-    def update_run_status(self, run_id: UUID, tenant_id: UUID, status: EvaluationStatus) -> EvaluationRun:
+    async def update_run_status(self, run_id: UUID, tenant_id: UUID, status: EvaluationStatus) -> EvaluationRun:
         """Update the status of an evaluation run"""
-        run = self.get_run(run_id, tenant_id)
+        run = await self.get_run(run_id, tenant_id)
         if not run:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
@@ -122,13 +126,13 @@ class EvaluationService:
         elif status == EvaluationStatus.RUNNING and not run.started_at:
             run.started_at = datetime.utcnow()
             
-        self.db.commit()
-        self.db.refresh(run)
+        await self.db.commit()
+        await self.db.refresh(run)
         return run
 
     # ========== Metrics ==========
 
-    def record_metric(self, metric_create: EvaluationMetricRecordCreate) -> EvaluationMetricRecord:
+    async def record_metric(self, metric_create: EvaluationMetricRecordCreate) -> EvaluationMetricRecord:
         """Record a computed metric for a run"""
         # Validate run exists (omitted for brevity, assume caller has verified context)
         
@@ -140,14 +144,15 @@ class EvaluationService:
         )
         
         self.db.add(metric)
-        self.db.commit()
-        self.db.refresh(metric)
+        await self.db.commit()
+        await self.db.refresh(metric)
         return metric
 
-    def get_metrics_for_run(self, run_id: UUID) -> List[EvaluationMetricRecord]:
+    async def get_metrics_for_run(self, run_id: UUID) -> List[EvaluationMetricRecord]:
         """Get all metrics for a specific run"""
-        return self.db.execute(
+        result = await self.db.execute(
             select(EvaluationMetricRecord).where(
                 EvaluationMetricRecord.evaluation_run_id == run_id
             )
-        ).scalars().all()
+        )
+        return result.scalars().all()

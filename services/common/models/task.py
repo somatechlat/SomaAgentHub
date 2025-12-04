@@ -13,9 +13,8 @@ from typing import Optional
 
 from sqlalchemy import Column, String, Text, DateTime, ForeignKey, Enum as SQLEnum
 from sqlalchemy.dialects.postgresql import UUID, JSONB
-from sqlalchemy.orm import declarative_base, relationship
-
-Base = declarative_base()
+from sqlalchemy.orm import relationship
+from .base import Base
 
 
 class TaskStatus(str, Enum):
