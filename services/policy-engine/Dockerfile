@@ -10,4 +10,4 @@ COPY services/policy-engine/ .
 
 EXPOSE 10020
 
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "10020"]
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "10020", "--workers", "1"]

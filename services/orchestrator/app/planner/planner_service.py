@@ -72,7 +72,9 @@ class PlannerService:
             from ..services.event_emission import EventEmissionService
 
             event_service = EventEmissionService(session)
-            await event_service.emit_plan_created_event(plan=plan, session_id=request.session_id)
+            await event_service.emit_plan_created_event(
+                plan=plan, session_id=request.session_id
+            )
 
         return plan
 

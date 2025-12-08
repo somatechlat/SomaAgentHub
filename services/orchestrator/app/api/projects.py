@@ -36,7 +36,9 @@ async def analyze_project(
     """
     # Minimal implementation removing placeholder: synthesise initial plan snapshot
     plan_id = f"plan-{uuid4()}"
-    summary = f"Plan {plan_id} created for tenant {payload.tenant}. Objective pending intake."
+    summary = (
+        f"Plan {plan_id} created for tenant {payload.tenant}. Objective pending intake."
+    )
     return AnalyzeProjectResponse(
         plan_id=plan_id,
         capsule=None,
@@ -71,7 +73,9 @@ class IntakeResponseModel(BaseModel):
 
 
 @router.post("/{plan_id}/intake", response_model=IntakeResponseModel)
-async def progress_intake(plan_id: str, payload: IntakeRequestModel) -> IntakeResponseModel:
+async def progress_intake(
+    plan_id: str, payload: IntakeRequestModel
+) -> IntakeResponseModel:
     """Advance the wizard/manual intake flow for a plan."""
     from ..intake.manager import IntakeManager
     from ..intake.schemas import (

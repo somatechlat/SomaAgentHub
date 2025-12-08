@@ -141,10 +141,14 @@ class RateLimiter:
                 headers={"Retry-After": str(retry_after)},
             )
 
-    async def get_rate_limit_info(self, client_id: str, endpoint: str = "default") -> dict[str, any]:
+    async def get_rate_limit_info(
+        self, client_id: str, endpoint: str = "default"
+    ) -> dict[str, any]:
         """Get current rate limit status."""
         config = self.configs.get(endpoint, RateLimitConfig())
-        is_allowed, retry_after = await self.check_rate_limit(client_id, endpoint, increment=False)
+        is_allowed, retry_after = await self.check_rate_limit(
+            client_id, endpoint, increment=False
+        )
 
         key = self._get_client_key(client_id, endpoint)
         current_count = await self.redis.zcard(key)
@@ -167,7 +171,9 @@ class RateLimiter:
 class AdvancedRateLimiter(RateLimiter):
     """Advanced rate limiter with multiple algorithms."""
 
-    async def token_bucket_check(self, client_id: str, endpoint: str = "default") -> tuple[bool, int]:
+    async def token_bucket_check(
+        self, client_id: str, endpoint: str = "default"
+    ) -> tuple[bool, int]:
         """Token bucket algorithm implementation."""
         config = self.configs.get(endpoint, RateLimitConfig())
         key = f"token_bucket:{endpoint}:{client_id}"
@@ -216,7 +222,9 @@ rate_limiter.add_config(
 
 rate_limiter.add_config(
     "api/v1/health",
-    RateLimitConfig(requests_per_minute=1000, requests_per_hour=10000, burst_capacity=50),
+    RateLimitConfig(
+        requests_per_minute=1000, requests_per_hour=10000, burst_capacity=50
+    ),
 )
 
 rate_limiter.add_config(
@@ -249,7 +257,9 @@ class RateLimitMiddleware:
             # Add rate limit headers
             rate_info = await self.rate_limiter.get_rate_limit_info(client_id, endpoint)
             response.headers["X-RateLimit-Limit"] = str(rate_info["limit"])
-            response.headers["X-RateLimit-Remaining"] = str(max(0, rate_info["limit"] - rate_info["current_requests"]))
+            response.headers["X-RateLimit-Remaining"] = str(
+                max(0, rate_info["limit"] - rate_info["current_requests"])
+            )
             response.headers["X-RateLimit-Reset"] = str(rate_info["reset_time"])
 
             return response
@@ -259,7 +269,9 @@ class RateLimitMiddleware:
             rate_info = await self.rate_limiter.get_rate_limit_info(client_id, endpoint)
             e.headers = {
                 "X-RateLimit-Limit": str(rate_info["limit"]),
-                "X-RateLimit-Remaining": str(max(0, rate_info["limit"] - rate_info["current_requests"])),
+                "X-RateLimit-Remaining": str(
+                    max(0, rate_info["limit"] - rate_info["current_requests"])
+                ),
                 "X-RateLimit-Reset": str(rate_info["reset_time"]),
                 **e.headers,
             }

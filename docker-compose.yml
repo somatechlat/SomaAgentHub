@@ -1,6 +1,7 @@
 # docker-compose.yml
 # CANONICAL Docker Compose file for SomaAgentHub
 # All services use the 10000+ port range for consistency
+# TOTAL MEMORY BUDGET: ~9.8GB (Strictly Enforced)
 
 name: somaagenthub
 
@@ -18,7 +19,9 @@ services:
       - SOMA_AGENT_HUB_REDIS_URL=redis://redis:6379/0
       - SOMA_AGENT_HUB_GATEWAY_ORCHESTRATOR_URL=http://orchestrator:8000
       - SOMA_AGENT_HUB_IDENTITY_SERVICE_URL=http://identity-service:10002
-      - SOMA_AGENT_HUB_OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4317
+      - SOMA_AGENT_HUB_OTLP_ENDPOINT=http://otel-collector:4317
+      - WEB_CONCURRENCY=1
+      - PYTHONOPTIMIZE=1
     depends_on:
       orchestrator:
         condition: service_healthy
@@ -26,6 +29,10 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          memory: 256M
     healthcheck:
       test: [ "CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://127.0.0.1:10000/ready', timeout=3)\"" ]
       interval: 10s
@@ -49,12 +56,43 @@ services:
       - SOMA_AGENT_HUB_TEMPORAL_ENABLED=${TEMPORAL_ENABLED:-true}
       - SOMA_AGENT_HUB_DATABASE_URL=postgresql+asyncpg://${APP_POSTGRES_USER:-somaagent}:${APP_POSTGRES_PASSWORD:-somaagent}@app-postgres:5432/${APP_POSTGRES_DB:-somaagent}
       - SOMA_AGENT_HUB_CAPSULE_REPO_URL=http://capsule-repo:8002/v1/capsules
-      - SOMA_AGENT_HUB_OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4317
+      - SOMA_AGENT_HUB_OTLP_ENDPOINT=http://otel-collector:4317
+      - WEB_CONCURRENCY=2
+      - PYTHONOPTIMIZE=1
+    deploy:
+      resources:
+        limits:
+          memory: 1G
     healthcheck:
       test: [ "CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/ready', timeout=3)\"" ]
       interval: 10s
       timeout: 5s
       retries: 6
+    networks:
+      - somaagenthub-network
+
+  worker:
+    build:
+      context: .
+      dockerfile: services/workflow-engine/Dockerfile
+    container_name: somaagenthub_worker
+    restart: unless-stopped
+    environment:
+      - SOMA_AGENT_HUB_TEMPORAL_HOST=temporal-server:7233
+      - SOMA_AGENT_HUB_TEMPORAL_NAMESPACE=${TEMPORAL_NAMESPACE:-default}
+      - SOMA_AGENT_HUB_TEMPORAL_TASK_QUEUE=${TEMPORAL_TASK_QUEUE:-somagent.session.workflows}
+      - SOMA_AGENT_HUB_DATABASE_URL=postgresql+asyncpg://${APP_POSTGRES_USER:-somaagent}:${APP_POSTGRES_PASSWORD:-somaagent}@app-postgres:5432/${APP_POSTGRES_DB:-somaagent}
+      - SOMA_AGENT_HUB_OTLP_ENDPOINT=http://otel-collector:4317
+      - PYTHONOPTIMIZE=1
+    depends_on:
+      orchestrator:
+        condition: service_healthy
+      temporal-server:
+        condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          memory: 512M
     networks:
       - somaagenthub-network
 
@@ -70,10 +108,16 @@ services:
       - SOMA_AGENT_HUB_REDIS_URL=redis://redis:6379/0
       - SOMA_AGENT_HUB_OIDC_ISSUER_URL=http://identity-service:10002
       - SOMA_AGENT_HUB_OIDC_JWKS_URI=http://identity-service:10002/.well-known/jwks.json
-      - SOMA_AGENT_HUB_OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4317
+      - SOMA_AGENT_HUB_OTLP_ENDPOINT=http://otel-collector:4317
+      - WEB_CONCURRENCY=1
+      - PYTHONOPTIMIZE=1
     depends_on:
       redis:
         condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          memory: 512M
     healthcheck:
       test: [ "CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://127.0.0.1:10002/health', timeout=3)\"" ]
       interval: 10s
@@ -82,7 +126,7 @@ services:
     networks:
       - somaagenthub-network
 
-  # --- Optional Services ---
+  # --- Optional / Micro Services ---
   policy-engine:
     build:
       context: .
@@ -92,9 +136,14 @@ services:
     ports:
       - "${POLICY_ENGINE_PORT:-10020}:10020"
     environment:
-      - SOMA_AGENT_HUB_OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4317
-      # Optional Kafka for cache invalidation – canonical prefixed var
+      - SOMA_AGENT_HUB_OTLP_ENDPOINT=http://otel-collector:4317
       - SOMA_AGENT_HUB_KAFKA_BOOTSTRAP_SERVERS=${KAFKA_BOOTSTRAP_SERVERS:-}
+      - WEB_CONCURRENCY=1
+      - PYTHONOPTIMIZE=1
+    deploy:
+      resources:
+        limits:
+          memory: 256M
     healthcheck:
       test: [ "CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://127.0.0.1:10020/health', timeout=3)\"" ]
       interval: 10s
@@ -112,9 +161,16 @@ services:
       dockerfile: services/constitution-service/Dockerfile
     container_name: somaagenthub_constitution-service
     restart: unless-stopped
-    command: [ "uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "10024" ]
+    command: [ "uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "10024", "--workers", "1" ]
     ports:
       - "${CONSTITUTION_SERVICE_PORT:-10024}:10024"
+    environment:
+      - WEB_CONCURRENCY=1
+      - PYTHONOPTIMIZE=1
+    deploy:
+      resources:
+        limits:
+          memory: 256M
     healthcheck:
       test: [ "CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://127.0.0.1:10024/health', timeout=3)\"" ]
       interval: 10s
@@ -123,18 +179,22 @@ services:
     networks:
       - somaagenthub-network
 
-  # Memory Gateway (optional but now enabled by default)
   memory-gateway:
     build:
       context: .
       dockerfile: services/memory-gateway/Dockerfile
     container_name: somaagenthub_memory-gateway
     restart: unless-stopped
-    # The internal FastAPI server runs on port 8000; expose via the canonical range
     ports:
       - "${MEMORY_GATEWAY_PORT:-10021}:8000"
     environment:
-      - SOMA_AGENT_HUB_OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4317
+      - SOMA_AGENT_HUB_OTLP_ENDPOINT=http://otel-collector:4317
+      - WEB_CONCURRENCY=1
+      - PYTHONOPTIMIZE=1
+    deploy:
+      resources:
+        limits:
+          memory: 256M
     healthcheck:
       test: [ "CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=3)\"" ]
       interval: 10s
@@ -146,7 +206,108 @@ services:
     networks:
       - somaagenthub-network
 
-  # LLM Hub provides centralized model access.
+  tool-service:
+    build:
+      context: .
+      dockerfile: services/tool-service/Dockerfile
+    container_name: somaagenthub_tool-service
+    restart: unless-stopped
+    ports:
+      - "${TOOL_SERVICE_PORT:-10028}:8000"
+    environment:
+      - SOMA_AGENT_HUB_OTLP_ENDPOINT=http://otel-collector:4317
+      - WEB_CONCURRENCY=1
+      - PYTHONOPTIMIZE=1
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+    networks:
+      - somaagenthub-network
+
+  capsule-repo:
+    build:
+      context: .
+      dockerfile: services/task_capsule_repo/Dockerfile
+    container_name: somaagenthub_capsule-repo
+    restart: unless-stopped
+    command: [ "uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8002", "--workers", "1" ]
+    ports:
+      - "${CAPSULE_REPO_PORT:-10023}:8002"
+    environment:
+      - DATABASE_URL=postgresql+asyncpg://${APP_POSTGRES_USER:-somaagent}:${APP_POSTGRES_PASSWORD:-somaagent}@app-postgres:5432/${APP_POSTGRES_DB:-somaagent}
+      - WEB_CONCURRENCY=1
+      - PYTHONOPTIMIZE=1
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+    depends_on:
+      app-postgres:
+        condition: service_healthy
+    healthcheck:
+      test: [ "CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://127.0.0.1:8002/health', timeout=3)\"" ]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+    networks:
+      - somaagenthub-network
+
+  pricing-service:
+    build:
+      context: .
+      dockerfile: services/pricing-service/Dockerfile
+    container_name: somaagenthub_pricing-service
+    restart: unless-stopped
+    ports:
+      - "${PRICING_SERVICE_PORT:-10026}:10026"
+    environment:
+      - SOMA_AGENT_HUB_CLICKHOUSE_HOST=clickhouse
+      - SOMA_AGENT_HUB_CLICKHOUSE_HTTP_PORT=8123
+      - SOMA_AGENT_HUB_CLICKHOUSE_USER=${CLICKHOUSE_USER:-default}
+      - SOMA_AGENT_HUB_CLICKHOUSE_PASSWORD=${CLICKHOUSE_PASSWORD:-}
+      - SOMA_AGENT_HUB_OTLP_ENDPOINT=http://otel-collector:4317
+      - WEB_CONCURRENCY=1
+      - PYTHONOPTIMIZE=1
+    deploy:
+      resources:
+        limits:
+          memory: 256M # Reduced from plan default (covered in misc)
+    depends_on:
+      clickhouse:
+        condition: service_healthy
+    healthcheck:
+      test: [ "CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://127.0.0.1:10026/health', timeout=3)\"" ]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+    networks:
+      - somaagenthub-network
+
+  notification-service:
+    build:
+      context: .
+      dockerfile: services/notification-service/Dockerfile
+    container_name: somaagenthub_notification-service
+    restart: unless-stopped
+    environment:
+      - SOMA_AGENT_HUB_NOTIFICATION_USE_KAFKA=false
+      - SOMA_AGENT_HUB_OTLP_ENDPOINT=http://otel-collector:4317
+      - WEB_CONCURRENCY=1
+      - PYTHONOPTIMIZE=1
+    ports:
+      - "${NOTIFICATION_SERVICE_PORT:-10027}:10026"
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+    healthcheck:
+      test: [ "CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://127.0.0.1:10026/health', timeout=3)\"" ]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+    networks:
+      - somaagenthub-network
 
   # --- Infrastructure Services ---
   app-postgres:
@@ -155,6 +316,8 @@ services:
     restart: unless-stopped
     ports:
       - "${APP_POSTGRES_PORT:-10004}:5432"
+    # Tune shared_buffers to 25% of 512MB RAM
+    command: [ "postgres", "-c", "shared_buffers=128MB", "-c", "effective_cache_size=300MB" ]
     environment:
       - POSTGRES_USER=${APP_POSTGRES_USER:-somaagent}
       - POSTGRES_PASSWORD=${APP_POSTGRES_PASSWORD:-somaagent}
@@ -164,7 +327,7 @@ services:
     deploy:
       resources:
         limits:
-          memory: 1G
+          memory: 512M
     healthcheck:
       test: [ "CMD-SHELL", "pg_isready -U ${APP_POSTGRES_USER:-somaagent} -d ${APP_POSTGRES_DB:-somaagent}" ]
       interval: 10s
@@ -177,6 +340,8 @@ services:
     image: postgres:15-alpine
     container_name: somaagenthub_temporal-postgres
     restart: unless-stopped
+    # Tune shared_buffers to 25% of 256MB RAM
+    command: [ "postgres", "-c", "shared_buffers=64MB", "-c", "effective_cache_size=150MB" ]
     environment:
       - POSTGRES_USER=${TEMPORAL_POSTGRES_USER:-temporal}
       - POSTGRES_PASSWORD=${TEMPORAL_POSTGRES_PASSWORD:-temporal}
@@ -186,7 +351,7 @@ services:
     deploy:
       resources:
         limits:
-          memory: 512M
+          memory: 256M
     healthcheck:
       test: [ "CMD-SHELL", "pg_isready -U ${TEMPORAL_POSTGRES_USER:-temporal} -d ${TEMPORAL_POSTGRES_DB:-temporal}" ]
       interval: 10s
@@ -206,13 +371,14 @@ services:
       - POSTGRES_SEEDS=temporal-postgres
       - POSTGRES_USER=temporal
       - POSTGRES_PASSWORD=temporal
+      - POSTGRES_PASSWORD=temporal
     depends_on:
       temporal-postgres:
         condition: service_healthy
     deploy:
       resources:
         limits:
-          memory: 2G
+          memory: 1G # Reduced from 2G for budget compliance
     healthcheck:
       test: [ "CMD-SHELL", "echo 'health' | nc -w 1 localhost 7233" ]
       interval: 30s
@@ -227,12 +393,14 @@ services:
     restart: unless-stopped
     ports:
       - "${REDIS_PORT:-10003}:6379"
+    # Tune maxmemory to fit in 256MB with overhead
+    command: [ "redis-server", "--maxmemory", "200mb", "--maxmemory-policy", "allkeys-lru", "--save", "", "--appendonly", "no" ]
     volumes:
       - redis-data:/data
     deploy:
       resources:
         limits:
-          memory: 512M
+          memory: 256M
     healthcheck:
       test: [ "CMD", "redis-cli", "ping" ]
       interval: 10s
@@ -242,13 +410,17 @@ services:
       - somaagenthub-network
 
   qdrant:
-    image: qdrant/qdrant:v1.11.0@sha256:22a2d455837380d5fa1a3455b87b4fe7af30aa4f4712f8a57027c61022113796
+    image: qdrant/qdrant:v1.11.0
     container_name: somaagenthub_qdrant
     restart: unless-stopped
     ports:
       - "${QDRANT_PORT:-10005}:6333"
     volumes:
       - qdrant-data:/qdrant/storage
+    deploy:
+      resources:
+        limits:
+          memory: 1G
     healthcheck:
       test: [ "CMD-SHELL", "curl -f http://127.0.0.1:6333/healthz || exit 1" ]
       interval: 15s
@@ -258,13 +430,17 @@ services:
       - somaagenthub-network
 
   clickhouse:
-    image: clickhouse/clickhouse-server:24.7-alpine@sha256:3187267104ffa306377a9d41eedcdb9c3fade52db855f92021fb1498a070c7fb
+    image: clickhouse/clickhouse-server:24.7-alpine
     container_name: somaagenthub_clickhouse
     restart: unless-stopped
     ports:
       - "${CLICKHOUSE_HTTP_PORT:-10006}:8123"
     volumes:
       - clickhouse-data:/var/lib/clickhouse
+    deploy:
+      resources:
+        limits:
+          memory: 1G
     healthcheck:
       test: [ "CMD-SHELL", "wget -qO- http://127.0.0.1:8123/ping || exit 1" ]
       interval: 15s
@@ -274,7 +450,7 @@ services:
       - somaagenthub-network
 
   minio:
-    image: minio/minio:latest@sha256:a1a8bd4ac40ad7881a245bab97323e18f971e4d4cba2c2007ec1bedd21cbaba2
+    image: minio/minio:latest
     container_name: somaagenthub_minio
     restart: unless-stopped
     environment:
@@ -286,6 +462,10 @@ services:
       - "${MINIO_CONSOLE_PORT:-10008}:9001"
     volumes:
       - minio-data:/data
+    deploy:
+      resources:
+        limits:
+          memory: 512M
     healthcheck:
       test: [ "CMD-SHELL", "curl -f http://127.0.0.1:9000/minio/health/live || exit 1" ]
       interval: 15s
@@ -293,9 +473,6 @@ services:
       retries: 6
     networks:
       - somaagenthub-network
-
-  # --- Secrets Management ---
-  # vault: Disabled due to port conflicts - can be enabled manually if needed
 
   # --- Observability Infrastructure ---
   prometheus:
@@ -314,8 +491,11 @@ services:
     volumes:
       - ./infra/monitoring/prometheus.yml:/etc/prometheus/prometheus.yml
       - prometheus-data:/prometheus
+    deploy:
+      resources:
+        limits:
+          memory: 512M
     healthcheck:
-      # Use wget which is available in the Prometheus image instead of curl
       test: [ "CMD-SHELL", "wget -qO- http://127.0.0.1:9090/-/healthy | grep -q Healthy || exit 1" ]
       interval: 10s
       timeout: 5s
@@ -333,34 +513,13 @@ services:
       - "${OTEL_COLLECTOR_OTLP_HTTP_PORT:-10016}:4318" # OTLP HTTP
     volumes:
       - ./infra/observability/otel-collector-config.yaml:/etc/otel-collector-config.yaml:ro
+    deploy:
+      resources:
+        limits:
+          memory: 256M
     healthcheck:
       test: [ "CMD-SHELL", "wget -qO- http://127.0.0.1:4318 || exit 1" ]
       interval: 15s
-      timeout: 5s
-      retries: 6
-    networks:
-      - somaagenthub-network
-
-  pricing-service:
-    build:
-      context: .
-      dockerfile: services/pricing-service/Dockerfile
-    container_name: somaagenthub_pricing-service
-    restart: unless-stopped
-    ports:
-      - "${PRICING_SERVICE_PORT:-10026}:10026"
-    environment:
-      - SOMA_AGENT_HUB_CLICKHOUSE_HOST=clickhouse
-      - SOMA_AGENT_HUB_CLICKHOUSE_HTTP_PORT=8123
-      - SOMA_AGENT_HUB_CLICKHOUSE_USER=${CLICKHOUSE_USER:-default}
-      - SOMA_AGENT_HUB_CLICKHOUSE_PASSWORD=${CLICKHOUSE_PASSWORD:-}
-      - SOMA_AGENT_HUB_OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4317
-    depends_on:
-      clickhouse:
-        condition: service_healthy
-    healthcheck:
-      test: [ "CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://127.0.0.1:10026/health', timeout=3)\"" ]
-      interval: 10s
       timeout: 5s
       retries: 6
     networks:
@@ -376,6 +535,10 @@ services:
     ports:
       - "${TEMPO_HTTP_PORT:-10012}:3200"
       - "${TEMPO_OTLP_GRPC_PORT:-10014}:4317"
+    deploy:
+      resources:
+        limits:
+          memory: 512M
     healthcheck:
       test: [ "CMD-SHELL", "wget -qO- http://127.0.0.1:3200/metrics || exit 1" ]
     networks:
@@ -388,49 +551,27 @@ services:
     command: [ "-config.file=/etc/loki/local-config.yaml" ]
     ports:
       - "${LOKI_HTTP_PORT:-10018}:3100"
+    deploy:
+      resources:
+        limits:
+          memory: 512M
     healthcheck:
       test: [ "CMD-SHELL", "wget -qO- http://127.0.0.1:3100/ready || exit 1" ]
     networks:
       - somaagenthub-network
 
-  notification-service:
-    build:
-      context: .
-      dockerfile: services/notification-service/Dockerfile
-    container_name: somaagenthub_notification-service
+  grafana:
+    image: grafana/grafana:10.4.1
+    container_name: somaagenthub_grafana
     restart: unless-stopped
-    environment:
-      - SOMA_AGENT_HUB_NOTIFICATION_USE_KAFKA=false
-      - SOMA_AGENT_HUB_OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4317
     ports:
-      - "${NOTIFICATION_SERVICE_PORT:-10027}:10026"
-    healthcheck:
-      test: [ "CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://127.0.0.1:10026/health', timeout=3)\"" ]
-      interval: 10s
-      timeout: 5s
-      retries: 6
-    networks:
-      - somaagenthub-network
-
-  capsule-repo:
-    build:
-      context: .
-      dockerfile: services/task-capsule-repo/Dockerfile
-    container_name: somaagenthub_capsule-repo
-    restart: unless-stopped
-    command: [ "uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8002" ]
-    ports:
-      - "${CAPSULE_REPO_PORT:-10023}:8002"
+      - "${GRAFANA_PORT:-10030}:3000"
     environment:
-      - DATABASE_URL=postgresql+asyncpg://${APP_POSTGRES_USER:-somaagent}:${APP_POSTGRES_PASSWORD:-somaagent}@app-postgres:5432/${APP_POSTGRES_DB:-somaagent}
-    depends_on:
-      app-postgres:
-        condition: service_healthy
-    healthcheck:
-      test: [ "CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://127.0.0.1:8002/health', timeout=3)\"" ]
-      interval: 10s
-      timeout: 5s
-      retries: 6
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_PASSWORD:-admin}
+    deploy:
+      resources:
+        limits:
+          memory: 256M
     networks:
       - somaagenthub-network
 
@@ -453,9 +594,6 @@ volumes:
   minio-data:
     driver: local
     name: somaagenthub_minio_data
-  vault-data:
-    driver: local
-    name: somaagenthub_vault_data
   prometheus-data:
     driver: local
     name: somaagenthub_prometheus_data

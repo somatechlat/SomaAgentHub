@@ -16,9 +16,9 @@ from typing import Any
 # stub that masks configuration problems.
 try:
     import redis.asyncio as redis  # type: ignore
-    from redis.asyncio import Redis  # noqa: F401
-    from redis.exceptions import RedisError  # noqa: F401
-except Exception as exc:  # pragma: no cover
+    from redis.asyncio import Redis
+    from redis.exceptions import RedisError
+except Exception:  # pragma: no cover
     # Defer the import error until runtime when a RedisClient is created.
     redis = None
     Redis = None  # type: ignore

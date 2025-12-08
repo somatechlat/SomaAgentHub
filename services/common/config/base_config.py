@@ -7,24 +7,25 @@ typing, validation, and environment variable resolution.
 from __future__ import annotations
 
 import os
-from enum import Enum
-from typing import Any, Dict, Optional, List
 from dataclasses import dataclass, field
+from enum import Enum
 from pathlib import Path
+from typing import Any
 
 # NOTE: Pydantic v2 moved ``BaseSettings`` to the ``pydantic-settings`` package.
 # The project historically imported ``BaseSettings`` directly from ``pydantic``.
 # To maintain compatibility across versions, we attempt to import from
 # ``pydantic`` first and fall back to ``pydantic_settings`` if unavailable.
 try:
-    from pydantic import BaseSettings, Field, validator, ConfigDict  # type: ignore
+    from pydantic import BaseSettings, ConfigDict, Field, validator  # type: ignore
 except ImportError:  # pragma: no cover
+    from pydantic import ConfigDict, Field, validator  # type: ignore
     from pydantic_settings import BaseSettings  # type: ignore
-    from pydantic import Field, validator, ConfigDict  # type: ignore
 
 
 class DeploymentMode(str, Enum):
     """Deployment modes for the platform."""
+
     DEV = "dev"
     PROD = "prod"
     PROD_HA = "prod_ha"
@@ -32,6 +33,7 @@ class DeploymentMode(str, Enum):
 
 class ResourceProfile(str, Enum):
     """Resource profiles for different deployment sizes."""
+
     LOCAL_10GB = "local_10gb"
     CLOUD_SMALL = "cloud_small"
     CLOUD_MEDIUM = "cloud_medium"
@@ -41,18 +43,20 @@ class ResourceProfile(str, Enum):
 @dataclass
 class DatabaseConfig:
     """Database configuration with connection pooling and settings."""
+
     url: str
     echo: bool = False
     pool_size: int = 5
     max_overflow: int = 10
     pool_timeout: int = 30
     pool_recycle: int = 1800
-    ssl_mode: Optional[str] = None
+    ssl_mode: str | None = None
 
 
 @dataclass
 class RedisConfig:
     """Redis configuration for caching and session management."""
+
     url: str
     max_connections: int = 50
     decode_responses: bool = True
@@ -63,34 +67,37 @@ class RedisConfig:
 @dataclass
 class KafkaConfig:
     """Kafka configuration for event streaming."""
-    bootstrap_servers: List[str]
+
+    bootstrap_servers: list[str]
     client_id: str
     security_protocol: str = "PLAINTEXT"
-    sasl_mechanism: Optional[str] = None
-    sasl_username: Optional[str] = None
-    sasl_password: Optional[str] = None
-    ssl_context: Optional[Any] = None
+    sasl_mechanism: str | None = None
+    sasl_username: str | None = None
+    sasl_password: str | None = None
+    ssl_context: Any | None = None
 
 
 @dataclass
 class SecurityConfig:
     """Security configuration for authentication and authorization."""
+
     jwt_secret: str
     jwt_algorithm: str = "HS256"
     jwt_expiration_minutes: int = 60
     mtls_enabled: bool = False
-    cert_path: Optional[str] = None
-    key_path: Optional[str] = None
-    ca_cert_path: Optional[str] = None
+    cert_path: str | None = None
+    key_path: str | None = None
+    ca_cert_path: str | None = None
 
 
 @dataclass
 class ObservabilityConfig:
     """Observability configuration for monitoring and tracing."""
+
     enable_tracing: bool = True
     enable_metrics: bool = True
     enable_logging: bool = True
-    otlp_endpoint: Optional[str] = None
+    otlp_endpoint: str | None = None
     log_level: str = "INFO"
     log_format: str = "json"
     metrics_port: int = 8000
@@ -99,6 +106,7 @@ class ObservabilityConfig:
 @dataclass
 class ServiceConfig:
     """Individual service configuration."""
+
     name: str
     version: str = "1.0.0"
     enabled: bool = True
@@ -108,7 +116,7 @@ class ServiceConfig:
     cpu_request: str = "250m"
     memory_request: str = "256Mi"
     port: int = 8000
-    environment: Dict[str, str] = field(default_factory=dict)
+    environment: dict[str, str] = field(default_factory=dict)
     health_check_path: str = "/health"
     readiness_check_path: str = "/ready"
 
@@ -124,8 +132,12 @@ class BaseConfig(BaseSettings):
 
     # Basic configuration
     environment: str = Field(default="development", env="SOMA_AGENT_HUB_ENVIRONMENT")
-    deployment_mode: DeploymentMode = Field(default=DeploymentMode.DEV, env="SOMA_AGENT_HUB_DEPLOYMENT_MODE")
-    resource_profile: ResourceProfile = Field(default=ResourceProfile.LOCAL_10GB, env="SOMA_AGENT_HUB_RESOURCE_PROFILE")
+    deployment_mode: DeploymentMode = Field(
+        default=DeploymentMode.DEV, env="SOMA_AGENT_HUB_DEPLOYMENT_MODE"
+    )
+    resource_profile: ResourceProfile = Field(
+        default=ResourceProfile.LOCAL_10GB, env="SOMA_AGENT_HUB_RESOURCE_PROFILE"
+    )
 
     # Debug and logging
     debug: bool = Field(default=False, env="SOMA_AGENT_HUB_DEBUG")
@@ -140,40 +152,60 @@ class BaseConfig(BaseSettings):
     port: int = Field(default=8000, env="SOMA_AGENT_HUB_PORT")
 
     # Database configuration
-    database_url: Optional[str] = Field(default=None, env="SOMA_AGENT_HUB_DATABASE_URL")
+    database_url: str | None = Field(default=None, env="SOMA_AGENT_HUB_DATABASE_URL")
     database_echo: bool = Field(default=False, env="SOMA_AGENT_HUB_DATABASE_ECHO")
     database_pool_size: int = Field(default=5, env="SOMA_AGENT_HUB_DATABASE_POOL_SIZE")
-    database_max_overflow: int = Field(default=10, env="SOMA_AGENT_HUB_DATABASE_MAX_OVERFLOW")
-    database_pool_timeout: int = Field(default=30, env="SOMA_AGENT_HUB_DATABASE_POOL_TIMEOUT")
-    database_pool_recycle: int = Field(default=1800, env="SOMA_AGENT_HUB_DATABASE_POOL_RECYCLE")
+    database_max_overflow: int = Field(
+        default=10, env="SOMA_AGENT_HUB_DATABASE_MAX_OVERFLOW"
+    )
+    database_pool_timeout: int = Field(
+        default=30, env="SOMA_AGENT_HUB_DATABASE_POOL_TIMEOUT"
+    )
+    database_pool_recycle: int = Field(
+        default=1800, env="SOMA_AGENT_HUB_DATABASE_POOL_RECYCLE"
+    )
 
     # Redis configuration
-    redis_url: Optional[str] = Field(default=None, env="SOMA_AGENT_HUB_REDIS_URL")
-    redis_max_connections: int = Field(default=50, env="SOMA_AGENT_HUB_REDIS_MAX_CONNECTIONS")
+    redis_url: str | None = Field(default=None, env="SOMA_AGENT_HUB_REDIS_URL")
+    redis_max_connections: int = Field(
+        default=50, env="SOMA_AGENT_HUB_REDIS_MAX_CONNECTIONS"
+    )
 
     # Kafka configuration
-    kafka_bootstrap_servers: str = Field(default="localhost:9092", env="SOMA_AGENT_HUB_KAFKA_BOOTSTRAP_SERVERS")
-    kafka_client_id: Optional[str] = Field(default=None, env="SOMA_AGENT_HUB_KAFKA_CLIENT_ID")
-    kafka_security_protocol: str = Field(default="PLAINTEXT", env="SOMA_AGENT_HUB_KAFKA_SECURITY_PROTOCOL")
+    kafka_bootstrap_servers: str = Field(
+        default="localhost:9092", env="SOMA_AGENT_HUB_KAFKA_BOOTSTRAP_SERVERS"
+    )
+    kafka_client_id: str | None = Field(
+        default=None, env="SOMA_AGENT_HUB_KAFKA_CLIENT_ID"
+    )
+    kafka_security_protocol: str = Field(
+        default="PLAINTEXT", env="SOMA_AGENT_HUB_KAFKA_SECURITY_PROTOCOL"
+    )
 
     # Security configuration
-    jwt_secret: Optional[str] = Field(default=None, env="SOMA_AGENT_HUB_JWT_SECRET")
+    jwt_secret: str | None = Field(default=None, env="SOMA_AGENT_HUB_JWT_SECRET")
     mtls_enabled: bool = Field(default=False, env="SOMA_AGENT_HUB_MTLS_ENABLED")
 
     # Observability configuration
     enable_tracing: bool = Field(default=True, env="SOMA_AGENT_HUB_ENABLE_TRACING")
     enable_metrics: bool = Field(default=True, env="SOMA_AGENT_HUB_ENABLE_METRICS")
-    otlp_endpoint: Optional[str] = Field(default=None, env="SOMA_AGENT_HUB_OTLP_ENDPOINT")
+    otlp_endpoint: str | None = Field(default=None, env="SOMA_AGENT_HUB_OTLP_ENDPOINT")
 
     # External service URLs
-    temporal_host: Optional[str] = Field(default=None, env="SOMA_AGENT_HUB_TEMPORAL_HOST")
-    temporal_namespace: str = Field(default="default", env="SOMA_AGENT_HUB_TEMPORAL_NAMESPACE")
-    vault_url: Optional[str] = Field(default=None, env="SOMA_AGENT_HUB_VAULT_URL")
-    opa_url: Optional[str] = Field(default=None, env="SOMA_AGENT_HUB_OPA_URL")
+    temporal_host: str | None = Field(default=None, env="SOMA_AGENT_HUB_TEMPORAL_HOST")
+    temporal_namespace: str = Field(
+        default="default", env="SOMA_AGENT_HUB_TEMPORAL_NAMESPACE"
+    )
+    vault_url: str | None = Field(default=None, env="SOMA_AGENT_HUB_VAULT_URL")
+    opa_url: str | None = Field(default=None, env="SOMA_AGENT_HUB_OPA_URL")
 
     # Feature flags
-    enable_health_checks: bool = Field(default=True, env="SOMA_AGENT_HUB_ENABLE_HEALTH_CHECKS")
-    enable_metrics_endpoint: bool = Field(default=True, env="SOMA_AGENT_HUB_ENABLE_METRICS_ENDPOINT")
+    enable_health_checks: bool = Field(
+        default=True, env="SOMA_AGENT_HUB_ENABLE_HEALTH_CHECKS"
+    )
+    enable_metrics_endpoint: bool = Field(
+        default=True, env="SOMA_AGENT_HUB_ENABLE_METRICS_ENDPOINT"
+    )
 
     # Pydantic v2 uses ``model_config`` (a ``ConfigDict``) for configuration.
     # This replaces the legacy ``Config`` inner class. It sets the environment
@@ -194,6 +226,7 @@ class BaseConfig(BaseSettings):
         if v is None or v == "unknown":
             # Try to infer from calling module
             import inspect
+
             frame = inspect.currentframe()
             if frame and frame.f_back:
                 module = inspect.getmodule(frame.f_back)
@@ -237,7 +270,9 @@ class BaseConfig(BaseSettings):
 
     def get_database_config(self) -> DatabaseConfig:
         """Get database configuration with defaults."""
-        url = self.database_url or os.getenv("DATABASE_URL", "postgresql://postgres:postgres@localhost:5432/soma")
+        url = self.database_url or os.getenv(
+            "DATABASE_URL", "postgresql://postgres:postgres@localhost:5432/soma"
+        )
         return DatabaseConfig(
             url=url,
             echo=self.database_echo,
@@ -259,7 +294,9 @@ class BaseConfig(BaseSettings):
 
     def get_kafka_config(self) -> KafkaConfig:
         """Get Kafka configuration with defaults."""
-        servers = [s.strip() for s in self.kafka_bootstrap_servers.split(",") if s.strip()]
+        servers = [
+            s.strip() for s in self.kafka_bootstrap_servers.split(",") if s.strip()
+        ]
         return KafkaConfig(
             bootstrap_servers=servers,
             client_id=self.kafka_client_id or self.service_name,
@@ -268,7 +305,9 @@ class BaseConfig(BaseSettings):
 
     def get_security_config(self) -> SecurityConfig:
         """Get security configuration with defaults."""
-        jwt_secret = self.jwt_secret or os.getenv("JWT_SECRET", "dev-secret-not-for-production")
+        jwt_secret = self.jwt_secret or os.getenv(
+            "JWT_SECRET", "dev-secret-not-for-production"
+        )
         return SecurityConfig(
             jwt_secret=jwt_secret,
             mtls_enabled=self.mtls_enabled,
@@ -302,7 +341,7 @@ class BaseConfig(BaseSettings):
         if not config_path.exists():
             return cls()
 
-        with open(config_path, 'r') as f:
+        with open(config_path) as f:
             config_data = yaml.safe_load(f)
 
         return cls(**config_data)
@@ -312,12 +351,12 @@ class BaseConfig(BaseSettings):
         import yaml
 
         config_data = self.dict()
-        with open(config_path, 'w') as f:
+        with open(config_path, "w") as f:
             yaml.safe_dump(config_data, f, default_flow_style=False)
 
 
 # Global configuration instance
-_config_instance: Optional[BaseConfig] = None
+_config_instance: BaseConfig | None = None
 
 
 def get_config() -> BaseConfig:

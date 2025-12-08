@@ -18,6 +18,8 @@ code that expects a simple environment‑variable lookup.
 
 from __future__ import annotations
 
+from services.common.config.base_settings import BaseServiceSettings, resolve_env
+
 """Gateway service configuration.
 
 The gateway needs a handful of service URLs (orchestrator, identity, pricing,
@@ -31,33 +33,31 @@ Existing code imports ``GatewaySettings`` and ``get_settings`` from this module,
 so we preserve that public API.
 """
 
-from services.common.config.base_settings import BaseServiceSettings, resolve_env
+
 
 
 class GatewaySettings(BaseServiceSettings):
-	"""Configuration specific to the Gateway service.
+    """Configuration specific to the Gateway service.
 
-	Only the fields required by the current code base are defined.  All other
-	values are inherited from ``BaseServiceSettings`` (environment, deployment
-	mode, etc.).
-	"""
+    Only the fields required by the current code base are defined.  All other
+    values are inherited from ``BaseServiceSettings`` (environment, deployment
+    mode, etc.).
+    """
 
-	# Service URLs – fall back to the historic defaults used throughout the
-	# repository.
-	orchestrator_url: str = resolve_env(
-		"ORCHESTRATOR_URL", "http://orchestrator:8000"
-	)
-	auth_url: str = resolve_env("IDENTITY_URL", "http://identity-service:8000")
-	pricing_service_url: str = resolve_env(
-		"PRICING_SERVICE_URL", "http://pricing-service:8000"
-	)
-	policy_engine_url: str = resolve_env(
-		"POLICY_ENGINE_URL", "http://policy-engine:8000"
-	)
-	memory_gateway_url: str = resolve_env(
-		"MEMORY_GATEWAY_URL", "http://memory-gateway:8000"
-	)
-	llm_hub_url: str = resolve_env("LLM_HUB_URL", "http://llm-hub:8000")
+    # Service URLs – fall back to the historic defaults used throughout the
+    # repository.
+    orchestrator_url: str = resolve_env("ORCHESTRATOR_URL", "http://orchestrator:8000")
+    auth_url: str = resolve_env("IDENTITY_URL", "http://identity-service:8000")
+    pricing_service_url: str = resolve_env(
+        "PRICING_SERVICE_URL", "http://pricing-service:8000"
+    )
+    policy_engine_url: str = resolve_env(
+        "POLICY_ENGINE_URL", "http://policy-engine:8000"
+    )
+    memory_gateway_url: str = resolve_env(
+        "MEMORY_GATEWAY_URL", "http://memory-gateway:8000"
+    )
+    llm_hub_url: str = resolve_env("LLM_HUB_URL", "http://llm-hub:8000")
 
 
 # Export a singleton instance to match the original module contract.
@@ -65,18 +65,16 @@ settings = GatewaySettings()
 
 
 def get_settings() -> GatewaySettings:
-	"""Return the cached ``GatewaySettings`` instance.
+    """Return the cached ``GatewaySettings`` instance.
 
-	Keeping a function wrapper mirrors the pattern used by other services and
-	allows lazy imports without side effects.
-	"""
+    Keeping a function wrapper mirrors the pattern used by other services and
+    allows lazy imports without side effects.
+    """
 
-	return settings
+    return settings
 
 
- def get_service_url(service_name: str) -> str:
-	"""Legacy helper – returns ``SOMA_AGENT_HUB_<NAME>_URL`` if set.
-	"""
+def get_service_url(service_name: str) -> str:
+    """Legacy helper – returns ``SOMA_AGENT_HUB_<NAME>_URL`` if set."""
 
-	return resolve_env(f"{service_name.upper().replace('-', '_')}_URL") or ""
-
+    return resolve_env(f"{service_name.upper().replace('-', '_')}_URL") or ""

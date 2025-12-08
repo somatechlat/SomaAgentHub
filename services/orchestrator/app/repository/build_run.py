@@ -103,7 +103,7 @@ class SQLBuildRunRepository(BuildRunRepository):
         await self.session.commit()
         updated_br = result.scalar_one_or_none()
         if updated_br is None:
-            print(f"DEBUG: update_build_run_status failed to find row with id {build_id}")
+            pass
         if emit_event and updated_br:
             from services.common.events.outbox import OutboxEvent
 

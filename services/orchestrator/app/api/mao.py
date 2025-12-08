@@ -16,9 +16,9 @@ from pydantic import BaseModel, Field
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from services.common.contracts.orchestrator import OrchestrationStartedEvent
+from services.common.events.outbox import OutboxEvent
 
 from ..database import get_session
-from services.common.events.outbox import OutboxEvent
 from ..repository.outbox_event_repository import OutboxEventRepository
 from ..workflows.mao import (
     AgentDirective,
@@ -33,10 +33,16 @@ class MAOStartRequest(BaseModel):
 
     tenant: str = Field(..., description="Tenant identifier")
     initiator: str = Field(..., description="User ID initiating the orchestration")
-    directives: list[dict[str, Any]] = Field(..., description="List of agent directives")
+    directives: list[dict[str, Any]] = Field(
+        ..., description="List of agent directives"
+    )
     notification_channel: str | None = Field(None, description="Notification channel")
-    metadata: dict[str, Any] = Field(default_factory=dict, description="Additional metadata")
-    project_id: str = Field(..., description="Project ID associated with this orchestration")
+    metadata: dict[str, Any] = Field(
+        default_factory=dict, description="Additional metadata"
+    )
+    project_id: str = Field(
+        ..., description="Project ID associated with this orchestration"
+    )
 
 
 class MAOStartResponse(BaseModel):
@@ -156,12 +162,13 @@ async def start_orchestration(
 
         # Start Temporal workflow
         from temporalio.client import Client
+
         from ..core.config import settings
-        
+
         temporal_url = getattr(settings, "temporal_url", "localhost:7233")
         client = await Client.connect(temporal_url)
-        
-        handle = await client.start_workflow(
+
+        await client.start_workflow(
             "multi-agent-orchestration-workflow",
             MAOStartInput(
                 orchestration_id=orchestration_id,
@@ -174,7 +181,7 @@ async def start_orchestration(
             id=orchestration_id,
             task_queue="mao-task-queue",
         )
-        
+
         return MAOStartResponse(
             orchestration_id=orchestration_id,
             status="started",
@@ -196,14 +203,15 @@ async def get_orchestration_status(
 ) -> dict[str, Any]:
     """Get current status of an orchestration."""
     from temporalio.client import Client
+
     from ..core.config import settings
-    
+
     try:
         temporal_url = getattr(settings, "temporal_url", "localhost:7233")
         client = await Client.connect(temporal_url)
         handle = client.get_workflow_handle(orchestration_id)
         desc = await handle.describe()
-        
+
         return {
             "orchestration_id": orchestration_id,
             "status": desc.status.name,
@@ -211,7 +219,9 @@ async def get_orchestration_status(
             "close_time": desc.close_time.isoformat() if desc.close_time else None,
         }
     except Exception as e:
-        raise HTTPException(status_code=404, detail=f"Orchestration not found or error: {str(e)}")
+        raise HTTPException(
+            status_code=404, detail=f"Orchestration not found or error: {str(e)}"
+        )
 
 
 @router.post("/{orchestration_id}/cancel")
@@ -220,8 +230,9 @@ async def cancel_orchestration(
 ) -> dict[str, str]:
     """Cancel a running orchestration."""
     from temporalio.client import Client
+
     from ..core.config import settings
-    
+
     try:
         temporal_url = getattr(settings, "temporal_url", "localhost:7233")
         client = await Client.connect(temporal_url)
@@ -229,4 +240,6 @@ async def cancel_orchestration(
         await handle.cancel()
         return {"status": "cancelled", "orchestration_id": orchestration_id}
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to cancel orchestration: {str(e)}")
+        raise HTTPException(
+            status_code=500, detail=f"Failed to cancel orchestration: {str(e)}"
+        )

@@ -1,7 +1,5 @@
 """Persona capsule tooling for SomaBrain Experience Marketplace."""
 
-
-
 from .manifest import (
     ManifestValidationError,
     PersonaManifest,

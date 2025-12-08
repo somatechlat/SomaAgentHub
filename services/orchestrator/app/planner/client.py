@@ -31,7 +31,9 @@ class PlannerClient:
     def __init__(self, config: PlannerClientConfig) -> None:
         self._config = config
 
-    async def complete(self, prompt: str, *, metadata: dict[str, Any] | None = None) -> str:
+    async def complete(
+        self, prompt: str, *, metadata: dict[str, Any] | None = None
+    ) -> str:
         """Execute a single‑shot completion request via the LLM Hub.
 
         Calls the Hub ``/v1/infer/sync`` endpoint, passing the prompt and
@@ -60,7 +62,9 @@ class PlannerClient:
         hub_base = resolve_env("LLM_HUB_URL", "http://llm-hub:10022").rstrip("/")
         hub_url = f"{hub_base}/v1/infer/sync"
 
-        async with httpx.AsyncClient(timeout=self._config.request_timeout_seconds) as client:
+        async with httpx.AsyncClient(
+            timeout=self._config.request_timeout_seconds
+        ) as client:
             response = await client.post(hub_url, json=request_body)
             response.raise_for_status()
             payload = response.json()

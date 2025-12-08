@@ -10,7 +10,6 @@ from fastapi import HTTPException, status
 
 # Preserve a reference to the original AsyncClient class (the real implementation).
 # This avoids recursion when tests monkey‑patch ``httpx.AsyncClient`` with a lambda.
-from httpx._client import AsyncClient as _OriginalAsyncClient
 from services.common.config.base_settings import resolve_env
 
 
@@ -97,7 +96,7 @@ class OPAClient:
             # Fail closed on any unexpected error.
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail=f"OPA policy evaluation error: {str(exc)}",
+                detail=f"OPA policy evaluation error: {exc!s}",
             ) from exc
 
     async def check_authorization(

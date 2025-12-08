@@ -1,8 +1,7 @@
 import asyncio
-import logging
-from logging.config import fileConfig
 import os
 import sys
+from logging.config import fileConfig
 
 from alembic import context
 from sqlalchemy import pool
@@ -12,8 +11,8 @@ from sqlalchemy.ext.asyncio import async_engine_from_config
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../../..")))
 
 # Import Base and settings
-from services.orchestrator.app.models.schema import Base
 from services.orchestrator.app.core.config import settings
+from services.orchestrator.app.models.schema import Base
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
@@ -28,6 +27,7 @@ if config.config_file_name is not None:
 config.set_main_option("sqlalchemy.url", str(settings.database_url))
 
 target_metadata = Base.metadata
+
 
 def run_migrations_offline() -> None:
     """Run migrations in 'offline' mode.

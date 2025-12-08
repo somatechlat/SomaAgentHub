@@ -11,6 +11,7 @@ opentelemetry-sdk>=1.25.0
 opentelemetry-exporter-otlp>=1.25.0
 opentelemetry-instrumentation-fastapi>=0.46b0
 opentelemetry-instrumentation-sqlalchemy>=0.46b0
+clickhouse-driver>=0.2.7
 pydantic>=2.6.4
 redis[asyncio]>=5.0.0
 sqlalchemy>=2.0.0

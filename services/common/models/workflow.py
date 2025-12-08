@@ -1,10 +1,11 @@
 from __future__ import annotations
 
 from enum import Enum
-from typing import List, Optional, Dict, Any
+from typing import Any
 from uuid import UUID, uuid4
 
 from pydantic import BaseModel, Field
+
 
 class NodeType(str, Enum):
     AGENT = "agent"
@@ -12,30 +13,34 @@ class NodeType(str, Enum):
     SUBGRAPH = "subgraph"
     HUMAN_INTERRUPT = "human_interrupt"
 
+
 class RiskLevel(str, Enum):
     LOW = "LOW"
     MEDIUM = "MEDIUM"
     HIGH = "HIGH"
 
+
 class WorkflowNode(BaseModel):
     id: str
     type: NodeType
-    agent_id: Optional[str] = Field(None, alias="agentId")
-    tool_id: Optional[str] = Field(None, alias="toolId")
-    parameters: Optional[Dict[str, Any]] = None
+    agent_id: str | None = Field(None, alias="agentId")
+    tool_id: str | None = Field(None, alias="toolId")
+    parameters: dict[str, Any] | None = None
     interrupt: bool = False
     risk: RiskLevel = RiskLevel.LOW
+
 
 class WorkflowEdge(BaseModel):
     source: str
     target: str
-    condition: Optional[str] = None
+    condition: str | None = None
+
 
 class GraphWorkflow(BaseModel):
     id: UUID = Field(default_factory=uuid4)
     name: str
     version: int = 1
-    nodes: List[WorkflowNode]
-    edges: List[WorkflowEdge]
-    initial_state: Optional[Dict[str, Any]] = Field(None, alias="initialState")
-    created_by: Optional[UUID] = Field(None, alias="createdBy")
+    nodes: list[WorkflowNode]
+    edges: list[WorkflowEdge]
+    initial_state: dict[str, Any] | None = Field(None, alias="initialState")
+    created_by: UUID | None = Field(None, alias="createdBy")

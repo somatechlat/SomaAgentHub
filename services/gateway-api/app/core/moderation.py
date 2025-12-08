@@ -15,8 +15,8 @@ class ModerationError(RuntimeError):
     """Raised when the moderation system cannot evaluate a request."""
 
 
-    @dataclass
-    class ModerationVerdict:
+@dataclass
+class ModerationVerdict:
     """Result of moderation evaluation."""
 
     allowed: bool
@@ -26,10 +26,12 @@ class ModerationError(RuntimeError):
     strike_delta: int = 0
 
 
-    class ModerationGuard:
+class ModerationGuard:
     """Performs lightweight content moderation with strike tracking."""
 
-    def __init__(self, redis_client: Redis, settings: GatewaySettings | None = None) -> None:
+    def __init__(
+        self, redis_client: Redis, settings: GatewaySettings | None = None
+    ) -> None:
         self.redis = redis_client
         self.settings = settings or get_settings()
         self.block_terms = self.settings.moderation_terms()
@@ -48,71 +50,78 @@ class ModerationError(RuntimeError):
         """Retrieve the current strike count for a tenant/user pair."""
         key = self._strike_key(tenant_id, user_id)
         try:
-    value = await self.redis.get(key)
-    except RedisError as exc:  # noqa: BLE001
-    raise ModerationError("failed to read strike counter") from exc
-    if value is None:
-    return 0
-    try:
-    return int(value)
-    except ValueError:
-    return 0
+            value = await self.redis.get(key)
+        except RedisError as exc:  # noqa: BLE001
+            raise ModerationError("failed to read strike counter") from exc
+        if value is None:
+            return 0
+        try:
+            return int(value)
+        except ValueError:
+            return 0
 
     async def _increment_strike(self, tenant_id: str, user_id: str | None) -> int:
         """Increment the strike counter and apply TTL if configured."""
         key = self._strike_key(tenant_id, user_id)
         try:
-    strikes = await self.redis.incr(key)
-    if self.settings.moderation_strike_ttl_seconds > 0:
-        await self.redis.expire(key, self.settings.moderation_strike_ttl_seconds)
+            strikes = await self.redis.incr(key)
+            if self.settings.moderation_strike_ttl_seconds > 0:
+                await self.redis.expire(
+                    key, self.settings.moderation_strike_ttl_seconds
+                )
         except RedisError as exc:  # noqa: BLE001
-    raise ModerationError("failed to increment strike counter") from exc
-    return int(strikes)
+            raise ModerationError("failed to increment strike counter") from exc
+        return int(strikes)
 
-    async def evaluate(self, ctx: RequestContext, content: str | None) -> ModerationVerdict:
+    async def evaluate(
+        self, ctx: RequestContext, content: str | None
+    ) -> ModerationVerdict:
         """Evaluate content and update strike counters as needed."""
 
         text = (content or "").lower()
         if not text.strip():
-    strikes = await self._get_current_strikes(ctx.tenant_id, ctx.user_id)
-    return ModerationVerdict(allowed=True, strike_count=strikes)
+            strikes = await self._get_current_strikes(ctx.tenant_id, ctx.user_id)
+            return ModerationVerdict(allowed=True, strike_count=strikes)
 
-    flagged = [term for term in self.block_terms if term and term in text]
-    reasons: list[str] = []
-    strikes = await self._get_current_strikes(ctx.tenant_id, ctx.user_id)
-    allowed = True
-    strike_delta = 0
+        flagged = [term for term in self.block_terms if term and term in text]
+        reasons: list[str] = []
+        strikes = await self._get_current_strikes(ctx.tenant_id, ctx.user_id)
+        allowed = True
+        strike_delta = 0
 
-    if flagged:
-    strikes = await self._increment_strike(ctx.tenant_id, ctx.user_id)
-    strike_delta = 1
-    reasons.append(f"flagged terms: {', '.join(flagged)}")
-    if strikes >= self.block_after:
-        allowed = False
-        reasons.append(
-            f"strike threshold reached ({strikes}/{self.block_after})"
-        )
-    elif strikes >= self.settings.moderation_warning_strikes:
-        reasons.append(f"warning strike {strikes} of {self.block_after}")
+        if flagged:
+            strikes = await self._increment_strike(ctx.tenant_id, ctx.user_id)
+            strike_delta = 1
+            reasons.append(f"flagged terms: {', '.join(flagged)}")
+            if strikes >= self.block_after:
+                allowed = False
+                reasons.append(
+                    f"strike threshold reached ({strikes}/{self.block_after})"
+                )
+            elif strikes >= self.settings.moderation_warning_strikes:
+                reasons.append(f"warning strike {strikes} of {self.block_after}")
         else:
-    # Decay strikes naturally without mutating counters.
-    # No action needed; strikes will expire based on TTL configuration.
-    import logging
-    logging.getLogger(__name__).debug("No flagged terms found; strikes will decay naturally.")
+            # Decay strikes naturally without mutating counters.
+            # No action needed; strikes will expire based on TTL configuration.
+            import logging
 
-    return ModerationVerdict(
-    allowed=allowed,
-    strike_count=strikes,
-    flagged_terms=flagged,
-    reasons=reasons,
-    strike_delta=strike_delta,
-    )
+            logging.getLogger(__name__).debug(
+                "No flagged terms found; strikes will decay naturally."
+            )
+
+        return ModerationVerdict(
+            allowed=allowed,
+            strike_count=strikes,
+            flagged_terms=flagged,
+            reasons=reasons,
+            strike_delta=strike_delta,
+        )
 
 
-    _moderation_guard: ModerationGuard | None = None
+_moderation_guard: ModerationGuard | None = None
 
 
-    def get_moderation_guard() -> ModerationGuard:
+def get_moderation_guard() -> ModerationGuard:
     """Return a cached :class:`ModerationGuard` instance.
 
     The function lazily creates a singleton ``ModerationGuard`` using the
@@ -124,6 +133,6 @@ class ModerationError(RuntimeError):
     if _moderation_guard is None:
         client = get_redis_client()
         _moderation_guard = ModerationGuard(
-    client
-    )  # Redis client is compatible for our usage
+            client
+        )  # Redis client is compatible for our usage
     return _moderation_guard

@@ -7,8 +7,8 @@ from typing import Any, Literal
 try:
     from pydantic import BaseSettings, Field  # type: ignore
 except ImportError:  # pragma: no cover
-    from pydantic_settings import BaseSettings  # type: ignore
     from pydantic import Field  # type: ignore
+    from pydantic_settings import BaseSettings  # type: ignore
 
 
 class BaseServiceSettings(BaseSettings):

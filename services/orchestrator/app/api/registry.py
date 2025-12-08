@@ -1,13 +1,13 @@
 from __future__ import annotations
 
 import uuid
-from typing import List
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 
 from services.common.models.agent import AgentSpec, CrewSpec
+
 from ..database import get_session
 from ..models.schema import AgentModel, CrewModel
 
@@ -16,6 +16,7 @@ router = APIRouter(tags=["registry"])
 # ---------------------------------------------------------------------------
 # Agents
 # ---------------------------------------------------------------------------
+
 
 @router.post("/agents", response_model=AgentSpec, status_code=status.HTTP_201_CREATED)
 async def create_agent(agent: AgentSpec, session: AsyncSession = Depends(get_session)):
@@ -34,13 +35,16 @@ async def create_agent(agent: AgentSpec, session: AsyncSession = Depends(get_ses
         instructions=agent.instructions,
         tools=[t.dict(by_alias=True) for t in agent.tools],
         memory_bindings=agent.memory_bindings,
-        constraints=agent.constraints.dict(by_alias=True) if agent.constraints else None,
+        constraints=(
+            agent.constraints.dict(by_alias=True) if agent.constraints else None
+        ),
         policy_scope=agent.policy_scope,
     )
     session.add(db_agent)
     await session.commit()
     await session.refresh(db_agent)
     return agent
+
 
 @router.get("/agents/{agent_id}", response_model=AgentSpec)
 async def get_agent(agent_id: uuid.UUID, session: AsyncSession = Depends(get_session)):
@@ -50,7 +54,7 @@ async def get_agent(agent_id: uuid.UUID, session: AsyncSession = Depends(get_ses
     db_agent = result.scalar_one_or_none()
     if not db_agent:
         raise HTTPException(status_code=404, detail="Agent not found")
-    
+
     # Map back to Pydantic
     return AgentSpec(
         id=db_agent.id,
@@ -64,8 +68,11 @@ async def get_agent(agent_id: uuid.UUID, session: AsyncSession = Depends(get_ses
         policy_scope=db_agent.policy_scope,
     )
 
+
 @router.put("/agents/{agent_id}", response_model=AgentSpec)
-async def update_agent(agent_id: uuid.UUID, agent: AgentSpec, session: AsyncSession = Depends(get_session)):
+async def update_agent(
+    agent_id: uuid.UUID, agent: AgentSpec, session: AsyncSession = Depends(get_session)
+):
     """Update an existing agent."""
     stmt = select(AgentModel).where(AgentModel.id == agent_id)
     result = await session.execute(stmt)
@@ -79,16 +86,20 @@ async def update_agent(agent_id: uuid.UUID, agent: AgentSpec, session: AsyncSess
     db_agent.instructions = agent.instructions
     db_agent.tools = [t.dict(by_alias=True) for t in agent.tools]
     db_agent.memory_bindings = agent.memory_bindings
-    db_agent.constraints = agent.constraints.dict(by_alias=True) if agent.constraints else None
+    db_agent.constraints = (
+        agent.constraints.dict(by_alias=True) if agent.constraints else None
+    )
     db_agent.policy_scope = agent.policy_scope
 
     await session.commit()
     await session.refresh(db_agent)
     return agent
 
+
 # ---------------------------------------------------------------------------
 # Crews
 # ---------------------------------------------------------------------------
+
 
 @router.post("/crews", response_model=CrewSpec, status_code=status.HTTP_201_CREATED)
 async def create_crew(crew: CrewSpec, session: AsyncSession = Depends(get_session)):
@@ -111,6 +122,7 @@ async def create_crew(crew: CrewSpec, session: AsyncSession = Depends(get_sessio
     await session.refresh(db_crew)
     return crew
 
+
 @router.get("/crews/{crew_id}", response_model=CrewSpec)
 async def get_crew(crew_id: uuid.UUID, session: AsyncSession = Depends(get_session)):
     """Get crew by ID."""
@@ -119,7 +131,7 @@ async def get_crew(crew_id: uuid.UUID, session: AsyncSession = Depends(get_sessi
     db_crew = result.scalar_one_or_none()
     if not db_crew:
         raise HTTPException(status_code=404, detail="Crew not found")
-    
+
     return CrewSpec(
         id=db_crew.id,
         name=db_crew.name,

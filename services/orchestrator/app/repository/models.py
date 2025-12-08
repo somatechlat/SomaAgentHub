@@ -74,7 +74,9 @@ class AnalysisRun(SQLModel, table=True):
     capsule_id: str = Field(index=True)
     status: str = Field(default="pending", index=True)
     workflow_run_id: str = Field(index=True)
-    artifacts_uri: str | None = Field(default=None, description="URI to stored analysis artifacts")
+    artifacts_uri: str | None = Field(
+        default=None, description="URI to stored analysis artifacts"
+    )
     created_at: datetime = Field(default_factory=datetime.utcnow)
     updated_at: datetime = Field(default_factory=datetime.utcnow)
 

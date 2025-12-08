@@ -10,7 +10,7 @@ from services.common.config.base_settings import BaseServiceSettings, resolve_en
 SERVICE_NAME = "orchestrator"
 
 # Temporal configuration (DEV defaults, override via env)
-TEMPORAL_TARGET_HOST = resolve_env("TEMPORAL_TARGET_HOST", "localhost:10009")
+TEMPORAL_TARGET_HOST = resolve_env("TEMPORAL_HOST", "temporal-server:7233")
 TEMPORAL_NAMESPACE = resolve_env("TEMPORAL_NAMESPACE", "default")
 TEMPORAL_TASK_QUEUE = resolve_env("TEMPORAL_TASK_QUEUE", "somagent.session.workflows")
 TEMPORAL_ENABLED = str(resolve_env("TEMPORAL_ENABLED", "false")).lower() == "true"
@@ -52,7 +52,9 @@ class Settings(BaseServiceSettings):
     kafka_security_protocol: str = KAFKA_SECURITY_PROTOCOL
 
     # Additional service URLs (canonical env vars)
-    policy_engine_url: str = resolve_env("POLICY_ENGINE_URL", "http://policy-engine:10020")
+    policy_engine_url: str = resolve_env(
+        "POLICY_ENGINE_URL", "http://policy-engine:10020"
+    )
     llm_hub_url: str = resolve_env("LLM_HUB_URL", "http://llm-hub:8000")
     gateway_api_url: str = resolve_env("GATEWAY_API_URL", "http://gateway-api:10000")
 
@@ -74,7 +76,9 @@ class Settings(BaseServiceSettings):
     # Tenants can opt‑out of emitting RL training data.  The default is ``False``
     # to stay safe.  Individual services (e.g., the VC workflow) should check
     # this flag before publishing ``VC_STEP`` events.
-    allow_rl_training_data: bool = str(resolve_env("ALLOW_RL_TRAINING_DATA", "false")).lower() == "true"
+    allow_rl_training_data: bool = (
+        str(resolve_env("ALLOW_RL_TRAINING_DATA", "false")).lower() == "true"
+    )
 
 
 # Export a singleton instance for importers

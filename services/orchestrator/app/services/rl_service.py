@@ -4,19 +4,23 @@ RL Service - Manages reasoning pipelines, games, and trajectory recording.
 SRS Sections 8-9 - RL/MARL Infrastructure
 Handles the definition of RL components and the collection of training data.
 """
-from typing import List, Optional, Dict, Any
-from uuid import UUID
-from datetime import datetime
 
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
+from uuid import UUID
+
 from fastapi import HTTPException, status
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from services.common.models.rl import (
-    ReasoningPipelineSpec, GameSpec, TrajectoryRecord, RLExportJob,
-    TrajectoryOutcome, RLExportStatus,
-    ReasoningPipelineSpecCreate, GameSpecCreate,
-    TrajectoryRecordCreate, RLExportJobCreate
+    GameSpec,
+    GameSpecCreate,
+    ReasoningPipelineSpec,
+    ReasoningPipelineSpecCreate,
+    RLExportJob,
+    RLExportJobCreate,
+    RLExportStatus,
+    TrajectoryRecord,
+    TrajectoryRecordCreate,
 )
 
 
@@ -28,24 +32,26 @@ class RLService:
 
     # ========== Reasoning Pipelines ==========
 
-    async def create_reasoning_pipeline(self, pipeline_create: ReasoningPipelineSpecCreate) -> ReasoningPipelineSpec:
+    async def create_reasoning_pipeline(
+        self, pipeline_create: ReasoningPipelineSpecCreate
+    ) -> ReasoningPipelineSpec:
         """Create a new reasoning pipeline specification"""
         # Check if name exists in tenant
         result = await self.db.execute(
             select(ReasoningPipelineSpec).where(
                 ReasoningPipelineSpec.tenant_id == pipeline_create.tenant_id,
                 ReasoningPipelineSpec.name == pipeline_create.name,
-                ReasoningPipelineSpec.version == pipeline_create.version
+                ReasoningPipelineSpec.version == pipeline_create.version,
             )
         )
         existing = result.scalar_one_or_none()
-        
+
         if existing:
             raise HTTPException(
                 status_code=status.HTTP_409_CONFLICT,
-                detail=f"Pipeline '{pipeline_create.name}' version '{pipeline_create.version}' already exists"
+                detail=f"Pipeline '{pipeline_create.name}' version '{pipeline_create.version}' already exists",
             )
-            
+
         pipeline = ReasoningPipelineSpec(
             tenant_id=pipeline_create.tenant_id,
             name=pipeline_create.name,
@@ -54,20 +60,22 @@ class RLService:
             pipeline_type=pipeline_create.pipeline_type,
             stages=pipeline_create.stages,
             max_iterations=pipeline_create.max_iterations,
-            sampling_policy=pipeline_create.sampling_policy
+            sampling_policy=pipeline_create.sampling_policy,
         )
-        
+
         self.db.add(pipeline)
         await self.db.commit()
         await self.db.refresh(pipeline)
         return pipeline
 
-    async def get_reasoning_pipeline(self, pipeline_id: UUID, tenant_id: UUID) -> Optional[ReasoningPipelineSpec]:
+    async def get_reasoning_pipeline(
+        self, pipeline_id: UUID, tenant_id: UUID
+    ) -> ReasoningPipelineSpec | None:
         """Get a reasoning pipeline by ID"""
         result = await self.db.execute(
             select(ReasoningPipelineSpec).where(
                 ReasoningPipelineSpec.id == pipeline_id,
-                ReasoningPipelineSpec.tenant_id == tenant_id
+                ReasoningPipelineSpec.tenant_id == tenant_id,
             )
         )
         return result.scalar_one_or_none()
@@ -80,17 +88,17 @@ class RLService:
             select(GameSpec).where(
                 GameSpec.tenant_id == game_create.tenant_id,
                 GameSpec.name == game_create.name,
-                GameSpec.version == game_create.version
+                GameSpec.version == game_create.version,
             )
         )
         existing = result.scalar_one_or_none()
-        
+
         if existing:
             raise HTTPException(
                 status_code=status.HTTP_409_CONFLICT,
-                detail=f"Game '{game_create.name}' version '{game_create.version}' already exists"
+                detail=f"Game '{game_create.name}' version '{game_create.version}' already exists",
             )
-            
+
         game = GameSpec(
             tenant_id=game_create.tenant_id,
             name=game_create.name,
@@ -101,30 +109,31 @@ class RLService:
             equilibrium_target=game_create.equilibrium_target,
             payoff_definitions=game_create.payoff_definitions,
             exploitability_tolerance=game_create.exploitability_tolerance,
-            capsule_constraints=game_create.capsule_constraints
+            capsule_constraints=game_create.capsule_constraints,
         )
-        
+
         self.db.add(game)
         await self.db.commit()
         await self.db.refresh(game)
         return game
 
-    async def get_game_spec(self, game_id: UUID, tenant_id: UUID) -> Optional[GameSpec]:
+    async def get_game_spec(self, game_id: UUID, tenant_id: UUID) -> GameSpec | None:
         """Get a game spec by ID"""
         result = await self.db.execute(
             select(GameSpec).where(
-                GameSpec.id == game_id,
-                GameSpec.tenant_id == tenant_id
+                GameSpec.id == game_id, GameSpec.tenant_id == tenant_id
             )
         )
         return result.scalar_one_or_none()
 
     # ========== Trajectories ==========
 
-    async def record_trajectory(self, trajectory_create: TrajectoryRecordCreate) -> TrajectoryRecord:
+    async def record_trajectory(
+        self, trajectory_create: TrajectoryRecordCreate
+    ) -> TrajectoryRecord:
         """Record a completed trajectory"""
         # Validate task/workflow exists (omitted for brevity)
-        
+
         trajectory = TrajectoryRecord(
             tenant_id=trajectory_create.tenant_id,
             task_id=trajectory_create.task_id,
@@ -136,20 +145,22 @@ class RLService:
             global_reward=trajectory_create.global_reward,
             role_returns=trajectory_create.role_returns,
             meta=trajectory_create.meta or {},
-            storage_ref=trajectory_create.storage_ref
+            storage_ref=trajectory_create.storage_ref,
         )
-        
+
         self.db.add(trajectory)
         await self.db.commit()
         await self.db.refresh(trajectory)
         return trajectory
 
-    async def get_trajectory(self, trajectory_id: UUID, tenant_id: UUID) -> Optional[TrajectoryRecord]:
+    async def get_trajectory(
+        self, trajectory_id: UUID, tenant_id: UUID
+    ) -> TrajectoryRecord | None:
         """Get a trajectory record by ID"""
         result = await self.db.execute(
             select(TrajectoryRecord).where(
                 TrajectoryRecord.id == trajectory_id,
-                TrajectoryRecord.tenant_id == tenant_id
+                TrajectoryRecord.tenant_id == tenant_id,
             )
         )
         return result.scalar_one_or_none()
@@ -162,20 +173,21 @@ class RLService:
             tenant_id=job_create.tenant_id,
             requested_by_principal_id=job_create.requested_by_principal_id,
             filter_criteria=job_create.filter_criteria,
-            status=RLExportStatus.PENDING
+            status=RLExportStatus.PENDING,
         )
-        
+
         self.db.add(job)
         await self.db.commit()
         await self.db.refresh(job)
         return job
 
-    async def get_export_job(self, job_id: UUID, tenant_id: UUID) -> Optional[RLExportJob]:
+    async def get_export_job(
+        self, job_id: UUID, tenant_id: UUID
+    ) -> RLExportJob | None:
         """Get an export job by ID"""
         result = await self.db.execute(
             select(RLExportJob).where(
-                RLExportJob.id == job_id,
-                RLExportJob.tenant_id == tenant_id
+                RLExportJob.id == job_id, RLExportJob.tenant_id == tenant_id
             )
         )
         return result.scalar_one_or_none()

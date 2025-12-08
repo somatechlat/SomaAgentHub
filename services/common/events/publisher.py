@@ -6,13 +6,13 @@ Provides multiple backends for event publishing including in-memory and Kafka.
 
 from __future__ import annotations
 
+import builtins
 import json
 import logging
 from abc import ABC, abstractmethod
-from typing import Any, Dict, List, Optional
-from datetime import datetime, timezone
+from datetime import UTC, datetime
+from typing import Any
 
-from pydantic import BaseModel
 from services.common.config.base_settings import resolve_env
 
 logger = logging.getLogger(__name__)
@@ -32,7 +32,7 @@ class AbstractEventPublisher(ABC):
         self.service_name = service_name
 
     @abstractmethod
-    async def publish(self, event_data: Dict[str, Any]) -> None:
+    async def publish(self, event_data: dict[str, Any]) -> None:
         """Publish a single event.
 
         Implementations must raise ``NotImplementedError`` if the method is not
@@ -43,7 +43,7 @@ class AbstractEventPublisher(ABC):
         raise NotImplementedError()
 
     @abstractmethod
-    async def publish_batch(self, events: List[Dict[str, Any]]) -> None:
+    async def publish_batch(self, events: list[dict[str, Any]]) -> None:
         """Publish multiple events.
 
         Sub‑classes should implement batch publishing semantics. The default
@@ -62,9 +62,9 @@ class InMemoryEventPublisher(AbstractEventPublisher):
 
     def __init__(self, service_name: str):
         super().__init__(service_name)
-        self._in_memory_events: List[Dict[str, Any]] = []
+        self._in_memory_events: list[dict[str, Any]] = []
 
-    async def publish(self, event_data: Dict[str, Any]) -> None:
+    async def publish(self, event_data: dict[str, Any]) -> None:
         """Publish event to in-memory storage.
 
         The test suite expects the raw ``event_data`` dict to be stored without
@@ -73,30 +73,30 @@ class InMemoryEventPublisher(AbstractEventPublisher):
         """
         if "event_type" not in event_data:
             raise ValueError("event_data must contain 'event_type'")
-        
+
         data_field = event_data.get("data")
         if data_field is not None and not isinstance(data_field, dict):
             raise ValueError("event_data['data'] must be a dict when present")
-        
+
         # Store the raw event as‑is for test expectations.
         # Add service name to match Kafka behavior
         if "service" not in event_data:
             event_data["service"] = self.service_name
-            
+
         self._in_memory_events.append(event_data)
         logger.debug(f"Published in-memory event: {event_data.get('event_type')}")
 
-    async def publish_batch(self, events: List[Dict[str, Any]]) -> None:
+    async def publish_batch(self, events: list[dict[str, Any]]) -> None:
         """Publish multiple events to in-memory storage."""
         for event in events:
             await self.publish(event)
 
-    def get_events(self) -> List[Dict[str, Any]]:
+    def get_events(self) -> list[dict[str, Any]]:
         """Get all published events (for testing)."""
         return self._in_memory_events.copy()
 
     @property
-    def events(self) -> List[Dict[str, Any]]:
+    def events(self) -> list[dict[str, Any]]:
         """Alias for _in_memory_events to match test expectations."""
         return self._in_memory_events
 
@@ -118,7 +118,7 @@ class KafkaEventPublisher(AbstractEventPublisher):
     def __init__(
         self,
         service_name: str,
-        kafka_config: Dict[str, Any],
+        kafka_config: dict[str, Any],
         **_: Any,
     ):
         super().__init__(service_name)
@@ -139,7 +139,7 @@ class KafkaEventPublisher(AbstractEventPublisher):
                 return InMemoryEventPublisher(self.service_name)
         return self._producer
 
-    async def publish(self, event_data: Dict[str, Any]) -> None:
+    async def publish(self, event_data: dict[str, Any]) -> None:
         """Publish event to Kafka."""
         producer = await self._get_producer()
 
@@ -153,7 +153,7 @@ class KafkaEventPublisher(AbstractEventPublisher):
             message = json.dumps(
                 {
                     **event_data,
-                    "published_at": datetime.now(timezone.utc).isoformat(),
+                    "published_at": datetime.now(UTC).isoformat(),
                     "service": self.service_name,
                 }
             )
@@ -167,7 +167,7 @@ class KafkaEventPublisher(AbstractEventPublisher):
             logger.error(f"Failed to publish to Kafka: {e}")
             raise
 
-    async def publish_batch(self, events: List[Dict[str, Any]]) -> None:
+    async def publish_batch(self, events: list[dict[str, Any]]) -> None:
         """Publish multiple events to Kafka."""
         producer = await self._get_producer()
 
@@ -233,29 +233,26 @@ class EventPublisher:
             service_name=service_name, backend=backend, kafka_config=kafka_cfg
         )
 
-    async def publish(self, event_data: Dict[str, Any]) -> None:
+    async def publish(self, event_data: dict[str, Any]) -> None:
         return await self._impl.publish(event_data)
 
-    async def publish_batch(self, events: List[Dict[str, Any]]) -> None:
+    async def publish_batch(self, events: list[dict[str, Any]]) -> None:
         return await self._impl.publish_batch(events)
 
     # Expose in‑memory events list for tests when using the memory backend
     @property
-    def _in_memory_events(self) -> List[Dict[str, Any]]:
+    def _in_memory_events(self) -> list[dict[str, Any]]:
         if isinstance(self._impl, InMemoryEventPublisher):
             return self._impl._in_memory_events
         return []
 
 
 # Expose EventPublisher globally for test type hint resolution
-import builtins
-
 builtins.EventPublisher = EventPublisher
 
 
 def get_publisher(service_name: str) -> EventPublisher:
     """Get configured event publisher for service."""
-    import os
 
     backend = resolve_env("EVENT_BACKEND", "memory")
 

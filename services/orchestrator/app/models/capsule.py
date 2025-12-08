@@ -56,14 +56,18 @@ class Capsule(SQLModel, table=True):
     # Classification fields
     type: CapsuleType | None = Field(default=None, description="Logical capsule type")
     kind: CapsuleKind | None = Field(default=None, description="Execution kind")
-    execution_mode: ExecutionMode | None = Field(default=None, description="Sync/async mode")
+    execution_mode: ExecutionMode | None = Field(
+        default=None, description="Sync/async mode"
+    )
 
     # Optional JSON blobs
     required_roles: list[str] = Field(default_factory=list, sa_column=Column(JSON))
     requires_payment: str = Field(default="false")
     http_config: dict[str, Any] = Field(default_factory=dict, sa_column=Column(JSON))
     manifest_yaml: str | None = Field(default=None)
-    metadata_json: dict[str, Any] = Field(default_factory=dict, alias="metadata", sa_column=Column(JSON))
+    metadata_json: dict[str, Any] = Field(
+        default_factory=dict, alias="metadata", sa_column=Column(JSON)
+    )
 
     # Timestamps
     created_at: datetime = Field(default_factory=datetime.utcnow)

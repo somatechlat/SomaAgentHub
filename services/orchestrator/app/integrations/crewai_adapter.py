@@ -22,7 +22,9 @@ class ManagerConfig:
             role = str(payload["role"]).strip()
             goal = str(payload["goal"]).strip()
         except KeyError as exc:  # pragma: no cover - validated in tests
-            raise ValueError(f"manager config missing required field: {exc.args[0]}") from exc
+            raise ValueError(
+                f"manager config missing required field: {exc.args[0]}"
+            ) from exc
 
         if not role:
             raise ValueError("manager role cannot be empty")
@@ -52,7 +54,9 @@ class WorkerConfig:
             role = str(payload["role"]).strip()
             goal = str(payload["goal"]).strip()
         except KeyError as exc:  # pragma: no cover
-            raise ValueError(f"worker config missing required field: {exc.args[0]}") from exc
+            raise ValueError(
+                f"worker config missing required field: {exc.args[0]}"
+            ) from exc
 
         if not role:
             raise ValueError("worker role cannot be empty")
@@ -60,7 +64,9 @@ class WorkerConfig:
             raise ValueError("worker goal cannot be empty")
 
         tools = payload.get("tools") or None
-        if tools is not None and not isinstance(tools, list):  # pragma: no cover - defensive
+        if tools is not None and not isinstance(
+            tools, list
+        ):  # pragma: no cover - defensive
             raise ValueError("tools must be a list when provided")
 
         return cls(
@@ -119,7 +125,9 @@ def _select_process(process_type: str, process_cls: Any) -> Any:
             "hierarchical",
             getattr(process_cls, "HIERARCHICAL", process_cls),
         )
-    return getattr(process_cls, "sequential", getattr(process_cls, "SEQUENTIAL", process_cls))
+    return getattr(
+        process_cls, "sequential", getattr(process_cls, "SEQUENTIAL", process_cls)
+    )
 
 
 @activity.defn(name="crewai-delegation")
@@ -183,7 +191,9 @@ async def run_crewai_delegation(payload: dict[str, Any]) -> dict[str, Any]:
 
     crew_tasks = []
     for task_config in task_configs:
-        assigned_agent = worker_agents.get(task_config.agent_role or "") or manager_agent
+        assigned_agent = (
+            worker_agents.get(task_config.agent_role or "") or manager_agent
+        )
         crew_tasks.append(
             Task(
                 description=task_config.description,

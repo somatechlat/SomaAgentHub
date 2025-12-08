@@ -17,6 +17,7 @@ from opentelemetry.sdk.metrics import MeterProvider
 from opentelemetry.sdk.resources import Resource
 from opentelemetry.sdk.trace import TracerProvider
 from opentelemetry.sdk.trace.export import BatchSpanProcessor
+
 from services.common.config.runtime import default_otlp_grpc_endpoint
 
 logger = logging.getLogger(__name__)
@@ -60,7 +61,9 @@ class OpenTelemetryConfig:
         if self.enable_otlp:
             from services.common.config.base_settings import resolve_env
 
-            otlp_endpoint = resolve_env("OTEL_EXPORTER_OTLP_ENDPOINT", default_otlp_grpc_endpoint())
+            otlp_endpoint = resolve_env(
+                "OTEL_EXPORTER_OTLP_ENDPOINT", default_otlp_grpc_endpoint()
+            )
             insecure = str(resolve_env("OTEL_INSECURE", "false")).lower() == "true"
             if insecure:
                 logger.warning(
@@ -83,13 +86,17 @@ class OpenTelemetryConfig:
         if self.enable_prometheus:
             prometheus_reader = PrometheusMetricReader()
             readers.append(prometheus_reader)
-            logger.info(f"Prometheus metrics reader enabled on port {self.prometheus_port}")
+            logger.info(
+                f"Prometheus metrics reader enabled on port {self.prometheus_port}"
+            )
 
         # OTLP metrics exporter if enabled
         if self.enable_otlp:
             from services.common.config.base_settings import resolve_env
 
-            otlp_endpoint = resolve_env("OTEL_EXPORTER_OTLP_ENDPOINT", default_otlp_grpc_endpoint())
+            otlp_endpoint = resolve_env(
+                "OTEL_EXPORTER_OTLP_ENDPOINT", default_otlp_grpc_endpoint()
+            )
             # Note: For metrics export, use PeriodicExportingMetricReader in a full setup
             # Leaving just a log line to indicate configuration for now
             logger.info(f"OTLP metrics exporter configured: {otlp_endpoint}")
@@ -176,7 +183,8 @@ def setup_observability(
         service_version=service_version,
         environment=env,
         enable_prometheus=True,
-        enable_otlp=str(resolve_env("ENABLE_OTLP", "false")).lower() in {"1", "true", "yes", "on"},
+        enable_otlp=str(resolve_env("ENABLE_OTLP", "false")).lower()
+        in {"1", "true", "yes", "on"},
     )
 
     config.setup_all(app)

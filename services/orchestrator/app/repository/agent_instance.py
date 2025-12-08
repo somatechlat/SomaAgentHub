@@ -110,7 +110,9 @@ class AgentInstanceRepository:
         if agent_type:
             stmt = stmt.where(AgentInstance.agent_type == agent_type)
 
-        stmt = stmt.order_by(AgentInstance.created_at.desc()).limit(limit).offset(offset)
+        stmt = (
+            stmt.order_by(AgentInstance.created_at.desc()).limit(limit).offset(offset)
+        )
         result = await self.session.execute(stmt)
         return list(result.scalars().all())
 
@@ -127,7 +129,9 @@ class AgentInstanceRepository:
         result = await self.session.execute(stmt)
         return list(result.scalars().all())
 
-    async def terminate_agents_by_user(self, user_id: uuid.UUID, reason: str = "User requested termination") -> int:
+    async def terminate_agents_by_user(
+        self, user_id: uuid.UUID, reason: str = "User requested termination"
+    ) -> int:
         """Terminate all agents for a user."""
         stmt = (
             update(AgentInstance)
@@ -145,8 +149,12 @@ class AgentInstanceRepository:
         result = await self.session.execute(stmt)
         return len(result.fetchall())
 
-    async def count_agents_by_status(self, tenant_id: uuid.UUID, status: AgentStatus) -> int:
+    async def count_agents_by_status(
+        self, tenant_id: uuid.UUID, status: AgentStatus
+    ) -> int:
         """Count agents by status for a tenant."""
-        stmt = select(AgentInstance).where(AgentInstance.tenant_id == tenant_id, AgentInstance.status == status)
+        stmt = select(AgentInstance).where(
+            AgentInstance.tenant_id == tenant_id, AgentInstance.status == status
+        )
         result = await self.session.execute(stmt)
         return len(result.scalars().all())

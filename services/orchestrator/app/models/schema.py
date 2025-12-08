@@ -2,17 +2,45 @@ from __future__ import annotations
 
 import uuid
 from datetime import datetime
-from typing import Any
 
-from sqlalchemy import Column, String, Text, Boolean, Integer, DateTime, ForeignKey, ARRAY
-from sqlalchemy.dialects.postgresql import UUID, JSONB
+from sqlalchemy import (
+    ARRAY,
+    Column,
+    DateTime,
+    ForeignKey,
+    Integer,
+    Text,
+)
+from sqlalchemy.dialects.postgresql import JSONB, UUID
+
 from services.common.models.base import Base
+
+# Blueprints (Found in blueprint.py)
+
+# Capsules (Found in capsule_complete.py)
+
+# Import all common models to ensure they are registered with Base.metadata for Alembic
+# Identity
+
+# RL / Reasoning
+
+# Roles
+
+# Tasks
+
+# Tools / MCP (Found in tool.py)
+
+# Helpers / Other
+# (Add any other models here as needed)
+
 
 class AgentModel(Base):
     __tablename__ = "agents"
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    tenant_id = Column(UUID(as_uuid=True), nullable=False, index=True)  # CRITICAL: Multi-tenancy support
+    tenant_id = Column(
+        UUID(as_uuid=True), nullable=False, index=True
+    )  # CRITICAL: Multi-tenancy support
     name = Column(Text, nullable=False)
     description = Column(Text)
     role = Column(Text)
@@ -23,7 +51,10 @@ class AgentModel(Base):
     policy_scope = Column(Text)
     agent_metadata = Column(JSONB)  # Renamed from metadata (SQLAlchemy reserved name)
     created_at = Column(DateTime(timezone=True), default=datetime.utcnow)
-    updated_at = Column(DateTime(timezone=True), default=datetime.utcnow, onupdate=datetime.utcnow)
+    updated_at = Column(
+        DateTime(timezone=True), default=datetime.utcnow, onupdate=datetime.utcnow
+    )
+
 
 class CrewModel(Base):
     __tablename__ = "crews"
@@ -37,6 +68,7 @@ class CrewModel(Base):
     routing_mode = Column(Text)  # 'supervisor', 'classifier', 'static'
     created_at = Column(DateTime(timezone=True), default=datetime.utcnow)
 
+
 class GraphWorkflowModel(Base):
     __tablename__ = "graph_workflows"
 
@@ -47,6 +79,7 @@ class GraphWorkflowModel(Base):
     definition = Column(JSONB, nullable=False)  # Stores the full GraphWorkflow JSON
     created_by = Column(UUID(as_uuid=True), ForeignKey("agents.id"), nullable=True)
     created_at = Column(DateTime(timezone=True), default=datetime.utcnow)
+
 
 class WorkflowInstanceModel(Base):
     __tablename__ = "workflow_instances"
@@ -59,6 +92,7 @@ class WorkflowInstanceModel(Base):
     started_at = Column(DateTime(timezone=True))
     finished_at = Column(DateTime(timezone=True))
 
+
 class WorkflowCheckpointModel(Base):
     __tablename__ = "workflow_checkpoints"
 
@@ -68,6 +102,7 @@ class WorkflowCheckpointModel(Base):
     node_id = Column(Text)
     state_snapshot = Column(JSONB)
     created_at = Column(DateTime(timezone=True), default=datetime.utcnow)
+
 
 class HumanReviewSessionModel(Base):
     __tablename__ = "human_review_sessions"
@@ -80,6 +115,7 @@ class HumanReviewSessionModel(Base):
     status = Column(Text)  # PENDING, APPROVED, REJECTED, EXPIRED
     created_at = Column(DateTime(timezone=True), default=datetime.utcnow)
     resolved_at = Column(DateTime(timezone=True))
+
 
 class AuditLogModel(Base):
     __tablename__ = "audit_log"

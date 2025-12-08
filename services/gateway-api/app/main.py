@@ -3,8 +3,8 @@
 from __future__ import annotations
 
 import asyncio
-import logging
 import importlib
+import logging
 from contextlib import asynccontextmanager
 from typing import Any
 
@@ -26,18 +26,24 @@ get_redis_client = importlib.import_module("app.core.redis").get_redis_client
 logger = logging.getLogger(__name__)
 settings = get_settings()
 
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Startup: initialize SPIFFE early
     spiffe_identity = init_spiffe(settings.service_name or "sah")
     if spiffe_identity:
-        logger.info("SPIFFE identity loaded", extra={"spiffe_id": spiffe_identity.spiffe_id})
+        logger.info(
+            "SPIFFE identity loaded", extra={"spiffe_id": spiffe_identity.spiffe_id}
+        )
     else:
-        logger.info("SPIFFE identity not initialized; falling back to non-mTLS workload identity")
+        logger.info(
+            "SPIFFE identity not initialized; falling back to non-mTLS workload identity"
+        )
 
     yield
     # Shutdown: ensure Redis client closes cleanly
     await close_redis_client()
+
 
 def _attach_routes(app: FastAPI) -> None:
     app.add_middleware(ContextMiddleware)
@@ -77,6 +83,7 @@ def _attach_routes(app: FastAPI) -> None:
     def root() -> dict[str, str]:
         return {"message": "SomaAgentHub Service"}
 
+
 async def _check_kafka() -> bool:
     if not settings.kafka.bootstrap_servers:
         return False
@@ -94,6 +101,7 @@ async def _check_kafka() -> bool:
             continue
     return False
 
+
 async def _check_auth() -> bool:
     if not settings.auth.url:
         return False
@@ -105,9 +113,11 @@ async def _check_auth() -> bool:
     except Exception:
         return False
 
+
 async def _check_redis() -> bool:
     client = get_redis_client()
     return await client.health_check()
+
 
 app = create_app(
     service_name=settings.service_name or "sah",
@@ -117,4 +127,3 @@ app = create_app(
     instrumentation=True,
     lifespan=lifespan,
 )
-

@@ -74,5 +74,7 @@ class IntakeManager:
         """Generate a human-readable summary for review before approval."""
         objective = module.answers.get("q1", "<missing objective>")
         criteria = module.answers.get("q2", [])
-        criteria_list = ", ".join(criteria) if isinstance(criteria, list) else str(criteria)
+        criteria_list = (
+            ", ".join(criteria) if isinstance(criteria, list) else str(criteria)
+        )
         return f"Objective: {objective} | Success Criteria: {criteria_list}"

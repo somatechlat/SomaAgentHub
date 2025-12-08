@@ -54,7 +54,9 @@ class CircuitBreakerOpenError(Exception):
     def __init__(self, service_name: str, opened_at: datetime):
         self.service_name = service_name
         self.opened_at = opened_at
-        super().__init__(f"Circuit breaker OPEN for {service_name} (opened at {opened_at.isoformat()})")
+        super().__init__(
+            f"Circuit breaker OPEN for {service_name} (opened at {opened_at.isoformat()})"
+        )
 
 
 class CircuitBreaker:
@@ -249,15 +251,21 @@ class CircuitBreaker:
                 "total_successes": self.metrics.total_successes,
                 "total_failures": self.metrics.total_failures,
                 "success_rate": (
-                    self.metrics.total_successes / self.metrics.total_calls if self.metrics.total_calls > 0 else 0
+                    self.metrics.total_successes / self.metrics.total_calls
+                    if self.metrics.total_calls > 0
+                    else 0
                 ),
                 "consecutive_failures": self.metrics.consecutive_failures,
                 "consecutive_successes": self.metrics.consecutive_successes,
                 "last_failure": (
-                    self.metrics.last_failure_time.isoformat() if self.metrics.last_failure_time else None
+                    self.metrics.last_failure_time.isoformat()
+                    if self.metrics.last_failure_time
+                    else None
                 ),
                 "last_success": (
-                    self.metrics.last_success_time.isoformat() if self.metrics.last_success_time else None
+                    self.metrics.last_success_time.isoformat()
+                    if self.metrics.last_success_time
+                    else None
                 ),
             },
             "state_history": self.metrics.state_transitions[-10:],  # Last 10

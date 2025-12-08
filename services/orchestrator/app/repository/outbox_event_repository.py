@@ -35,7 +35,8 @@ class OutboxEventRepository:
 
         event = OutboxEvent(
             event_type=event_type,
-            aggregate_id=key or str(uuid.uuid4()), # Use key as aggregate_id if present, else random
+            aggregate_id=key
+            or str(uuid.uuid4()),  # Use key as aggregate_id if present, else random
             topic=topic,
             key=key,
             event_data=payload or {},
@@ -64,10 +65,15 @@ class OutboxEventRepository:
             payload=event_data,
         )
 
-    async def get_pending_events(self, limit: int = 100, max_retries: int = 3) -> list[OutboxEvent]:
+    async def get_pending_events(
+        self, limit: int = 100, max_retries: int = 3
+    ) -> list[OutboxEvent]:
         """Get pending events for processing."""
         stmt = (
-            select(OutboxEvent).where(OutboxEvent.processed.is_(False)).order_by(OutboxEvent.created_at).limit(limit)
+            select(OutboxEvent)
+            .where(OutboxEvent.processed.is_(False))
+            .order_by(OutboxEvent.created_at)
+            .limit(limit)
         )
 
         result = await self.session.execute(stmt)
@@ -81,7 +87,11 @@ class OutboxEventRepository:
 
     async def mark_as_processed(self, event_id: uuid.UUID) -> None:
         """Mark an event as successfully processed."""
-        stmt = update(OutboxEvent).where(OutboxEvent.id == event_id).values(processed=True, processed_at=datetime.now(UTC))
+        stmt = (
+            update(OutboxEvent)
+            .where(OutboxEvent.id == event_id)
+            .values(processed=True, processed_at=datetime.now(UTC))
+        )
         await self.session.execute(stmt)
 
     async def mark_as_failed(self, event_id: uuid.UUID, error: str) -> None:
@@ -97,14 +107,16 @@ class OutboxEventRepository:
             update(OutboxEvent)
             .where(OutboxEvent.id == event_id)
             .values(
-                processed=False, # Still pending but failed
+                processed=False,  # Still pending but failed
                 last_error=error,
                 retry_count=current_retry + 1,
             )
         )
         await self.session.execute(stmt)
 
-    async def get_events_by_type(self, event_type: str, limit: int = 100) -> list[OutboxEvent]:
+    async def get_events_by_type(
+        self, event_type: str, limit: int = 100
+    ) -> list[OutboxEvent]:
         """Get events by type.
 
         Args:
@@ -124,7 +136,9 @@ class OutboxEventRepository:
         result = await self.session.execute(stmt)
         return result.scalars().all()
 
-    async def get_events_by_topic(self, topic: str, limit: int = 100) -> list[OutboxEvent]:
+    async def get_events_by_topic(
+        self, topic: str, limit: int = 100
+    ) -> list[OutboxEvent]:
         """Get events by topic.
 
         Args:
@@ -135,7 +149,10 @@ class OutboxEventRepository:
             List of OutboxEvent instances
         """
         stmt = (
-            select(OutboxEvent).where(OutboxEvent.topic == topic).order_by(OutboxEvent.created_at.desc()).limit(limit)
+            select(OutboxEvent)
+            .where(OutboxEvent.topic == topic)
+            .order_by(OutboxEvent.created_at.desc())
+            .limit(limit)
         )
 
         result = await self.session.execute(stmt)
@@ -151,7 +168,12 @@ class OutboxEventRepository:
         Returns:
             List of OutboxEvent instances
         """
-        stmt = select(OutboxEvent).where(OutboxEvent.key == key).order_by(OutboxEvent.created_at.desc()).limit(limit)
+        stmt = (
+            select(OutboxEvent)
+            .where(OutboxEvent.key == key)
+            .order_by(OutboxEvent.created_at.desc())
+            .limit(limit)
+        )
 
         result = await self.session.execute(stmt)
         return result.scalars().all()
@@ -162,14 +184,14 @@ class OutboxEventRepository:
 
         cutoff_time = datetime.now(UTC) - timedelta(hours=max_age_hours)
 
-        stmt = (
+        (
             update(OutboxEvent)
             .where(
-                OutboxEvent.processed == False, # Still pending
-                OutboxEvent.retry_count > 0, # Has failed before
+                not OutboxEvent.processed,  # Still pending
+                OutboxEvent.retry_count > 0,  # Has failed before
                 OutboxEvent.created_at >= cutoff_time,
             )
-            .values(last_error=None) # Reset error to retry? Or just leave it?
+            .values(last_error=None)  # Reset error to retry? Or just leave it?
             # Actually, if it's processed=False, it will be picked up by get_pending_events
             # unless get_pending_events filters by retry count or something.
             # get_pending_events only checks processed=False.
@@ -177,8 +199,8 @@ class OutboxEventRepository:
             # But usually retry count is increasing.
             # Let's just return 0 for now as the logic is slightly different.
         )
-        
+
         # If we want to reset "failed" status, we don't have a status field anymore.
         # We rely on processed=False.
-        
+
         return 0

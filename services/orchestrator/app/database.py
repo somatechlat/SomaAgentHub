@@ -50,7 +50,9 @@ sync_engine = create_engine(_sync_db_url, echo=False, future=True)
 # Async engine for runtime operations with production pooling
 _db_url = DATABASE_URL
 if not _db_url.startswith("postgresql+asyncpg://"):
-    raise RuntimeError("DATABASE_URL must use asyncpg driver (postgresql+asyncpg://). Got: " + _db_url)
+    raise RuntimeError(
+        "DATABASE_URL must use asyncpg driver (postgresql+asyncpg://). Got: " + _db_url
+    )
 
 async_engine = create_async_engine(
     _db_url,
@@ -60,7 +62,9 @@ async_engine = create_async_engine(
     pool_timeout=settings.database_pool_timeout,
     pool_recycle=settings.database_pool_recycle,
 )
-AsyncSessionLocal = async_sessionmaker(bind=async_engine, class_=AsyncSession, expire_on_commit=False)
+AsyncSessionLocal = async_sessionmaker(
+    bind=async_engine, class_=AsyncSession, expire_on_commit=False
+)
 
 
 # Alias for backward compatibility

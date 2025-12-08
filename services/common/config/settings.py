@@ -20,7 +20,7 @@ from services.common.config.env_resolver import resolve_env
 
 
 # Backwards-compatible helpers
-@lru_cache()
+@lru_cache
 def get_settings() -> BaseConfig:
     """Return the cached `BaseConfig` instance for the process.
 
@@ -43,4 +43,10 @@ def get_common_settings() -> BaseConfig:
     return get_settings()
 
 
-__all__ = ["settings", "get_settings", "get_common_settings", "CommonSettings", "resolve_env"]
+__all__ = [
+    "CommonSettings",
+    "get_common_settings",
+    "get_settings",
+    "resolve_env",
+    "settings",
+]

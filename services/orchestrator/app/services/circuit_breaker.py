@@ -69,7 +69,9 @@ class CircuitBreaker:
         self.last_failure_time: float | None = None
         self._lock = asyncio.Lock()
 
-    async def __call__(self, func: Callable[..., Awaitable[Any]], *args: Any, **kwargs: Any) -> Any:
+    async def __call__(
+        self, func: Callable[..., Awaitable[Any]], *args: Any, **kwargs: Any
+    ) -> Any:
         """Execute *func* under circuit‑breaker protection.
 
         If the breaker is **OPEN** we either raise :class:`ServiceUnavailableError`
@@ -81,26 +83,34 @@ class CircuitBreaker:
                 if self._should_attempt_reset():
                     self.state = CircuitState.HALF_OPEN
                     self.success_count = 0
-                    circuit_breaker_state.labels(service=self.config.name, state="half_open").inc()
-                    logger.info(f"Circuit breaker {self.config.name} entering HALF_OPEN state")
+                    circuit_breaker_state.labels(
+                        service=self.config.name, state="half_open"
+                    ).inc()
+                    logger.info(
+                        f"Circuit breaker {self.config.name} entering HALF_OPEN state"
+                    )
                 else:
-                    raise ServiceUnavailableError(f"Circuit breaker {self.config.name} is OPEN")
+                    raise ServiceUnavailableError(
+                        f"Circuit breaker {self.config.name} is OPEN"
+                    )
 
         # Execute the protected function
         start_time = time.time()
         try:
             result = await func(*args, **kwargs)
             await self._on_success()
-            circuit_breaker_duration.labels(service=self.config.name, status="success").observe(
-                time.time() - start_time
-            )
+            circuit_breaker_duration.labels(
+                service=self.config.name, status="success"
+            ).observe(time.time() - start_time)
             return result
         except self.config.expected_exception as e:
             await self._on_failure()
-            circuit_breaker_failures.labels(service=self.config.name, type=type(e).__name__).inc()
-            circuit_breaker_duration.labels(service=self.config.name, status="failure").observe(
-                time.time() - start_time
-            )
+            circuit_breaker_failures.labels(
+                service=self.config.name, type=type(e).__name__
+            ).inc()
+            circuit_breaker_duration.labels(
+                service=self.config.name, status="failure"
+            ).observe(time.time() - start_time)
             raise
 
     def _should_attempt_reset(self) -> bool:
@@ -116,7 +126,9 @@ class CircuitBreaker:
             self.success_count += 1
             if self.success_count >= self.config.success_threshold:
                 self.state = CircuitState.CLOSED
-                circuit_breaker_state.labels(service=self.config.name, state="closed").inc()
+                circuit_breaker_state.labels(
+                    service=self.config.name, state="closed"
+                ).inc()
                 logger.info(f"Circuit breaker {self.config.name} reset to CLOSED")
         # When CLOSED we simply keep operating; no action needed.
 
@@ -128,7 +140,9 @@ class CircuitBreaker:
         if self.failure_count >= self.config.failure_threshold:
             self.state = CircuitState.OPEN
             circuit_breaker_state.labels(service=self.config.name, state="open").inc()
-            logger.warning(f"Circuit breaker {self.config.name} OPENED after {self.failure_count} failures")
+            logger.warning(
+                f"Circuit breaker {self.config.name} OPENED after {self.failure_count} failures"
+            )
 
     def get_state(self) -> dict[str, Any]:
         """Return a dictionary describing the current breaker state."""

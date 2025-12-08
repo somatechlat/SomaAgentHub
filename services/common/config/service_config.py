@@ -6,7 +6,6 @@ with service-specific settings and validation.
 
 from __future__ import annotations
 
-from typing import Dict, Any, Optional, List
 from dataclasses import dataclass
 
 from .base_config import BaseConfig, ServiceConfig
@@ -15,6 +14,7 @@ from .base_config import BaseConfig, ServiceConfig
 @dataclass
 class GatewayServiceConfig(ServiceConfig):
     """Configuration specific to the Gateway service."""
+
     orchestrator_url: str = "http://orchestrator:10001"
     identity_service_url: str = "http://identity-service:10002"
     pricing_service_url: str = "http://pricing-service:10026"
@@ -22,7 +22,7 @@ class GatewayServiceConfig(ServiceConfig):
     enable_moderation: bool = True
     rate_limit_requests: int = 100
     rate_limit_window: int = 60
-    cors_origins: List[str] = None
+    cors_origins: list[str] = None
 
     def __post_init__(self):
         if self.cors_origins is None:
@@ -32,6 +32,7 @@ class GatewayServiceConfig(ServiceConfig):
 @dataclass
 class OrchestratorServiceConfig(ServiceConfig):
     """Configuration specific to the Orchestrator service."""
+
     temporal_host: str = "localhost:7233"
     temporal_namespace: str = "default"
     temporal_task_queue: str = "somagent.session.workflows"
@@ -46,13 +47,14 @@ class OrchestratorServiceConfig(ServiceConfig):
 @dataclass
 class BuilderServiceConfig(ServiceConfig):
     """Configuration specific to the Builder service."""
+
     template_storage_path: str = "/templates"
     artifact_storage_path: str = "/artifacts"
     max_build_concurrency: int = 5
     build_timeout_seconds: int = 1800
     enable_static_templates: bool = True
     enable_dynamic_generation: bool = True
-    supported_frameworks: List[str] = None
+    supported_frameworks: list[str] = None
 
     def __post_init__(self):
         if self.supported_frameworks is None:
@@ -62,21 +64,28 @@ class BuilderServiceConfig(ServiceConfig):
 @dataclass
 class CapsuleRegistryConfig(ServiceConfig):
     """Configuration specific to the Capsule Registry service."""
+
     storage_backend: str = "postgres"  # postgres, redis, filesystem
     storage_path: str = "/capsules"
     max_capsule_size_mb: int = 100
     enable_versioning: bool = True
     enable_signing: bool = True
-    supported_capsule_types: List[str] = None
+    supported_capsule_types: list[str] = None
 
     def __post_init__(self):
         if self.supported_capsule_types is None:
-            self.supported_capsule_types = ["static", "workflow", "external_service", "analytic"]
+            self.supported_capsule_types = [
+                "static",
+                "workflow",
+                "external_service",
+                "analytic",
+            ]
 
 
 @dataclass
 class AgentManagerConfig(ServiceConfig):
     """Configuration specific to the Agent Manager service."""
+
     max_concurrent_agents: int = 50
     agent_default_cpu: str = "500m"
     agent_default_memory: str = "512Mi"
@@ -84,16 +93,22 @@ class AgentManagerConfig(ServiceConfig):
     enable_auto_scaling: bool = True
     enable_health_monitoring: bool = True
     cleanup_interval_seconds: int = 300
-    supported_agent_types: List[str] = None
+    supported_agent_types: list[str] = None
 
     def __post_init__(self):
         if self.supported_agent_types is None:
-            self.supported_agent_types = ["llm", "code_generator", "ui_customizer", "data_analyzer"]
+            self.supported_agent_types = [
+                "llm",
+                "code_generator",
+                "ui_customizer",
+                "data_analyzer",
+            ]
 
 
 @dataclass
 class IdentityServiceConfig(ServiceConfig):
     """Configuration specific to the Identity service."""
+
     jwt_issuer_url: str = "http://identity-service:10002"
     jwt_audience: str = "soma-client"
     jwt_expiration_minutes: int = 60
@@ -106,6 +121,7 @@ class IdentityServiceConfig(ServiceConfig):
 @dataclass
 class AnalyticsServiceConfig(ServiceConfig):
     """Configuration specific to the Analytics service."""
+
     storage_backend: str = "clickhouse"  # clickhouse, postgres, redis
     clickhouse_host: str = "localhost"
     clickhouse_port: int = 8123
@@ -116,7 +132,7 @@ class AnalyticsServiceConfig(ServiceConfig):
 
 
 # Service configuration factory
-_service_configs: Dict[str, type] = {
+_service_configs: dict[str, type] = {
     "gateway-service": GatewayServiceConfig,
     "orchestrator-service": OrchestratorServiceConfig,
     "builder-service": BuilderServiceConfig,
@@ -132,7 +148,7 @@ def register_service_config(service_name: str, config_class: type) -> None:
     _service_configs[service_name] = config_class
 
 
-def get_service_config_class(service_name: str) -> Optional[type]:
+def get_service_config_class(service_name: str) -> type | None:
     """Get the configuration class for a specific service."""
     return _service_configs.get(service_name)
 
@@ -151,11 +167,12 @@ def get_service_config(service_name: str, base_config: BaseConfig) -> ServiceCon
 
     # Add service-specific overrides from environment
     import os
+
     service_prefix = f"SOMA_AGENT_HUB_{service_name.upper().replace('-', '_')}_"
 
     for key, value in os.environ.items():
         if key.startswith(service_prefix):
-            setting_name = key[len(service_prefix):].lower()
+            setting_name = key[len(service_prefix) :].lower()
             service_settings[setting_name] = value
 
     return config_class(**service_settings)

@@ -70,7 +70,9 @@ async def create_agent_instance(
             )
 
             created_agent = await repo.create_agent_instance(agent_instance)
-            logger.info(f"Created agent instance {created_agent.id} of type {agent_type}")
+            logger.info(
+                f"Created agent instance {created_agent.id} of type {agent_type}"
+            )
             return created_agent
 
     except Exception as e:
@@ -170,8 +172,12 @@ async def launch_agent_instance(
                 ),
             )
 
-            apps_v1.create_namespaced_deployment(namespace=k8s_namespace, body=deployment)
-            logger.info(f"Created deployment {resource_name} for agent {agent_instance_id}")
+            apps_v1.create_namespaced_deployment(
+                namespace=k8s_namespace, body=deployment
+            )
+            logger.info(
+                f"Created deployment {resource_name} for agent {agent_instance_id}"
+            )
 
         else:
             # Create Job for one-off agents
@@ -250,7 +256,9 @@ async def update_agent_k8s_info(
                 update_data["status"] = status
 
             await repo.update_agent_instance(agent_instance_id, update_data)
-            logger.info(f"Updated agent {agent_instance_id} with K8s info: {update_data}")
+            logger.info(
+                f"Updated agent {agent_instance_id} with K8s info: {update_data}"
+            )
 
     except Exception as e:
         logger.error(f"Failed to update agent K8s info: {e}")
@@ -280,7 +288,11 @@ async def update_agent_status(
 
             if status == AgentStatus.RUNNING:
                 update_data["started_at"] = datetime.utcnow()
-            elif status in [AgentStatus.SUCCEEDED, AgentStatus.FAILED, AgentStatus.TERMINATED]:
+            elif status in [
+                AgentStatus.SUCCEEDED,
+                AgentStatus.FAILED,
+                AgentStatus.TERMINATED,
+            ]:
                 update_data["completed_at"] = datetime.utcnow()
 
             if error_message:

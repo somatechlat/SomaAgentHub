@@ -21,4 +21,4 @@ USER app
 EXPOSE 10026
 
 ENV PORT=10026
-CMD ["sh", "-c", "uvicorn services.pricing-service.app.main:app --host 0.0.0.0 --port ${PORT:-10026}"]
+CMD ["sh", "-c", "uvicorn services.pricing-service.app.main:app --host 0.0.0.0 --port ${PORT:-10026} --workers 1"]

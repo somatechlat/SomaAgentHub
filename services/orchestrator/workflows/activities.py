@@ -7,7 +7,6 @@ from __future__ import annotations
 
 from collections.abc import Mapping, Sequence
 from datetime import UTC, datetime
-from pathlib import Path
 from typing import Any
 
 import httpx
@@ -30,7 +29,9 @@ def _coerce_positive_int(value: Any, field_name: str) -> int:
     try:
         coerced = int(value)
     except (TypeError, ValueError) as exc:  # pragma: no cover - defensive branch
-        raise ValueError(f"{field_name} must be a positive integer (got {value!r})") from exc
+        raise ValueError(
+            f"{field_name} must be a positive integer (got {value!r})"
+        ) from exc
     if coerced < 1:
         raise ValueError(f"{field_name} must be >= 1 (got {coerced})")
     return coerced
@@ -40,7 +41,9 @@ def _coerce_non_negative_int(value: Any, field_name: str) -> int:
     try:
         coerced = int(value)
     except (TypeError, ValueError) as exc:  # pragma: no cover - defensive branch
-        raise ValueError(f"{field_name} must be a non-negative integer (got {value!r})") from exc
+        raise ValueError(
+            f"{field_name} must be a non-negative integer (got {value!r})"
+        ) from exc
     if coerced < 0:
         raise ValueError(f"{field_name} must be >= 0 (got {coerced})")
     return coerced
@@ -86,7 +89,9 @@ GATEWAY_API_URL = resolve_env("GATEWAY_API_URL", "http://gateway-api:10000")
 
 
 @activity.defn
-async def decompose_project(project_description: str, user_id: str) -> list[dict[str, Any]]:
+async def decompose_project(
+    project_description: str, user_id: str
+) -> list[dict[str, Any]]:
     """
     Decompose project into executable tasks.
 
@@ -176,7 +181,8 @@ async def decompose_project(project_description: str, user_id: str) -> list[dict
                 "tasks": tasks,
                 "total_tasks": len(tasks),
                 "estimated_duration_minutes": sum(
-                    {"simple": 5, "medium": 15, "complex": 30}.get(t["complexity"], 10) for t in tasks
+                    {"simple": 5, "medium": 15, "complex": 30}.get(t["complexity"], 10)
+                    for t in tasks
                 ),
                 "decomposition_model": result["model"],
             }
@@ -207,7 +213,8 @@ async def create_task_plan(task_breakdown: dict[str, Any]) -> dict[str, Any]:
         ready_tasks = [
             t
             for t in tasks
-            if t["id"] not in completed_tasks and all(dep in completed_tasks for dep in t.get("dependencies", []))
+            if t["id"] not in completed_tasks
+            and all(dep in completed_tasks for dep in t.get("dependencies", []))
         ]
 
         if not ready_tasks:
@@ -243,7 +250,11 @@ async def spawn_agent(agent_type: str, requirements: dict[str, Any]) -> dict[str
     """
     from uuid import uuid4
 
-    from ..agents import create_agent_instance, launch_agent_instance, update_agent_status
+    from ..agents import (
+        create_agent_instance,
+        launch_agent_instance,
+        update_agent_status,
+    )
     from ..app.models.agent_instance import AgentStatus
 
     activity.logger.info(f"Spawning {agent_type} agent")
@@ -285,7 +296,9 @@ async def spawn_agent(agent_type: str, requirements: dict[str, Any]) -> dict[str
         # Step 3: Update agent status to running
         await update_agent_status(agent_instance.id, AgentStatus.RUNNING)
 
-        activity.logger.info(f"Successfully spawned agent {agent_instance.id} as {k8s_resource_name}")
+        activity.logger.info(
+            f"Successfully spawned agent {agent_instance.id} as {k8s_resource_name}"
+        )
 
         return {
             "agent_id": str(agent_instance.id),
@@ -350,7 +363,9 @@ async def execute_task(
             policy_result = policy_response.json()
 
             if not policy_result["allowed"]:
-                activity.logger.warning(f"Task blocked by policy: {policy_result['reasons']}")
+                activity.logger.warning(
+                    f"Task blocked by policy: {policy_result['reasons']}"
+                )
                 return {
                     "status": "blocked",
                     "reason": "policy_violation",
@@ -399,12 +414,16 @@ async def execute_task(
             return {
                 "status": "failed",
                 "error": str(e),
-                "duration_ms": int((datetime.now(UTC) - start_time).total_seconds() * 1000),
+                "duration_ms": int(
+                    (datetime.now(UTC) - start_time).total_seconds() * 1000
+                ),
             }
 
 
 @activity.defn
-async def review_output(task_results: list[dict[str, Any]], project_description: str) -> dict[str, Any]:
+async def review_output(
+    task_results: list[dict[str, Any]], project_description: str
+) -> dict[str, Any]:
     """
     Quality gate review of task outputs.
 
@@ -443,7 +462,9 @@ async def review_output(task_results: list[dict[str, Any]], project_description:
 
 
 @activity.defn
-async def aggregate_results(task_results: list[dict[str, Any]], review_result: dict[str, Any]) -> dict[str, Any]:
+async def aggregate_results(
+    task_results: list[dict[str, Any]], review_result: dict[str, Any]
+) -> dict[str, Any]:
     """
     Aggregate task results into final project output.
 
@@ -467,6 +488,3 @@ async def aggregate_results(task_results: list[dict[str, Any]], review_result: d
         "completion_status": review_result["status"],
         "aggregated_at": datetime.now(UTC).isoformat(),
     }
-
-
-

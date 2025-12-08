@@ -12,3 +12,4 @@ opentelemetry-sdk>=1.25.0
 opentelemetry-exporter-prometheus>=0.46b0
 opentelemetry-exporter-otlp>=1.25.0
 opentelemetry-instrumentation-fastapi>=0.46b0
+clickhouse-driver>=0.2.7

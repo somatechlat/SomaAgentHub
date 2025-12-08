@@ -5,8 +5,6 @@ Contains production-ready patterns:
     - Circuit Breaker: Fail-fast protection for external services
 """
 
-
-
 from .circuit_breaker import (
     CircuitBreaker,
     CircuitBreakerConfig,

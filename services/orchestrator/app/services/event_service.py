@@ -20,7 +20,9 @@ class OrchestratorEventService:
     provided the event will also be sent to Kafka.
     """
 
-    def __init__(self, session: AsyncSession, event_publisher: EventPublisher | None = None):
+    def __init__(
+        self, session: AsyncSession, event_publisher: EventPublisher | None = None
+    ):
         self.session = session
         self.event_publisher = event_publisher
         self.outbox_repo = OutboxEventRepository(session)
@@ -58,7 +60,9 @@ class OrchestratorEventService:
 
         try:
             # Save to outbox for durability
-            await self.outbox_repo.save_event(event_type="orchestration.started.v1", event_data=event_data)
+            await self.outbox_repo.save_event(
+                event_type="orchestration.started.v1", event_data=event_data
+            )
 
             logger.info(f"Emitted orchestration started event: {workflow_id}")
 
@@ -104,9 +108,13 @@ class OrchestratorEventService:
 
         try:
             # Save to outbox for durability
-            await self.outbox_repo.save_event(event_type="orchestration.completed.v1", event_data=event_data)
+            await self.outbox_repo.save_event(
+                event_type="orchestration.completed.v1", event_data=event_data
+            )
 
-            logger.info(f"Emitted orchestration completed event: {workflow_id} ({status})")
+            logger.info(
+                f"Emitted orchestration completed event: {workflow_id} ({status})"
+            )
 
         except Exception as e:
             logger.exception(f"Failed to emit orchestration completed event: {e}")
@@ -147,7 +155,9 @@ class OrchestratorEventService:
 
         try:
             # Save to outbox for durability
-            await self.outbox_repo.save_event(event_type="orchestration.failed.v1", event_data=event_data)
+            await self.outbox_repo.save_event(
+                event_type="orchestration.failed.v1", event_data=event_data
+            )
 
             logger.error(f"Emitted orchestration failed event: {workflow_id} - {error}")
 
@@ -188,7 +198,9 @@ class OrchestratorEventService:
 
         try:
             # Save to outbox for durability
-            await self.outbox_repo.save_event(event_type="orchestrator.agent_completed.v1", event_data=event_data)
+            await self.outbox_repo.save_event(
+                event_type="orchestrator.agent_completed.v1", event_data=event_data
+            )
 
             logger.info(f"Emitted agent completed event: {workflow_id}/{agent_id}")
 
@@ -230,7 +242,9 @@ class OrchestratorEventService:
             **(metadata or {}),
         }
 
-        await self.outbox_repo.save_event(event_type="vc.step.v1", event_data=event_data)
+        await self.outbox_repo.save_event(
+            event_type="vc.step.v1", event_data=event_data
+        )
         logger.info(
             "Emitted VC_STEP event",
             episode_id=episode_id,

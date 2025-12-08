@@ -7,6 +7,7 @@ issue.
 """
 
 import logging
+
 from services.common.config.base_settings import resolve_env
 
 logger = logging.getLogger("gateway.secrets")
@@ -18,13 +19,13 @@ def load_secret(env_var: str) -> str:
     Args:
         env_var: The canonical ``SOMA_AGENT_HUB_`` variable name.
 
-        Returns:
-    The secret value.
+    Returns:
+        The secret value.
 
     Raises:
         RuntimeError: If the variable is not set.
-        """
-        value = resolve_env(env_var)
-        if not value:
-            raise RuntimeError(f"Required secret '{env_var}' is not set in the environment")
-            return value
+    """
+    value = resolve_env(env_var)
+    if not value:
+        raise RuntimeError(f"Required secret '{env_var}' is not set in the environment")
+    return value

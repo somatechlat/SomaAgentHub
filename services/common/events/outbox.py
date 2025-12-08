@@ -8,13 +8,14 @@ repository that works with an ``AsyncSession`` fixture.
 from __future__ import annotations
 
 import uuid
-from datetime import datetime, timezone
-from typing import Any, Dict, List, Optional
+from datetime import UTC, datetime
+from typing import Any
 
 from pydantic import BaseModel, Field
-from sqlmodel import SQLModel, Field as SQLField, JSON, Column, DateTime
-from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, update
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlmodel import JSON, Column, DateTime, SQLModel
+from sqlmodel import Field as SQLField
 
 # ``Base`` is used by tests to create tables via ``Base.metadata.create_all``.
 Base = SQLModel.metadata
@@ -26,23 +27,24 @@ class OutboxEvent(SQLModel, table=True):
     id: uuid.UUID = SQLField(default_factory=uuid.uuid4, primary_key=True)
     event_type: str = SQLField(index=True)
     aggregate_id: str = SQLField(index=True)
-    topic: Optional[str] = SQLField(default=None, index=True)
-    key: Optional[str] = SQLField(default=None, index=True)
-    event_data: Dict[str, Any] = SQLField(sa_column=Column(JSON, nullable=False))
+    topic: str | None = SQLField(default=None, index=True)
+    key: str | None = SQLField(default=None, index=True)
+    event_data: dict[str, Any] = SQLField(sa_column=Column(JSON, nullable=False))
     created_at: datetime = SQLField(
-        default_factory=lambda: datetime.now(timezone.utc), sa_column=Column(DateTime(timezone=True))
+        default_factory=lambda: datetime.now(UTC),
+        sa_column=Column(DateTime(timezone=True)),
     )
     processed: bool = SQLField(default=False, index=True)
-    processed_at: Optional[datetime] = SQLField(default=None, sa_column=Column(DateTime(timezone=True)))
+    processed_at: datetime | None = SQLField(
+        default=None, sa_column=Column(DateTime(timezone=True))
+    )
     retry_count: int = SQLField(default=0)
-    last_error: Optional[str] = SQLField(default=None)
+    last_error: str | None = SQLField(default=None)
 
     __table_args__ = {"extend_existing": True}
 
     def __repr__(self) -> str:  # pragma: no cover
-        return (
-            f"OutboxEvent(id={self.id}, type={self.event_type}, processed={self.processed})"
-        )
+        return f"OutboxEvent(id={self.id}, type={self.event_type}, processed={self.processed})"
 
 
 class OutboxEventModel(BaseModel):
@@ -51,12 +53,12 @@ class OutboxEventModel(BaseModel):
     id: uuid.UUID = Field(default_factory=uuid.uuid4)
     event_type: str
     aggregate_id: str
-    event_data: Dict[str, Any]
-    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    event_data: dict[str, Any]
+    created_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
     processed: bool = False
-    processed_at: Optional[datetime] = None
+    processed_at: datetime | None = None
     retry_count: int = 0
-    last_error: Optional[str] = None
+    last_error: str | None = None
 
     class Config:
         orm_mode = True
@@ -73,7 +75,7 @@ class OutboxRepository:
         await self._session.flush()
         return event
 
-    async def get_unprocessed_events(self, limit: int = 100) -> List[OutboxEvent]:
+    async def get_unprocessed_events(self, limit: int = 100) -> list[OutboxEvent]:
         stmt = (
             select(OutboxEvent)
             .where(OutboxEvent.processed.is_(False))
@@ -83,7 +85,7 @@ class OutboxRepository:
         result = await self._session.execute(stmt)
         return result.scalars().all()
 
-    async def get_events_by_type(self, event_type: str) -> List[OutboxEvent]:
+    async def get_events_by_type(self, event_type: str) -> list[OutboxEvent]:
         stmt = (
             select(OutboxEvent)
             .where(OutboxEvent.event_type == event_type)
@@ -96,7 +98,7 @@ class OutboxRepository:
         stmt = (
             update(OutboxEvent)
             .where(OutboxEvent.id == event_id)
-            .values(processed=True, processed_at=datetime.now(timezone.utc))
+            .values(processed=True, processed_at=datetime.now(UTC))
         )
         await self._session.execute(stmt)
 
@@ -108,7 +110,7 @@ class OutboxRepository:
         )
         await self._session.execute(stmt)
 
-    async def get_events_by_aggregate(self, aggregate_id: str) -> List[OutboxEvent]:
+    async def get_events_by_aggregate(self, aggregate_id: str) -> list[OutboxEvent]:
         stmt = (
             select(OutboxEvent)
             .where(OutboxEvent.aggregate_id == aggregate_id)

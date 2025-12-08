@@ -16,9 +16,9 @@ from sqlmodel import SQLModel
 # orchestrator package but is needed by generic event tests.
 try:
     from services.orchestrator.app.repository.outbox import OutboxEvent
-    except (
+except (
     Exception
-    ):  # pragma: no cover – during import time the orchestrator may not be loaded yet
+):  # pragma: no cover – during import time the orchestrator may not be loaded yet
     OutboxEvent = None
 
-    __all__ = ["SQLModel", "OutboxEvent"]
+__all__ = ["SQLModel", "OutboxEvent"]

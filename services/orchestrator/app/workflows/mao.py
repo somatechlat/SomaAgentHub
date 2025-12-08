@@ -82,7 +82,9 @@ async def dispatch_notification(
     """Send a notification via the notification service if configured."""
 
     if not settings.notification_service_url:
-        activity.logger.warning("Notification service URL not configured; skipping dispatch")
+        activity.logger.warning(
+            "Notification service URL not configured; skipping dispatch"
+        )
         return {
             "status": "skipped",
             "reason": "notification service disabled",
@@ -97,7 +99,9 @@ async def dispatch_notification(
     }
 
     async with httpx.AsyncClient(timeout=10.0) as client:
-        response = await client.post(str(settings.notification_service_url), json=payload)
+        response = await client.post(
+            str(settings.notification_service_url), json=payload
+        )
         response.raise_for_status()
         return response.json()
 

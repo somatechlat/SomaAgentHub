@@ -128,11 +128,15 @@ async def emit_audit_event(event: dict[str, Any]) -> str:
 
     bootstrap = settings.kafka_bootstrap_servers
     if not bootstrap:
-        activity.logger.warning("Kafka bootstrap servers not configured; audit event stored locally")
+        activity.logger.warning(
+            "Kafka bootstrap servers not configured; audit event stored locally"
+        )
         activity.logger.info(json.dumps(event))
         return audit_id
 
-    producer = AIOKafkaProducer(bootstrap_servers=[s.strip() for s in bootstrap.split(",") if s.strip()])
+    producer = AIOKafkaProducer(
+        bootstrap_servers=[s.strip() for s in bootstrap.split(",") if s.strip()]
+    )
     await producer.start()
     try:
         await producer.send_and_wait("agent.audit", json.dumps(event).encode("utf-8"))
@@ -156,7 +160,9 @@ def run_llm_completion(request: HubInferenceRequest) -> dict[str, Any]:
     )
 
     @ray.remote
-    def _generate_completion(prompt: str, model: str, session_id: str, tenant: str, user: str) -> dict[str, Any]:
+    def _generate_completion(
+        prompt: str, model: str, session_id: str, tenant: str, user: str
+    ) -> dict[str, Any]:
         # In production this is where a provider adapter is called. We keep the
         # function simple but real (executed inside Ray) to honour the principle
 

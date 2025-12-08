@@ -66,9 +66,13 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
         response.headers["X-Content-Type-Options"] = "nosniff"
         response.headers["X-Frame-Options"] = "DENY"
         response.headers["X-XSS-Protection"] = "1; mode=block"
-        response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
+        response.headers["Strict-Transport-Security"] = (
+            "max-age=31536000; includeSubDomains"
+        )
         response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
-        response.headers["Permissions-Policy"] = "geolocation=(), microphone=(), camera=()"
+        response.headers["Permissions-Policy"] = (
+            "geolocation=(), microphone=(), camera=()"
+        )
 
         # Content Security Policy
         csp_directives = [
@@ -192,10 +196,14 @@ class SecurityValidationModels:
             return v
 
     class UserId(BaseModel):
-        user_id: str = Field(..., min_length=1, max_length=100, pattern=r"^[a-zA-Z0-9_-]+$")
+        user_id: str = Field(
+            ..., min_length=1, max_length=100, pattern=r"^[a-zA-Z0-9_-]+$"
+        )
 
     class SessionId(BaseModel):
-        session_id: str = Field(..., min_length=1, max_length=100, pattern=r"^[a-zA-Z0-9_-]+$")
+        session_id: str = Field(
+            ..., min_length=1, max_length=100, pattern=r"^[a-zA-Z0-9_-]+$"
+        )
 
     class SafeString(BaseModel):
         value: str = Field(..., max_length=1000)
@@ -231,12 +239,16 @@ class SecurityManager:
 
     def setup_trusted_hosts(self, app):
         """Setup trusted hosts middleware."""
-        app.add_middleware(TrustedHostMiddleware, allowed_hosts=self.config.allowed_domains)
+        app.add_middleware(
+            TrustedHostMiddleware, allowed_hosts=self.config.allowed_domains
+        )
 
     def setup_security_middleware(self, app):
         """Setup all security middleware."""
         app.add_middleware(SecurityHeadersMiddleware)
-        app.add_middleware(RequestSizeMiddleware, max_size_mb=self.config.max_request_size)
+        app.add_middleware(
+            RequestSizeMiddleware, max_size_mb=self.config.max_request_size
+        )
         app.add_middleware(InputValidationMiddleware)
 
     def validate_url(self, url: str) -> bool:
@@ -304,7 +316,9 @@ class SecurityManager:
     def validate_phone(self, phone: str) -> bool:
         """Validate phone number format."""
         phone_pattern = r"^\+?[\d\s\-\(\)]+$"
-        return bool(re.match(phone_pattern, phone)) and len(re.sub(r"\D", "", phone)) >= 10
+        return (
+            bool(re.match(phone_pattern, phone)) and len(re.sub(r"\D", "", phone)) >= 10
+        )
 
 
 # Global security manager

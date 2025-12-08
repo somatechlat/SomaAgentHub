@@ -23,20 +23,20 @@ from temporalio import client as temporal_client
 from services.common.fastapi.bootstrap import create_app as bootstrap_create_app
 from services.common.spiffe_auth import init_spiffe
 
-from .api.capsules import router as capsules_router
-from .api.health import router as health_router
-from .api.mao import router as mao_router
-from .api.planner import router as planner_router
-from .api.routes import router as orchestrator_router
-from .api.tenants import router as tenants_router
-from .api.tasks import router as tasks_router
-from .api.roles import router as roles_router
-from .api.tools import router as tools_router
-from .api.memory import router as memory_router
 from .api.blueprints import router as blueprints_router
-from .api.rl import router as rl_router
+from .api.capsules import router as capsules_router
 from .api.evaluations import router as evaluations_router
+from .api.health import router as health_router
 from .api.hitl import router as hitl_router
+from .api.mao import router as mao_router
+from .api.memory import router as memory_router
+from .api.planner import router as planner_router
+from .api.rl import router as rl_router
+from .api.roles import router as roles_router
+from .api.router import router as orchestrator_router
+from .api.routes.tenants import router as tenants_router
+from .api.tasks import router as tasks_router
+from .api.tools import router as tools_router
 from .core.config import settings
 from .database import init_db
 from .services.security import security_manager
@@ -62,7 +62,9 @@ def build_app() -> FastAPI:
                 extra={"spiffe_id": spiffe_identity.spiffe_id},
             )
         else:
-            logger.info("SPIFFE identity not initialized; continuing without workload SVID")
+            logger.info(
+                "SPIFFE identity not initialized; continuing without workload SVID"
+            )
 
         # Startup phase.
         await init_db()
@@ -93,7 +95,10 @@ def build_app() -> FastAPI:
         @app.get("/ready", tags=["system"])
         async def ready() -> dict[str, str]:
             # Basic readiness check: temporal client present if enabled.
-            if settings.temporal_enabled and getattr(app.state, "temporal_client", None) is None:
+            if (
+                settings.temporal_enabled
+                and getattr(app.state, "temporal_client", None) is None
+            ):
                 return {"status": "starting"}
             return {"status": "ready"}
 
@@ -116,7 +121,7 @@ def build_app() -> FastAPI:
         app.include_router(mao_router, prefix="/v1/mao")
         app.include_router(planner_router)
         app.include_router(health_router)
-        
+
         # New SRS API Routers
         app.include_router(tenants_router, prefix="/v1")
         app.include_router(tasks_router, prefix="/v1")

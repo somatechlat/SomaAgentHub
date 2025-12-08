@@ -8,6 +8,5 @@ locations via ``pkgutil.extend_path``.
 
 import pkgutil
 
-from services.common.config.base_settings import resolve_env
-
+# Re-export nothing for now, just setup namespace
 __path__ = pkgutil.extend_path(__path__, __name__)

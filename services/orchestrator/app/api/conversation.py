@@ -45,7 +45,9 @@ class ConversationStepResponse(BaseModel):
     policy_score: float | None = None
 
 
-async def _emit_conversation_event(session_id: str, tenant: str, event_type: str, data: dict) -> None:
+async def _emit_conversation_event(
+    session_id: str, tenant: str, event_type: str, data: dict
+) -> None:
     """Emit conversation event to Kafka topic."""
     try:
         from services.common.kafka_client import get_kafka_client
@@ -145,7 +147,9 @@ async def _stream_conversation(
 ) -> AsyncGenerator[str, None]:
     """Generate SSE stream for conversation."""
     # Emit start event
-    await _emit_conversation_event(session_id, tenant, "conversation.stream_start", {"prompt": prompt})
+    await _emit_conversation_event(
+        session_id, tenant, "conversation.stream_start", {"prompt": prompt}
+    )
 
     # Use OpenAI provider for real streaming completions
     try:
@@ -164,7 +168,9 @@ async def _stream_conversation(
         yield f"data: {json.dumps({'done': True})}\\n\\n"
 
         # Emit completion event
-        await _emit_conversation_event(session_id, tenant, "conversation.stream_complete", {"chunks": chunk_count})
+        await _emit_conversation_event(
+            session_id, tenant, "conversation.stream_complete", {"chunks": chunk_count}
+        )
     except Exception:
         # Fallback to echo response if OpenAI unavailable
         chunks = ["Hello", " from", " orchestrator", " streaming", " endpoint!"]
@@ -175,7 +181,9 @@ async def _stream_conversation(
         yield f"data: {json.dumps({'done': True})}\\n\\n"
 
         # Emit completion event
-        await _emit_conversation_event(session_id, tenant, "conversation.stream_complete", {"chunks": len(chunks)})
+        await _emit_conversation_event(
+            session_id, tenant, "conversation.stream_complete", {"chunks": len(chunks)}
+        )
 
 
 @router.post("/stream")

@@ -43,7 +43,9 @@ class AgentInstance(SQLModel, table=True):
 
     user_id: uuid.UUID = Field(index=True, description="User who initiated the agent")
 
-    status: AgentStatus = Field(default=AgentStatus.PENDING, index=True, description="Current agent state")
+    status: AgentStatus = Field(
+        default=AgentStatus.PENDING, index=True, description="Current agent state"
+    )
 
     k8s_namespace: str = Field(max_length=100, description="Kubernetes namespace")
 
@@ -80,12 +82,20 @@ class AgentInstance(SQLModel, table=True):
 
     created_at: datetime = Field(sa_column=Column(DateTime, server_default=func.now()))
 
-    updated_at: datetime = Field(sa_column=Column(DateTime, server_default=func.now(), onupdate=func.now()))
+    updated_at: datetime = Field(
+        sa_column=Column(DateTime, server_default=func.now(), onupdate=func.now())
+    )
 
-    started_at: datetime | None = Field(default=None, description="When the agent started running")
+    started_at: datetime | None = Field(
+        default=None, description="When the agent started running"
+    )
 
-    completed_at: datetime | None = Field(default=None, description="When the agent completed")
+    completed_at: datetime | None = Field(
+        default=None, description="When the agent completed"
+    )
 
-    error_message: str | None = Field(default=None, description="Error details if agent failed")
+    error_message: str | None = Field(
+        default=None, description="Error details if agent failed"
+    )
 
     # Keep default SQLModel behavior; explicit Config not required here.

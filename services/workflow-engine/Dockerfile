@@ -7,12 +7,11 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     PIP_DISABLE_PIP_VERSION_CHECK=on \
     PIP_NO_CACHE_DIR=on \
     PYTHONPATH=/app \
-    PORT=8000 \
     HOST=0.0.0.0
 
 WORKDIR /app
 
-# Install system dependencies for PostgreSQL, Redis, and security tools
+# Install system dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
     ca-certificates \
     curl \
@@ -22,8 +21,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && apt-get autoremove -y \
     && rm -rf /var/lib/apt/lists/*
 
-# Install dependencies
-COPY services/orchestrator/requirements.txt ./requirements.txt
+# Install dependencies (assuming a requirements.txt exists or creating a minimal one)
+# For now, we'll try to use the one if it exists, or install common libs
+COPY services/workflow-engine/requirements.txt ./requirements.txt
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Create non-root user for security
@@ -32,8 +32,7 @@ RUN adduser --disabled-password --gecos "" appuser
 # Copy application code
 COPY services/common /app/services/common
 COPY common /app/common
-COPY services/orchestrator /app/services/orchestrator
-COPY services/object_store /app/services/object_store
+COPY services/workflow-engine/app/ /app/app/
 
 # Set proper permissions
 RUN chown -R appuser:appuser /app
@@ -41,12 +40,11 @@ RUN chown -R appuser:appuser /app
 # Switch to non-root user
 USER appuser
 
-# Health check endpoint
+# Health check endpoint (Workers might not expose HTTP, but Temporal client check is good)
+# For a worker, we might check if the process is running or use a specific health endpoint if implemented
+# Assuming standard Temporal worker pattern
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-    CMD python -c "import requests; requests.get(f'http://localhost:{PORT}/health/live')"
+    CMD pgrep -f "app.main" || exit 1
 
-# Expose port
-EXPOSE 8000
-
-# Production startup with proper configuration
-CMD ["uvicorn", "services.orchestrator.app.main:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "2"]
+# Production startup
+CMD ["python", "-m", "app.main"]

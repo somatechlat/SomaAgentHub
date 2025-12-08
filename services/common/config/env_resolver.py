@@ -7,9 +7,8 @@ prefixing and fallback values for the entire SomaAgentHub platform.
 from __future__ import annotations
 
 import os
-from typing import Any, Optional, Dict, List
 from functools import lru_cache
-
+from typing import Any
 
 # Standardized environment variable prefix
 ENV_PREFIX = "SOMA_AGENT_HUB_"
@@ -162,7 +161,9 @@ def get_float_env(name: str, default: float = 0.0) -> float:
         return default
 
 
-def get_list_env(name: str, default: List[str] = None, separator: str = ",") -> List[str]:
+def get_list_env(
+    name: str, default: list[str] = None, separator: str = ","
+) -> list[str]:
     """Get a list environment variable.
 
     Args:
@@ -197,7 +198,7 @@ def get_list_env(name: str, default: List[str] = None, separator: str = ",") -> 
     return default
 
 
-def get_dict_env(name: str, default: Dict[str, Any] = None) -> Dict[str, Any]:
+def get_dict_env(name: str, default: dict[str, Any] = None) -> dict[str, Any]:
     """Get a dictionary environment variable from JSON string.
 
     Args:
@@ -224,6 +225,7 @@ def get_dict_env(name: str, default: Dict[str, Any] = None) -> Dict[str, Any]:
     if isinstance(value, str):
         try:
             import json
+
             return json.loads(value)
         except json.JSONDecodeError:
             return default
@@ -336,7 +338,7 @@ def clear_env_cache() -> None:
     resolve_env.cache_clear()
 
 
-def get_all_env_vars(prefix: str = ENV_PREFIX) -> Dict[str, str]:
+def get_all_env_vars(prefix: str = ENV_PREFIX) -> dict[str, str]:
     """Get all environment variables with the specified prefix.
 
     Args:
@@ -353,12 +355,12 @@ def get_all_env_vars(prefix: str = ENV_PREFIX) -> Dict[str, str]:
     for key, value in os.environ.items():
         if key.startswith(prefix):
             # Remove prefix from key
-            clean_key = key[len(prefix):]
+            clean_key = key[len(prefix) :]
             env_vars[clean_key] = value
     return env_vars
 
 
-def validate_required_env_vars(required_vars: List[str]) -> List[str]:
+def validate_required_env_vars(required_vars: list[str]) -> list[str]:
     """Validate that all required environment variables are set.
 
     Args:

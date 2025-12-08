@@ -7,7 +7,6 @@ Provides a unified setup for metrics and tracing with Prometheus and optional OT
 from __future__ import annotations
 
 import logging
-import os
 
 from opentelemetry import metrics, trace
 from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import OTLPSpanExporter
@@ -67,7 +66,7 @@ class OpenTelemetryConfig:
             logger.info(
                 f"OTLP trace exporter enabled: {otlp_endpoint} insecure={insecure_flag}"
             )
-        
+
         # Always set the provider, even if OTLP is disabled (no-op or console exporter could be added here)
         trace.set_tracer_provider(provider)
         logger.info(f"Tracing initialized for service: {self.service_name}")
@@ -86,7 +85,7 @@ class OpenTelemetryConfig:
                 logger.warning(
                     "Prometheus exporter not installed; metrics endpoint will be disabled."
                 )
-        
+
         meter_provider = MeterProvider(resource=self.resource, metric_readers=readers)
         metrics.set_meter_provider(meter_provider)
         logger.info(f"Metrics initialized for service: {self.service_name}")

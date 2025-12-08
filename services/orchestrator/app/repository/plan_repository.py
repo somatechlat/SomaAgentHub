@@ -241,7 +241,9 @@ class PlanRepository:
             await session.commit()
             await session.refresh(plan)
 
-    async def list_provisioning_tasks(self, plan_id: str) -> list[ProvisioningTaskRecord]:
+    async def list_provisioning_tasks(
+        self, plan_id: str
+    ) -> list[ProvisioningTaskRecord]:
         plan = await self.get_plan(plan_id)
         if not plan:
             return []

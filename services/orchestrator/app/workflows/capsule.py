@@ -43,7 +43,9 @@ class CapsuleRunResult:
 
 
 @activity.defn(name="capsule-generate-summary")
-async def generate_summary(capsule_id: str, version: str, params: dict[str, Any]) -> str:
+async def generate_summary(
+    capsule_id: str, version: str, params: dict[str, Any]
+) -> str:
     """Produce a deterministic summary of the run parameters.
 
     This keeps the workflow fully executable while still

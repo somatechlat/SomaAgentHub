@@ -36,7 +36,10 @@ async def readiness_check() -> dict[str, Any]:
     # Check database
     try:
         db_healthy = await check_database_health()
-        checks["database"] = {"healthy": db_healthy, "message": "Database connectivity OK"}
+        checks["database"] = {
+            "healthy": db_healthy,
+            "message": "Database connectivity OK",
+        }
         if not db_healthy:
             all_healthy = False
     except Exception as e:
@@ -62,7 +65,9 @@ async def readiness_check() -> dict[str, Any]:
 
     if not all_healthy:
         health_status["status"] = "not_ready"
-        raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=health_status)
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=health_status
+        )
 
     health_status["checks"] = checks
     health_status["circuit_breakers"] = circuit_breaker_manager.get_all_states()

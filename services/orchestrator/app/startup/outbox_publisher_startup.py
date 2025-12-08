@@ -40,7 +40,9 @@ class OutboxPublisherStartup:
             )
 
             await self.publisher_service.start()
-            logger.info(f"Outbox publisher service started successfully (bootstrap={kafka_servers})")
+            logger.info(
+                f"Outbox publisher service started successfully (bootstrap={kafka_servers})"
+            )
 
         except Exception as e:
             logger.error(f"Failed to start outbox publisher service: {e}")

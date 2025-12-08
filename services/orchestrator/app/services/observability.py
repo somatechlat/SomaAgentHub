@@ -257,7 +257,9 @@ class BusinessMetrics:
     """Helper class for business-level metrics."""
 
     @staticmethod
-    def record_event(event_type: str, status: str, metadata: dict[str, Any] | None = None):
+    def record_event(
+        event_type: str, status: str, metadata: dict[str, Any] | None = None
+    ):
         """Record a business event."""
         business_metric_total.labels(
             event_type=event_type,
@@ -284,7 +286,9 @@ class BusinessMetrics:
         ).observe(duration)
 
     @staticmethod
-    def record_external_service_call(service_name: str, endpoint: str, status: str, duration: float):
+    def record_external_service_call(
+        service_name: str, endpoint: str, status: str, duration: float
+    ):
         """Record external service call metrics."""
         external_service_duration.labels(
             service_name=service_name,
@@ -345,7 +349,9 @@ def setup_observability(app):
     main_app = app
 
     # Setup OpenTelemetry
-    tracer = setup_opentelemetry(service_name="orchestrator-service", service_version="0.1.0")
+    tracer = setup_opentelemetry(
+        service_name="orchestrator-service", service_version="0.1.0"
+    )
 
     # Setup logging
     setup_logging()

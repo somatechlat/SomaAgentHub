@@ -17,8 +17,12 @@ from ..core.config import get_settings
 logger = logging.getLogger(__name__)
 
 # Kafka metrics
-kafka_messages_sent = Counter("kafka_messages_sent_total", "Total Kafka messages sent", ["topic", "status"])
-kafka_send_duration = Histogram("kafka_send_duration_seconds", "Time to send Kafka messages", ["topic"])
+kafka_messages_sent = Counter(
+    "kafka_messages_sent_total", "Total Kafka messages sent", ["topic", "status"]
+)
+kafka_send_duration = Histogram(
+    "kafka_send_duration_seconds", "Time to send Kafka messages", ["topic"]
+)
 kafka_messages_received = Counter(
     "kafka_messages_received_total",
     "Total Kafka messages received",
@@ -31,7 +35,9 @@ class KafkaClientConfig:
 
     def __init__(self):
         self.settings = get_settings()
-        self.bootstrap_servers = self.settings.kafka_bootstrap_servers or "localhost:9092"
+        self.bootstrap_servers = (
+            self.settings.kafka_bootstrap_servers or "localhost:9092"
+        )
         self.client_id = self.settings.kafka_client_id
         self.security_protocol = self.settings.kafka_security_protocol
         self.sasl_mechanism = self.settings.kafka_sasl_mechanism
@@ -48,7 +54,9 @@ class KafkaClientConfig:
         config = {
             "bootstrap_servers": self.bootstrap_servers,
             "client_id": f"{self.client_id}-producer",
-            "value_serializer": lambda v: (v.encode() if isinstance(v, str) else str(v).encode()),
+            "value_serializer": lambda v: (
+                v.encode() if isinstance(v, str) else str(v).encode()
+            ),
             "key_serializer": lambda k: k.encode() if k else None,
             "acks": "all",  # Wait for all replicas
             "retries": 3,
@@ -199,7 +207,9 @@ class KafkaConsumer:
             async for msg in self._consumer:
                 try:
                     data = json.loads(msg.value)
-                    kafka_messages_received.labels(topic=msg.topic, consumer_group=self.consumer_group).inc()
+                    kafka_messages_received.labels(
+                        topic=msg.topic, consumer_group=self.consumer_group
+                    ).inc()
 
                     await callback(data, msg)
 

@@ -7,7 +7,6 @@ Uses Chaos Mesh to inject faults and test resilience.
 import logging
 from dataclasses import dataclass
 from enum import Enum
-from services.common.config.base_settings import resolve_env
 
 logger = logging.getLogger(__name__)
 
@@ -25,27 +24,27 @@ class ExperimentType(str, Enum):
     DNS_ERROR = "dns_error"
 
 
-    @dataclass
-    class ChaosExperiment:
-        """Chaos experiment definition."""
+@dataclass
+class ChaosExperiment:
+    """Chaos experiment definition."""
 
-        name: str
-        type: ExperimentType
-        target_service: str
-        duration: str  # e.g., "5m", "1h"
-        description: str
+    name: str
+    type: ExperimentType
+    target_service: str
+    duration: str  # e.g., "5m", "1h"
+    description: str
 
-# Type-specific parameters
-        params: dict = None
+    # Type-specific parameters
+    params: dict = None
 
-# Validation checks
-        validation_queries: list[str] = None  # Prometheus queries to check impact
+    # Validation checks
+    validation_queries: list[str] = None  # Prometheus queries to check impact
 
 
 # Pre-defined chaos experiments for SomaAgent
-        EXPERIMENTS: list[ChaosExperiment] = [
-# Pod failures
-        ChaosExperiment(
+EXPERIMENTS: list[ChaosExperiment] = [
+    # Pod failures
+    ChaosExperiment(
         name="gateway_pod_failure",
         type=ExperimentType.POD_FAILURE,
         target_service="gateway-api",
@@ -53,22 +52,23 @@ class ExperimentType(str, Enum):
         description="Kill gateway-api pod to test failover",
         params={"mode": "one"},
         validation_queries=[
-        'rate(http_requests_total{service="gateway-api"}[1m]) > 0',
-        'up{service="gateway-api"} == 1',
+            'rate(http_requests_total{service="gateway-api"}[1m]) > 0',
+            'up{service="gateway-api"} == 1',
         ],
-        ),
-        ChaosExperiment(
+    ),
+    ChaosExperiment(
         name="llm_hub_failure",
         type=ExperimentType.POD_FAILURE,
         target_service="llm-hub",
         duration="3m",
+        description="Kill llm-hub pod",
         params={"mode": "one"},
         validation_queries=[
-        "rate(model_requests_total[1m]) > 0",
+            "rate(model_requests_total[1m]) > 0",
         ],
-        ),
-# Network chaos
-        ChaosExperiment(
+    ),
+    # Network chaos
+    ChaosExperiment(
         name="memory_gateway_latency",
         type=ExperimentType.NETWORK_DELAY,
         target_service="memory-gateway",
@@ -76,10 +76,10 @@ class ExperimentType(str, Enum):
         description="Add 100ms latency to memory-gateway",
         params={"delay": "100ms", "jitter": "10ms"},
         validation_queries=[
-        'histogram_quantile(0.95, rate(http_request_duration_seconds_bucket{service="memory-gateway"}[1m])) < 0.5'
+            'histogram_quantile(0.95, rate(http_request_duration_seconds_bucket{service="memory-gateway"}[1m])) < 0.5'
         ],
-        ),
-        ChaosExperiment(
+    ),
+    ChaosExperiment(
         name="vector_store_packet_loss",
         type=ExperimentType.NETWORK_LOSS,
         target_service="memory-gateway",
@@ -87,9 +87,9 @@ class ExperimentType(str, Enum):
         description="Inject 10% packet loss to vector store",
         params={"loss": "10", "correlation": "25"},
         validation_queries=["rate(vector_search_errors_total[1m]) < 0.05"],
-        ),
-# Resource stress
-        ChaosExperiment(
+    ),
+    # Resource stress
+    ChaosExperiment(
         name="gateway_cpu_stress",
         type=ExperimentType.STRESS_CPU,
         target_service="gateway-api",
@@ -97,10 +97,10 @@ class ExperimentType(str, Enum):
         description="Stress gateway CPU to 80%",
         params={"workers": "2", "load": "80"},
         validation_queries=[
-        'rate(http_requests_total{service="gateway-api",code="200"}[1m]) > 10'
+            'rate(http_requests_total{service="gateway-api",code="200"}[1m]) > 10'
         ],
-        ),
-        ChaosExperiment(
+    ),
+    ChaosExperiment(
         name="llm_hub_memory_stress",
         type=ExperimentType.STRESS_MEMORY,
         target_service="llm-hub",
@@ -108,11 +108,11 @@ class ExperimentType(str, Enum):
         description="Fill 70% of LLM Hub memory",
         params={"size": "70%"},
         validation_queries=[
-        'container_memory_usage_bytes{pod=~"llm-hub.*"} < container_spec_memory_limit_bytes'
+            'container_memory_usage_bytes{pod=~"llm-hub.*"} < container_spec_memory_limit_bytes'
         ],
-        ),
-# I/O chaos
-        ChaosExperiment(
+    ),
+    # I/O chaos
+    ChaosExperiment(
         name="clickhouse_io_delay",
         type=ExperimentType.IO_DELAY,
         target_service="clickhouse",
@@ -120,88 +120,88 @@ class ExperimentType(str, Enum):
         description="Add I/O delay to ClickHouse",
         params={"delay": "50ms", "percent": "50"},
         validation_queries=["rate(clickhouse_query_duration_seconds[1m]) < 1.0"],
-        ),
-        ]
+    ),
+]
 
 
-        class ChaosRunner:
-            """Run chaos engineering experiments."""
+class ChaosRunner:
+    """Run chaos engineering experiments."""
 
     def __init__(self, namespace: str = "soma-agent-hub"):
         """
         Initialize chaos runner.
 
         Args:
-    namespace: Kubernetes namespace
-    """
-    self.namespace = namespace
+            namespace: Kubernetes namespace
+        """
+        self.namespace = namespace
 
     def generate_manifest(self, experiment: ChaosExperiment) -> dict:
-                        """
-                        Generate Chaos Mesh manifest for experiment.
+        """
+        Generate Chaos Mesh manifest for experiment.
 
-                        Args:
-                            experiment: Chaos experiment definition
+        Args:
+            experiment: Chaos experiment definition
 
-                            Returns:
-                                Kubernetes manifest
-                                """
-                                base_manifest = {
-                                "apiVersion": "chaos-mesh.org/v1alpha1",
-                                "metadata": {
-                                "name": experiment.name,
-                                "namespace": self.namespace,
-                                "annotations": {"description": experiment.description},
-                                },
-                                "spec": {
-                                "mode": experiment.params.get("mode", "all"),
-                                "duration": experiment.duration,
-                                "selector": {
-    "namespaces": [self.namespace],
-    "labelSelectors": {"app": experiment.target_service},
-    },
-    },
-    }
+        Returns:
+            Kubernetes manifest
+        """
+        base_manifest = {
+            "apiVersion": "chaos-mesh.org/v1alpha1",
+            "metadata": {
+                "name": experiment.name,
+                "namespace": self.namespace,
+                "annotations": {"description": experiment.description},
+            },
+            "spec": {
+                "mode": experiment.params.get("mode", "all"),
+                "duration": experiment.duration,
+                "selector": {
+                    "namespaces": [self.namespace],
+                    "labelSelectors": {"app": experiment.target_service},
+                },
+            },
+        }
 
-# Add experiment-specific configuration
-    if experiment.type == ExperimentType.POD_FAILURE:
-        base_manifest["kind"] = "PodChaos"
-        base_manifest["spec"]["action"] = "pod-kill"
+        # Add experiment-specific configuration
+        if experiment.type == ExperimentType.POD_FAILURE:
+            base_manifest["kind"] = "PodChaos"
+            base_manifest["spec"]["action"] = "pod-kill"
 
         elif experiment.type == ExperimentType.NETWORK_DELAY:
             base_manifest["kind"] = "NetworkChaos"
             base_manifest["spec"]["action"] = "delay"
             base_manifest["spec"]["delay"] = {
-            "latency": experiment.params["delay"],
-            "jitter": experiment.params.get("jitter", "0ms"),
+                "latency": experiment.params["delay"],
+                "jitter": experiment.params.get("jitter", "0ms"),
             }
 
-            elif experiment.type == ExperimentType.NETWORK_LOSS:
-                base_manifest["kind"] = "NetworkChaos"
-                base_manifest["spec"]["action"] = "loss"
-                base_manifest["spec"]["loss"] = {
+        elif experiment.type == ExperimentType.NETWORK_LOSS:
+            base_manifest["kind"] = "NetworkChaos"
+            base_manifest["spec"]["action"] = "loss"
+            base_manifest["spec"]["loss"] = {
                 "loss": experiment.params["loss"],
                 "correlation": experiment.params.get("correlation", "0"),
+            }
+
+        elif experiment.type == ExperimentType.NETWORK_PARTITION:
+            base_manifest["kind"] = "NetworkChaos"
+            base_manifest["spec"]["action"] = "partition"
+
+        elif experiment.type == ExperimentType.STRESS_CPU:
+            base_manifest["kind"] = "StressChaos"
+            base_manifest["spec"]["stressors"] = {
+                "cpu": {
+                    "workers": experiment.params["workers"],
+                    "load": experiment.params["load"],
                 }
+            }
 
-                elif experiment.type == ExperimentType.NETWORK_PARTITION:
-                    base_manifest["kind"] = "NetworkChaos"
-                    base_manifest["spec"]["action"] = "partition"
-
-                    elif experiment.type == ExperimentType.STRESS_CPU:
-                        base_manifest["kind"] = "StressChaos"
-                        base_manifest["spec"]["stressors"] = {
-                        "cpu": {
-    "workers": experiment.params["workers"],
-    "load": experiment.params["load"],
-    }
-    }
-
-    elif experiment.type == ExperimentType.STRESS_MEMORY:
-        base_manifest["kind"] = "StressChaos"
-        base_manifest["spec"]["stressors"] = {
-        "memory": {"workers": 1, "size": experiment.params["size"]}
-        }
+        elif experiment.type == ExperimentType.STRESS_MEMORY:
+            base_manifest["kind"] = "StressChaos"
+            base_manifest["spec"]["stressors"] = {
+                "memory": {"workers": 1, "size": experiment.params["size"]}
+            }
 
         elif experiment.type == ExperimentType.IO_DELAY:
             base_manifest["kind"] = "IOChaos"
@@ -209,113 +209,113 @@ class ExperimentType(str, Enum):
             base_manifest["spec"]["delay"] = experiment.params["delay"]
             base_manifest["spec"]["percent"] = experiment.params["percent"]
 
-            elif experiment.type == ExperimentType.DNS_ERROR:
-                base_manifest["kind"] = "DNSChaos"
-                base_manifest["spec"]["action"] = "error"
+        elif experiment.type == ExperimentType.DNS_ERROR:
+            base_manifest["kind"] = "DNSChaos"
+            base_manifest["spec"]["action"] = "error"
 
-                return base_manifest
+        return base_manifest
 
     def run_experiment(self, experiment: ChaosExperiment) -> str:
-                    """
-                    Run a chaos experiment.
+        """
+        Run a chaos experiment.
 
-                    Args:
-                        experiment: Experiment to run
+        Args:
+            experiment: Experiment to run
 
-                        Returns:
-                            Experiment ID
-                            """
-                            import subprocess
+        Returns:
+            Experiment ID
+        """
+        import subprocess
 
-                            import yaml
+        import yaml
 
-                            manifest = self.generate_manifest(experiment)
-                            manifest_yaml = yaml.dump(manifest)
+        manifest = self.generate_manifest(experiment)
+        manifest_yaml = yaml.dump(manifest)
 
-                            logger.info(f"Running chaos experiment: {experiment.name}")
+        logger.info(f"Running chaos experiment: {experiment.name}")
 
-# Apply manifest via kubectl
-                            result = subprocess.run(
-                            ["kubectl", "apply", "-f", "-"],
-                            input=manifest_yaml.encode(),
-                            capture_output=True,
-                            )
+        # Apply manifest via kubectl
+        result = subprocess.run(
+            ["kubectl", "apply", "-f", "-"],
+            input=manifest_yaml.encode(),
+            capture_output=True,
+        )
 
-                            if result.returncode != 0:
-                                logger.error(f"Failed to start experiment: {result.stderr.decode()}")
-                                raise RuntimeError(f"Experiment failed to start: {result.stderr.decode()}")
+        if result.returncode != 0:
+            logger.error(f"Failed to start experiment: {result.stderr.decode()}")
+            raise RuntimeError(f"Experiment failed to start: {result.stderr.decode()}")
 
-                                logger.info(f"Started experiment {experiment.name} for {experiment.duration}")
-                                return experiment.name
+        logger.info(f"Started experiment {experiment.name} for {experiment.duration}")
+        return experiment.name
 
     def stop_experiment(self, experiment_name: str):
         """
         Stop a running experiment.
 
         Args:
-    experiment_name: Name of experiment to stop
-    """
-    import subprocess
+            experiment_name: Name of experiment to stop
+        """
+        import subprocess
 
-    result = subprocess.run(
-    [
-    "kubectl",
-    "delete",
-    "podchaos,networkchaos,stresschaos,iochaos,dnschaos",
-    experiment_name,
-    "-n",
-    self.namespace,
-    ],
-    capture_output=True,
-    )
+        result = subprocess.run(
+            [
+                "kubectl",
+                "delete",
+                "podchaos,networkchaos,stresschaos,iochaos,dnschaos",
+                experiment_name,
+                "-n",
+                self.namespace,
+            ],
+            capture_output=True,
+        )
 
-    if result.returncode == 0:
-        logger.info(f"Stopped experiment: {experiment_name}")
+        if result.returncode == 0:
+            logger.info(f"Stopped experiment: {experiment_name}")
         else:
             logger.error(f"Failed to stop experiment: {result.stderr.decode()}")
 
     def validate_experiment(
-                                            self,
-                                            experiment: ChaosExperiment,
-                                            prometheus_url: str = "http://prometheus:9090",
-                                            ) -> dict:
-                                                """
-                                                Validate experiment impact using Prometheus queries.
+        self,
+        experiment: ChaosExperiment,
+        prometheus_url: str = "http://prometheus:9090",
+    ) -> dict:
+        """
+        Validate experiment impact using Prometheus queries.
 
-                                                Args:
-                                                    experiment: Experiment to validate
-                                                    prometheus_url: Prometheus URL
+        Args:
+            experiment: Experiment to validate
+            prometheus_url: Prometheus URL
 
-                                                    Returns:
-                                                        Validation results
-                                                        """
-                                                        import requests
+        Returns:
+            Validation results
+        """
+        import requests
 
-                                                        results = {"experiment": experiment.name, "validations": []}
+        results = {"experiment": experiment.name, "validations": []}
 
-                                                        for query in experiment.validation_queries or []:
-                                                            try:
-                                                                response = requests.get(
-                                                                f"{prometheus_url}/api/v1/query", params={"query": query}, timeout=5
-                                                                )
+        for query in experiment.validation_queries or []:
+            try:
+                response = requests.get(
+                    f"{prometheus_url}/api/v1/query", params={"query": query}, timeout=5
+                )
 
-                                                                data = response.json()
-                                                                is_valid = (
-                                                                data["status"] == "success" and len(data["data"]["result"]) > 0
-                                                                )
+                data = response.json()
+                is_valid = (
+                    data["status"] == "success" and len(data["data"]["result"]) > 0
+                )
 
-                                                                results["validations"].append(
-                                                                {
-    "query": query,
-    "valid": is_valid,
-    "result": data["data"]["result"],
-    }
-    )
+                results["validations"].append(
+                    {
+                        "query": query,
+                        "valid": is_valid,
+                        "result": data["data"]["result"],
+                    }
+                )
 
-    except Exception as e:
-    logger.error(f"Validation query failed: {e}")
-    results["validations"].append(
-    {"query": query, "valid": False, "error": str(e)}
-    )
+            except Exception as e:
+                logger.error(f"Validation query failed: {e}")
+                results["validations"].append(
+                    {"query": query, "valid": False, "error": str(e)}
+                )
 
-    return results
+        return results

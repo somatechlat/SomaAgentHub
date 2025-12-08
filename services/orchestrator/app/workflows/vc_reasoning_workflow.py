@@ -205,7 +205,9 @@ class VCReasoningWorkflow:
         # Main loop – solver → (optional) verifier → corrector.
         # ------------------------------------------------------------------
         for iteration in range(max_iterations):
-            base_index = iteration * 3  # three entries per iteration: solver, verifier, corrector
+            base_index = (
+                iteration * 3
+            )  # three entries per iteration: solver, verifier, corrector
 
             # ----- Solver ---------------------------------------------------
             solver_prompt = problem.get("prompt", "")
@@ -247,7 +249,9 @@ class VCReasoningWorkflow:
             )
             # Record step metrics for solver
             vc_step_total.labels(tenant=tenant, role=VCRole.SOLVER.value).inc()
-            vc_step_reward.labels(tenant=tenant, role=VCRole.SOLVER.value).observe(reward)
+            vc_step_reward.labels(tenant=tenant, role=VCRole.SOLVER.value).observe(
+                reward
+            )
             if reward == 1.0:
                 self.logger.info("Solver produced correct answer – terminating loop")
                 break
@@ -293,7 +297,9 @@ class VCReasoningWorkflow:
             )
             # Record step metrics for verifier
             vc_step_total.labels(tenant=tenant, role=VCRole.VERIFIER.value).inc()
-            vc_step_reward.labels(tenant=tenant, role=VCRole.VERIFIER.value).observe(verifier_reward)
+            vc_step_reward.labels(tenant=tenant, role=VCRole.VERIFIER.value).observe(
+                verifier_reward
+            )
             if verifier_reward == 1.0:
                 self.logger.info("Verifier approved solution – terminating loop")
                 break
@@ -332,7 +338,9 @@ class VCReasoningWorkflow:
             )
             # Record step metrics for corrector (reward is 0.0)
             vc_step_total.labels(tenant=tenant, role=VCRole.CORRECTOR.value).inc()
-            vc_step_reward.labels(tenant=tenant, role=VCRole.CORRECTOR.value).observe(0.0)
+            vc_step_reward.labels(tenant=tenant, role=VCRole.CORRECTOR.value).observe(
+                0.0
+            )
         # ------------------------------------------------------------------
         # Mark episode as completed and record duration metric.
         # ------------------------------------------------------------------

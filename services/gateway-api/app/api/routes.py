@@ -2,27 +2,21 @@
 
 from __future__ import annotations
 
-import time
-from typing import Any, List
+from typing import Any
 
 import httpx
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel, Field
 
-from ..config import GatewaySettings, get_settings
-from ..core.metrics import observe_forward_latency, record_moderation_decision
-from ..core.moderation import ModerationError, ModerationGuard
-from ..dependencies import moderation_guard_dependency, request_context_dependency
-from ..models.context import RequestContext
-from ..models.sessions import (
-    ModerationDetail,
-    SessionCreateRequest,
-    SessionCreateResponse,
-)
 from services.common.models.agent import AgentSpec, CrewSpec
 from services.common.models.workflow import GraphWorkflow
 
+from ..config import GatewaySettings, get_settings
+from ..dependencies import request_context_dependency
+from ..models.context import RequestContext
+
 router = APIRouter(prefix="/v1", tags=["gateway"])
+
 
 @router.get("/status")
 def read_status(
@@ -37,6 +31,7 @@ def read_status(
         "deployment_mode": ctx.deployment_mode,
     }
 
+
 # ---------------------------------------------------------------------------
 # Central health‑aggregation endpoint
 # ---------------------------------------------------------------------------
@@ -49,10 +44,14 @@ async def aggregate_status(
     from asyncio import gather
 
     service_urls = {
-        "orchestrator": getattr(settings, "orchestrator_url", "http://orchestrator:8000"),
+        "orchestrator": getattr(
+            settings, "orchestrator_url", "http://orchestrator:8000"
+        ),
         "identity": getattr(settings, "auth_url", "http://identity-service:8000"),
         "policy": getattr(settings, "policy_engine_url", "http://policy-engine:8000"),
-        "memory_gateway": getattr(settings, "memory_gateway_url", "http://memory-gateway:8000"),
+        "memory_gateway": getattr(
+            settings, "memory_gateway_url", "http://memory-gateway:8000"
+        ),
         "llm_hub": getattr(settings, "llm_hub_url", "http://llm-hub:8000"),
     }
 
@@ -62,17 +61,18 @@ async def aggregate_status(
                 resp = await client.get(f"{url.rstrip('/')}/health")
                 if resp.status_code == 200:
                     return resp.json()
-        except Exception as exc:
+        except Exception:
             pass
         return {"status": "unhealthy", "service": url}
 
     results = await gather(*[fetch(u) for u in service_urls.values()])
     aggregated = {name: result for name, result in zip(service_urls.keys(), results)}
-    
+
     # Gateway's own health (simplified)
     aggregated["gateway"] = {"status": "ok", "service": "gateway"}
 
     return aggregated
+
 
 def _build_forward_headers(ctx: RequestContext) -> dict[str, str]:
     headers: dict[str, str] = {
@@ -85,6 +85,7 @@ def _build_forward_headers(ctx: RequestContext) -> dict[str, str]:
     if ctx.capabilities:
         headers["X-Capabilities"] = ",".join(ctx.capabilities)
     return headers
+
 
 # ---------------------------------------------------------------------------
 # Agent Registry Endpoints
@@ -104,6 +105,7 @@ async def create_agent(
             raise HTTPException(status_code=resp.status_code, detail=resp.text)
         return resp.json()
 
+
 @router.get("/agents/{agent_id}", tags=["agents"])
 async def get_agent(
     agent_id: str,
@@ -121,6 +123,7 @@ async def get_agent(
             raise HTTPException(status_code=resp.status_code, detail=resp.text)
         return resp.json()
 
+
 @router.put("/agents/{agent_id}", tags=["agents"])
 async def update_agent(
     agent_id: str,
@@ -137,6 +140,7 @@ async def update_agent(
             raise HTTPException(status_code=resp.status_code, detail=resp.text)
         return resp.json()
 
+
 @router.post("/crews", status_code=status.HTTP_201_CREATED, tags=["crews"])
 async def create_crew(
     crew: CrewSpec,
@@ -151,6 +155,7 @@ async def create_crew(
         if resp.status_code >= 400:
             raise HTTPException(status_code=resp.status_code, detail=resp.text)
         return resp.json()
+
 
 # ---------------------------------------------------------------------------
 # Workflow Endpoints
@@ -170,11 +175,17 @@ async def register_workflow(
             raise HTTPException(status_code=resp.status_code, detail=resp.text)
         return resp.json()
 
+
 class ExecuteWorkflowRequest(BaseModel):
     input: dict[str, Any]
     metadata: dict[str, Any] = Field(default_factory=dict)
 
-@router.post("/workflows/{workflow_id}/execute", status_code=status.HTTP_202_ACCEPTED, tags=["workflows"])
+
+@router.post(
+    "/workflows/{workflow_id}/execute",
+    status_code=status.HTTP_202_ACCEPTED,
+    tags=["workflows"],
+)
 async def execute_workflow(
     workflow_id: str,
     payload: ExecuteWorkflowRequest,
@@ -189,6 +200,7 @@ async def execute_workflow(
         if resp.status_code >= 400:
             raise HTTPException(status_code=resp.status_code, detail=resp.text)
         return resp.json()
+
 
 @router.get("/instances/{instance_id}", tags=["workflows"])
 async def get_instance(
@@ -205,11 +217,17 @@ async def get_instance(
             raise HTTPException(status_code=resp.status_code, detail=resp.text)
         return resp.json()
 
+
 class ReplayRequest(BaseModel):
     checkpoint_id: str = Field(..., alias="checkpointId")
     overrides: dict[str, Any] = Field(default_factory=dict)
 
-@router.post("/instances/{instance_id}/replay", status_code=status.HTTP_202_ACCEPTED, tags=["workflows"])
+
+@router.post(
+    "/instances/{instance_id}/replay",
+    status_code=status.HTTP_202_ACCEPTED,
+    tags=["workflows"],
+)
 async def replay_workflow(
     instance_id: str,
     payload: ReplayRequest,
@@ -225,11 +243,13 @@ async def replay_workflow(
             raise HTTPException(status_code=resp.status_code, detail=resp.text)
         return resp.json()
 
+
 # ---------------------------------------------------------------------------
 # Human-in-the-Loop (HITL) Endpoints
 # ---------------------------------------------------------------------------
 class ApprovalRequest(BaseModel):
     comment: str
+
 
 @router.post("/hitls/{session_id}/approve", tags=["hitl"])
 async def approve_hitl(
@@ -247,8 +267,10 @@ async def approve_hitl(
             raise HTTPException(status_code=resp.status_code, detail=resp.text)
         return resp.json()
 
+
 class RejectionRequest(BaseModel):
     reason: str
+
 
 @router.post("/hitls/{session_id}/reject", tags=["hitl"])
 async def reject_hitl(

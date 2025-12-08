@@ -9,7 +9,6 @@ have been eliminated.
 from __future__ import annotations
 
 import logging
-import uuid
 from dataclasses import asdict, is_dataclass
 from datetime import UTC, datetime
 from typing import Any
@@ -19,7 +18,6 @@ import httpx
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from prometheus_client import Counter
 from pydantic import BaseModel, Field
-from sqlmodel import Session
 
 from services.common.contracts.orchestrator import (
     AgentDirective as ContractAgentDirective,
@@ -41,9 +39,12 @@ from ..capsule_executor import CapsuleRunInput as ExecCapsuleRunInput
 from ..capsule_executor import execute_capsule
 from ..core.config import settings
 from ..database import get_session
+
 # Import conversation and training endpoints
 from .conversation import router as conversation_router
 from .projects import router as projects_router
+from .registry import router as registry_router
+from .routes.tenants import router as tenants_router
 from .training import router as training_router
 
 router = APIRouter(prefix="/v1", tags=["orchestrator"])
@@ -51,12 +52,9 @@ router.include_router(conversation_router)
 router.include_router(projects_router)
 router.include_router(training_router)
 
-# Include Agent Registry Router
-from .registry import router as registry_router
 router.include_router(registry_router)
 
 # Include Tenant Router
-from .routes.tenants import router as tenants_router
 router.include_router(tenants_router)
 
 # Metrics
@@ -106,11 +104,16 @@ async def build_precheck(payload: BuildPrecheckRequest) -> BuildPrecheckResponse
     # Remove None values
     params = {k: v for k, v in params.items() if v is not None}
 
-    url = settings.pricing_service_url.rstrip("/") + "/v1/pricing/evaluate-budget/with-policy"
+    url = (
+        settings.pricing_service_url.rstrip("/")
+        + "/v1/pricing/evaluate-budget/with-policy"
+    )
     async with httpx.AsyncClient(timeout=5.0) as client:
         r = await client.post(url, params=params)
         if r.status_code != 200:
-            raise HTTPException(status_code=502, detail=f"Pricing precheck failed: {r.text}")
+            raise HTTPException(
+                status_code=502, detail=f"Pricing precheck failed: {r.text}"
+            )
         data = r.json()
 
         require_payment = False
@@ -170,8 +173,12 @@ class CapsuleRunRequest(BaseModel):
     user: str
     capsule_id: str = Field(..., description="Capsule identifier, e.g. org/name")
     version: str = Field(default="latest", description="Capsule version/tag")
-    params: dict[str, Any] = Field(default_factory=dict, description="Input parameters for the capsule run")
-    metadata: dict[str, Any] = Field(default_factory=dict, description="Arbitrary metadata for audit/tracing")
+    params: dict[str, Any] = Field(
+        default_factory=dict, description="Input parameters for the capsule run"
+    )
+    metadata: dict[str, Any] = Field(
+        default_factory=dict, description="Arbitrary metadata for audit/tracing"
+    )
 
 
 class CapsuleRunResponse(BaseModel):
@@ -233,7 +240,9 @@ async def _issue_identity_token(
         return data if isinstance(data, dict) else {"raw": data}
 
 
-async def _llm_chat_completion(prompt: str, model: str, tenant: str, user: str) -> dict[str, Any]:
+async def _llm_chat_completion(
+    prompt: str, model: str, tenant: str, user: str
+) -> dict[str, Any]:
     base = (str(settings.llm_hub_url) or "").rstrip("/")
     if not base:
         raise RuntimeError("LLM_HUB_URL not configured")
@@ -316,7 +325,9 @@ async def _run_capsule_task(workflow_id: str, req: CapsuleRunRequest) -> None:
         )
         result = await execute_capsule(payload)
         _INPROCESS_TASKS[workflow_id].status = "completed"
-        _INPROCESS_TASKS[workflow_id].result = result if isinstance(result, dict) else {"value": result}
+        _INPROCESS_TASKS[workflow_id].result = (
+            result if isinstance(result, dict) else {"value": result}
+        )
     except Exception as exc:  # pragma: no cover
         logger.exception("capsule task failed: %s", exc)
         _INPROCESS_TASKS[workflow_id].status = "failed"
@@ -345,7 +356,9 @@ async def _run_mao_task(workflow_id: str, payload: MultiAgentStartRequest) -> No
                     "agent_id": directive.agent_id,
                     "goal": directive.goal,
                     "status": "completed",
-                    "token_claims": {k: v for k, v in token.items() if k != "access_token"},
+                    "token_claims": {
+                        k: v for k, v in token.items() if k != "access_token"
+                    },
                     "llm": llm,
                 }
             )
@@ -437,8 +450,6 @@ async def start_multi_agent(
     orchestration_id = payload.metadata.get("orchestration_id") or f"mao-{uuid4()}"
     workflow_id = f"mao-{orchestration_id}"
 
-
-
     _INPROCESS_TASKS[workflow_id] = InProcessTaskStatus(
         id=workflow_id,
         created_at=datetime.now(UTC).isoformat(),
@@ -523,7 +534,9 @@ async def start_capsule_run(
             },
         )
         if allowed is False:
-            raise HTTPException(status_code=403, detail="Not allowed to execute capsule")
+            raise HTTPException(
+                status_code=403, detail="Not allowed to execute capsule"
+            )
         # Treat None/unknown as deny unless explicitly allowed by config
         if allowed is None and not settings.allow_on_opa_error:
             raise HTTPException(status_code=503, detail="Policy evaluation unavailable")
@@ -531,9 +544,13 @@ async def start_capsule_run(
             POLICY_FALLBACK_EVENTS.labels(route="capsule.run", reason="opa_none").inc()
     except Exception as exc:
         if settings.allow_on_opa_error:
-            POLICY_FALLBACK_EVENTS.labels(route="capsule.run", reason="opa_exception").inc()
+            POLICY_FALLBACK_EVENTS.labels(
+                route="capsule.run", reason="opa_exception"
+            ).inc()
         else:
-            raise HTTPException(status_code=503, detail="Policy engine unavailable") from exc
+            raise HTTPException(
+                status_code=503, detail="Policy engine unavailable"
+            ) from exc
 
     _INPROCESS_TASKS[workflow_id] = InProcessTaskStatus(
         id=workflow_id,

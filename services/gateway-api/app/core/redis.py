@@ -5,7 +5,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:  # pragma: no cover - import only for type checking
-from services.common.redis_client import RedisClient
+    from services.common.redis_client import RedisClient
 
 
 def get_redis_client() -> RedisClient:
@@ -16,13 +16,13 @@ def get_redis_client() -> RedisClient:
     from ..config import get_settings
 
     settings = get_settings()
-    if settings.redis.url:
-# The common Redis client reads REDIS_URL; set it once before first use.
-# This avoids per-call environment mutation while keeping compatibility.
-import os
+    if settings.redis_url:
+        # The common Redis client reads REDIS_URL; set it once before first use.
+        # This avoids per-call environment mutation while keeping compatibility.
+        import os
 
-os.environ.setdefault("REDIS_URL", settings.redis.url)
-return _get_redis_client()
+        os.environ.setdefault("REDIS_URL", settings.redis_url)
+    return _get_redis_client()
 
 
 async def close_redis_client() -> None:
