@@ -224,7 +224,6 @@ class ToolInvocationRecord(Base):
 # Pydantic models
 
 
-
 class ToolDefinitionCreate(BaseModel):
     """API model for creating a tool definition"""
 

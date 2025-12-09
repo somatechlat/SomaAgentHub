@@ -206,7 +206,6 @@ class EvaluationMetricRecord(Base):
 # Pydantic models
 
 
-
 class SomaTraceSpanSummaryCreate(BaseModel):
     """API model for creating a trace span summary"""
 

@@ -106,8 +106,18 @@ class BlueprintService:
                 detail=f"Blueprint {plan_create.blueprint_definition_id} not found",
             )
 
-        # Validate parameters against blueprint schema (placeholder for full JSON schema validation)
-        # validate_parameters(plan_create.parameters, blueprint.required_parameters)
+        # Validate parameters against blueprint schema
+        if blueprint.required_parameters:
+            missing_params = [
+                param
+                for param in blueprint.required_parameters
+                if param not in plan_create.parameters
+            ]
+            if missing_params:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail=f"Missing required parameters: {', '.join(missing_params)}",
+                )
 
         plan = PlanSpec(
             tenant_id=plan_create.tenant_id,

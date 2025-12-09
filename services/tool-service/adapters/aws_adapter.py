@@ -125,7 +125,11 @@ class AWSAdapter:
         )
 
     def put_object(
-        self, bucket_name: str, key: str, body: str | bytes, content_type: str | None = None
+        self,
+        bucket_name: str,
+        key: str,
+        body: str | bytes,
+        content_type: str | None = None,
     ) -> dict[str, Any]:
         """Upload object to S3."""
         s3 = self._get_client("s3")
@@ -143,7 +147,9 @@ class AWSAdapter:
             response["Body"] = response["Body"].read()
         return response
 
-    def list_objects(self, bucket_name: str, prefix: str = "", max_keys: int = 1000) -> dict[str, Any]:
+    def list_objects(
+        self, bucket_name: str, prefix: str = "", max_keys: int = 1000
+    ) -> dict[str, Any]:
         """List objects in S3 bucket."""
         s3 = self._get_client("s3")
         return s3.list_objects_v2(Bucket=bucket_name, Prefix=prefix, MaxKeys=max_keys)
@@ -246,7 +252,9 @@ class AWSAdapter:
     # IAM Operations
     # ----------------------------------------------------------------------
 
-    def create_role(self, role_name: str, assume_role_policy_document: str, description: str = "") -> dict[str, Any]:
+    def create_role(
+        self, role_name: str, assume_role_policy_document: str, description: str = ""
+    ) -> dict[str, Any]:
         """Create IAM role."""
         iam = self._get_client("iam")
         return iam.create_role(

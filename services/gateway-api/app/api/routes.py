@@ -15,6 +15,10 @@ from ..config import GatewaySettings, get_settings
 from ..dependencies import request_context_dependency
 from ..models.context import RequestContext
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 router = APIRouter(prefix="/v1", tags=["gateway"])
 
 
@@ -61,8 +65,9 @@ async def aggregate_status(
                 resp = await client.get(f"{url.rstrip('/')}/health")
                 if resp.status_code == 200:
                     return resp.json()
-        except Exception:
-            pass
+        except Exception as e:
+            # Log failure but continue to return unhealthy status
+            logger.debug(f"Health check failed for {url}: {e}")
         return {"status": "unhealthy", "service": url}
 
     results = await gather(*[fetch(u) for u in service_urls.values()])

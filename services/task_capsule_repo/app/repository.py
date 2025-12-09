@@ -38,7 +38,9 @@ class CapsuleRepository:
         return capsule
 
     async def get_capsule(self, capsule_id: str, version: str) -> Capsule | None:
-        statement = select(Capsule).where(Capsule.capsule_id == capsule_id, Capsule.version == version)
+        statement = select(Capsule).where(
+            Capsule.capsule_id == capsule_id, Capsule.version == version
+        )
         results = await self.session.exec(statement)
         return results.first()
 

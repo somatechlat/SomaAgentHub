@@ -141,7 +141,6 @@ class TaskStatusHistory(Base):
 # Pydantic models for API
 
 
-
 class TaskRecordCreate(BaseModel):
     """API model for creating a task"""
 

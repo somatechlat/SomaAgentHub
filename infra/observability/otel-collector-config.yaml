@@ -26,13 +26,12 @@ processors:
   
   resource:
     attributes:
-      actions:
-        - key: environment
-          value: development
-          action: upsert
-        - key: cluster.name
-          value: local
-          action: upsert
+      - key: environment
+        value: development
+        action: upsert
+      - key: cluster.name
+        value: local
+        action: upsert
 
 exporters:
   otlp:
@@ -45,8 +44,6 @@ exporters:
   
   loki:
     endpoint: http://loki:3100/loki/api/v1/push
-    resource_to_telemetry_conversion:
-      enabled: true
 
   prometheus:
     endpoint: "0.0.0.0:8889"

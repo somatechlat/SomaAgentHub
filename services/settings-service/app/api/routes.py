@@ -28,7 +28,9 @@ AUDIT_LOGS: list[dict[str, Any]] = []
 def _tenant_or_404(tenant_id: str) -> TenantSettings:
     tenant = TENANTS.get(tenant_id)
     if tenant is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Tenant not found")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Tenant not found"
+        )
     return tenant
 
 
@@ -84,7 +86,9 @@ def create_model_profile(tenant_id: str, profile: ModelProfile) -> ModelProfile:
     """
     _tenant_or_404(tenant_id)
     if profile.name in MODEL_PROFILES:
-        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Model profile already exists")
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT, detail="Model profile already exists"
+        )
     MODEL_PROFILES[profile.name] = profile
     AUDIT_LOGS.append(
         {
@@ -103,20 +107,26 @@ def create_model_profile(tenant_id: str, profile: ModelProfile) -> ModelProfile:
 )
 def get_notification_prefs(tenant_id: str) -> NotificationPreferences:
     _tenant_or_404(tenant_id)
-    return NOTIFICATION_PREFS.get(tenant_id, NotificationPreferences(tenant_id=tenant_id, channels=[]))
+    return NOTIFICATION_PREFS.get(
+        tenant_id, NotificationPreferences(tenant_id=tenant_id, channels=[])
+    )
 
 
 @router.put(
     "/tenants/{tenant_id}/notification-preferences",
     response_model=NotificationPreferences,
 )
-def update_notification_prefs(tenant_id: str, prefs: NotificationPreferences) -> NotificationPreferences:
+def update_notification_prefs(
+    tenant_id: str, prefs: NotificationPreferences
+) -> NotificationPreferences:
     _tenant_or_404(tenant_id)
     NOTIFICATION_PREFS[tenant_id] = prefs
     return prefs
 
 
-@router.get("/tenants/{tenant_id}/model-profiles/{profile_name}", response_model=ModelProfile)
+@router.get(
+    "/tenants/{tenant_id}/model-profiles/{profile_name}", response_model=ModelProfile
+)
 def get_model_profile_by_name(tenant_id: str, profile_name: str) -> ModelProfile:
     """Return a specific model profile.
 
@@ -126,7 +136,9 @@ def get_model_profile_by_name(tenant_id: str, profile_name: str) -> ModelProfile
     _tenant_or_404(tenant_id)
     profile = MODEL_PROFILES.get(profile_name)
     if profile is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Model profile not found")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Model profile not found"
+        )
     return profile
 
 
@@ -140,7 +152,9 @@ def delete_model_profile(tenant_id: str, profile_name: str) -> None:
     """
     _tenant_or_404(tenant_id)
     if profile_name not in MODEL_PROFILES:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Model profile not found")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Model profile not found"
+        )
     del MODEL_PROFILES[profile_name]
     AUDIT_LOGS.append(
         {

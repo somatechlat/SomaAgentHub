@@ -20,6 +20,7 @@ from services.common.models.capsule_complete import (
     CapsuleStatus,
 )
 from services.orchestrator.app.database import get_async_session
+from services.common.opa_client import get_opa_client
 
 
 class CapsuleService:
@@ -434,24 +435,28 @@ class CapsuleService:
         if not capsule:
             raise ValueError(f"Capsule {capsule_id} not found")
 
-        # TODO: Integrate with real OPA service
-        # For now, return synthetic validation result
-        # Real implementation will call OPA HTTP API with Capsule JSON
+        # REAL IMPLEMENTATION: Call OPA service
+        client = get_opa_client()
+        opa_input = {"capsule": capsule.dict(), "tenant_id": str(tenant_id)}
 
-        validation_result = {
-            "valid": True,
-            "policy_decisions": [],
-            "violations": [],
-            "warnings": [],
-        }
+        try:
+            result = await client.evaluate_policy(
+                policy_path="somagent/capsule", input_data=opa_input, rule="validate"
+            )
 
-        # Example validation: Check if root permissions are allowed
-        # This would be real OPA policy in production
-        if capsule.resource_profile.get("root_permissions", False):
-            if capsule.name not in ["hacker-quick-scan"]:  # Policy exception
-                validation_result["valid"] = False
-                validation_result["violations"].append(
-                    "Root permissions only allowed for explicitly approved Capsules"
-                )
-
-        return validation_result
+            # Default structure if OPA returns raw boolean/simple dict
+            return {
+                "valid": result.get("allowed", False),
+                "policy_decisions": result.get("decisions", []),
+                "violations": result.get("violations", []),
+                "warnings": result.get("warnings", []),
+            }
+        except Exception as e:
+            # If OPA fails, we must be honest.
+            # In high security, fail closed (valid=False).
+            return {
+                "valid": False,
+                "violations": [f"OPA Validation Failed: {str(e)}"],
+                "policy_decisions": [],
+                "warnings": [],
+            }

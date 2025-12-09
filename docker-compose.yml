@@ -235,7 +235,7 @@ services:
     ports:
       - "${CAPSULE_REPO_PORT:-10023}:8002"
     environment:
-      - DATABASE_URL=postgresql+asyncpg://${APP_POSTGRES_USER:-somaagent}:${APP_POSTGRES_PASSWORD:-somaagent}@app-postgres:5432/${APP_POSTGRES_DB:-somaagent}
+      - SOMA_AGENT_HUB_DATABASE_URL=postgresql+asyncpg://${APP_POSTGRES_USER:-somaagent}:${APP_POSTGRES_PASSWORD:-somaagent}@app-postgres:5432/${APP_POSTGRES_DB:-somaagent}
       - WEB_CONCURRENCY=1
       - PYTHONOPTIMIZE=1
     deploy:

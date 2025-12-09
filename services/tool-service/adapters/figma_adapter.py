@@ -38,7 +38,9 @@ class FigmaAdapter:
     def _request(self, method: str, endpoint: str, **kwargs) -> Any:
         """Make API request."""
         url = f"{self.base_url}/{endpoint}"
-        response = requests.request(method, url, headers=self.headers, timeout=30, **kwargs)
+        response = requests.request(
+            method, url, headers=self.headers, timeout=30, **kwargs
+        )
         response.raise_for_status()
         return response.json()
 
@@ -59,7 +61,9 @@ class FigmaAdapter:
             params["depth"] = depth
         return self._request("GET", f"files/{file_key}", params=params)
 
-    def get_file_nodes(self, file_key: str, node_ids: list[str], depth: int | None = None) -> dict[str, Any]:
+    def get_file_nodes(
+        self, file_key: str, node_ids: list[str], depth: int | None = None
+    ) -> dict[str, Any]:
         """Get specific nodes from a file."""
         params = {"ids": ",".join(node_ids)}
         if depth:
@@ -79,7 +83,9 @@ class FigmaAdapter:
         response = self._request("GET", f"files/{file_key}/comments")
         return response.get("comments", [])
 
-    def post_comment(self, file_key: str, message: str, client_meta: dict[str, Any] | None = None) -> dict[str, Any]:
+    def post_comment(
+        self, file_key: str, message: str, client_meta: dict[str, Any] | None = None
+    ) -> dict[str, Any]:
         """
         Post a comment to a file.
 
@@ -150,14 +156,22 @@ class FigmaAdapter:
     # COMPONENTS & STYLES
     # ============================================================================
 
-    def get_team_components(self, team_id: str, page_size: int = 30) -> list[dict[str, Any]]:
+    def get_team_components(
+        self, team_id: str, page_size: int = 30
+    ) -> list[dict[str, Any]]:
         """List components in a team library."""
-        response = self._request("GET", f"teams/{team_id}/components", params={"page_size": page_size})
+        response = self._request(
+            "GET", f"teams/{team_id}/components", params={"page_size": page_size}
+        )
         return response.get("meta", {}).get("components", [])
 
-    def get_team_styles(self, team_id: str, page_size: int = 30) -> list[dict[str, Any]]:
+    def get_team_styles(
+        self, team_id: str, page_size: int = 30
+    ) -> list[dict[str, Any]]:
         """List styles in a team library."""
-        response = self._request("GET", f"teams/{team_id}/styles", params={"page_size": page_size})
+        response = self._request(
+            "GET", f"teams/{team_id}/styles", params={"page_size": page_size}
+        )
         return response.get("meta", {}).get("styles", [])
 
     def get_file_components(self, file_key: str) -> list[dict[str, Any]]:
@@ -169,7 +183,9 @@ class FigmaAdapter:
     # UTILITIES
     # ============================================================================
 
-    def export_design_assets(self, file_key: str, node_ids: list[str], output_dir: str) -> list[str]:
+    def export_design_assets(
+        self, file_key: str, node_ids: list[str], output_dir: str
+    ) -> list[str]:
         """
         Export nodes as images and save to disk.
 

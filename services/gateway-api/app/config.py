@@ -34,8 +34,6 @@ so we preserve that public API.
 """
 
 
-
-
 class GatewaySettings(BaseServiceSettings):
     """Configuration specific to the Gateway service.
 

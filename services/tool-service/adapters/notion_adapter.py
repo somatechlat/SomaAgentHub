@@ -41,7 +41,9 @@ class NotionAdapter:
         """Make authenticated API request."""
         url = f"{self.base_url}/{endpoint}"
 
-        response = requests.request(method=method, url=url, headers=self.headers, timeout=30, **kwargs)
+        response = requests.request(
+            method=method, url=url, headers=self.headers, timeout=30, **kwargs
+        )
 
         response.raise_for_status()
         return response.json()
@@ -163,15 +165,25 @@ class NotionAdapter:
     # Block Operations
     # ----------------------------------------------------------------------
 
-    def retrieve_block_children(self, block_id: str, page_size: int = 100) -> dict[str, Any]:
+    def retrieve_block_children(
+        self, block_id: str, page_size: int = 100
+    ) -> dict[str, Any]:
         """Retrieve children blocks of a block or page."""
-        return self._request("GET", f"blocks/{block_id}/children", params={"page_size": page_size})
+        return self._request(
+            "GET", f"blocks/{block_id}/children", params={"page_size": page_size}
+        )
 
-    def append_block_children(self, block_id: str, children: list[dict[str, Any]]) -> dict[str, Any]:
+    def append_block_children(
+        self, block_id: str, children: list[dict[str, Any]]
+    ) -> dict[str, Any]:
         """Append blocks to a parent."""
-        return self._request("PATCH", f"blocks/{block_id}/children", json={"children": children})
+        return self._request(
+            "PATCH", f"blocks/{block_id}/children", json={"children": children}
+        )
 
-    def update_block(self, block_id: str, block_content: dict[str, Any]) -> dict[str, Any]:
+    def update_block(
+        self, block_id: str, block_content: dict[str, Any]
+    ) -> dict[str, Any]:
         """Update a block's content."""
         return self._request("PATCH", f"blocks/{block_id}", json=block_content)
 

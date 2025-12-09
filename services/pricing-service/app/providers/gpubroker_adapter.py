@@ -24,7 +24,11 @@ class GPUBrokerAdapter:
             return []
 
         offers: list[PricingOffer] = []
-        items = data if isinstance(data, list) else data.get("items") or data.get("providers") or []
+        items = (
+            data
+            if isinstance(data, list)
+            else data.get("items") or data.get("providers") or []
+        )
         now = datetime.now(UTC)
         for it in items:
             try:
@@ -32,8 +36,12 @@ class GPUBrokerAdapter:
                 offers.append(
                     PricingOffer(
                         id=str(it.get("id") or it.get("name") or "gpu-offer"),
-                        provider=str(it.get("provider") or it.get("source") or "unknown"),
-                        gpu_model=str(it.get("gpu") or it.get("gpu_model") or "unknown"),
+                        provider=str(
+                            it.get("provider") or it.get("source") or "unknown"
+                        ),
+                        gpu_model=str(
+                            it.get("gpu") or it.get("gpu_model") or "unknown"
+                        ),
                         vram_gb=float(it.get("vram_gb") or 0.0),
                         cpu_cores=int(it.get("cpu_cores") or 0),
                         ram_gb=float(it.get("ram_gb") or 0.0),
@@ -50,7 +58,9 @@ class GPUBrokerAdapter:
                         billing_increment_min=int(it.get("billing_increment_min") or 0),
                         min_rent_hours=float(it.get("min_rent_hours") or 0.0),
                         provision_latency_s=float(it.get("provision_latency_s") or 0.0),
-                        deprovision_latency_s=float(it.get("deprovision_latency_s") or 0.0),
+                        deprovision_latency_s=float(
+                            it.get("deprovision_latency_s") or 0.0
+                        ),
                         last_seen_at=now,
                         source="gpubroker",
                         confidence=0.8,

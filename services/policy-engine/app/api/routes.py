@@ -37,9 +37,13 @@ def _to_violation_model(payload: dict[str, str | float]) -> PolicyViolationModel
 
 @router.post("/evaluate", response_model=EvaluationResponse)
 async def evaluate_policy(request: EvaluationRequest) -> EvaluationResponse:
-    allowed, score, violations_payload, constitution_hash = await engine_evaluate(request.tenant, request.prompt)
+    allowed, score, violations_payload, constitution_hash = await engine_evaluate(
+        request.tenant, request.prompt
+    )
     violations = [_to_violation_model(v) for v in violations_payload]
-    reasons: dict[str, list[dict[str, str | float]]] = {"violations": violations_payload}
+    reasons: dict[str, list[dict[str, str | float]]] = {
+        "violations": violations_payload
+    }
     return EvaluationResponse(
         allowed=allowed,
         score=score,
@@ -52,7 +56,9 @@ async def evaluate_policy(request: EvaluationRequest) -> EvaluationResponse:
 
 @router.post("/score", response_model=ScoreResponse)
 async def score_prompt(request: ScoreRequest) -> ScoreResponse:
-    score, violations_payload, constitution_hash = await engine_score_only(request.tenant, request.prompt)
+    score, violations_payload, constitution_hash = await engine_score_only(
+        request.tenant, request.prompt
+    )
     violations = [_to_violation_model(v) for v in violations_payload]
     severity = compute_severity(score)
     return ScoreResponse(
@@ -71,7 +77,9 @@ async def list_policies(tenant: str) -> list[PolicyRuleModel]:
 
 
 @router.put("/policies/{tenant}", response_model=list[PolicyRuleModel])
-async def update_policies(tenant: str, payload: PolicyUpdateRequest) -> list[PolicyRuleModel]:
+async def update_policies(
+    tenant: str, payload: PolicyUpdateRequest
+) -> list[PolicyRuleModel]:
     rules = [
         PolicyRule(
             name=rule.name,
@@ -94,7 +102,9 @@ async def update_policies(tenant: str, payload: PolicyUpdateRequest) -> list[Pol
 async def append_rule(tenant: str, rule: PolicyRuleModel) -> PolicyRuleModel:
     existing = get_rules(tenant)
     if any(r.name == rule.name for r in existing):
-        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Rule name already exists")
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT, detail="Rule name already exists"
+        )
     updated = existing + [
         PolicyRule(
             name=rule.name,

@@ -14,7 +14,6 @@ Creates legacy tables with tenant_id included:
 - audit_log
 """
 
-
 import sqlalchemy as sa
 from alembic import op
 from sqlalchemy.dialects import postgresql

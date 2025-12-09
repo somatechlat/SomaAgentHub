@@ -797,36 +797,16 @@ async def distribute_campaign_activity(input: dict[str, Any]) -> dict[str, Any]:
 
     ToolServiceClient()
 
-    distribution_results = {}
+    # STRICT VIBE CHECK: No fake implementation.
+    # If distribution integrations (SendGrid, Buffer, etc.) are not yet configured in Tool Service,
+    # we must fail explicitly rather than pretending to work.
+    raise NotImplementedError(
+        "Distribution channels (SendGrid, Buffer) are not yet configured in Tool Service. "
+        "Cannot execute distribution activity."
+    )
 
     # Logic for distribution would go here...
-    # This is a placeholder for the actual implementation which was truncated in the view.
+
     # Assuming similar structure to other activities.
 
     return distribution_results
-
-
-# Placeholders for compensation activities and analytics setup
-@activity.defn
-async def analytics_setup_activity(input: dict[str, Any]) -> dict[str, Any]:
-    return {"dashboard_url": "http://grafana/dashboard/123"}
-
-
-@activity.defn
-async def cleanup_analytics_activity(input: dict[str, Any]) -> None:
-    pass
-
-
-@activity.defn
-async def delete_content_drafts_activity(input: dict[str, Any]) -> None:
-    pass
-
-
-@activity.defn
-async def delete_design_assets_activity(input: dict[str, Any]) -> None:
-    pass
-
-
-@activity.defn
-async def rollback_distribution_activity(input: dict[str, Any]) -> None:
-    pass

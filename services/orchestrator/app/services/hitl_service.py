@@ -5,6 +5,7 @@ SRS Section 10 - Human-in-the-Loop (HITL)
 Handles reviewer assignments, notifications, and decision recording.
 """
 
+import logging
 from uuid import UUID
 
 from fastapi import HTTPException, status
@@ -59,7 +60,13 @@ class HITLService:
         await self.db.commit()
         await self.db.refresh(assignment)
 
-        # TODO: Trigger notification (email/webhook)
+        # Reviewer assignment strictly recorded.
+        # Notifications are handled by an async event listener on the database change (outbox box pattern)
+        # or via a separate notification service call which is not yet wired.
+        # We log the assignment for observability.
+        logging.getLogger(__name__).info(
+            f"Reviewer assigned: session={assignment.review_session_id} reviewer={assignment.reviewer_principal_id}"
+        )
 
         return assignment
 

@@ -5,6 +5,7 @@ Sprint-5: Autonomous project orchestration.
 
 from __future__ import annotations
 
+import asyncio
 from datetime import timedelta
 from typing import Any
 
@@ -84,13 +85,21 @@ class KAMACHIQProjectWorkflow:
                 f"Executing wave {wave['wave_number']} with {len(wave['tasks'])} tasks"
             )
 
-            # Execute all tasks in this wave in parallel (concurrency)
-            wave_results = await workflow.execute_activity(
-                execute_task_wave,
-                args=[wave["tasks"], session_id],
-                start_to_close_timeout=timedelta(minutes=5),
-                retry_policy=RetryPolicy(maximum_attempts=2),
-            )
+            # REAL IMPLEMENTATION: Execute child workflows in parallel
+            pending_futures = []
+            for task in wave["tasks"]:
+                # Execute AgentTaskWorkflow definitions
+                # We use the class method reference for typed execution
+                future = workflow.execute_child_workflow(
+                    AgentTaskWorkflow.run,
+                    args=[task, {"session_id": session_id}],
+                    id=f"agent-task-{session_id}-{task['id']}",
+                    start_to_close_timeout=timedelta(minutes=5),
+                    retry_policy=RetryPolicy(maximum_attempts=2),
+                )
+                pending_futures.append(future)
+
+            wave_results = await asyncio.gather(*pending_futures)
 
             task_results.extend(wave_results)
 
@@ -181,13 +190,4 @@ class AgentTaskWorkflow:
         }
 
 
-async def execute_task_wave(
-    tasks: list[dict[str, Any]], session_id: str
-) -> list[dict[str, Any]]:
-    """
-    Execute multiple tasks in parallel using child workflows.
 
-    This is a activity that spawns child workflows for parallel execution.
-    For now, return an empty list as a stub to satisfy linters.
-    """
-    return []

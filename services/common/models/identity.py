@@ -150,7 +150,6 @@ class ExternalRef(Base):
 # Pydantic models for API validation
 
 
-
 class TenantRefCreate(BaseModel):
     """API model for creating a tenant"""
 

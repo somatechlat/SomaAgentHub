@@ -603,7 +603,6 @@ def upgrade():
     )
 
 
-
 def downgrade():
     """Remove part 2 tables"""
 

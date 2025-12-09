@@ -34,6 +34,5 @@ querier:
     frontend_address: 127.0.0.1:9095
 
 query_frontend:
-  query_shards: 1
-  trace_by_id:
-    query_backend: 0
+  search:
+    concurrent_jobs: 1000

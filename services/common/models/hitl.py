@@ -125,7 +125,6 @@ class HumanDecisionRecord(Base):
 # Pydantic models
 
 
-
 class HumanReviewerAssignmentCreate(BaseModel):
     """API model for creating a reviewer assignment"""
 

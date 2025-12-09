@@ -56,7 +56,9 @@ def evaluate_locally(payload: dict[str, Any]) -> dict[str, Any]:
     }
 
 
-async def eval_via_opa(payload: dict[str, Any], opa_url: str | None = None) -> dict[str, Any]:
+async def eval_via_opa(
+    payload: dict[str, Any], opa_url: str | None = None
+) -> dict[str, Any]:
     """Evaluate the budget policy via OPA HTTP API if available.
 
     Falls back to local replication if OPA is unreachable.

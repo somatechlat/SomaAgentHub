@@ -1,7 +1,5 @@
-# Use a specific, minimal Python base image
 FROM python:3.11.6-slim-bookworm
 
-# Set environment variables for a secure and efficient build
 ENV PYTHONDONTWRITEBYTECODE=1 \
 	PYTHONUNBUFFERED=1 \
 	PIP_DISABLE_PIP_VERSION_CHECK=on \
@@ -10,21 +8,24 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 
 WORKDIR /app
 
-# Install dependencies
+# Install system dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+	curl \
+	&& rm -rf /var/lib/apt/lists/*
+
 COPY services/gateway-api/requirements.txt ./requirements.txt
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Create a non-root user
+# Create non-root user
 RUN adduser --disabled-password --gecos "" appuser
-COPY services/common /app/services/common
-COPY common /app/common
-COPY services/gateway-api/ /app/
-RUN chown -R appuser:appuser /app
 
-# Switch to the non-root user
+# Copy Service Code (Monorepo Structure)
+COPY services/common /app/services/common
+COPY services/gateway-api /app/services/gateway_api
+
+RUN chown -R appuser:appuser /app
 USER appuser
 
 EXPOSE 10000
 
-# Run the application
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "10000", "--workers", "1"]
+CMD ["uvicorn", "services.gateway_api.app.main:app", "--host", "0.0.0.0", "--port", "10000", "--workers", "1"]

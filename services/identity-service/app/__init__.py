@@ -19,4 +19,3 @@ if str(_repo_root) not in sys.path:
     sys.path.insert(0, str(_repo_root))
 
     import services._path_setup  # noqa: F401,E402
-

@@ -132,7 +132,6 @@ class MemoryOperationRecord(Base):
 # Pydantic models
 
 
-
 class MemoryBindingSpecCreate(BaseModel):
     """API model for creating a memory binding spec"""
 

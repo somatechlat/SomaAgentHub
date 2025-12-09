@@ -32,7 +32,9 @@ def _as_bool(val: str | None, default: bool) -> bool:
 # derived from the central ``settings`` object, falling back to the historic
 # defaults where appropriate.
 SERVICE_PORT = int(settings.service_port) if hasattr(settings, "service_port") else 8083
-DATABASE_URL = getattr(settings, "database_url", "postgresql://postgres:postgres@postgres:5432/soma")
+DATABASE_URL = getattr(
+    settings, "database_url", "postgresql://postgres:postgres@postgres:5432/soma"
+)
 REDIS_URL = getattr(settings, "redis_url", "redis://redis:6379/0")
 OPA_URL = getattr(settings, "opa_url", "http://localhost:8181")
 ENVIRONMENT = getattr(settings, "environment", "development")

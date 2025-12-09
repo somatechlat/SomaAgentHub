@@ -36,7 +36,9 @@ class GitLabAdapter:
     def _request(self, method: str, endpoint: str, **kwargs) -> Any:
         """Make API request."""
         url = f"{self.base_url}/{endpoint}"
-        response = requests.request(method, url, headers=self.headers, timeout=30, **kwargs)
+        response = requests.request(
+            method, url, headers=self.headers, timeout=30, **kwargs
+        )
         response.raise_for_status()
         return response.json() if response.content else {}
 
@@ -73,7 +75,9 @@ class GitLabAdapter:
         encoded_id = requests.utils.quote(project_id, safe="")
         return self._request("GET", f"projects/{encoded_id}")
 
-    def list_projects(self, owned: bool = True, limit: int = 20) -> list[dict[str, Any]]:
+    def list_projects(
+        self, owned: bool = True, limit: int = 20
+    ) -> list[dict[str, Any]]:
         """List projects."""
         params = {"per_page": limit}
         if owned:
@@ -104,9 +108,13 @@ class GitLabAdapter:
 
         data = {"branch": branch, "content": content, "commit_message": commit_message}
 
-        return self._request("POST", f"projects/{encoded_id}/repository/files/{encoded_path}", json=data)
+        return self._request(
+            "POST", f"projects/{encoded_id}/repository/files/{encoded_path}", json=data
+        )
 
-    def get_file(self, project_id: str, file_path: str, ref: str = "main") -> dict[str, Any]:
+    def get_file(
+        self, project_id: str, file_path: str, ref: str = "main"
+    ) -> dict[str, Any]:
         """Get file content from repository."""
         encoded_id = requests.utils.quote(project_id, safe="")
         encoded_path = requests.utils.quote(file_path, safe="")
@@ -119,7 +127,9 @@ class GitLabAdapter:
 
         # Decode base64 content
         if "content" in file_data:
-            file_data["content_decoded"] = base64.b64decode(file_data["content"]).decode("utf-8")
+            file_data["content_decoded"] = base64.b64decode(
+                file_data["content"]
+            ).decode("utf-8")
 
         return file_data
 
@@ -137,17 +147,23 @@ class GitLabAdapter:
 
         data = {"branch": branch, "content": content, "commit_message": commit_message}
 
-        return self._request("PUT", f"projects/{encoded_id}/repository/files/{encoded_path}", json=data)
+        return self._request(
+            "PUT", f"projects/{encoded_id}/repository/files/{encoded_path}", json=data
+        )
 
     # ============================================================================
     # BRANCHES
     # ============================================================================
 
-    def create_branch(self, project_id: str, branch_name: str, ref: str = "main") -> dict[str, Any]:
+    def create_branch(
+        self, project_id: str, branch_name: str, ref: str = "main"
+    ) -> dict[str, Any]:
         """Create a new branch."""
         encoded_id = requests.utils.quote(project_id, safe="")
         data = {"branch": branch_name, "ref": ref}
-        return self._request("POST", f"projects/{encoded_id}/repository/branches", json=data)
+        return self._request(
+            "POST", f"projects/{encoded_id}/repository/branches", json=data
+        )
 
     def list_branches(self, project_id: str) -> list[dict[str, Any]]:
         """List repository branches."""
@@ -194,12 +210,18 @@ class GitLabAdapter:
     def merge_merge_request(self, project_id: str, mr_iid: int) -> dict[str, Any]:
         """Merge a merge request."""
         encoded_id = requests.utils.quote(project_id, safe="")
-        return self._request("PUT", f"projects/{encoded_id}/merge_requests/{mr_iid}/merge")
+        return self._request(
+            "PUT", f"projects/{encoded_id}/merge_requests/{mr_iid}/merge"
+        )
 
-    def list_merge_requests(self, project_id: str, state: str = "opened") -> list[dict[str, Any]]:
+    def list_merge_requests(
+        self, project_id: str, state: str = "opened"
+    ) -> list[dict[str, Any]]:
         """List merge requests."""
         encoded_id = requests.utils.quote(project_id, safe="")
-        return self._request("GET", f"projects/{encoded_id}/merge_requests", params={"state": state})
+        return self._request(
+            "GET", f"projects/{encoded_id}/merge_requests", params={"state": state}
+        )
 
     # ============================================================================
     # CI/CD PIPELINES
@@ -208,7 +230,9 @@ class GitLabAdapter:
     def create_pipeline(self, project_id: str, ref: str = "main") -> dict[str, Any]:
         """Trigger a new pipeline."""
         encoded_id = requests.utils.quote(project_id, safe="")
-        pipeline = self._request("POST", f"projects/{encoded_id}/pipeline", json={"ref": ref})
+        pipeline = self._request(
+            "POST", f"projects/{encoded_id}/pipeline", json={"ref": ref}
+        )
         logger.info(f"Triggered pipeline #{pipeline['id']}")
         return pipeline
 
@@ -220,12 +244,18 @@ class GitLabAdapter:
     def list_pipelines(self, project_id: str, limit: int = 20) -> list[dict[str, Any]]:
         """List pipelines."""
         encoded_id = requests.utils.quote(project_id, safe="")
-        return self._request("GET", f"projects/{encoded_id}/pipelines", params={"per_page": limit})
+        return self._request(
+            "GET", f"projects/{encoded_id}/pipelines", params={"per_page": limit}
+        )
 
-    def get_pipeline_jobs(self, project_id: str, pipeline_id: int) -> list[dict[str, Any]]:
+    def get_pipeline_jobs(
+        self, project_id: str, pipeline_id: int
+    ) -> list[dict[str, Any]]:
         """Get jobs in a pipeline."""
         encoded_id = requests.utils.quote(project_id, safe="")
-        return self._request("GET", f"projects/{encoded_id}/pipelines/{pipeline_id}/jobs")
+        return self._request(
+            "GET", f"projects/{encoded_id}/pipelines/{pipeline_id}/jobs"
+        )
 
     # ============================================================================
     # ISSUES
@@ -254,10 +284,14 @@ class GitLabAdapter:
         logger.info(f"Created issue #{issue['iid']}")
         return issue
 
-    def list_issues(self, project_id: str, state: str = "opened") -> list[dict[str, Any]]:
+    def list_issues(
+        self, project_id: str, state: str = "opened"
+    ) -> list[dict[str, Any]]:
         """List issues."""
         encoded_id = requests.utils.quote(project_id, safe="")
-        return self._request("GET", f"projects/{encoded_id}/issues", params={"state": state})
+        return self._request(
+            "GET", f"projects/{encoded_id}/issues", params={"state": state}
+        )
 
     # ============================================================================
     # USERS
@@ -275,10 +309,14 @@ class GitLabAdapter:
     # UTILITIES
     # ============================================================================
 
-    def bootstrap_repository(self, name: str, description: str, ci_config: str | None = None) -> dict[str, Any]:
+    def bootstrap_repository(
+        self, name: str, description: str, ci_config: str | None = None
+    ) -> dict[str, Any]:
         """Bootstrap a complete GitLab repository with CI/CD."""
         # Create project
-        project = self.create_project(name=name, description=description, initialize_with_readme=True)
+        project = self.create_project(
+            name=name, description=description, initialize_with_readme=True
+        )
 
         project_id = project["id"]
 

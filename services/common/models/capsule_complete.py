@@ -250,7 +250,6 @@ class CapsuleInstance(Base):
 # Pydantic models for API
 
 
-
 class CapsuleDefinitionCreate(BaseModel):
     """API model for creating a Capsule definition"""
 

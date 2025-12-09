@@ -78,7 +78,12 @@ class KubernetesAdapter:
     # ============================================================================
 
     def create_deployment(
-        self, namespace: str, name: str, image: str, replicas: int = 1, ports: list[int] = [80]
+        self,
+        namespace: str,
+        name: str,
+        image: str,
+        replicas: int = 1,
+        ports: list[int] = [80],
     ) -> dict[str, Any]:
         """
         Create a simple deployment.
@@ -90,7 +95,9 @@ class KubernetesAdapter:
             replicas: Number of replicas
             ports: List of container ports
         """
-        container_ports = [client.V1ContainerPort(container_port=port) for port in ports]
+        container_ports = [
+            client.V1ContainerPort(container_port=port) for port in ports
+        ]
 
         container = client.V1Container(
             name=name,
@@ -117,7 +124,9 @@ class KubernetesAdapter:
             spec=spec,
         )
 
-        result = self.apps_v1.create_namespaced_deployment(namespace=namespace, body=deployment)
+        result = self.apps_v1.create_namespaced_deployment(
+            namespace=namespace, body=deployment
+        )
         logger.info(f"Created deployment {name} in {namespace}")
         return result.to_dict()
 
@@ -134,7 +143,9 @@ class KubernetesAdapter:
     def scale_deployment(self, namespace: str, name: str, replicas: int):
         """Scale a deployment."""
         patch = {"spec": {"replicas": replicas}}
-        self.apps_v1.patch_namespaced_deployment(name=name, namespace=namespace, body=patch)
+        self.apps_v1.patch_namespaced_deployment(
+            name=name, namespace=namespace, body=patch
+        )
         logger.info(f"Scaled deployment {name} to {replicas} replicas")
 
     # ============================================================================
@@ -150,7 +161,9 @@ class KubernetesAdapter:
         type: str = "ClusterIP",
     ) -> dict[str, Any]:
         """Create a service."""
-        service_ports = [client.V1ServicePort(port=p[0], target_port=p[1]) for p in ports]
+        service_ports = [
+            client.V1ServicePort(port=p[0], target_port=p[1]) for p in ports
+        ]
 
         spec = client.V1ServiceSpec(
             selector=selector,
@@ -165,7 +178,9 @@ class KubernetesAdapter:
             spec=spec,
         )
 
-        result = self.core_v1.create_namespaced_service(namespace=namespace, body=service)
+        result = self.core_v1.create_namespaced_service(
+            namespace=namespace, body=service
+        )
         logger.info(f"Created service {name} in {namespace}")
         return result.to_dict()
 
@@ -178,9 +193,13 @@ class KubernetesAdapter:
     # PODS
     # ============================================================================
 
-    def list_pods(self, namespace: str, label_selector: str | None = None) -> list[dict[str, Any]]:
+    def list_pods(
+        self, namespace: str, label_selector: str | None = None
+    ) -> list[dict[str, Any]]:
         """List pods in a namespace."""
-        pods = self.core_v1.list_namespaced_pod(namespace=namespace, label_selector=label_selector)
+        pods = self.core_v1.list_namespaced_pod(
+            namespace=namespace, label_selector=label_selector
+        )
         return [p.to_dict() for p in pods.items]
 
     def get_pod_logs(self, namespace: str, name: str) -> str:
@@ -191,17 +210,23 @@ class KubernetesAdapter:
     # CONFIGMAPS & SECRETS
     # ============================================================================
 
-    def create_config_map(self, namespace: str, name: str, data: dict[str, str]) -> dict[str, Any]:
+    def create_config_map(
+        self, namespace: str, name: str, data: dict[str, str]
+    ) -> dict[str, Any]:
         """Create a ConfigMap."""
         config_map = client.V1ConfigMap(
             metadata=client.V1ObjectMeta(name=name),
             data=data,
         )
-        result = self.core_v1.create_namespaced_config_map(namespace=namespace, body=config_map)
+        result = self.core_v1.create_namespaced_config_map(
+            namespace=namespace, body=config_map
+        )
         logger.info(f"Created ConfigMap {name} in {namespace}")
         return result.to_dict()
 
-    def create_secret(self, namespace: str, name: str, data: dict[str, str]) -> dict[str, Any]:
+    def create_secret(
+        self, namespace: str, name: str, data: dict[str, str]
+    ) -> dict[str, Any]:
         """Create a Secret (Opaque)."""
         # Data must be base64 encoded by the client if using string_data=None
         # But using string_data handles encoding automatically
@@ -237,7 +262,9 @@ class KubernetesAdapter:
             temp_path = f.name
 
         try:
-            utils.create_from_yaml(client.ApiClient(), yaml_file=temp_path, namespace=namespace)
+            utils.create_from_yaml(
+                client.ApiClient(), yaml_file=temp_path, namespace=namespace
+            )
             logger.info("Applied YAML manifest")
         except Exception as e:
             logger.error(f"Failed to apply YAML: {e}")
@@ -257,7 +284,9 @@ class KubernetesAdapter:
         # Create default quota (example)
         quota = client.V1ResourceQuota(
             metadata=client.V1ObjectMeta(name="default-quota"),
-            spec=client.V1ResourceQuotaSpec(hard={"pods": "10", "requests.cpu": "4", "requests.memory": "8Gi"}),
+            spec=client.V1ResourceQuotaSpec(
+                hard={"pods": "10", "requests.cpu": "4", "requests.memory": "8Gi"}
+            ),
         )
         self.core_v1.create_namespaced_resource_quota(namespace=name, body=quota)
 

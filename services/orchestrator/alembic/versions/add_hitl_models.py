@@ -135,7 +135,6 @@ def upgrade():
     )
 
 
-
 def downgrade():
     """Remove HITL tables"""
 

@@ -91,7 +91,7 @@ GATEWAY_API_URL = resolve_env("GATEWAY_API_URL", "http://gateway-api:10000")
 @activity.defn
 async def decompose_project(
     project_description: str, user_id: str
-) -> list[dict[str, Any]]:
+) -> dict[str, Any]:
     """
     Decompose project into executable tasks.
 

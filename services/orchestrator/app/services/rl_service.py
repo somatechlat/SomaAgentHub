@@ -181,9 +181,7 @@ class RLService:
         await self.db.refresh(job)
         return job
 
-    async def get_export_job(
-        self, job_id: UUID, tenant_id: UUID
-    ) -> RLExportJob | None:
+    async def get_export_job(self, job_id: UUID, tenant_id: UUID) -> RLExportJob | None:
         """Get an export job by ID"""
         result = await self.db.execute(
             select(RLExportJob).where(

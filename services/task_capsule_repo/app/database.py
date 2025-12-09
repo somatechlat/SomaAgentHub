@@ -30,7 +30,10 @@ DATABASE_URL: str = settings.database_url
 
 # Validate the URL uses the asyncpg driver.
 if not DATABASE_URL.startswith("postgresql+asyncpg://"):
-    raise RuntimeError("DATABASE_URL must use asyncpg driver (postgresql+asyncpg://). Got: " + DATABASE_URL)
+    raise RuntimeError(
+        "DATABASE_URL must use asyncpg driver (postgresql+asyncpg://). Got: "
+        + DATABASE_URL
+    )
 
 # Asynchronous engine for runtime operations.
 async_engine = create_async_engine(
@@ -38,7 +41,9 @@ async_engine = create_async_engine(
     echo=getattr(settings, "database_echo", False),
 )
 
-AsyncSessionLocal = sessionmaker(bind=async_engine, class_=AsyncSession, expire_on_commit=False)
+AsyncSessionLocal = sessionmaker(
+    bind=async_engine, class_=AsyncSession, expire_on_commit=False
+)
 
 
 def get_session_factory() -> sessionmaker:

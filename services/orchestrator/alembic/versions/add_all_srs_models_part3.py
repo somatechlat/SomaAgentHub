@@ -581,7 +581,6 @@ def upgrade():
     op.create_foreign_key(None, "tasks", "plan_specs", ["plan_spec_id"], ["id"])
 
 
-
 def downgrade():
     """Remove part 3 tables"""
 

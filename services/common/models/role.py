@@ -187,7 +187,6 @@ class AgentSessionBinding(Base):
 # Pydantic models for API
 
 
-
 class RoleDefinitionCreate(BaseModel):
     """API model for creating a role definition"""
 

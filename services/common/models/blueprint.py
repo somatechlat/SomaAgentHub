@@ -163,7 +163,6 @@ class PlanSpec(Base):
 # Pydantic models
 
 
-
 class BlueprintDefinitionCreate(BaseModel):
     """API model for creating a blueprint definition"""
 

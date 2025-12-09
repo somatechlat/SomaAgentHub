@@ -13,7 +13,9 @@ class Settings(BaseSettings):
     consumer_group: str = "notification-orchestrator"
     cache_limit: int = 500
     use_kafka: bool = True
-    model_config = SettingsConfigDict(env_prefix="SOMA_AGENT_HUB_NOTIFICATION_", extra="allow")
+    model_config = SettingsConfigDict(
+        env_prefix="SOMA_AGENT_HUB_NOTIFICATION_", extra="allow"
+    )
 
     @lru_cache
     def get_settings() -> Settings:

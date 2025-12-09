@@ -43,7 +43,9 @@ class GitHubAdapter:
     def _request(self, method: str, endpoint: str, **kwargs) -> Any:
         """Make authenticated request to GitHub API."""
         url = f"{self.base_url}/{endpoint.lstrip('/')}"
-        response = requests.request(method, url, headers=self.headers, timeout=30, **kwargs)
+        response = requests.request(
+            method, url, headers=self.headers, timeout=30, **kwargs
+        )
         response.raise_for_status()
         return response.json() if response.content else {}
 
@@ -78,7 +80,9 @@ class GitHubAdapter:
         """Get repository details."""
         return self._request("GET", f"repos/{owner}/{repo}")
 
-    def list_repos(self, sort: str = "updated", direction: str = "desc", per_page: int = 30) -> list[dict[str, Any]]:
+    def list_repos(
+        self, sort: str = "updated", direction: str = "desc", per_page: int = 30
+    ) -> list[dict[str, Any]]:
         """List repositories for authenticated user."""
         params = {"sort": sort, "direction": direction, "per_page": per_page}
         return self._request("GET", "user/repos", params=params)
@@ -105,7 +109,9 @@ class GitHubAdapter:
         }
         return self._request("PUT", f"repos/{owner}/{repo}/contents/{path}", json=data)
 
-    def get_file_content(self, owner: str, repo: str, path: str, ref: str = "main") -> str:
+    def get_file_content(
+        self, owner: str, repo: str, path: str, ref: str = "main"
+    ) -> str:
         """Get raw file content."""
         headers = self.headers.copy()
         headers["Accept"] = "application/vnd.github.raw"
@@ -169,7 +175,9 @@ class GitHubAdapter:
         if commit_title:
             data["commit_title"] = commit_title
 
-        return self._request("PUT", f"repos/{owner}/{repo}/pulls/{pull_number}/merge", json=data)
+        return self._request(
+            "PUT", f"repos/{owner}/{repo}/pulls/{pull_number}/merge", json=data
+        )
 
     # ----------------------------------------------------------------------
     # Actions Operations
@@ -211,14 +219,18 @@ class GitHubAdapter:
     # Search Operations
     # ----------------------------------------------------------------------
 
-    def search_code(self, query: str, sort: str | None = None, order: str = "desc") -> dict[str, Any]:
+    def search_code(
+        self, query: str, sort: str | None = None, order: str = "desc"
+    ) -> dict[str, Any]:
         """Search for code."""
         params = {"q": query, "order": order}
         if sort:
             params["sort"] = sort
         return self._request("GET", "search/code", params=params)
 
-    def search_issues(self, query: str, sort: str = "updated", order: str = "desc") -> dict[str, Any]:
+    def search_issues(
+        self, query: str, sort: str = "updated", order: str = "desc"
+    ) -> dict[str, Any]:
         """Search for issues and PRs."""
         params = {"q": query, "sort": sort, "order": order}
         return self._request("GET", "search/issues", params=params)

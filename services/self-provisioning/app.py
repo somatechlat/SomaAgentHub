@@ -33,12 +33,16 @@ class ProvisionRequest(BaseModel):
     organization_id: str = Field(..., description="Organization identifier")
     instance_name: str = Field(..., description="Instance name (unique)")
     region: str = Field(default="us-east-1", description="AWS region")
-    tier: str = Field(default="standard", description="Instance tier (basic, standard, enterprise)")
+    tier: str = Field(
+        default="standard", description="Instance tier (basic, standard, enterprise)"
+    )
     features: list[str] = Field(
         default_factory=lambda: ["kamachiq", "mao", "tools"],
         description="Enabled features",
     )
-    knowledge_base_seed: dict[str, Any] | None = Field(None, description="Initial knowledge base data")
+    knowledge_base_seed: dict[str, Any] | None = Field(
+        None, description="Initial knowledge base data"
+    )
 
 
 class InstanceResponse(BaseModel):
@@ -249,7 +253,9 @@ def generate_terraform_config(request: ProvisionRequest) -> str:
     tier_config = TIER_CONFIGS.get(request.tier, TIER_CONFIGS["standard"])
 
     # Generate secure database password
-    db_password = hashlib.sha256(f"{request.instance_name}-{request.organization_id}".encode()).hexdigest()[:16]
+    db_password = hashlib.sha256(
+        f"{request.instance_name}-{request.organization_id}".encode()
+    ).hexdigest()[:16]
 
     config = TERRAFORM_MAIN_TEMPLATE.format(
         region=request.region,
@@ -265,10 +271,14 @@ def generate_terraform_config(request: ProvisionRequest) -> str:
     return config
 
 
-def generate_kubernetes_manifest(request: ProvisionRequest, db_endpoint: str, redis_endpoint: str) -> str:
+def generate_kubernetes_manifest(
+    request: ProvisionRequest, db_endpoint: str, redis_endpoint: str
+) -> str:
     """Generate Kubernetes deployment manifest."""
     tier_config = TIER_CONFIGS.get(request.tier, TIER_CONFIGS["standard"])
-    db_password = hashlib.sha256(f"{request.instance_name}-{request.organization_id}".encode()).hexdigest()[:16]
+    db_password = hashlib.sha256(
+        f"{request.instance_name}-{request.organization_id}".encode()
+    ).hexdigest()[:16]
 
     manifest = KUBERNETES_DEPLOYMENT_TEMPLATE.format(
         namespace=f"somagent-{request.instance_name}",
@@ -298,7 +308,9 @@ def run_terraform(config: str, action: str = "apply") -> dict[str, Any]:
 
         # Apply
         if action == "apply":
-            subprocess.run(["terraform", "apply", "-auto-approve"], cwd=tmpdir, check=True)
+            subprocess.run(
+                ["terraform", "apply", "-auto-approve"], cwd=tmpdir, check=True
+            )
 
             # Get outputs
             result = subprocess.run(
@@ -368,7 +380,9 @@ async def provision_instance(request: ProvisionRequest):
         5. Knowledge base seeding
     """
     # Generate instance ID
-    instance_id = hashlib.sha256(f"{request.organization_id}:{request.instance_name}".encode()).hexdigest()[:16]
+    instance_id = hashlib.sha256(
+        f"{request.organization_id}:{request.instance_name}".encode()
+    ).hexdigest()[:16]
 
     # Check if already exists
     if instance_id in instances:
@@ -396,9 +410,15 @@ async def provision_instance(request: ProvisionRequest):
         # outputs = run_terraform(tf_config)
         # For demo, use placeholder outputs
         outputs = {
-            "cluster_endpoint": {"value": f"https://{request.instance_name}.eks.amazonaws.com"},
-            "database_endpoint": {"value": f"{request.instance_name}-db.rds.amazonaws.com"},
-            "redis_endpoint": {"value": f"{request.instance_name}-redis.cache.amazonaws.com"},
+            "cluster_endpoint": {
+                "value": f"https://{request.instance_name}.eks.amazonaws.com"
+            },
+            "database_endpoint": {
+                "value": f"{request.instance_name}-db.rds.amazonaws.com"
+            },
+            "redis_endpoint": {
+                "value": f"{request.instance_name}-redis.cache.amazonaws.com"
+            },
         }
 
         # Step 3: Deploy to Kubernetes

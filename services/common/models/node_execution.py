@@ -107,7 +107,6 @@ class NodeExecution(Base):
 # Pydantic models
 
 
-
 class NodeExecutionCreate(BaseModel):
     """API model for creating a node execution"""
 

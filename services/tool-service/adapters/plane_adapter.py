@@ -41,7 +41,9 @@ class PlaneAdapter:
         """Make authenticated API request."""
         url = f"{self.base_url}/api/v1/{endpoint}"
 
-        response = requests.request(method=method, url=url, headers=self.headers, timeout=30, **kwargs)
+        response = requests.request(
+            method=method, url=url, headers=self.headers, timeout=30, **kwargs
+        )
 
         response.raise_for_status()
         return response.json() if response.content else {}
@@ -78,11 +80,15 @@ class PlaneAdapter:
             "network": network,
         }
 
-        return self._request("POST", f"workspaces/{self.workspace_slug}/projects/", json=data)
+        return self._request(
+            "POST", f"workspaces/{self.workspace_slug}/projects/", json=data
+        )
 
     def get_project(self, project_id: str) -> dict[str, Any]:
         """Get project details."""
-        return self._request("GET", f"workspaces/{self.workspace_slug}/projects/{project_id}/")
+        return self._request(
+            "GET", f"workspaces/{self.workspace_slug}/projects/{project_id}/"
+        )
 
     def list_projects(self) -> list[dict[str, Any]]:
         """List all projects in workspace."""
@@ -226,7 +232,9 @@ class PlaneAdapter:
             json=data,
         )
 
-    def add_issue_to_cycle(self, project_id: str, cycle_id: str, issue_id: str) -> dict[str, Any]:
+    def add_issue_to_cycle(
+        self, project_id: str, cycle_id: str, issue_id: str
+    ) -> dict[str, Any]:
         """Add an issue to a cycle."""
         return self._request(
             "POST",
@@ -283,7 +291,9 @@ class PlaneAdapter:
 
     def list_states(self, project_id: str) -> list[dict[str, Any]]:
         """List all workflow states."""
-        return self._request("GET", f"workspaces/{self.workspace_slug}/projects/{project_id}/states/")
+        return self._request(
+            "GET", f"workspaces/{self.workspace_slug}/projects/{project_id}/states/"
+        )
 
     def create_state(
         self,
@@ -309,7 +319,9 @@ class PlaneAdapter:
     # Label Management
     # ============================================================================
 
-    def create_label(self, project_id: str, name: str, color: str = "#3f76ff") -> dict[str, Any]:
+    def create_label(
+        self, project_id: str, name: str, color: str = "#3f76ff"
+    ) -> dict[str, Any]:
         """Create an issue label."""
         data = {
             "name": name,
@@ -353,7 +365,9 @@ class PlaneAdapter:
             "role": role,
         }
 
-        return self._request("POST", f"workspaces/{self.workspace_slug}/invitations/", json=data)
+        return self._request(
+            "POST", f"workspaces/{self.workspace_slug}/invitations/", json=data
+        )
 
     # ============================================================================
     # Analytics
@@ -361,13 +375,17 @@ class PlaneAdapter:
 
     def get_project_analytics(self, project_id: str) -> dict[str, Any]:
         """Get project analytics and metrics."""
-        return self._request("GET", f"workspaces/{self.workspace_slug}/projects/{project_id}/analytics/")
+        return self._request(
+            "GET", f"workspaces/{self.workspace_slug}/projects/{project_id}/analytics/"
+        )
 
     # ============================================================================
     # Utility Methods
     # ============================================================================
 
-    def bulk_create_issues(self, project_id: str, issues: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    def bulk_create_issues(
+        self, project_id: str, issues: list[dict[str, Any]]
+    ) -> list[dict[str, Any]]:
         """
         Bulk create multiple issues.
 
@@ -390,7 +408,9 @@ class PlaneAdapter:
 
         return created_issues
 
-    def setup_project_from_template(self, name: str, identifier: str, template: str = "agile") -> dict[str, Any]:
+    def setup_project_from_template(
+        self, name: str, identifier: str, template: str = "agile"
+    ) -> dict[str, Any]:
         """
         Setup project from template with default states and labels.
 

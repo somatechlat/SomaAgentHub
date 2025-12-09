@@ -14,6 +14,7 @@ app = FastAPI(
 
 from services.common.opa_client import get_opa_client
 
+
 class EvalRequest(BaseModel):
     session_id: str
     tenant: str
@@ -22,9 +23,11 @@ class EvalRequest(BaseModel):
     role: str
     metadata: dict[str, Any] = Field(default_factory=dict)
 
+
 class EvalResponse(BaseModel):
     allowed: bool
     reasons: list[str]
+
 
 @app.post("/v1/evaluate", response_model=EvalResponse)
 async def evaluate(req: EvalRequest):
@@ -33,43 +36,46 @@ async def evaluate(req: EvalRequest):
     Real implementation using OPAClient.
     """
     client = get_opa_client()
-    
+
     # Construct input for OPA
     input_data = {
         "user": req.user,
         "tenant": req.tenant,
-        "action": "evaluate_prompt", # Example action
+        "action": "evaluate_prompt",  # Example action
         "resource": "llm",
         "context": {
             "prompt": req.prompt,
             "role": req.role,
             "metadata": req.metadata,
-            "session_id": req.session_id
-        }
+            "session_id": req.session_id,
+        },
     }
-    
+
     try:
         # Call OPA
         # Assuming a default policy path for prompt evaluation
         result = await client.evaluate_policy(
-            policy_path="somagent/prompt_policy",
-            input_data=input_data
+            policy_path="somagent/prompt_policy", input_data=input_data
         )
-        
+
         allowed = result.get("allowed", False)
         reasons = result.get("reasons", [])
         if not allowed and not reasons:
             reasons = ["Policy denied request"]
-            
+
         return EvalResponse(allowed=allowed, reasons=reasons)
-        
+
     except Exception as e:
         # Fail closed on error
-        return EvalResponse(allowed=False, reasons=[f"Policy evaluation failed: {str(e)}"])
+        return EvalResponse(
+            allowed=False, reasons=[f"Policy evaluation failed: {str(e)}"]
+        )
+
 
 @app.get("/health")
 def health() -> dict[str, str]:
     return {"status": "healthy", "service": "policy-engine", "backend": "opa"}
+
 
 @app.get("/metrics")
 def metrics() -> Response:

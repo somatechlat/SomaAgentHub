@@ -79,7 +79,9 @@ if str(_APP_DIR) not in sys.path:
     def test_budget_policy_cases(payload, expect):
         result = evaluate_locally(payload)
         for k, v in expect.items():
-            assert result[k] == v, f"Expected {k} == {v} got {result[k]} for payload {payload}"
+            assert (
+                result[k] == v
+            ), f"Expected {k} == {v} got {result[k]} for payload {payload}"
 
         # Sanity: allow_pricing matches conjunction logic
         conj = all(
