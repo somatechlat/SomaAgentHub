@@ -1,0 +1,156 @@
+# Implementation Plan
+
+## Production Refactoring Tasks
+
+- [x] 1. Fix Common Module Violations
+  - [x] 1.1 Remove "Shim" terminology from services/common/__init__.py docstring
+    - Replace "Shim" with "Compatibility layer" or similar production-appropriate term
+    - _Requirements: 3.1, 3.2_
+  - [x] 1.2 Remove hardcoded MinIO credentials from services/common/minio_client.py
+    - Replace `"minioadmin"` defaults with empty string defaults
+    - Log warning when credentials not configured
+    - _Requirements: 8.1, 8.2, 5.3_
+  - [x] 1.3 Remove hardcoded JWT fallback from services/common/config/base_config.py
+    - Remove `"dev-secret-not-for-production"` fallback
+    - Return empty string and log warning when JWT_SECRET not set
+    - _Requirements: 8.4, 5.4_
+  - [x] 1.4 Fix services/common/memory_gateway.py incomplete implementation
+    - Update RedisClient and QdrantClient instantiation to use factory functions
+    - Use get_redis_client() and get_qdrant_client() instead of direct instantiation
+    - _Requirements: 7.1, 7.2_
+  - [x] 1.5 Remove hardcoded region default from services/common/audit_logger.py
+    - Load region from resolve_env("AWS_REGION", "us-east-1")
+    - _Requirements: 3.3, 5.2_
+  - [x] 1.6 Write property test for configuration security
+    - **Property 6: Configuration Security**
+    - **Validates: Requirements 3.3, 3.4, 8.2, 8.3**
+
+- [x] 2. Standardize Health Check Implementations
+  - [x] 2.1 Create standardized health check module in services/common/health_standard.py
+    - Implement /health endpoint returning {"status": "healthy|degraded|unhealthy", "service": "<name>"}
+    - Implement /healthz endpoint with dependency checks
+    - Implement /metrics endpoint using prometheus_client
+    - _Requirements: 4.1, 4.2, 4.3, 4.4_
+  - [x] 2.2 Update memory-gateway health endpoints to use standard format
+    - Ensure /health returns JSON with status and service fields
+    - Ensure /healthz returns dependency statuses (kv_store, vector_store)
+    - _Requirements: 4.2, 4.3_
+  - [x] 2.3 Update billing-service health endpoints to use standard format
+    - Add /healthz endpoint with Stripe connectivity check
+    - _Requirements: 4.2, 4.3_
+  - [x] 2.4 Update evolution-engine health endpoints to use standard format
+    - Report llm_enabled status in health response
+    - _Requirements: 4.2, 6.2_
+  - [x] 2.5 Update voice-interface health endpoints to use standard format
+    - Report openai_configured status
+    - _Requirements: 4.2, 6.4_
+  - [x] 2.6 Update data-layer health endpoints to use standard format
+    - Report enabled status and database connectivity
+    - _Requirements: 4.2, 6.1_
+  - [x] 2.7 Update self-provisioning health endpoints to use standard format
+    - Report terraform_enabled status
+    - _Requirements: 4.2, 6.3_
+  - [x] 2.8 Update token-estimator health endpoints to use standard format
+    - _Requirements: 4.2_
+  - [x] 2.9 Write property test for health endpoint consistency
+    - **Property 2: Health Endpoint Consistency**
+    - **Validates: Requirements 4.1, 4.2**
+  - [x] 2.10 Write property test for detailed health check structure
+    - **Property 3: Detailed Health Check Structure**
+    - **Validates: Requirements 4.3**
+  - [x] 2.11 Write property test for Prometheus metrics format
+    - **Property 4: Prometheus Metrics Format**
+    - **Validates: Requirements 4.4**
+
+- [x] 3. Checkpoint - Ensure all tests pass
+  - Ensure all tests pass, ask the user if questions arise.
+
+- [x] 4. Implement Graceful Degradation for Optional Services
+  - [x] 4.1 Verify evolution-engine graceful degradation
+    - Confirm SERVICE_ENABLED flag based on OPENAI_API_KEY
+    - Confirm rule-based fallback when LLM unavailable
+    - _Requirements: 6.2_
+  - [x] 4.2 Verify voice-interface graceful degradation
+    - Confirm SERVICE_ENABLED flag based on OPENAI_API_KEY
+    - Confirm 503 response with enablement instructions when disabled
+    - _Requirements: 6.4, 6.5_
+  - [x] 4.3 Verify data-layer graceful degradation
+    - Confirm DATA_LAYER_ENABLED check
+    - Confirm 503 response with enablement instructions when disabled
+    - _Requirements: 6.1, 6.5_
+  - [x] 4.4 Verify self-provisioning graceful degradation
+    - Confirm TERRAFORM_ENABLED check
+    - Confirm simulated endpoints returned when disabled
+    - _Requirements: 6.3, 6.5_
+  - [x] 4.5 Write property test for graceful degradation
+    - **Property 5: Graceful Degradation for Optional Services**
+    - **Validates: Requirements 6.1, 6.2, 6.3, 6.4, 6.5**
+  - [x] 4.6 Write property test for service enable flag behavior
+    - **Property 8: Service Enable Flag Behavior**
+    - **Validates: Requirements 3.5, 6.5**
+
+- [x] 5. Standardize Error Handling
+  - [x] 5.1 Create error handling utilities in services/common/errors.py
+    - Define standard error response format
+    - Create helper functions for 502, 503, 500 responses
+    - _Requirements: 9.2, 9.3, 9.5_
+  - [x] 5.2 Update memory-gateway error handling
+    - Use HTTPException with proper status codes
+    - Return 503 for Qdrant/Redis unavailable
+    - _Requirements: 9.2, 9.3_
+  - [x] 5.3 Update billing-service error handling
+    - Return 503 when Stripe not configured
+    - Return 502 when pricing service unavailable
+    - _Requirements: 9.2, 9.3_
+  - [x] 5.4 Write property test for error response consistency
+    - **Property 7: Error Response Consistency**
+    - **Validates: Requirements 9.2, 9.3, 9.4, 9.5**
+
+- [x] 6. Checkpoint - Ensure all tests pass
+  - All 39 property tests pass
+
+- [x] 7. Memory Gateway Round-Trip Verification
+  - [x] 7.1 Verify memory-gateway remember/recall round-trip
+    - Confirm stored values can be retrieved unchanged
+    - Test with various value types (strings, dicts, lists)
+    - _Requirements: 1.2, 1.4_
+  - [x] 7.2 Write property test for memory round-trip consistency
+    - **Property 1: Memory Round-Trip Consistency**
+    - **Validates: Requirements 1.2, 1.4**
+
+- [x] 8. Verify Recall Service Deprecation
+  - [x] 8.1 Verify recall-service forwards to memory-gateway
+    - Confirm /v1/recall POST forwards to /v1/remember
+    - Confirm /v1/recall/{key} GET forwards to /v1/recall/{key}
+    - _Requirements: 1.3_
+  - [x] 8.2 Add deprecation headers to recall-service responses
+    - Add Deprecation header to all responses (RFC 8594)
+    - Add Sunset header with future removal date (2025-06-01)
+    - _Requirements: 1.3_
+
+- [x] 9. Update Service Documentation
+  - [x] 9.1 Update memory-gateway module docstring
+    - Document all environment variables
+    - Document graceful degradation behavior
+    - _Requirements: 10.2, 10.3_
+  - [x] 9.2 Update billing-service module docstring
+    - Document STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET, PRICING_SERVICE_URL
+    - _Requirements: 10.3_
+  - [x] 9.3 Update evolution-engine module docstring
+    - Document OPENAI_API_KEY requirement and fallback behavior
+    - _Requirements: 10.2, 10.3_
+  - [x] 9.4 Update voice-interface module docstring
+    - Document OPENAI_API_KEY requirement
+    - _Requirements: 10.2, 10.3_
+  - [x] 9.5 Update data-layer module docstring
+    - Document DATA_LAYER_ENABLED and database configuration
+    - _Requirements: 10.2, 10.3_
+  - [x] 9.6 Update self-provisioning module docstring
+    - Document TERRAFORM_ENABLED and tier configurations
+    - _Requirements: 10.2, 10.3_
+  - [x] 9.7 Ensure all FastAPI apps have proper tags and descriptions
+    - Review and update OpenAPI metadata for all services
+    - _Requirements: 10.4_
+
+- [x] 10. Final Checkpoint - Ensure all tests pass
+  - All 51 property tests pass (6.76s execution time)
