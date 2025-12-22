@@ -80,6 +80,12 @@ jobs:
             fi
           done
 
+      # Tier-0 docker-compose smoke test (brings up minimal stack, runs health checks, tears down)
+      - name: Smoke test Tier-0 docker-compose stack
+        run: |
+          chmod +x ./scripts/smoke_compose.sh
+          ./scripts/smoke_compose.sh
+
       # Deploy the chart to a temporary release and run Helm tests
       - name: Install Helm chart (temporary release)
         run: |

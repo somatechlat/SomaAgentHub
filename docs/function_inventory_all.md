@@ -1,0 +1,1407 @@
+- ./services/data-layer/main.py:92:    def __init__(self):
+- ./somabrain/geometry.py:26:    def __init__(self, config: GeodesicConfig | None = None) -> None:
+- ./somabrain/geometry.py:29:    def compute_scores(
+- ./somabrain/geometry.py:48:    def _normalize(
+- ./somabrain/geometry.py:58:    def _dot(a: Sequence[float], b: Sequence[float]) -> float:
+- ./somabrain/memory_client.py:45:    def __init__(
+- ./somabrain/memory_client.py:85:    def set_geodesic_default(self, enabled: bool) -> None:
+- ./somabrain/memory_client.py:90:    def _score_results(
+- ./somabrain/memory_client.py:103:    def _cosine_scores(
+- ./somabrain/memory_client.py:121:    def dot(a: Sequence[float], b: Sequence[float]) -> float:
+- ./somabrain/memory_client.py:124:    def norm(a: Sequence[float]) -> float:
+- ./somabrain/memory_client.py:137:    def _extract_embedding(hit: Any) -> Sequence[float]:
+- ./services/gateway-api/app/dependencies.py:10:def request_context_dependency() -> RequestContext:
+- ./services/gateway-api/app/dependencies.py:20:def moderation_guard_dependency() -> ModerationGuard:
+- ./services/voice-interface/app.py:54:def get_openai_client():
+- ./services/voice-interface/app.py:211:        def audio_generator():
+- ./services/voice-interface/app.py:295:def list_voices() -> dict[str, list[dict[str, str]]]:
+- ./services/voice-interface/app.py:310:def health_check() -> dict[str, Any]:
+- ./services/voice-interface/app.py:322:def healthz() -> dict[str, Any]:
+- ./services/voice-interface/app.py:347:def root() -> dict[str, Any]:
+- ./services/analytics-service/tests/test_benchmarks.py:21:        def setup_function() -> None:
+- ./services/analytics-service/tests/test_benchmarks.py:30:            def test_record_benchmark_run_and_scoreboard() -> None:
+- ./services/analytics-service/tests/test_benchmarks.py:66:                def test_rejects_non_numeric_metrics() -> None:
+- ./services/analytics-service/tests/test_benchmarks.py:81:                    def test_agent_one_sight_dashboard_combines_sections() -> None:
+- ./services/orchestrator/alembic/versions/add_all_srs_models_part2.py:20:def upgrade():
+- ./services/orchestrator/alembic/versions/add_all_srs_models_part2.py:606:def downgrade():
+- ./services/gateway-api/app/services/event_service.py:16:    def __init__(self, session: AsyncSession, event_publisher: EventPublisher):
+- ./services/orchestrator/alembic/versions/add_all_srs_models_part3.py:20:def upgrade():
+- ./services/orchestrator/alembic/versions/add_all_srs_models_part3.py:584:def downgrade():
+- ./services/evolution-engine/app.py:50:def get_openai_client():
+- ./services/evolution-engine/app.py:113:def analyze_telemetry(capsule_id: str, time_window_days: int = 30) -> CapsuleMetrics:
+- ./services/evolution-engine/app.py:169:def generate_rule_based_suggestions(metrics: CapsuleMetrics) -> list[ImprovementSuggestion]:
+- ./services/evolution-engine/app.py:225:def generate_llm_suggestions(
+- ./services/evolution-engine/app.py:303:def record_telemetry(telemetry: ExecutionTelemetry) -> dict[str, str]:
+- ./services/evolution-engine/app.py:311:def get_capsule_metrics(capsule_id: str, days: int = 30) -> CapsuleMetrics:
+- ./services/evolution-engine/app.py:317:def evolve_capsule(request: EvolutionRequest) -> list[ImprovementSuggestion]:
+- ./services/evolution-engine/app.py:332:def get_pending_suggestions(capsule_id: str) -> list[ImprovementSuggestion]:
+- ./services/evolution-engine/app.py:338:def health_check() -> dict[str, Any]:
+- ./services/evolution-engine/app.py:351:def healthz() -> dict[str, Any]:
+- ./services/evolution-engine/app.py:372:def root() -> dict[str, Any]:
+- ./services/orchestrator/alembic/versions/add_hitl_models.py:22:def upgrade():
+- ./services/orchestrator/alembic/versions/add_hitl_models.py:138:def downgrade():
+- ./services/analytics-service/app/main.py:24:    def healthcheck() -> dict[str, str]:
+- ./services/analytics-service/app/main.py:28:    def metrics() -> Response:
+- ./services/gateway-api/app/main.py:48:def _attach_routes(app: FastAPI) -> None:
+- ./services/gateway-api/app/main.py:79:    def metrics() -> Response:
+- ./services/gateway-api/app/main.py:83:    def root() -> dict[str, str]:
+- ./services/orchestrator/workflows/activities.py:20:def _ensure_endpoint(url: str, expected_path: str) -> str:
+- ./services/orchestrator/workflows/activities.py:28:def _coerce_positive_int(value: Any, field_name: str) -> int:
+- ./services/orchestrator/workflows/activities.py:40:def _coerce_non_negative_int(value: Any, field_name: str) -> int:
+- ./services/orchestrator/workflows/activities.py:52:def _normalize_command(command: Any) -> list[str]:
+- ./services/orchestrator/workflows/activities.py:72:def _normalize_env(env_mapping: Mapping[Any, Any]) -> dict[str, str]:
+- ./services/identity-service/tests/test_identity_flows.py:8:def test_user_token_flow(client) -> None:
+- ./services/identity-service/tests/test_identity_flows.py:59:    def test_training_lock_flow(client) -> None:
+- ./services/policy-engine/tests/test_evaluate_endpoint.py:18:def test_evaluate_endpoint_denied_by_default():
+- ./services/policy-engine/tests/test_evaluate_endpoint.py:27:    def test_evaluate_endpoint_allowed_when_configured():
+- ./services/orchestrator/alembic/versions/add_all_srs_models_part1.py:31:def upgrade():
+- ./services/orchestrator/alembic/versions/add_all_srs_models_part1.py:440:def downgrade():
+- ./services/identity-service/tests/conftest.py:27:def clickhouse_container() -> Generator[ClickHouseContainer, None, None]:
+- ./services/identity-service/tests/conftest.py:44:def redis_container(
+- ./services/identity-service/tests/conftest.py:58:def client(
+- ./services/orchestrator/tests/test_health_analytics.py:4:def test_root_health(api_client):
+- ./services/orchestrator/tests/test_health_analytics.py:12:def test_metrics_endpoint(api_client):
+- ./services/agent-spawner/app/main.py:50:  def _load_kube_config() -> None:
+- ./services/agent-spawner/app/main.py:69:      def _ensure_namespace(namespace: str) -> None:
+- ./services/agent-spawner/app/main.py:89:          def _create_job(
+- ./services/agent-spawner/app/main.py:288:  def _delete_k8s_resources(*, namespace: str, job_name: str | None, deployment_name: str | None) -> None:
+- ./services/orchestrator/alembic/versions/add_multi_tenancy.py:28:def upgrade():
+- ./services/orchestrator/alembic/versions/add_multi_tenancy.py:190:def downgrade():
+- ./services/policy-engine/tests/test_policy_app.py:15:def client() -> TestClient:
+- ./services/policy-engine/tests/test_policy_app.py:20:def test_evaluate_allowed(client: TestClient) -> None:
+- ./services/policy-engine/tests/test_policy_app.py:38:def test_evaluate_forbidden(client: TestClient) -> None:
+- ./services/policy-engine/tests/test_policy_app.py:57:def test_evaluate_sync_wrapper() -> None:
+- ./services/policy-engine/tests/test_policy_app.py:73:def test_evaluate_forbidden_term(client: TestClient) -> None:
+- ./services/policy-engine/tests/test_policy_app.py:90:def test_list_policies(client: TestClient) -> None:
+- ./services/policy-engine/tests/test_policy_app.py:111:def test_constitution_cache_behavior():
+- ./services/policy-engine/tests/test_policy_app.py:115:def test_deterministic_evaluation(
+- ./services/policy-engine/tests/test_policy_app.py:132:def test_metrics_labels(
+- ./services/analytics-service/app/api/routes.py:54:        def _calculate_benchmark_score(metrics: dict[str, float]) -> float:
+- ./services/analytics-service/app/api/routes.py:85:                        def record_benchmark_run(payload: BenchmarkRunRequest) -> BenchmarkRunResponse:
+- ./services/analytics-service/app/api/routes.py:127:                                        def latest_benchmarks(
+- ./services/analytics-service/app/api/routes.py:158:                                                def benchmark_scoreboard(
+- ./services/analytics-service/app/api/routes.py:172:                                                    def agent_one_sight_dashboard(
+- ./services/analytics-service/app/api/routes.py:227:                                                                def record_capsule_run(payload: CapsuleRunRequest) -> dict[str, str]:
+- ./services/analytics-service/app/api/routes.py:249:                                                                        def capsule_dashboard(
+- ./services/analytics-service/app/api/routes.py:298:                                                                                                            def detect_anomalies() -> AnomalyResponse:
+- ./services/analytics-service/app/api/routes.py:319:            def scan_anomalies() -> AnomalyResponse:
+- ./services/analytics-service/app/api/routes.py:333:                    def run_persona_regression(
+- ./services/analytics-service/app/api/routes.py:354:                        def transition_persona_regression(
+- ./services/analytics-service/app/api/routes.py:385:                                                def list_regressions() -> list[PersonaRegressionResponse]:
+- ./services/analytics-service/app/api/routes.py:392:                                                    def due_regressions() -> list[PersonaRegressionResponse]:
+- ./services/analytics-service/app/api/routes.py:403:                                                        def create_governance_report(
+- ./services/analytics-service/app/api/routes.py:419:                                                            def list_governance_reports(
+- ./services/analytics-service/app/api/routes.py:427:                                                                def notification_feed() -> NotificationFeed:
+- ./services/analytics-service/app/api/routes.py:437:                                                                    def record_kamachiq_run(payload: KamachiqRunRequest) -> KamachiqRunResponse:
+- ./services/analytics-service/app/api/routes.py:453:                                                                        def list_kamachiq_runs(tenant_id: str | None = None) -> list[KamachiqRunResponse]:
+- ./services/analytics-service/app/api/routes.py:459:                                                                            def kamachiq_summary() -> dict[str, Any]:
+- ./services/analytics-service/app/api/routes.py:468:                                                                                    def record_blocked_deliverable(data: dict[str, str]) -> dict[str, str]:
+- ./services/analytics-service/app/api/routes.py:477:                                                                                        def record_resolved_deliverable(data: dict[str, str]) -> dict[str, str]:
+- ./services/analytics-service/app/api/routes.py:486:                                                                                            def record_billing_event(payload: BillingEventRequest) -> dict[str, str]:
+- ./services/analytics-service/app/api/routes.py:513:                                                                                                    def billing_ledger(tenant_id: str | None = None) -> BillingLedgerResponse:
+- ./services/analytics-service/app/api/routes.py:542:                                                                                                            def record_disaster_drill(
+- ./services/analytics-service/app/api/routes.py:569:                                                                                                                    def list_disaster_drills() -> list[DisasterRecoveryDrillResponse]:
+- ./services/analytics-service/app/api/routes.py:578:                                                                                                                        def disaster_drill_summary() -> dict[str, Any]:
+- ./services/analytics-service/app/api/routes.py:590:                                                                                                                                def export_capsule_runs(
+- ./services/analytics-service/app/api/routes.py:620:                                                                                                                                            def export_billing_ledger(
+- ./services/identity-service/app/main.py:132:def create_app() -> FastAPI:
+- ./services/orchestrator/tests/test_static_templates_engine.py:10:def test_template_root_exists():
+- ./services/orchestrator/tests/test_static_templates_engine.py:14:def test_render_fastapi_tmp(tmp_path: Path):
+- ./services/orchestrator/tests/test_static_templates_engine.py:25:def test_render_helm_values(tmp_path: Path):
+- ./services/orchestrator/alembic/env.py:32:def run_migrations_offline() -> None:
+- ./services/orchestrator/alembic/env.py:75:def do_run_migrations(connection):
+- ./services/agent-spawner/app/metrics.py:45:    def set_agent_status_gauge(status: str, value: int) -> None:
+- ./services/policy-engine/tests/test_policy_engine.py:23:def test_health_endpoint():
+- ./services/policy-engine/tests/test_policy_engine.py:29:def test_allow_endpoint_denied_by_default():
+- ./services/policy-engine/tests/test_policy_engine.py:40:def test_allow_endpoint_allowed_when_configured():
+- ./services/policy-engine/tests/test_policy_engine.py:59:def test_metrics_endpoint():
+- ./services/gateway-api/app/api/routes.py:26:def read_status(
+- ./services/gateway-api/app/api/routes.py:82:def _build_forward_headers(ctx: RequestContext) -> dict[str, str]:
+- ./services/policy-engine/tests/test_budget_policy.py:79:    def test_budget_policy_cases(payload, expect):
+- ./services/identity-service/app/api/routes.py:44:def _not_found() -> HTTPException:
+- ./services/identity-service/app/api/routes.py:49:def openid_configuration() -> dict:
+- ./services/orchestrator/tests/core/test_framework_router.py:11:def test_detect_pattern_explicit() -> None:
+- ./services/orchestrator/tests/core/test_framework_router.py:21:def test_detect_pattern_graph_routes_to_langgraph() -> None:
+- ./services/orchestrator/tests/core/test_framework_router.py:27:def test_detect_pattern_manager_and_workers() -> None:
+- ./services/orchestrator/tests/core/test_framework_router.py:39:def test_detect_pattern_defaults_to_group_chat() -> None:
+- ./services/orchestrator/tests/core/test_framework_router.py:45:def test_select_framework() -> None:
+- ./services/orchestrator/tests/core/test_framework_router.py:58:def test_route_end_to_end() -> None:
+- ./services/analytics-service/app/observability.py:31:    def __init__(
+- ./services/analytics-service/app/observability.py:58:    def setup_tracing(self) -> None:
+- ./services/analytics-service/app/observability.py:74:    def setup_metrics(self) -> None:
+- ./services/analytics-service/app/observability.py:97:    def instrument_fastapi(self, app) -> None:
+- ./services/analytics-service/app/observability.py:102:    def setup_all(self, app=None) -> None:
+- ./services/analytics-service/app/observability.py:115:    def get_meter(name: str) -> metrics.Meter:
+- ./services/analytics-service/app/observability.py:120:    def get_tracer(name: str) -> trace.Tracer:
+- ./services/analytics-service/app/observability.py:126:    def setup_observability(
+- ./services/orchestrator/tests/conftest.py:22:def api_client():
+- ./services/orchestrator/tests/conftest.py:40:def sync_db_session() -> Generator[Session, None, None]:
+- ./services/gateway-api/app/somagent_secrets.py:16:def load_secret(env_var: str) -> str:
+- ./services/policy-engine/app/policy_app.py:76:def health() -> dict[str, str]:
+- ./services/policy-engine/app/policy_app.py:81:def metrics() -> Response:
+- ./services/identity-service/app/observability.py:29:    def __init__(
+- ./services/identity-service/app/observability.py:56:    def setup_tracing(self) -> None:
+- ./services/identity-service/app/observability.py:81:    def setup_metrics(self) -> None:
+- ./services/identity-service/app/observability.py:106:    def instrument_fastapi(self, app) -> None:
+- ./services/identity-service/app/observability.py:111:    def setup_all(self, app=None) -> None:
+- ./services/identity-service/app/observability.py:124:def get_meter(name: str) -> metrics.Meter:
+- ./services/identity-service/app/observability.py:129:def get_tracer(name: str) -> trace.Tracer:
+- ./services/identity-service/app/observability.py:135:def setup_observability(
+- ./services/static-templates/fastapi/app/main.py:7:def health_live() -> dict:
+- ./services/static-templates/fastapi/app/main.py:11:    def health_ready() -> dict:
+- ./services/analytics-service/app/core/config.py:23:    def get_settings() -> Settings:
+- ./services/policy-engine/app/core/opa.py:12:def load_budget_policy() -> str:
+- ./services/policy-engine/app/core/opa.py:22:def evaluate_locally(payload: dict[str, Any]) -> dict[str, Any]:
+- ./services/policy-engine/app/api/routes.py:32:def _to_violation_model(payload: dict[str, str | float]) -> PolicyViolationModel:
+- ./services/policy-engine/app/core/rule_store.py:60:def rules_to_dicts(rules: list[PolicyRule]) -> list[dict[str, Any]]:
+- ./templates/fastapi/main.py:7:def health():
+- ./templates/fastapi/main.py:11:    def root():
+- ./services/gateway-api/app/observability.py:29:    def __init__(
+- ./services/gateway-api/app/observability.py:56:    def setup_tracing(self) -> None:
+- ./services/gateway-api/app/observability.py:81:    def setup_metrics(self) -> None:
+- ./services/gateway-api/app/observability.py:106:    def instrument_fastapi(self, app) -> None:
+- ./services/gateway-api/app/observability.py:111:    def _setup_loki_logging(self) -> None:
+- ./services/gateway-api/app/observability.py:134:    def setup_all(self, app=None) -> None:
+- ./services/gateway-api/app/observability.py:148:def get_meter(name: str) -> metrics.Meter:
+- ./services/gateway-api/app/observability.py:153:def get_tracer(name: str) -> trace.Tracer:
+- ./services/gateway-api/app/observability.py:159:def setup_observability(
+- ./services/identity-service/app/core/storage.py:17:    def __init__(self, client: Redis, namespace: str = "identity") -> None:
+- ./services/identity-service/app/core/storage.py:26:    def _user_key(self, user_id: str) -> str:
+- ./services/identity-service/app/core/storage.py:30:    def _users_index(self) -> str:
+- ./services/identity-service/app/core/storage.py:33:    def _training_key(self, tenant_id: str) -> str:
+- ./services/identity-service/app/core/storage.py:36:    def _token_key(self, jti: str) -> str:
+- ./services/identity-service/app/core/storage.py:39:    def _constitution_key(self, tenant_id: str) -> str:
+- ./services/identity-service/app/core/storage.py:135:def utc_from_timestamp(timestamp: int | float) -> datetime:
+- ./services/policy-engine/app/config.py:19:def _as_bool(val: str | None, default: bool) -> bool:
+- ./services/policy-engine/app/config.py:47:def get_service_url(service_name: str) -> str:
+- ./services/policy-engine/app/config.py:57:def get_env_var(name: str, default=None):
+- ./services/policy-engine/app/config.py:71:    def from_env(cls):
+- ./services/policy-engine/app/config.py:74:    def __init__(self):
+- ./services/policy-engine/app/config.py:85:def get_settings():
+- ./services/constitution-service/tests/test_constitution.py:14:        def client():
+- ./services/constitution-service/tests/test_constitution.py:19:                def _load_bundle_from_disk() -> dict:
+- ./services/constitution-service/tests/test_constitution.py:22:                    def test_constitution_summary_matches_bundle(client):
+- ./services/constitution-service/tests/test_constitution.py:30:                        def test_constitution_endpoint_returns_verified_document(client):
+- ./services/constitution-service/tests/test_constitution.py:37:                            def test_hash_endpoint(client):
+- ./services/constitution-service/tests/test_constitution.py:44:                                def test_validation_endpoint_detects_tampering(client):
+- ./services/analytics-service/app/core/store.py:102:    def __init__(self) -> None:
+- ./services/analytics-service/app/core/store.py:114:    def record_run(self, run: CapsuleRun) -> None:
+- ./services/analytics-service/app/core/store.py:117:    def register_regression(self, persona_id: str, tenant_id: str) -> PersonaRegression:
+- ./services/analytics-service/app/core/store.py:125:    def transition_regression(
+- ./services/analytics-service/app/core/store.py:152:    def store_governance_report(self, report: GovernanceReport) -> None:
+- ./services/analytics-service/app/core/store.py:155:    def list_regressions(self) -> list[PersonaRegression]:
+- ./services/analytics-service/app/core/store.py:158:    def list_runs(self) -> list[CapsuleRun]:
+- ./services/analytics-service/app/core/store.py:161:    def list_reports(self, tenant_id: str | None = None) -> list[GovernanceReport]:
+- ./services/analytics-service/app/core/store.py:166:    def log_notification(self, tenant_id: str, message: str) -> None:
+- ./services/analytics-service/app/core/store.py:175:    def record_kamachiq_run(self, run: KamachiqRun) -> None:
+- ./services/analytics-service/app/core/store.py:178:    def list_kamachiq_runs(self, tenant_id: str | None = None) -> list[KamachiqRun]:
+- ./services/analytics-service/app/core/store.py:183:    def kamachiq_summary(self) -> dict[str, Any]:
+- ./services/analytics-service/app/core/store.py:199:    def record_billing_event(self, event: BillingEvent) -> None:
+- ./services/analytics-service/app/core/store.py:202:    def list_billing_events(self, tenant_id: str | None = None) -> list[BillingEvent]:
+- ./services/analytics-service/app/core/store.py:207:    def aggregate_billing(self, tenant_id: str | None = None) -> list[dict[str, Any]]:
+- ./services/analytics-service/app/core/store.py:231:    def record_blocked_deliverable(self, data: dict[str, str]) -> None:
+- ./services/analytics-service/app/core/store.py:234:    def list_blocked_deliverables(
+- ./services/analytics-service/app/core/store.py:243:    def record_resolved_deliverable(self, data: dict[str, str]) -> None:
+- ./services/analytics-service/app/core/store.py:246:    def list_resolved_deliverables(
+- ./services/analytics-service/app/core/store.py:255:    def pending_regressions(
+- ./services/analytics-service/app/core/store.py:275:    def record_drill(self, drill: DisasterRecoveryDrill) -> None:
+- ./services/analytics-service/app/core/store.py:278:    def list_drills(self) -> list[DisasterRecoveryDrill]:
+- ./services/analytics-service/app/core/store.py:281:    def drill_summary(self) -> dict[str, Any]:
+- ./services/analytics-service/app/core/store.py:303:    def record_benchmark(self, result: BenchmarkResult) -> None:
+- ./services/analytics-service/app/core/store.py:306:    def list_benchmarks(
+- ./services/analytics-service/app/core/store.py:321:    def latest_benchmarks(self, limit: int = 20) -> list[BenchmarkResult]:
+- ./services/analytics-service/app/core/store.py:324:    def benchmark_scoreboard(
+- ./services/analytics-service/app/core/store.py:360:    def _avg_metric(items: list[BenchmarkResult], metric: str) -> float:
+- ./services/analytics-service/app/core/store.py:371:    def _persona_key(persona_id: str, tenant_id: str) -> str:
+- ./services/orchestrator/app/services/tool_service.py:30:    def __init__(self, db: AsyncSession):
+- ./services/identity-service/app/core/audit.py:24:    def __init__(self, settings: IdentitySettings) -> None:
+- ./services/identity-service/app/core/audit.py:50:    def _emit_sync(self, event_type: str, payload: dict[str, Any]) -> None:
+- ./services/identity-service/app/core/audit.py:81:    def _map_event(
+- ./services/self-provisioning/app.py:275:def generate_terraform_config(request: ProvisionRequest) -> str:
+- ./services/self-provisioning/app.py:298:def generate_kubernetes_manifest(
+- ./services/self-provisioning/app.py:319:def run_terraform(config: str, action: str = "apply") -> dict[str, Any]:
+- ./services/self-provisioning/app.py:353:def deploy_to_kubernetes(manifest: str, kubeconfig_path: str | None = None):
+- ./services/self-provisioning/app.py:370:def seed_knowledge_base(instance_id: str, knowledge_data: dict[str, Any]):
+- ./services/self-provisioning/app.py:377:def configure_identity(instance_id: str, organization_id: str):
+- ./services/self-provisioning/app.py:383:def initialize_constitution(instance_id: str, organization_id: str):
+- ./services/self-provisioning/app.py:504:def get_instance(instance_id: str):
+- ./services/self-provisioning/app.py:520:def list_instances(organization_id: str | None = None):
+- ./services/self-provisioning/app.py:531:def deprovision_instance(instance_id: str):
+- ./services/self-provisioning/app.py:548:def health_check():
+- ./services/self-provisioning/app.py:562:def healthz():
+- ./services/orchestrator/app/services/memory_service.py:24:    def __init__(self, db: AsyncSession):
+- ./testing-workbench/conftest.py:15:        def test_config() -> dict[str, Any]:
+- ./testing-workbench/conftest.py:33:                    def service_urls(test_config):
+- ./services/policy-engine/app/run_eval_test.py:23:def main() -> None:
+- ./tests/tool_service/test_tool_protocol.py:8:def _load_registry_module() -> types.ModuleType:
+- ./tests/tool_service/test_tool_protocol.py:18:    def test_adapter_protocol_health(tool_name: str):
+- ./services/identity-service/app/core/config.py:15:def load_secret(
+- ./services/identity-service/app/core/config.py:147:    def clickhouse(self):
+- ./services/identity-service/app/core/config.py:170:def get_settings() -> IdentitySettings:
+- ./services/common/vault_client.py:35:    def __init__(
+- ./services/common/vault_client.py:59:    def authenticate_with_k8s(
+- ./services/common/vault_client.py:95:    def authenticate_with_spiffe(self, spiffe_id: str, cert_path: str, key_path: str):
+- ./services/common/vault_client.py:128:    def read_secret(self, path: str, mount_point: str = "secret") -> VaultSecret:
+- ./services/common/vault_client.py:195:    def write_secret(
+- ./services/common/vault_client.py:237:    def delete_secret(self, path: str, mount_point: str = "secret") -> None:
+- ./services/common/vault_client.py:269:    def get_database_credentials(
+- ./services/common/vault_client.py:319:    def renew_lease(self, lease_id: str, increment: int = 3600) -> int:
+- ./services/common/vault_client.py:351:    def revoke_lease(self, lease_id: str) -> None:
+- ./services/common/vault_client.py:381:def get_vault_client() -> VaultClient:
+- ./services/common/vault_client.py:389:def init_vault(role: str, auth_method: str = "kubernetes") -> VaultClient:
+- ./services/gateway-api/app/core/middleware.py:23:    def __init__(self, app) -> None:  # type: ignore[override]
+- ./services/constitution-service/app/main.py:49:        def create_app() -> FastAPI:
+- ./services/constitution-service/app/main.py:124:                        def _record_sync_metrics(tenant: str, hash_value: str) -> None:
+- ./services/orchestrator/app/services/evaluation_service.py:29:    def __init__(self, db: AsyncSession):
+- ./services/identity-service/app/core/key_manager.py:34:    def as_json(self) -> str:
+- ./services/identity-service/app/core/key_manager.py:45:    def from_json(cls, raw: str) -> SigningKey:
+- ./services/identity-service/app/core/key_manager.py:55:    def is_expired(self, at: datetime | None = None) -> bool:
+- ./services/identity-service/app/core/key_manager.py:63:    def __init__(
+- ./services/identity-service/app/core/key_manager.py:78:    def _active_key(self) -> str:
+- ./services/identity-service/app/core/key_manager.py:81:    def _key_entry(self, kid: str) -> str:
+- ./services/identity-service/app/core/key_manager.py:145:    def _should_rotate(self, key: SigningKey) -> bool:
+- ./services/identity-service/app/core/key_manager.py:182:    def _pubkey_to_jwk(self, kid: str, pub: RSAPublicKey) -> dict:
+- ./services/identity-service/app/core/key_manager.py:187:        def b64url_uint(val: int) -> str:
+- ./services/common/qdrant_client.py:37:        def __init__(self, name: str, vector_size: int):
+- ./services/common/qdrant_client.py:43:        def __init__(self, *_, **__):
+- ./services/common/qdrant_client.py:48:                def __init__(self, collections):
+- ./services/common/qdrant_client.py:98:                def __init__(self, count):
+- ./services/common/qdrant_client.py:132:    def __init__(
+- ./services/common/qdrant_client.py:181:                    def __init__(self, size):
+- ./services/common/qdrant_client.py:210:                    def __init__(self, id_, vector, payload):
+- ./services/common/qdrant_client.py:368:def get_qdrant_client() -> QdrantClient:
+- ./services/gateway-api/app/core/otel.py:16:def configure_otel(
+- ./services/policy-engine/app/observability.py:30:    def __init__(
+- ./services/policy-engine/app/observability.py:57:    def setup_tracing(self) -> None:
+- ./services/policy-engine/app/observability.py:82:    def setup_metrics(self) -> None:
+- ./services/policy-engine/app/observability.py:105:    def instrument_fastapi(self, app) -> None:
+- ./services/policy-engine/app/observability.py:110:    def setup_all(self, app=None) -> None:
+- ./services/policy-engine/app/observability.py:123:def get_meter(name: str) -> metrics.Meter:
+- ./services/policy-engine/app/observability.py:128:def get_tracer(name: str) -> trace.Tracer:
+- ./services/policy-engine/app/observability.py:134:def setup_observability(
+- ./services/airflow-service/plugins/soma_temporal.py:17:        def _load_bearer_token() -> str:
+- ./services/airflow-service/plugins/soma_temporal.py:46:                        def __init__(
+- ./services/airflow-service/plugins/soma_temporal.py:69:                            def execute(self, context: Context) -> dict[str, Any]:  # noqa: D401
+- ./services/orchestrator/app/services/role_service.py:29:    def __init__(self, db: AsyncSession):
+- ./services/memory-gateway/tests/test_memory_gateway.py:25:def test_health():
+- ./services/memory-gateway/tests/test_memory_gateway.py:31:def test_remember_and_recall():
+- ./services/memory-gateway/tests/test_memory_gateway.py:46:def test_healthz_endpoint():
+- ./services/memory-gateway/tests/test_memory_gateway.py:57:def test_metrics_endpoint():
+- ./services/common/memory_gateway.py:30:    def __init__(self):
+- ./services/common/memory_gateway.py:37:    def redis(self):
+- ./services/common/memory_gateway.py:45:    def qdrant(self):
+- ./services/common/memory_gateway.py:53:    def llm(self):
+- ./services/common/memory_gateway.py:230:def get_memory_gateway() -> MemoryGateway:
+- ./services/constitution-service/app/api/routes.py:27:        def get_registry(request: Request) -> ConstitutionRegistry:
+- ./services/constitution-service/app/api/routes.py:37:            def get_manifest_signer(request: Request) -> ManifestSigner:
+- ./services/gateway-api/app/core/redis.py:11:def get_redis_client() -> RedisClient:
+- ./scripts/load_testing.py:117:    def generate_script(self, test: LoadTest) -> str:
+- ./scripts/load_testing.py:185:    def _get_stages(self, profile: LoadProfile, max_vus: int, duration: str) -> str:
+- ./scripts/load_testing.py:229:    def _format_thresholds(self, thresholds: dict[str, list[str]]) -> str:
+- ./scripts/load_testing.py:240:    def _format_headers(self, headers: dict[str, str]) -> str:
+- ./scripts/load_testing.py:247:    def generate_all_tests(self) -> dict[str, str]:
+- ./scripts/load_testing.py:261:    def save_script(self, test: LoadTest, output_dir: str = "./load-tests"):
+- ./scripts/load_testing.py:283:    def generate_load_tests():
+- ./services/orchestrator/app/services/blueprint_service.py:26:    def __init__(self, db: AsyncSession):
+- ./services/tool-service/adapters/confluence_adapter.py:23:    def __init__(self, url: str, email: str, api_token: str):
+- ./services/tool-service/adapters/confluence_adapter.py:37:    def _request(self, method: str, endpoint: str, **kwargs) -> Any:
+- ./services/tool-service/adapters/confluence_adapter.py:50:    def create_space(
+- ./services/tool-service/adapters/confluence_adapter.py:68:    def get_space(self, space_key: str) -> dict[str, Any]:
+- ./services/tool-service/adapters/confluence_adapter.py:72:    def list_spaces(self, limit: int = 25) -> list[dict[str, Any]]:
+- ./services/tool-service/adapters/confluence_adapter.py:77:    def delete_space(self, space_key: str):
+- ./services/tool-service/adapters/confluence_adapter.py:86:    def create_page(
+- ./services/tool-service/adapters/confluence_adapter.py:104:    def get_page(
+- ./services/tool-service/adapters/confluence_adapter.py:111:    def update_page(
+- ./services/tool-service/adapters/confluence_adapter.py:126:    def delete_page(self, page_id: str):
+- ./services/tool-service/adapters/confluence_adapter.py:131:    def search_pages(self, cql: str, limit: int = 25) -> list[dict[str, Any]]:
+- ./services/tool-service/adapters/confluence_adapter.py:148:    def upload_attachment(
+- ./services/tool-service/adapters/confluence_adapter.py:172:    def list_attachments(self, page_id: str) -> list[dict[str, Any]]:
+- ./services/tool-service/adapters/confluence_adapter.py:181:    def add_label(self, page_id: str, label: str):
+- ./services/tool-service/adapters/confluence_adapter.py:187:    def get_labels(self, page_id: str) -> list[str]:
+- ./services/tool-service/adapters/confluence_adapter.py:196:    def add_comment(self, page_id: str, comment: str) -> dict[str, Any]:
+- ./services/tool-service/adapters/confluence_adapter.py:208:    def list_comments(self, page_id: str) -> list[dict[str, Any]]:
+- ./services/tool-service/adapters/confluence_adapter.py:217:    def create_documentation_space(
+- ./services/tool-service/adapters/confluence_adapter.py:267:    def create_api_documentation_page(
+- ./services/gateway-api/app/core/context.py:18:def build_request_context(
+- ./services/gateway-api/app/core/context.py:49:def set_request_context(ctx: RequestContext) -> contextvars.Token[RequestContext]:
+- ./services/gateway-api/app/core/context.py:53:def reset_request_context(token: contextvars.Token[RequestContext]) -> None:
+- ./services/gateway-api/app/core/context.py:57:def get_request_context() -> RequestContext | None:
+- ./services/memory-gateway/app/main.py:54:    def audit_log(*args, **kwargs):
+- ./services/memory-gateway/app/main.py:111:def _get_object_store():
+- ./services/common/events/outbox.py:46:    def __repr__(self) -> str:  # pragma: no cover
+- ./services/common/events/outbox.py:70:    def __init__(self, session: AsyncSession):
+- ./services/airflow-service/dags/memory_refresh_dag.py:13:def _build_token() -> str:
+- ./services/airflow-service/dags/memory_refresh_dag.py:18:        def trigger_memory_refresh(**context):
+- ./services/tool-service/adapters/terraform_adapter.py:29:    def __init__(
+- ./services/tool-service/adapters/terraform_adapter.py:50:    def _run_command(
+- ./services/tool-service/adapters/terraform_adapter.py:91:    def init(
+- ./services/tool-service/adapters/terraform_adapter.py:125:    def plan(
+- ./services/tool-service/adapters/terraform_adapter.py:170:    def apply(
+- ./services/tool-service/adapters/terraform_adapter.py:217:    def destroy(
+- ./services/tool-service/adapters/terraform_adapter.py:262:    def show(self, json_output: bool = True) -> Any:
+- ./services/tool-service/adapters/terraform_adapter.py:283:    def state_list(self) -> list[str]:
+- ./services/tool-service/adapters/terraform_adapter.py:288:    def state_show(self, resource: str) -> str:
+- ./services/tool-service/adapters/terraform_adapter.py:293:    def state_rm(self, resource: str) -> str:
+- ./services/tool-service/adapters/terraform_adapter.py:299:    def state_mv(self, source: str, destination: str) -> str:
+- ./services/tool-service/adapters/terraform_adapter.py:304:    def state_pull(self) -> dict[str, Any]:
+- ./services/tool-service/adapters/terraform_adapter.py:309:    def state_push(self, state_file: str) -> str:
+- ./services/tool-service/adapters/terraform_adapter.py:319:    def workspace_list(self) -> list[str]:
+- ./services/tool-service/adapters/terraform_adapter.py:331:    def workspace_new(self, name: str) -> str:
+- ./services/tool-service/adapters/terraform_adapter.py:337:    def workspace_select(self, name: str) -> str:
+- ./services/tool-service/adapters/terraform_adapter.py:343:    def workspace_delete(self, name: str) -> str:
+- ./services/tool-service/adapters/terraform_adapter.py:353:    def output(self, name: str | None = None, json_output: bool = True) -> Any:
+- ./services/tool-service/adapters/terraform_adapter.py:387:    def validate(self) -> str:
+- ./services/tool-service/adapters/terraform_adapter.py:393:    def fmt(self, check: bool = False, recursive: bool = True) -> str:
+- ./services/tool-service/adapters/terraform_adapter.py:419:    def create_backend_config(self, backend_type: str, config: dict[str, str]) -> str:
+- ./services/tool-service/adapters/terraform_adapter.py:443:    def plan_and_apply(
+- ./services/orchestrator/app/services/event_emission.py:21:    def __init__(self, session: AsyncSession):
+- ./sdk/python/somaagent/exceptions.py:15:    def __init__(self, message: str, status_code: int = None, response: dict = None):
+- ./tests/integration/test_sdk_client.py:10:def mock_client():
+- ./tests/integration/test_sdk_client.py:16:def test_create_tenant(mock_client):
+- ./tests/integration/test_sdk_client.py:35:def test_create_task(mock_client):
+- ./tests/integration/test_sdk_client.py:53:def test_create_role(mock_client):
+- ./services/gateway-api/app/core/moderation.py:32:    def __init__(
+- ./services/gateway-api/app/core/moderation.py:40:    def _strike_key(self, tenant_id: str, user_id: str | None) -> str:
+- ./services/gateway-api/app/core/moderation.py:124:def get_moderation_guard() -> ModerationGuard:
+- ./services/memory-gateway/app/rag_pipeline.py:30:    def __init__(
+- ./services/memory-gateway/app/rag_pipeline.py:45:    def retrieve_context(
+- ./services/memory-gateway/app/rag_pipeline.py:91:    def _format_context(self, documents: list[VectorDocument]) -> str:
+- ./services/memory-gateway/app/rag_pipeline.py:120:    def _estimate_tokens(self, text: str) -> int:
+- ./services/memory-gateway/app/rag_pipeline.py:133:    def augment_prompt(
+- ./services/memory-gateway/app/rag_pipeline.py:183:    def index_documents(
+- ./services/memory-gateway/app/rag_pipeline.py:230:    def _generate_id(self, content: str) -> str:
+- ./services/memory-gateway/app/rag_pipeline.py:244:    def search_conversations(
+- ./services/memory-gateway/app/rag_pipeline.py:273:    def get_rag_pipeline() -> RAGPipeline:
+- ./services/memory-gateway/app/rag_pipeline.py:281:    def augment_with_context(
+- ./services/common/events/publisher.py:31:    def __init__(self, service_name: str):
+- ./services/common/events/publisher.py:63:    def __init__(self, service_name: str):
+- ./services/common/events/publisher.py:94:    def get_events(self) -> list[dict[str, Any]]:
+- ./services/common/events/publisher.py:99:    def events(self) -> list[dict[str, Any]]:
+- ./services/common/events/publisher.py:103:    def clear(self) -> None:
+- ./services/common/events/publisher.py:118:    def __init__(
+- ./services/common/events/publisher.py:195:    def create_publisher(
+- ./services/common/events/publisher.py:222:    def __init__(
+- ./services/common/events/publisher.py:244:    def _in_memory_events(self) -> list[dict[str, Any]]:
+- ./services/common/events/publisher.py:254:def get_publisher(service_name: str) -> EventPublisher:
+- ./services/tool-service/adapters/discord_adapter.py:23:    def __init__(self, bot_token: str):
+- ./services/tool-service/adapters/discord_adapter.py:38:    def _request(self, method: str, endpoint: str, **kwargs) -> Any:
+- ./services/tool-service/adapters/discord_adapter.py:51:    def create_channel(
+- ./services/tool-service/adapters/discord_adapter.py:70:    def get_channel(self, channel_id: str) -> dict[str, Any]:
+- ./services/tool-service/adapters/discord_adapter.py:74:    def list_guild_channels(self, guild_id: str) -> list[dict[str, Any]]:
+- ./services/tool-service/adapters/discord_adapter.py:78:    def delete_channel(self, channel_id: str):
+- ./services/tool-service/adapters/discord_adapter.py:87:    def send_message(
+- ./services/tool-service/adapters/discord_adapter.py:107:    def edit_message(
+- ./services/tool-service/adapters/discord_adapter.py:125:    def delete_message(self, channel_id: str, message_id: str):
+- ./services/tool-service/adapters/discord_adapter.py:130:    def add_reaction(self, channel_id: str, message_id: str, emoji: str):
+- ./services/tool-service/adapters/discord_adapter.py:145:    def create_embed(
+- ./services/tool-service/adapters/discord_adapter.py:174:    def send_embed(
+- ./services/tool-service/adapters/discord_adapter.py:192:    def create_thread(
+- ./services/tool-service/adapters/discord_adapter.py:221:    def create_webhook(self, channel_id: str, name: str) -> dict[str, Any]:
+- ./services/tool-service/adapters/discord_adapter.py:229:    def execute_webhook(
+- ./services/tool-service/adapters/discord_adapter.py:242:    def create_role(
+- ./services/tool-service/adapters/discord_adapter.py:262:    def assign_role(self, guild_id: str, user_id: str, role_id: str):
+- ./services/tool-service/adapters/discord_adapter.py:271:    def get_guild_member(self, guild_id: str, user_id: str) -> dict[str, Any]:
+- ./services/tool-service/adapters/discord_adapter.py:275:    def list_guild_members(
+- ./services/tool-service/adapters/discord_adapter.py:287:    def create_project_workspace(
+- ./services/tool-service/adapters/discord_adapter.py:329:    def send_notification(
+- ./services/constitution-service/app/core/constitution.py:35:    def hash(self) -> str:  # pragma: no cover - simple property
+- ./services/constitution-service/app/core/constitution.py:39:    def canonicalise_document(bundle: ConstitutionBundle) -> bytes:
+- ./services/constitution-service/app/core/constitution.py:45:    def _verify_hash(bundle: ConstitutionBundle, canonical_document: bytes) -> None:
+- ./services/constitution-service/app/core/constitution.py:53:    def _verify_signature(
+- ./services/constitution-service/app/core/constitution.py:66:    def _build_verified(
+- ./services/constitution-service/app/core/constitution.py:75:    def load_verified_constitution(
+- ./services/constitution-service/app/core/constitution.py:98:    def normalise_tenant(tenant: str) -> str:
+- ./services/constitution-service/app/core/constitution.py:105:    def __init__(
+- ./services/constitution-service/app/core/constitution.py:115:    def bundle(self) -> ConstitutionBundle:
+- ./services/constitution-service/app/core/constitution.py:118:    def list_tenants(self) -> list[str]:  # pragma: no cover - simple accessor
+- ./services/constitution-service/app/core/constitution.py:121:    def get_bundle(self, tenant: str) -> ConstitutionBundle:
+- ./services/constitution-service/app/core/constitution.py:130:    def get_hash(self, tenant: str) -> str:
+- ./services/constitution-service/app/core/constitution.py:134:    def update(self, verified: VerifiedConstitution) -> None:
+- ./services/constitution-service/app/core/constitution.py:138:    def build_verified_from_bundle(
+- ./services/constitution-service/app/core/constitution.py:146:    def verify_bundle(bundle: ConstitutionBundle, public_key_path: Path) -> None:
+- ./sdk/python/somaagent/async_client.py:23:    def __init__(
+- ./services/orchestrator/app/services/circuit_breaker.py:64:    def __init__(self, config: CircuitBreakerConfig):
+- ./services/orchestrator/app/services/circuit_breaker.py:116:    def _should_attempt_reset(self) -> bool:
+- ./services/orchestrator/app/services/circuit_breaker.py:147:    def get_state(self) -> dict[str, Any]:
+- ./services/orchestrator/app/services/circuit_breaker.py:193:    def __init__(self):
+- ./services/orchestrator/app/services/circuit_breaker.py:196:    def register(self, name: str, circuit_breaker: CircuitBreaker) -> None:
+- ./services/orchestrator/app/services/circuit_breaker.py:200:    def get(self, name: str) -> CircuitBreaker | None:
+- ./services/orchestrator/app/services/circuit_breaker.py:204:    def get_all_states(self) -> dict[str, dict[str, Any]]:
+- ./services/gateway-api/app/core/config.py:52:def get_settings() -> GatewaySettings:
+- ./services/memory-gateway/app/embedding_service.py:32:                def __init__(
+- ./services/memory-gateway/app/embedding_service.py:48:                        def _init_client(self) -> any:
+- ./services/memory-gateway/app/embedding_service.py:73:                                            def embed_text(self, text: str) -> list[float]:
+- ./services/memory-gateway/app/embedding_service.py:90:                                                            def embed_batch(self, texts: list[str]) -> list[list[float]]:
+- ./services/memory-gateway/app/embedding_service.py:122:                                                                                            def _embed_openai(self, texts: list[str]) -> list[list[float]]:
+- ./services/memory-gateway/app/embedding_service.py:135:                                                                                                        def _embed_sentence_bert(self, texts: list[str]) -> list[list[float]]:
+- ./services/memory-gateway/app/embedding_service.py:151:                                                                                                                    def _embed_cohere(self, texts: list[str]) -> list[list[float]]:
+- ./services/memory-gateway/app/embedding_service.py:166:                                                                                                                                def _zero_vector(self) -> list[float]:
+- ./services/memory-gateway/app/embedding_service.py:179:                                                                                                                                    def cosine_similarity(
+- ./services/memory-gateway/app/embedding_service.py:209:                                                                                                                                                    def get_embedding_service() -> EmbeddingService:
+- ./scripts/run_benchmark_suite.py:36:    def total_requests(self) -> int:
+- ./scripts/run_benchmark_suite.py:40:    def duration_seconds(self) -> float:
+- ./scripts/run_benchmark_suite.py:43:    def metrics(self) -> dict[str, float]:
+- ./scripts/run_benchmark_suite.py:67:    def metadata(self) -> dict[str, str]:
+- ./scripts/run_benchmark_suite.py:128:    def parse_metadata(pairs: list[str]) -> dict[str, str]:
+- ./scripts/run_benchmark_suite.py:183:    def build_parser() -> argparse.ArgumentParser:
+- ./scripts/run_benchmark_suite.py:236:    def main(argv: list[str] | None = None) -> int:
+- ./services/tool-service/adapters/jira_adapter.py:28:    def __init__(self, jira_url: str, email: str, api_token: str):
+- ./services/tool-service/adapters/jira_adapter.py:46:    def _request(self, method: str, endpoint: str, **kwargs) -> Any:
+- ./services/tool-service/adapters/jira_adapter.py:66:    def create_issue(
+- ./services/tool-service/adapters/jira_adapter.py:128:    def get_issue(self, issue_key: str) -> dict[str, Any]:
+- ./services/tool-service/adapters/jira_adapter.py:132:    def update_issue(self, issue_key: str, fields: dict[str, Any]) -> None:
+- ./services/tool-service/adapters/jira_adapter.py:139:    def transition_issue(
+- ./services/tool-service/adapters/jira_adapter.py:176:    def add_comment(self, issue_key: str, comment: str) -> dict[str, Any]:
+- ./services/tool-service/adapters/jira_adapter.py:193:    def delete_issue(self, issue_key: str) -> None:
+- ./services/tool-service/adapters/jira_adapter.py:202:    def search_issues(
+- ./services/tool-service/adapters/jira_adapter.py:232:    def create_project(
+- ./services/tool-service/adapters/jira_adapter.py:257:    def get_project(self, project_key: str) -> dict[str, Any]:
+- ./services/tool-service/adapters/jira_adapter.py:261:    def list_projects(self) -> list[dict[str, Any]]:
+- ./services/tool-service/adapters/jira_adapter.py:269:    def create_sprint(
+- ./services/tool-service/adapters/jira_adapter.py:311:    def move_issues_to_sprint(self, sprint_id: int, issues: list[str]) -> None:
+- ./services/tool-service/adapters/jira_adapter.py:329:    def create_board(
+- ./services/tool-service/adapters/jira_adapter.py:359:    def list_boards(self) -> dict[str, Any]:
+- ./services/tool-service/adapters/jira_adapter.py:372:    def search_users(self, query: str) -> list[dict[str, Any]]:
+- ./services/tool-service/adapters/jira_adapter.py:380:    def bulk_create_issues(self, issues: list[dict[str, Any]]) -> dict[str, Any]:
+- ./services/tool-service/adapters/jira_adapter.py:397:    def create_epic(
+- ./services/tool-service/adapters/jira_adapter.py:408:    def link_issue_to_epic(self, issue_key: str, epic_key: str) -> None:
+- ./services/orchestrator/app/services/event_publisher.py:31:    def __init__(
+- ./services/orchestrator/app/services/event_publisher.py:162:    def _get_topic_for_event_type(self, event_type: str) -> str:
+- ./services/orchestrator/app/services/event_publisher.py:182:    def _create_event_key(self, event_data: dict) -> str:
+- ./services/gateway-api/app/core/metrics.py:27:def record_moderation_decision(
+- ./services/gateway-api/app/core/metrics.py:37:def observe_forward_latency(tenant: str, elapsed_seconds: float) -> None:
+- ./services/tool-service/adapters/slack_adapter.py:32:    def __init__(self, bot_token: str | None = None):
+- ./services/tool-service/adapters/slack_adapter.py:43:    def _request(self, method: str, endpoint: str, **kwargs) -> dict[str, Any]:
+- ./services/tool-service/adapters/slack_adapter.py:64:    def create_channel(
+- ./services/tool-service/adapters/slack_adapter.py:86:    def list_channels(
+- ./services/tool-service/adapters/slack_adapter.py:100:    def archive_channel(self, channel_id: str) -> dict[str, Any]:
+- ./services/tool-service/adapters/slack_adapter.py:106:    def invite_to_channel(self, channel_id: str, users: list[str]) -> dict[str, Any]:
+- ./services/tool-service/adapters/slack_adapter.py:124:    def send_message(
+- ./services/tool-service/adapters/slack_adapter.py:159:    def update_message(
+- ./services/tool-service/adapters/slack_adapter.py:176:    def delete_message(self, channel_id: str, ts: str) -> dict[str, Any]:
+- ./services/tool-service/adapters/slack_adapter.py:182:    def schedule_message(
+- ./services/tool-service/adapters/slack_adapter.py:210:    def add_reaction(
+- ./services/tool-service/adapters/slack_adapter.py:231:    def upload_file(
+- ./services/tool-service/adapters/slack_adapter.py:294:    def list_users(self, limit: int = 100) -> dict[str, Any]:
+- ./services/tool-service/adapters/slack_adapter.py:298:    def get_user_info(self, user_id: str) -> dict[str, Any]:
+- ./services/tool-service/adapters/slack_adapter.py:302:    def set_user_status(
+- ./services/tool-service/adapters/slack_adapter.py:331:    def send_webhook(webhook_url: str, payload: dict[str, Any]) -> None:
+- ./services/tool-service/adapters/slack_adapter.py:355:    def build_section_block(
+- ./services/tool-service/adapters/slack_adapter.py:370:    def build_actions_block(elements: list[dict[str, Any]]) -> dict[str, Any]:
+- ./services/tool-service/adapters/slack_adapter.py:375:    def build_button_element(
+- ./services/tool-service/adapters/slack_adapter.py:396:    def build_divider_block() -> dict[str, Any]:
+- ./services/tool-service/adapters/slack_adapter.py:401:    def build_header_block(text: str) -> dict[str, Any]:
+- ./services/tool-service/adapters/slack_adapter.py:409:    def send_notification(
+- ./services/tool-service/adapters/slack_adapter.py:448:    def create_project_channel(
+- ./tests/integration/test_backend_services.py:15:    def test_create_role_and_binding(self, sync_db_session):
+- ./services/common/identity_client.py:16:    def __init__(
+- ./services/common/identity_client.py:216:def get_identity_client() -> IdentityClient:
+- ./services/gateway-api/app/core/auth.py:14:    def secure_endpoint(user: dict = Depends(get_current_user)):
+- ./services/gateway-api/app/core/auth.py:42:def _get_client() -> httpx.AsyncClient:
+- ./services/constitution-service/app/core/config.py:45:    def model_post_init(
+- ./services/constitution-service/app/core/config.py:57:    def get_settings() -> Settings:
+- ./sdk/python/somaagent/client.py:23:    def __init__(
+- ./sdk/python/somaagent/client.py:48:    def _request(self, method: str, endpoint: str, **kwargs) -> Dict[str, Any]:
+- ./sdk/python/somaagent/client.py:82:    def create_conversation(
+- ./sdk/python/somaagent/client.py:102:    def send_message(
+- ./sdk/python/somaagent/client.py:128:    def get_conversation(self, conversation_id: str) -> Conversation:
+- ./sdk/python/somaagent/client.py:133:    def health(self) -> Dict[str, Any]:
+- ./sdk/python/somaagent/client.py:138:    def list_capsules(
+- ./sdk/python/somaagent/client.py:158:    def install_capsule(self, capsule_id: str) -> Dict[str, Any]:
+- ./sdk/python/somaagent/client.py:162:    def execute_capsule(
+- ./sdk/python/somaagent/client.py:179:    def create_agent(
+- ./sdk/python/somaagent/client.py:208:    def run_agent(
+- ./sdk/python/somaagent/client.py:226:    def start_workflow(self, workflow_type: str, inputs: Dict[str, Any]) -> WorkflowRun:
+- ./sdk/python/somaagent/client.py:242:    def get_workflow_status(self, run_id: str) -> WorkflowRun:
+- ./sdk/python/somaagent/client.py:248:    def stream_completion(self, conversation_id: str, content: str) -> Iterator[str]:
+- ./sdk/python/somaagent/client.py:276:    def close(self):
+- ./sdk/python/somaagent/client.py:280:    def __enter__(self):
+- ./sdk/python/somaagent/client.py:284:    def __exit__(self, exc_type, exc_val, exc_tb):
+- ./sdk/python/somaagent/client.py:291:    def create_tenant(self, name: str, tier: str = "free") -> Dict[str, Any]:
+- ./sdk/python/somaagent/client.py:295:    def get_tenant(self, tenant_id: str) -> Dict[str, Any]:
+- ./sdk/python/somaagent/client.py:300:    def create_task(self, name: str, workflow_instance_id: str, priority: str = "medium") -> Dict[str, Any]:
+- ./sdk/python/somaagent/client.py:305:    def list_tasks(self, workflow_instance_id: Optional[str] = None) -> List[Dict[str, Any]]:
+- ./sdk/python/somaagent/client.py:313:    def create_role(self, name: str, description: str, capabilities: List[str]) -> Dict[str, Any]:
+- ./sdk/python/somaagent/client.py:318:    def bind_agent_to_role(self, role_id: str, agent_id: str) -> Dict[str, Any]:
+- ./sdk/python/somaagent/client.py:324:    def register_tool(self, name: str, description: str, version: str, parameters: Dict[str, Any]) -> Dict[str, Any]:
+- ./sdk/python/somaagent/client.py:329:    def list_tools(self) -> List[Dict[str, Any]]:
+- ./sdk/python/somaagent/client.py:334:    def create_memory_binding(self, name: str, type: str, config: Dict[str, Any]) -> Dict[str, Any]:
+- ./sdk/python/somaagent/client.py:340:    def create_blueprint(self, name: str, version: str, content: Dict[str, Any]) -> Dict[str, Any]:
+- ./sdk/python/somaagent/client.py:345:    def list_blueprints(self) -> List[Dict[str, Any]]:
+- ./sdk/python/somaagent/client.py:350:    def create_reasoning_pipeline(self, name: str, steps: List[Dict[str, Any]]) -> Dict[str, Any]:
+- ./sdk/python/somaagent/client.py:356:    def create_evaluation_scenario(self, name: str, criteria: Dict[str, Any]) -> Dict[str, Any]:
+- ./sdk/python/somaagent/client.py:361:    def run_evaluation(self, scenario_id: str, target_id: str) -> Dict[str, Any]:
+- ./sdk/python/somaagent/client.py:367:    def assign_reviewer(self, workflow_instance_id: str, node_id: str, reviewer_id: str) -> Dict[str, Any]:
+- ./services/gateway-api/app/config.py:44:def get_settings() -> GatewaySettings:
+- ./services/orchestrator/app/services/tenant_service.py:24:    def __init__(self, session: AsyncSession | None = None):
+- ./services/memory-gateway/app/vector_store.py:41:                    def __init__(
+- ./services/memory-gateway/app/vector_store.py:60:                            def _init_client(self) -> Any:
+- ./services/memory-gateway/app/vector_store.py:110:                def upsert(self, documents: list[VectorDocument]) -> None:
+- ./services/memory-gateway/app/vector_store.py:145:            def search(
+- ./services/memory-gateway/app/vector_store.py:233:            def delete(self, ids: list[str]) -> None:
+- ./services/memory-gateway/app/vector_store.py:253:                            def get_collection_stats(self) -> dict[str, Any]:
+- ./services/memory-gateway/app/vector_store.py:284:                                                    def __init__(self, vector_store: VectorStore):
+- ./services/memory-gateway/app/vector_store.py:293:                                                            def search(
+- ./services/memory-gateway/app/vector_store.py:336:                                                                            def get_vector_store() -> VectorStore:
+- ./services/constitution-service/app/core/signing.py:34:    def __init__(self, private_key: bytes, *, public_key: bytes | None = None) -> None:
+- ./services/constitution-service/app/core/signing.py:45:    def public_key(self) -> bytes:
+- ./services/constitution-service/app/core/signing.py:48:    def sign(self, payload: bytes) -> SignatureBundle:
+- ./services/constitution-service/app/core/signing.py:56:    def verify(
+- ./services/constitution-service/app/core/signing.py:76:    def load_signer_from_env() -> ManifestSigner:
+- ./services/tool-service/adapters/playwright_adapter.py:28:    def __init__(
+- ./services/tool-service/adapters/playwright_adapter.py:51:    def __enter__(self):
+- ./services/tool-service/adapters/playwright_adapter.py:56:    def __exit__(self, exc_type, exc_val, exc_tb):
+- ./services/tool-service/adapters/playwright_adapter.py:60:    def start(self) -> None:
+- ./services/tool-service/adapters/playwright_adapter.py:85:    def stop(self) -> None:
+- ./services/tool-service/adapters/playwright_adapter.py:102:    def goto(self, url: str, wait_until: str = "load") -> None:
+- ./services/tool-service/adapters/playwright_adapter.py:114:    def go_back(self) -> None:
+- ./services/tool-service/adapters/playwright_adapter.py:118:    def reload(self) -> None:
+- ./services/tool-service/adapters/playwright_adapter.py:126:    def click(self, selector: str, timeout: int = 30000) -> None:
+- ./services/tool-service/adapters/playwright_adapter.py:137:    def fill(self, selector: str, value: str, timeout: int = 30000) -> None:
+- ./services/tool-service/adapters/playwright_adapter.py:149:    def type(self, selector: str, text: str, delay: int = 0) -> None:
+- ./services/tool-service/adapters/playwright_adapter.py:161:    def select_option(
+- ./services/tool-service/adapters/playwright_adapter.py:177:    def check(self, selector: str) -> None:
+- ./services/tool-service/adapters/playwright_adapter.py:181:    def uncheck(self, selector: str) -> None:
+- ./services/tool-service/adapters/playwright_adapter.py:185:    def press(self, selector: str, key: str) -> None:
+- ./services/tool-service/adapters/playwright_adapter.py:199:    def wait_for_selector(
+- ./services/tool-service/adapters/playwright_adapter.py:213:    def wait_for_url(self, url: str, timeout: int = 30000) -> None:
+- ./services/tool-service/adapters/playwright_adapter.py:217:    def wait_for_timeout(self, timeout: int) -> None:
+- ./services/tool-service/adapters/playwright_adapter.py:225:    def get_text(self, selector: str) -> str:
+- ./services/tool-service/adapters/playwright_adapter.py:229:    def get_value(self, selector: str) -> str:
+- ./services/tool-service/adapters/playwright_adapter.py:233:    def get_attribute(self, selector: str, attribute: str) -> str | None:
+- ./services/tool-service/adapters/playwright_adapter.py:237:    def get_all_text(self, selector: str) -> list[str]:
+- ./services/tool-service/adapters/playwright_adapter.py:242:    def evaluate(self, expression: str) -> Any:
+- ./services/tool-service/adapters/playwright_adapter.py:250:    def screenshot(self, path: str | None = None, full_page: bool = False) -> bytes:
+- ./services/tool-service/adapters/playwright_adapter.py:269:    def screenshot_element(self, selector: str, path: str | None = None) -> bytes:
+- ./services/tool-service/adapters/playwright_adapter.py:283:    def login(
+- ./services/tool-service/adapters/playwright_adapter.py:327:    def fill_form(self, form_data: dict[str, str]) -> None:
+- ./services/tool-service/adapters/playwright_adapter.py:339:    def extract_table(self, table_selector: str) -> list[list[str]]:
+- ./services/tool-service/adapters/playwright_adapter.py:363:    def automate_workflow(
+- ./services/notification-service/tests/test_notifications.py:20:def setup_function() -> None:
+- ./services/notification-service/tests/test_notifications.py:25:    def test_enqueue_notification_returns_record() -> None:
+- ./services/notification-service/tests/test_notifications.py:43:    def test_backlog_endpoint_filters_by_tenant() -> None:
+- ./services/gateway-api/app/region_router.py:62:    def __init__(self):
+- ./services/gateway-api/app/region_router.py:66:    def get_client_region(self, request: Request) -> Region:
+- ./services/gateway-api/app/region_router.py:109:    def get_region_for_user(
+- ./services/gateway-api/app/region_router.py:145:    def get_endpoint(self, region: Region) -> str:
+- ./services/gateway-api/app/region_router.py:164:    def validate_data_residency(self, user_id: str, target_region: Region) -> bool:
+- ./services/gateway-api/app/region_router.py:198:    def _get_user_data_zone(self, user_id: str) -> DataResidencyZone:
+- ./services/gateway-api/app/region_router.py:212:    def get_healthy_regions(self) -> list[Region]:
+- ./services/gateway-api/app/region_router.py:244:    def select_region_weighted(self) -> Region:
+- ./services/gateway-api/app/region_router.py:280:def get_region_router() -> RegionRouter:
+- ./services/common/opa_client.py:19:    def __init__(self, opa_url: str, timeout: float = 5.0):
+- ./services/common/opa_client.py:29:    def _create_client(self) -> httpx.AsyncClient:
+- ./services/common/opa_client.py:206:def get_opa_client() -> OPAClient:
+- ./services/orchestrator/app/services/outbox_publisher.py:24:    def __init__(
+- ./services/tool-service/adapters/plane_adapter.py:26:    def __init__(
+- ./services/tool-service/adapters/plane_adapter.py:40:    def _request(self, method: str, endpoint: str, **kwargs) -> dict[str, Any]:
+- ./services/tool-service/adapters/plane_adapter.py:55:    def create_project(
+- ./services/tool-service/adapters/plane_adapter.py:87:    def get_project(self, project_id: str) -> dict[str, Any]:
+- ./services/tool-service/adapters/plane_adapter.py:93:    def list_projects(self) -> list[dict[str, Any]]:
+- ./services/tool-service/adapters/plane_adapter.py:101:    def create_issue(
+- ./services/tool-service/adapters/plane_adapter.py:147:    def update_issue(self, project_id: str, issue_id: str, **kwargs) -> dict[str, Any]:
+- ./services/tool-service/adapters/plane_adapter.py:155:    def get_issue(self, project_id: str, issue_id: str) -> dict[str, Any]:
+- ./services/tool-service/adapters/plane_adapter.py:162:    def list_issues(
+- ./services/tool-service/adapters/plane_adapter.py:199:    def create_cycle(
+- ./services/tool-service/adapters/plane_adapter.py:235:    def add_issue_to_cycle(
+- ./services/tool-service/adapters/plane_adapter.py:249:    def create_module(
+- ./services/tool-service/adapters/plane_adapter.py:292:    def list_states(self, project_id: str) -> list[dict[str, Any]]:
+- ./services/tool-service/adapters/plane_adapter.py:298:    def create_state(
+- ./services/tool-service/adapters/plane_adapter.py:322:    def create_label(
+- ./services/tool-service/adapters/plane_adapter.py:337:    def list_labels(self, project_id: str) -> list[dict[str, Any]]:
+- ./services/tool-service/adapters/plane_adapter.py:348:    def list_workspace_members(self) -> list[dict[str, Any]]:
+- ./services/tool-service/adapters/plane_adapter.py:352:    def invite_member(self, email: str, role: int = 10) -> dict[str, Any]:
+- ./services/tool-service/adapters/plane_adapter.py:376:    def get_project_analytics(self, project_id: str) -> dict[str, Any]:
+- ./services/tool-service/adapters/plane_adapter.py:386:    def bulk_create_issues(
+- ./services/tool-service/adapters/plane_adapter.py:411:    def setup_project_from_template(
+- ./services/memory-gateway/app/config.py:18:def _get_qdrant_api_key() -> str:
+- ./services/memory-gateway/app/config.py:55: def get_service_url(service_name: str) -> str:
+- ./services/memory-gateway/app/config.py:62: def get_env_var(name: str, default=None):
+- ./services/memory-gateway/app/config.py:76:	def from_env(cls):
+- ./services/memory-gateway/app/config.py:79:	def __init__(self):
+- ./services/memory-gateway/app/config.py:88:  def get_settings():
+- ./services/common/spiffe_auth.py:31:    def __init__(self, socket_path: str = "unix:///run/spire/sockets/agent.sock"):
+- ./services/common/spiffe_auth.py:47:    def fetch_identity(self, service_name: str) -> SPIFFEIdentity:
+- ./services/common/spiffe_auth.py:83:    def get_tls_credentials(self) -> tuple[bytes, bytes, bytes]:
+- ./services/common/spiffe_auth.py:99:    def create_grpc_credentials(self) -> grpc.ChannelCredentials:
+- ./services/common/spiffe_auth.py:112:    def verify_peer(self, peer_spiffe_id: str) -> bool:
+- ./services/common/spiffe_auth.py:134:    def rotate_certificates(self) -> None:
+- ./services/common/spiffe_auth.py:149:def get_authenticator() -> SPIFFEAuthenticator:
+- ./services/common/spiffe_auth.py:157:def init_spiffe(service_name: str, *, optional: bool = True) -> SPIFFEIdentity | None:
+- ./tests/test_static_templates_engine.py:11:def test_template_root_exists():
+- ./tests/test_static_templates_engine.py:15:def test_render_fastapi_tmp(tmp_path: Path):
+- ./tests/test_static_templates_engine.py:24:def test_render_helm_values(tmp_path: Path):
+- ./sdk/python/somatrace/tracing.py:21:            def _bool_from_env(name: str, default: bool = False) -> bool:
+- ./sdk/python/somatrace/tracing.py:28:                    def _serialize_headers(headers: Mapping[str, str]) -> str:
+- ./sdk/python/somatrace/tracing.py:32:                        def _merge_headers(existing: str, overrides: Mapping[str, str]) -> str:
+- ./sdk/python/somatrace/tracing.py:47:                                            def init_tracing(
+- ./sdk/python/somatrace/tracing.py:99:                                                                                    def is_tracing_configured() -> bool:
+- ./services/common/errors.py:63:    def __init__(self, service_name: str, env_var: str, additional_info: str | None = None):
+- ./services/common/errors.py:81:    def __init__(self, service_name: str, error_message: str):
+- ./services/common/errors.py:99:    def __init__(self, resource_type: str, resource_id: str):
+- ./services/common/errors.py:115:    def __init__(self, error: Exception | None = None):
+- ./services/common/errors.py:126:def _sanitize_error_message(message: str) -> str:
+- ./services/common/errors.py:147:def raise_service_unavailable(service_name: str, env_var: str, additional_info: str | None = None) -> None:
+- ./services/common/errors.py:161:def raise_upstream_error(service_name: str, error_message: str) -> None:
+- ./services/common/errors.py:174:def raise_not_found(resource_type: str, resource_id: str) -> None:
+- ./services/common/errors.py:187:def raise_internal_error(error: Exception | None = None) -> None:
+- ./services/common/errors.py:199:def create_error_response(
+- ./services/common/errors.py:223:def handle_exception(error: Exception, service_name: str) -> HTTPException:
+- ./scripts/seed_model_profiles.py:23:            def load_yaml(path: Path):
+- ./scripts/seed_model_profiles.py:28:                def validate_schema(data: dict):
+- ./scripts/seed_model_profiles.py:39:                                    def convert_to_seed(data: dict) -> dict:
+- ./scripts/seed_model_profiles.py:46:                                        def write_json(obj: dict, outpath: Path):
+- ./scripts/seed_model_profiles.py:80:                                                                def main(argv):
+- ./services/tool-service/adapters/notion_adapter.py:28:    def __init__(self, api_token: str | None = None):
+- ./services/tool-service/adapters/notion_adapter.py:40:    def _request(self, method: str, endpoint: str, **kwargs) -> dict[str, Any]:
+- ./services/tool-service/adapters/notion_adapter.py:55:    def query_database(
+- ./services/tool-service/adapters/notion_adapter.py:78:    def create_database(
+- ./services/tool-service/adapters/notion_adapter.py:100:    def retrieve_database(self, database_id: str) -> dict[str, Any]:
+- ./services/tool-service/adapters/notion_adapter.py:108:    def create_page(
+- ./services/tool-service/adapters/notion_adapter.py:140:    def retrieve_page(self, page_id: str) -> dict[str, Any]:
+- ./services/tool-service/adapters/notion_adapter.py:144:    def update_page_properties(
+- ./services/tool-service/adapters/notion_adapter.py:168:    def retrieve_block_children(
+- ./services/tool-service/adapters/notion_adapter.py:176:    def append_block_children(
+- ./services/tool-service/adapters/notion_adapter.py:184:    def update_block(
+- ./services/tool-service/adapters/notion_adapter.py:190:    def delete_block(self, block_id: str) -> dict[str, Any]:
+- ./services/tool-service/adapters/notion_adapter.py:198:    def search(
+- ./services/tool-service/adapters/notion_adapter.py:220:    def build_text_block(content: str, style: str = "paragraph") -> dict[str, Any]:
+- ./services/tool-service/adapters/notion_adapter.py:235:    def build_todo_block(content: str, checked: bool = False) -> dict[str, Any]:
+- ./services/tool-service/adapters/notion_adapter.py:247:    def build_code_block(content: str, language: str = "plain text") -> dict[str, Any]:
+- ./services/orchestrator/app/services/observability.py:80:def setup_opentelemetry(service_name: str, service_version: str) -> None:
+- ./services/orchestrator/app/services/observability.py:107:    def format(self, record: logging.LogRecord) -> str:
+- ./services/orchestrator/app/services/observability.py:159:    def __init__(self, app):
+- ./services/orchestrator/app/services/observability.py:260:    def record_event(
+- ./services/orchestrator/app/services/observability.py:280:    def record_database_operation(operation: str, table: str, duration: float):
+- ./services/orchestrator/app/services/observability.py:289:    def record_external_service_call(
+- ./services/orchestrator/app/services/observability.py:304:    def __init__(self, name: str):
+- ./services/orchestrator/app/services/observability.py:307:    def span(self, name: str, attributes: dict[str, Any] | None = None):
+- ./services/orchestrator/app/services/observability.py:324:def setup_logging():
+- ./services/orchestrator/app/services/observability.py:347:def setup_observability(app):
+- ./tests/capsule/test_object_store.py:12:    def __init__(self, *a, **kw):
+- ./tests/capsule/test_object_store.py:16:    def bucket_exists(self, bucket):
+- ./tests/capsule/test_object_store.py:19:    def make_bucket(self, bucket):
+- ./tests/capsule/test_object_store.py:22:    def put_object(
+- ./tests/capsule/test_object_store.py:33:    def presigned_get_object(self, bucket, object_name, expires):
+- ./tests/capsule/test_object_store.py:36:    def remove_object(self, bucket, object_name):
+- ./tests/capsule/test_object_store.py:41:def patch_minio(monkeypatch):
+- ./tests/capsule/test_object_store.py:54:def test_upload_and_presign():
+- ./services/tool-service/adapters/kubernetes_adapter.py:30:    def __init__(self, kubeconfig_path: str | None = None, in_cluster: bool = False):
+- ./services/tool-service/adapters/kubernetes_adapter.py:59:    def create_namespace(self, name: str) -> dict[str, Any]:
+- ./services/tool-service/adapters/kubernetes_adapter.py:66:    def delete_namespace(self, name: str):
+- ./services/tool-service/adapters/kubernetes_adapter.py:71:    def list_namespaces(self) -> list[dict[str, Any]]:
+- ./services/tool-service/adapters/kubernetes_adapter.py:80:    def create_deployment(
+- ./services/tool-service/adapters/kubernetes_adapter.py:133:    def list_deployments(self, namespace: str) -> list[dict[str, Any]]:
+- ./services/tool-service/adapters/kubernetes_adapter.py:138:    def delete_deployment(self, namespace: str, name: str):
+- ./services/tool-service/adapters/kubernetes_adapter.py:143:    def scale_deployment(self, namespace: str, name: str, replicas: int):
+- ./services/tool-service/adapters/kubernetes_adapter.py:155:    def create_service(
+- ./services/tool-service/adapters/kubernetes_adapter.py:187:    def delete_service(self, namespace: str, name: str):
+- ./services/tool-service/adapters/kubernetes_adapter.py:196:    def list_pods(
+- ./services/tool-service/adapters/kubernetes_adapter.py:205:    def get_pod_logs(self, namespace: str, name: str) -> str:
+- ./services/tool-service/adapters/kubernetes_adapter.py:213:    def create_config_map(
+- ./services/tool-service/adapters/kubernetes_adapter.py:227:    def create_secret(
+- ./services/tool-service/adapters/kubernetes_adapter.py:246:    def apply_yaml(self, namespace: str, yaml_content: str):
+- ./services/tool-service/adapters/kubernetes_adapter.py:279:    def bootstrap_namespace(self, name: str) -> dict[str, Any]:
+- ./services/common/fastapi/bootstrap.py:12:def create_app(
+- ./services/orchestrator/app/integrations/langgraph_adapter.py:18:def _get_langgraph_components():
+- ./services/orchestrator/app/integrations/langgraph_adapter.py:30:def _resolve_callable(path: str) -> GraphCallable:
+- ./services/orchestrator/app/integrations/langgraph_adapter.py:46:def _wrap_handler(name: str, handler: GraphCallable) -> GraphCallable:
+- ./services/orchestrator/app/integrations/langgraph_adapter.py:55:    def _sync_wrapper(state: dict[str, Any]) -> dict[str, Any]:
+- ./services/orchestrator/app/integrations/langgraph_adapter.py:66:def _wrap_condition(handler: ConditionCallable) -> Callable[[dict[str, Any]], str]:
+- ./services/orchestrator/app/integrations/langgraph_adapter.py:67:    def _condition(state: dict[str, Any]) -> str:
+- ./services/orchestrator/app/services/rate_limiter.py:54:    def __init__(self, redis_url: str = None):
+- ./services/orchestrator/app/services/rate_limiter.py:68:    def add_config(self, endpoint: str, config: RateLimitConfig):
+- ./services/orchestrator/app/services/rate_limiter.py:72:    def _get_client_key(self, client_id: str, endpoint: str) -> str:
+- ./services/orchestrator/app/services/rate_limiter.py:240:    def __init__(self, rate_limiter_instance: RateLimiter = None):
+- ./services/workflow-engine/app/main.py:32:    def __init__(self):
+- ./services/billing-service/app/main.py:72:def healthcheck() -> dict[str, str]:
+- ./services/billing-service/app/main.py:81:def healthz() -> dict[str, any]:
+- ./services/billing-service/app/main.py:108:def metrics() -> Response:
+- ./services/billing-service/app/main.py:117:def root():
+- ./services/billing-service/app/main.py:124:def list_subscriptions():
+- ./services/billing-service/app/main.py:130:def create_subscription(subscription: dict):
+- ./services/billing-service/app/main.py:153:def create_payment_intent(payload: PaymentIntentRequest):
+- ./services/billing-service/app/main.py:352:def usage_summary(query: UsageSummaryQuery):
+- ./services/billing-service/app/main.py:378:def entitlements(req: EntitlementsRequest):
+- ./services/tool-service/adapters/gitlab_adapter.py:24:    def __init__(self, url: str = "https://gitlab.com", token: str = None):
+- ./services/tool-service/adapters/gitlab_adapter.py:36:    def _request(self, method: str, endpoint: str, **kwargs) -> Any:
+- ./services/tool-service/adapters/gitlab_adapter.py:49:    def create_project(
+- ./services/tool-service/adapters/gitlab_adapter.py:72:    def get_project(self, project_id: str) -> dict[str, Any]:
+- ./services/tool-service/adapters/gitlab_adapter.py:78:    def list_projects(
+- ./services/tool-service/adapters/gitlab_adapter.py:87:    def delete_project(self, project_id: str):
+- ./services/tool-service/adapters/gitlab_adapter.py:97:    def create_file(
+- ./services/tool-service/adapters/gitlab_adapter.py:115:    def get_file(
+- ./services/tool-service/adapters/gitlab_adapter.py:136:    def update_file(
+- ./services/tool-service/adapters/gitlab_adapter.py:158:    def create_branch(
+- ./services/tool-service/adapters/gitlab_adapter.py:168:    def list_branches(self, project_id: str) -> list[dict[str, Any]]:
+- ./services/tool-service/adapters/gitlab_adapter.py:173:    def protect_branch(self, project_id: str, branch_name: str) -> dict[str, Any]:
+- ./services/tool-service/adapters/gitlab_adapter.py:187:    def create_merge_request(
+- ./services/tool-service/adapters/gitlab_adapter.py:210:    def merge_merge_request(self, project_id: str, mr_iid: int) -> dict[str, Any]:
+- ./services/tool-service/adapters/gitlab_adapter.py:217:    def list_merge_requests(
+- ./services/tool-service/adapters/gitlab_adapter.py:230:    def create_pipeline(self, project_id: str, ref: str = "main") -> dict[str, Any]:
+- ./services/tool-service/adapters/gitlab_adapter.py:239:    def get_pipeline(self, project_id: str, pipeline_id: int) -> dict[str, Any]:
+- ./services/tool-service/adapters/gitlab_adapter.py:244:    def list_pipelines(self, project_id: str, limit: int = 20) -> list[dict[str, Any]]:
+- ./services/tool-service/adapters/gitlab_adapter.py:251:    def get_pipeline_jobs(
+- ./services/tool-service/adapters/gitlab_adapter.py:264:    def create_issue(
+- ./services/tool-service/adapters/gitlab_adapter.py:287:    def list_issues(
+- ./services/tool-service/adapters/gitlab_adapter.py:300:    def get_current_user(self) -> dict[str, Any]:
+- ./services/tool-service/adapters/gitlab_adapter.py:304:    def list_users(self, limit: int = 20) -> list[dict[str, Any]]:
+- ./services/tool-service/adapters/gitlab_adapter.py:312:    def bootstrap_repository(
+- ./services/common/audit_logger.py:77:def _get_default_region() -> str:
+- ./services/common/audit_logger.py:107:    def __post_init__(self):
+- ./services/common/audit_logger.py:115:    def to_dict(self) -> dict[str, Any]:
+- ./services/common/audit_logger.py:127:    def __init__(
+- ./services/common/audit_logger.py:157:    def from_settings(cls, settings: Settings | None = None) -> AuditLogger:
+- ./services/common/audit_logger.py:173:    def _ensure_table(self) -> None:
+- ./services/common/audit_logger.py:205:    def log_event(self, event: AuditEvent) -> None:
+- ./services/common/audit_logger.py:250:    def query_events(
+- ./services/common/audit_logger.py:280:        def _quote(val: str) -> str:
+- ./services/common/audit_logger.py:331:    def generate_compliance_report(
+- ./services/common/audit_logger.py:385:def get_audit_logger() -> AuditLogger:
+- ./services/common/audit_logger.py:393:def audit_log(
+- ./tests/property/test_config_security.py:54:    def test_no_hardcoded_secrets_in_config_files(self):
+- ./tests/property/test_config_security.py:77:    def test_minio_requires_explicit_credentials(self):
+- ./tests/property/test_config_security.py:108:    def test_redis_requires_explicit_url(self):
+- ./tests/property/test_config_security.py:136:    def test_qdrant_requires_explicit_url(self):
+- ./tests/property/test_config_security.py:165:    def test_secrets_not_in_error_messages(self, secret_value: str):
+- ./tests/property/test_config_security.py:193:    def test_jwt_secret_requires_explicit_configuration(self):
+- ./tests/property/test_config_security.py:220:    def test_database_url_requires_explicit_configuration(self):
+- ./services/billing-service/app/usage_tracker.py:38:    def __post_init__(self):
+- ./services/billing-service/app/usage_tracker.py:46:    def __init__(
+- ./services/billing-service/app/usage_tracker.py:65:    def _ensure_table(self) -> None:
+- ./services/billing-service/app/usage_tracker.py:90:    def track_compute(
+- ./services/billing-service/app/usage_tracker.py:134:    def track_capsule_execution(
+- ./services/billing-service/app/usage_tracker.py:161:    def track_api_calls(
+- ./services/billing-service/app/usage_tracker.py:190:    def track_storage(
+- ./services/billing-service/app/usage_tracker.py:222:    def _write_record(self, record: UsageRecord) -> None:
+- ./services/billing-service/app/usage_tracker.py:261:    def get_usage_summary(
+- ./services/billing-service/app/usage_tracker.py:314:    def create_invoice(
+- ./services/billing-service/app/usage_tracker.py:372:    def _get_stripe_customer(self, user_id: str) -> str:
+- ./services/billing-service/app/usage_tracker.py:402:    def get_usage_tracker() -> UsageTracker:
+- ./services/billing-service/app/usage_tracker.py:410:    def track_usage(user_id: str, resource_type: str, **kwargs) -> None:
+- ./services/tool-service/adapters/github_adapter.py:31:    def __init__(self, token: str | None = None):
+- ./services/tool-service/adapters/github_adapter.py:43:    def _request(self, method: str, endpoint: str, **kwargs) -> Any:
+- ./services/tool-service/adapters/github_adapter.py:56:    def create_repo(
+- ./services/tool-service/adapters/github_adapter.py:79:    def get_repo(self, owner: str, repo: str) -> dict[str, Any]:
+- ./services/tool-service/adapters/github_adapter.py:83:    def list_repos(
+- ./services/tool-service/adapters/github_adapter.py:94:    def create_file(
+- ./services/tool-service/adapters/github_adapter.py:112:    def get_file_content(
+- ./services/tool-service/adapters/github_adapter.py:127:    def create_issue(
+- ./services/tool-service/adapters/github_adapter.py:145:    def create_pull_request(
+- ./services/tool-service/adapters/github_adapter.py:165:    def merge_pull_request(
+- ./services/tool-service/adapters/github_adapter.py:186:    def trigger_workflow(
+- ./services/tool-service/adapters/github_adapter.py:205:    def list_workflow_runs(
+- ./services/tool-service/adapters/github_adapter.py:222:    def search_code(
+- ./services/tool-service/adapters/github_adapter.py:231:    def search_issues(
+- ./tests/property/test_health_endpoints.py:41:    def test_health_response_structure(self):
+- ./tests/property/test_health_endpoints.py:74:    def test_healthz_endpoint_exists(self):
+- ./tests/property/test_health_endpoints.py:100:    def test_health_response_valid_status_values(self, status: str, service_name: str):
+- ./tests/property/test_health_endpoints.py:119:    def test_healthz_includes_dependencies(self):
+- ./tests/property/test_health_endpoints.py:153:    def test_dependency_status_structure(self, dep_name: str, dep_status: str):
+- ./tests/property/test_health_endpoints.py:176:    def test_metrics_endpoint_exists(self):
+- ./tests/property/test_health_endpoints.py:212:    def test_prometheus_metric_format(self, metric_name: str, value: float):
+- ./tests/property/test_health_endpoints.py:224:    def test_prometheus_client_usage(self):
+- ./services/orchestrator/app/services/security.py:97:    def __init__(self, app, max_size_mb: int = 5):
+- ./services/orchestrator/app/services/security.py:145:    def _is_safe_input(self, value: str) -> bool:
+- ./services/orchestrator/app/services/security.py:167:    def _is_safe_path_param(self, value: str) -> bool:
+- ./services/orchestrator/app/services/security.py:177:    def __init__(self):
+- ./services/orchestrator/app/services/security.py:193:        def validate_api_key(cls, v):
+- ./services/orchestrator/app/services/security.py:212:        def sanitize_string(cls, v):
+- ./services/orchestrator/app/services/security.py:225:    def __init__(self):
+- ./services/orchestrator/app/services/security.py:228:    def setup_cors_middleware(self, app):
+- ./services/orchestrator/app/services/security.py:240:    def setup_trusted_hosts(self, app):
+- ./services/orchestrator/app/services/security.py:246:    def setup_security_middleware(self, app):
+- ./services/orchestrator/app/services/security.py:254:    def validate_url(self, url: str) -> bool:
+- ./services/orchestrator/app/services/security.py:294:    def sanitize_filename(self, filename: str) -> str:
+- ./services/orchestrator/app/services/security.py:307:    def validate_api_key(self, api_key: str) -> bool:
+- ./services/orchestrator/app/services/security.py:311:    def validate_email(self, email: str) -> bool:
+- ./services/orchestrator/app/services/security.py:316:    def validate_phone(self, phone: str) -> bool:
+- ./services/orchestrator/app/services/security.py:329:def secure_endpoint(max_length: int = 1000):
+- ./services/orchestrator/app/services/security.py:332:    def decorator(func):
+- ./services/notification-service/app/core/bus.py:28:                def __init__(self, settings: Settings) -> None:
+- ./services/notification-service/app/core/bus.py:37:                    def cache(self) -> deque[NotificationRecord]:
+- ./services/notification-service/app/core/bus.py:162:                                                def get_notification_bus(settings: Settings) -> NotificationBus:
+- ./services/orchestrator/app/integrations/crewai_adapter.py:20:    def from_dict(cls, payload: dict[str, Any]) -> ManagerConfig:
+- ./services/orchestrator/app/integrations/crewai_adapter.py:52:    def from_dict(cls, payload: dict[str, Any]) -> WorkerConfig:
+- ./services/orchestrator/app/integrations/crewai_adapter.py:88:    def from_dict(cls, payload: dict[str, Any]) -> TaskConfig:
+- ./services/orchestrator/app/integrations/crewai_adapter.py:108:def _get_crewai_components():
+- ./services/orchestrator/app/integrations/crewai_adapter.py:120:def _select_process(process_type: str, process_cls: Any) -> Any:
+- ./scripts/integration-tests.py:33:    def __init__(self):
+- ./scripts/integration-tests.py:107:    def setup_port_forwards(self):
+- ./scripts/integration-tests.py:126:    def cleanup_port_forwards(self):
+- ./scripts/integration-tests.py:243:    def test_kubernetes_deployment(self):
+- ./scripts/integration-tests.py:288:    def run_ci_tests(self):
+- ./scripts/centralize_env.py:22:        def _should_skip(path: pathlib.Path, excludes: Iterable[str]) -> bool:
+- ./scripts/centralize_env.py:34:                                def _process_file(path: pathlib.Path, dry_run: bool) -> bool:
+- ./scripts/centralize_env.py:56:                                                        def _iter_paths(
+- ./scripts/centralize_env.py:83:            def main(argv: list[str] | None = None) -> None:
+- ./services/common/redis_client.py:36:    def __init__(
+- ./services/common/redis_client.py:247:def get_redis_client() -> RedisClient:
+- ./services/tool-service/adapters/figma_adapter.py:23:    def __init__(self, access_token: str):
+- ./services/tool-service/adapters/figma_adapter.py:38:    def _request(self, method: str, endpoint: str, **kwargs) -> Any:
+- ./services/tool-service/adapters/figma_adapter.py:51:    def get_file(self, file_key: str, depth: int | None = None) -> dict[str, Any]:
+- ./services/tool-service/adapters/figma_adapter.py:64:    def get_file_nodes(
+- ./services/tool-service/adapters/figma_adapter.py:73:    def get_image_fills(self, file_key: str) -> dict[str, Any]:
+- ./services/tool-service/adapters/figma_adapter.py:81:    def get_comments(self, file_key: str) -> list[dict[str, Any]]:
+- ./services/tool-service/adapters/figma_adapter.py:86:    def post_comment(
+- ./services/tool-service/adapters/figma_adapter.py:105:    def delete_comment(self, file_key: str, comment_id: str):
+- ./services/tool-service/adapters/figma_adapter.py:114:    def get_images(
+- ./services/tool-service/adapters/figma_adapter.py:145:    def get_team_projects(self, team_id: str) -> list[dict[str, Any]]:
+- ./services/tool-service/adapters/figma_adapter.py:150:    def get_project_files(self, project_id: str) -> list[dict[str, Any]]:
+- ./services/tool-service/adapters/figma_adapter.py:159:    def get_team_components(
+- ./services/tool-service/adapters/figma_adapter.py:168:    def get_team_styles(
+- ./services/tool-service/adapters/figma_adapter.py:177:    def get_file_components(self, file_key: str) -> list[dict[str, Any]]:
+- ./services/tool-service/adapters/figma_adapter.py:186:    def export_design_assets(
+- ./services/tool-service/adapters/figma_adapter.py:228:    def inspect_node_properties(self, file_key: str, node_id: str) -> dict[str, Any]:
+- ./services/orchestrator/app/database.py:71:def get_session_factory():
+- ./services/common/openai_provider.py:27:    def __init__(
+- ./services/common/openai_provider.py:205:    def _calculate_cost(
+- ./services/common/openai_provider.py:218:    def calculate_cost(
+- ./tests/property/test_graceful_degradation.py:58:    def test_services_have_enable_flag(self):
+- ./tests/property/test_graceful_degradation.py:78:    def test_services_check_env_var_for_enablement(self):
+- ./tests/property/test_graceful_degradation.py:98:    def test_health_reports_degraded_when_disabled(self):
+- ./tests/property/test_graceful_degradation.py:119:    def test_503_response_for_disabled_features(self):
+- ./tests/property/test_graceful_degradation.py:145:    def test_503_includes_enablement_instructions(self):
+- ./tests/property/test_graceful_degradation.py:175:    def test_evolution_engine_has_rule_based_fallback(self):
+- ./tests/property/test_graceful_degradation.py:199:    def test_self_provisioning_returns_simulated_endpoints(self):
+- ./tests/property/test_graceful_degradation.py:222:    def test_services_start_without_required_dependencies(self):
+- ./tests/property/test_graceful_degradation.py:266:    def test_health_endpoints_respond_when_disabled(self):
+- ./tests/property/test_graceful_degradation.py:300:    def test_root_endpoint_indicates_disabled_status(self):
+- ./tests/property/test_graceful_degradation.py:336:    def test_health_status_reflects_enablement(self, service_name: str, is_enabled: bool):
+- ./tests/property/test_graceful_degradation.py:368:    def test_enable_flag_derived_from_env_var(self, env_var: str, value: str):
+- ./services/common/slo_tracker.py:117:    def __init__(self, prometheus_url: str = None):
+- ./services/common/slo_tracker.py:129:    def calculate_availability(self, service: str, window: str) -> float:
+- ./services/common/slo_tracker.py:155:    def calculate_latency_percentile(
+- ./services/common/slo_tracker.py:183:    def calculate_error_rate(self, service: str, window: str) -> float:
+- ./services/common/slo_tracker.py:208:    def check_slo(self, slo: SLO) -> dict:
+- ./services/common/slo_tracker.py:266:    def check_all_slos(self) -> list[dict]:
+- ./services/common/slo_tracker.py:302:    def _query_prometheus(self, query: str) -> list[dict] | None:
+- ./scripts/generate_docker_compose.py:15:    def __init__(self):
+- ./scripts/generate_docker_compose.py:18:    def generate_compose(self, deployment_mode: DeploymentMode) -> dict[str, Any]:
+- ./scripts/generate_docker_compose.py:43:    def _generate_database_services(self) -> dict[str, Any]:
+- ./scripts/generate_docker_compose.py:93:    def _generate_application_services(self) -> dict[str, Any]:
+- ./scripts/generate_docker_compose.py:125:    def _generate_monitoring_services(self) -> dict[str, Any]:
+- ./scripts/generate_docker_compose.py:141:    def _get_service_port(self, service_name: str) -> int:
+- ./scripts/generate_docker_compose.py:153:    def save_compose_file(self, deployment_mode: DeploymentMode, output_path: str):
+- ./tests/property/test_memory_roundtrip.py:20:    def test_memory_gateway_has_remember_endpoint(self):
+- ./tests/property/test_memory_roundtrip.py:38:    def test_memory_gateway_has_recall_endpoint(self):
+- ./tests/property/test_memory_roundtrip.py:56:    def test_remember_request_model_structure(self):
+- ./tests/property/test_memory_roundtrip.py:75:    def test_recall_response_model_structure(self):
+- ./tests/property/test_memory_roundtrip.py:92:    def test_in_memory_fallback_exists(self):
+- ./tests/property/test_memory_roundtrip.py:113:    def test_key_format_valid(self, key: str):
+- ./tests/property/test_memory_roundtrip.py:137:    def test_value_json_serializable(self, value):
+- ./tests/property/test_memory_roundtrip.py:161:    def test_roundtrip_preserves_value(self, key: str, value: dict):
+- ./tests/property/test_memory_roundtrip.py:186:    def test_recall_nonexistent_key_behavior(self, key: str):
+- ./tests/property/test_memory_roundtrip.py:202:    def test_qdrant_integration(self):
+- ./tests/property/test_memory_roundtrip.py:222:    def test_embedding_generation(self):
+- ./tests/property/test_memory_roundtrip.py:239:    def test_graceful_fallback_to_memory(self):
+- ./services/common/keycloak_client.py:26:    def __init__(
+- ./services/common/keycloak_client.py:53:    def validate_token(self, token: str) -> dict[str, Any]:
+- ./services/common/keycloak_client.py:121:    def get_public_key(self) -> str:
+- ./services/common/keycloak_client.py:128:    def introspect_token(self, token: str) -> dict[str, Any]:
+- ./services/common/keycloak_client.py:149:def get_keycloak_client() -> KeycloakClient:
+- ./tests/property/test_error_responses.py:22:    def test_error_module_exists(self):
+- ./tests/property/test_error_responses.py:41:    def test_503_errors_include_env_var_hint(self):
+- ./tests/property/test_error_responses.py:59:    def test_502_errors_identify_upstream_service(self):
+- ./tests/property/test_error_responses.py:77:    def test_500_errors_hide_details(self):
+- ./tests/property/test_error_responses.py:96:    def test_error_message_sanitization(self):
+- ./tests/property/test_error_responses.py:114:    def test_services_use_standardized_errors(self):
+- ./tests/property/test_error_responses.py:148:    def test_error_status_code_mapping(self, status_code: int, service_name: str):
+- ./tests/property/test_error_responses.py:167:    def test_error_message_length_limits(self, error_message: str):
+- ./tests/property/test_error_responses.py:183:    def test_secrets_not_in_error_responses(self, secret: str):
+- ./tests/property/test_error_responses.py:207:    def test_422_for_validation_errors(self):
+- ./tests/property/test_error_responses.py:228:    def test_404_for_not_found(self):
+- ./tests/property/test_error_responses.py:246:    def test_services_handle_upstream_failures(self):
+- ./services/workflow-engine/app/activities/advanced_activities.py:17:    def __init__(self):
+- ./services/orchestrator/app/integrations/kafka_client.py:36:    def __init__(self):
+- ./services/orchestrator/app/integrations/kafka_client.py:52:    def get_producer_config(self) -> dict[str, Any]:
+- ./services/orchestrator/app/integrations/kafka_client.py:87:    def get_consumer_config(self, consumer_group: str) -> dict[str, Any]:
+- ./services/orchestrator/app/integrations/kafka_client.py:122:    def __init__(self, topic_prefix: str = "orchestration"):
+- ./services/orchestrator/app/integrations/kafka_client.py:179:    def __init__(self, consumer_group: str, topic_prefix: str = "orchestration"):
+- ./services/common/minio_client.py:18:    def __init__(
+- ./services/common/minio_client.py:48:    def create_bucket(self, bucket_name: str) -> None:
+- ./services/common/minio_client.py:60:    def upload_file(
+- ./services/common/minio_client.py:94:    def upload_bytes(
+- ./services/common/minio_client.py:129:    def download_file(
+- ./services/common/minio_client.py:153:    def download_bytes(
+- ./services/common/minio_client.py:181:    def delete_object(
+- ./services/common/minio_client.py:202:    def delete_objects(
+- ./services/common/minio_client.py:232:    def list_objects(
+- ./services/common/minio_client.py:260:    def get_object_metadata(
+- ./services/common/minio_client.py:291:    def generate_presigned_url(
+- ./services/common/minio_client.py:321:    def health_check(self) -> bool:
+- ./services/common/minio_client.py:340:def get_minio_client() -> MinIOClient:
+- ./services/notification-service/app/core/config.py:21:    def get_settings() -> Settings:
+- ./services/orchestrator/app/services/task_service.py:28:    def __init__(self, session: AsyncSession | None = None):
+- ./services/orchestrator/app/planner/client.py:31:    def __init__(self, config: PlannerClientConfig) -> None:
+- ./services/workflow-engine/app/activities/hitl_activities.py:18:    def __init__(self, session_factory=None):
+- ./services/tool-service/adapters/gcp_adapter.py:24:    def __init__(self, project_id: str, credentials_path: str | None = None):
+- ./services/tool-service/adapters/gcp_adapter.py:50:    def compute_client(self):
+- ./services/tool-service/adapters/gcp_adapter.py:59:    def storage_client(self):
+- ./services/tool-service/adapters/gcp_adapter.py:68:    def sql_client(self):
+- ./services/tool-service/adapters/gcp_adapter.py:80:    def create_instance(
+- ./services/tool-service/adapters/gcp_adapter.py:121:    def list_instances(self, zone: str) -> list[dict[str, Any]]:
+- ./services/tool-service/adapters/gcp_adapter.py:139:    def stop_instance(self, zone: str, instance_name: str):
+- ./services/tool-service/adapters/gcp_adapter.py:149:    def start_instance(self, zone: str, instance_name: str):
+- ./services/tool-service/adapters/gcp_adapter.py:159:    def delete_instance(self, zone: str, instance_name: str):
+- ./services/tool-service/adapters/gcp_adapter.py:173:    def create_bucket(self, bucket_name: str, location: str = "US") -> dict[str, Any]:
+- ./services/tool-service/adapters/gcp_adapter.py:183:    def list_buckets(self) -> list[dict[str, Any]]:
+- ./services/tool-service/adapters/gcp_adapter.py:196:    def upload_blob(
+- ./services/tool-service/adapters/gcp_adapter.py:205:    def download_blob(
+- ./services/tool-service/adapters/gcp_adapter.py:216:    def delete_bucket(self, bucket_name: str):
+- ./services/tool-service/adapters/gcp_adapter.py:226:    def create_sql_instance(
+- ./services/tool-service/adapters/gcp_adapter.py:251:    def list_sql_instances(self) -> list[dict[str, Any]]:
+- ./services/tool-service/adapters/gcp_adapter.py:267:    def delete_sql_instance(self, instance_name: str):
+- ./services/tool-service/adapters/gcp_adapter.py:280:    def bootstrap_infrastructure(
+- ./services/orchestrator/app/services/event_service.py:23:    def __init__(
+- ./services/orchestrator/app/capsule_executor.py:75:def _upload_artifact(
+- ./services/orchestrator/app/capsule_executor.py:96:def _run_docker_step(step: dict[str, Any], payload: CapsuleRunInput) -> str:
+- ./services/orchestrator/app/capsule_executor.py:165:    def _ensure_client() -> ObjectStoreClient:
+- ./services/workflow-engine/app/activities/rl_activities.py:18:    def __init__(self):
+- ./tests/conftest.py:26:def sync_db_session() -> Generator[Session, None, None]:
+- ./services/orchestrator/app/services/rl_service.py:30:    def __init__(self, db: AsyncSession):
+- ./services/tool-service/adapters/aws_adapter.py:35:    def __init__(self, region_name: str | None = None):
+- ./services/tool-service/adapters/aws_adapter.py:49:    def _get_client(self, service_name: str) -> Any:
+- ./services/tool-service/adapters/aws_adapter.py:57:    def run_instances(
+- ./services/tool-service/adapters/aws_adapter.py:96:    def terminate_instances(self, instance_ids: list[str]) -> dict[str, Any]:
+- ./services/tool-service/adapters/aws_adapter.py:101:    def describe_instances(
+- ./services/tool-service/adapters/aws_adapter.py:117:    def create_bucket(self, bucket_name: str) -> dict[str, Any]:
+- ./services/tool-service/adapters/aws_adapter.py:127:    def put_object(
+- ./services/tool-service/adapters/aws_adapter.py:141:    def get_object(self, bucket_name: str, key: str) -> dict[str, Any]:
+- ./services/tool-service/adapters/aws_adapter.py:150:    def list_objects(
+- ./services/tool-service/adapters/aws_adapter.py:161:    def create_function(
+- ./services/tool-service/adapters/aws_adapter.py:193:    def invoke_function(
+- ./services/tool-service/adapters/aws_adapter.py:221:    def create_stack(
+- ./services/tool-service/adapters/aws_adapter.py:243:    def describe_stacks(self, stack_name: str | None = None) -> dict[str, Any]:
+- ./services/tool-service/adapters/aws_adapter.py:255:    def create_role(
+- ./services/tool-service/adapters/aws_adapter.py:266:    def attach_role_policy(self, role_name: str, policy_arn: str) -> dict[str, Any]:
+- ./services/tool-service/adapters/aws_adapter.py:275:    def create_db_instance(
+- ./services/tool-service/adapters/aws_adapter.py:306:    def create_table(
+- ./services/tool-service/adapters/aws_adapter.py:322:    def put_item(self, table_name: str, item: dict[str, Any]) -> dict[str, Any]:
+- ./services/tool-service/adapters/aws_adapter.py:328:    def get_item(self, table_name: str, key: dict[str, Any]) -> dict[str, Any]:
+- ./services/orchestrator/app/integrations/autogen_adapter.py:22:    def from_dict(cls, payload: dict[str, Any]) -> AgentConfig:
+- ./services/orchestrator/app/integrations/autogen_adapter.py:44:def _get_autogen_components():
+- ./services/orchestrator/app/integrations/autogen_adapter.py:56:def _build_llm_config(agent: AgentConfig, default_temperature: float) -> dict[str, Any]:
+- ./services/orchestrator/app/integrations/autogen_adapter.py:69:def _termination_predicate(keywords: Iterable[str]):
+- ./services/orchestrator/app/integrations/autogen_adapter.py:72:    def _is_termination(message: dict[str, Any]) -> bool:
+- ./services/orchestrator/app/integrations/autogen_adapter.py:81:def _serialize_conversation(messages: list[dict[str, Any]]) -> list[dict[str, Any]]:
+- ./services/workflow-engine/app/activities/tool_activities.py:24:    def __init__(self):
+- ./services/orchestrator/app/services/hitl_service.py:28:    def __init__(self, db: AsyncSession):
+- ./services/orchestrator/app/patterns/circuit_breaker.py:54:    def __init__(self, service_name: str, opened_at: datetime):
+- ./services/orchestrator/app/patterns/circuit_breaker.py:96:    def __init__(
+- ./services/orchestrator/app/patterns/circuit_breaker.py:161:    def _on_success(self) -> None:
+- ./services/orchestrator/app/patterns/circuit_breaker.py:183:    def _on_failure(self, error: Exception) -> None:
+- ./services/orchestrator/app/patterns/circuit_breaker.py:213:    def _should_attempt_reset(self) -> bool:
+- ./services/orchestrator/app/patterns/circuit_breaker.py:221:    def _transition_to(self, new_state: CircuitState) -> None:
+- ./services/orchestrator/app/patterns/circuit_breaker.py:240:    def get_status(self) -> dict[str, Any]:
+- ./services/orchestrator/app/patterns/circuit_breaker.py:279:def get_circuit_breaker(
+- ./services/orchestrator/app/patterns/circuit_breaker.py:299:def get_all_circuit_breakers() -> dict[str, CircuitBreaker]:
+- ./services/orchestrator/app/patterns/circuit_breaker.py:304:def reset_all_circuit_breakers() -> None:
+- ./services/tool-service/adapters/azure_adapter.py:30:    def __init__(
+- ./services/tool-service/adapters/azure_adapter.py:66:    def compute_client(self):
+- ./services/tool-service/adapters/azure_adapter.py:75:    def storage_client(self):
+- ./services/tool-service/adapters/azure_adapter.py:84:    def resource_client(self):
+- ./services/tool-service/adapters/azure_adapter.py:93:    def network_client(self):
+- ./services/tool-service/adapters/azure_adapter.py:102:    def sql_client(self):
+- ./services/tool-service/adapters/azure_adapter.py:114:    def create_resource_group(
+- ./services/tool-service/adapters/azure_adapter.py:126:    def list_resource_groups(self) -> list[dict[str, Any]]:
+- ./services/tool-service/adapters/azure_adapter.py:130:    def delete_resource_group(self, name: str):
+- ./services/tool-service/adapters/azure_adapter.py:140:    def create_vm(
+- ./services/tool-service/adapters/azure_adapter.py:181:    def list_vms(self, resource_group: str | None = None) -> list[dict[str, Any]]:
+- ./services/tool-service/adapters/azure_adapter.py:189:    def start_vm(self, resource_group: str, vm_name: str):
+- ./services/tool-service/adapters/azure_adapter.py:197:    def stop_vm(self, resource_group: str, vm_name: str):
+- ./services/tool-service/adapters/azure_adapter.py:205:    def delete_vm(self, resource_group: str, vm_name: str):
+- ./services/tool-service/adapters/azure_adapter.py:217:    def create_storage_account(
+- ./services/tool-service/adapters/azure_adapter.py:235:    def list_storage_accounts(
+- ./services/tool-service/adapters/azure_adapter.py:247:    def delete_storage_account(self, resource_group: str, account_name: str):
+- ./services/tool-service/adapters/azure_adapter.py:256:    def upload_blob(
+- ./services/tool-service/adapters/azure_adapter.py:270:    def download_blob(
+- ./services/tool-service/adapters/azure_adapter.py:286:    def create_sql_server(
+- ./services/tool-service/adapters/azure_adapter.py:308:    def create_sql_database(
+- ./services/tool-service/adapters/azure_adapter.py:332:    def bootstrap_infrastructure(
+- ./scripts/comprehensive-test-report.py:15:    def __init__(self):
+- ./scripts/comprehensive-test-report.py:24:    def check_kubernetes_status(self):
+- ./scripts/comprehensive-test-report.py:96:    def run_ci_tests(self):
+- ./scripts/comprehensive-test-report.py:170:    def analyze_service_health(self):
+- ./scripts/comprehensive-test-report.py:262:    def generate_recommendations(self):
+- ./scripts/comprehensive-test-report.py:328:    def print_final_report(self):
+- ./scripts/comprehensive-test-report.py:380:    def run_full_test_suite(self):
+- ./scripts/comprehensive-test-report.py:393:    def main():
+- ./services/tool-service/adapters/linear_adapter.py:24:    def __init__(self, api_key: str):
+- ./services/tool-service/adapters/linear_adapter.py:36:    def _graphql_query(
+- ./services/tool-service/adapters/linear_adapter.py:59:    def create_issue(
+- ./services/tool-service/adapters/linear_adapter.py:120:    def get_issue(self, issue_id: str) -> dict[str, Any]:
+- ./services/tool-service/adapters/linear_adapter.py:162:    def update_issue(
+- ./services/tool-service/adapters/linear_adapter.py:201:    def search_issues(
+- ./services/tool-service/adapters/linear_adapter.py:239:    def create_project(
+- ./services/tool-service/adapters/linear_adapter.py:285:    def get_project(self, project_id: str) -> dict[str, Any]:
+- ./services/tool-service/adapters/linear_adapter.py:322:    def list_projects(
+- ./services/tool-service/adapters/linear_adapter.py:347:    def get_teams(self) -> list[dict[str, Any]]:
+- ./services/tool-service/adapters/linear_adapter.py:365:    def get_team_workflow_states(self, team_id: str) -> list[dict[str, Any]]:
+- ./services/tool-service/adapters/linear_adapter.py:390:    def create_label(
+- ./services/tool-service/adapters/linear_adapter.py:422:    def get_labels(self, team_id: str | None = None) -> list[dict[str, Any]]:
+- ./services/tool-service/adapters/linear_adapter.py:444:    def get_viewer(self) -> dict[str, Any]:
+- ./services/tool-service/adapters/linear_adapter.py:464:    def get_users(self) -> list[dict[str, Any]]:
+- ./services/tool-service/adapters/linear_adapter.py:486:    def bootstrap_project(
+- ./services/orchestrator/app/patterns/saga.py:80:    def __init__(self, saga_id: str):
+- ./services/orchestrator/app/patterns/saga.py:247:    def _extract_compensation_args(
+- ./services/orchestrator/app/patterns/saga.py:305:    def __init__(self, saga_id: str):
+- ./services/orchestrator/app/patterns/saga.py:309:    def add_step(
+- ./services/orchestrator/app/patterns/saga.py:343:    def build(self) -> Saga:
+- ./services/common/chaos_experiments.py:130:    def __init__(self, namespace: str = "soma-agent-hub"):
+- ./services/common/chaos_experiments.py:139:    def generate_manifest(self, experiment: ChaosExperiment) -> dict:
+- ./services/common/chaos_experiments.py:218:    def run_experiment(self, experiment: ChaosExperiment) -> str:
+- ./services/common/chaos_experiments.py:251:    def stop_experiment(self, experiment_name: str):
+- ./services/common/chaos_experiments.py:277:    def validate_experiment(
+- ./scripts/flink/publish_sample_events.py:15:def build_event(index: int) -> dict:
+- ./scripts/flink/publish_sample_events.py:26:    def parse_args() -> argparse.Namespace:
+- ./scripts/flink/publish_sample_events.py:39:        def main() -> None:
+- ./services/common/health.py:25:    def __init__(self):
+- ./services/common/health.py:29:    def set_ready(self, ready: bool = True):
+- ./services/common/health.py:34:    def add_dependency_check(self, name: str, check_func: Callable):
+- ./services/common/health.py:127:def create_health_router(
+- ./services/tool-service/adapter-generator/openapi_generator.py:45:    def __init__(self):
+- ./services/tool-service/adapter-generator/openapi_generator.py:49:    def load_openapi_spec(self, spec_url_or_file: str) -> dict[str, Any]:
+- ./services/tool-service/adapter-generator/openapi_generator.py:73:    def parse_openapi_spec(self) -> list[EndpointInfo]:
+- ./services/tool-service/adapter-generator/openapi_generator.py:111:    def generate_adapter_code(
+- ./services/tool-service/adapter-generator/openapi_generator.py:194:    def _generate_endpoint_method(self, endpoint: EndpointInfo) -> str:
+- ./services/tool-service/adapter-generator/openapi_generator.py:281:    def generate_and_save(
+- ./services/orchestrator/app/core/framework_router.py:20:    def __init__(self, *, default_pattern: MultiAgentPattern | None = None) -> None:
+- ./services/orchestrator/app/core/framework_router.py:23:    def detect_pattern(self, payload: dict[str, Any]) -> MultiAgentPattern:
+- ./services/orchestrator/app/core/framework_router.py:49:    def select_framework(self, pattern: MultiAgentPattern) -> str:
+- ./services/orchestrator/app/core/framework_router.py:62:    def route(self, payload: dict[str, Any]) -> str:
+- ./services/orchestrator/app/services/capsule_service.py:401:    def _deep_merge(self, base: dict, override: dict) -> dict:
+- ./services/workflow-engine/app/activities/capsule_activities.py:17:    def __init__(self):
+- ./services/common/analytics_client.py:18:    def __init__(
+- ./services/common/analytics_client.py:245:def get_analytics_client() -> AnalyticsClient:
+- ./services/flink-service/job.py:25:    def from_env(cls) -> FlinkConfig:
+- ./services/flink-service/job.py:39:    def open(self, runtime_context):  # noqa: D401
+- ./services/flink-service/job.py:44:    def invoke(self, value: Row, context):  # noqa: D401
+- ./services/flink-service/job.py:56:    def configure_tables(t_env: StreamTableEnvironment, config: FlinkConfig) -> None:
+- ./services/flink-service/job.py:87:    def main() -> None:
+- ./services/orchestrator/app/intake/rules.py:6:def resolve_missing_dependencies(
+- ./services/orchestrator/app/intake/rules.py:18:def validate_dependency_closure(
+- ./services/orchestrator/app/reward.py:20:def exact_match_reward(model_output: Mapping[str, Any] | str, expected: Any) -> float:
+- ./services/workflow-engine/app/activities/graph_activities.py:13:    def __init__(self, session_factory=None):
+- ./services/orchestrator/app/core/config.py:88:def get_settings() -> Settings:
+- ./scripts/validate-changelog.py:18:    def __init__(self, changelog_path: str = "docs/changelog.md"):
+- ./scripts/validate-changelog.py:23:    def validate(self) -> bool:
+- ./scripts/validate-changelog.py:40:    def _validate_format(self, content: str):
+- ./scripts/validate-changelog.py:52:    def _validate_version_consistency(self):
+- ./scripts/validate-changelog.py:89:    def _validate_unreleased_section(self, content: str):
+- ./scripts/validate-changelog.py:109:    def _validate_entry_format(self, content: str):
+- ./scripts/validate-changelog.py:144:    def _get_latest_version(self) -> str | None:
+- ./scripts/validate-changelog.py:150:    def suggest_next_version(self) -> str:
+- ./scripts/validate-changelog.py:182:    def print_results(self):
+- ./scripts/validate-changelog.py:208:    def main():
+- ./services/object_store/app/client.py:34:    def from_env(cls) -> "ObjectStoreSettings":
+- ./services/object_store/app/client.py:44:    def __init__(self, settings: ObjectStoreSettings | None = None) -> None:
+- ./services/object_store/app/client.py:55:    def ensure_bucket(self, bucket: str | None = None) -> str:
+- ./services/object_store/app/client.py:61:    def upload(
+- ./services/object_store/app/client.py:79:    def presign_get(
+- ./services/object_store/app/client.py:92:    def delete(self, object_name: str, bucket: str | None = None) -> None:
+- ./services/workflow-engine/app/activities/agent_activities.py:26:    def __init__(self):
+- ./services/workflow-engine/app/workflows/capsule_engine.py:20:    def __init__(self):
+- ./services/common/config/unified_config.py:74:    def __init__(self, config_path: str = "config/unified.yaml"):
+- ./services/common/config/unified_config.py:79:    def _load_config(self) -> dict[str, Any]:
+- ./services/common/config/unified_config.py:85:    def _create_default_config(self) -> dict[str, Any]:
+- ./services/common/config/unified_config.py:179:    def _create_env_config(self) -> EnvironmentConfig:
+- ./services/orchestrator/app/core/a2a_protocol.py:24:    def __init__(self, agent_id: str) -> None:
+- ./services/orchestrator/app/core/a2a_protocol.py:37:    def to_dict(self) -> dict[str, Any]:
+- ./services/orchestrator/app/core/a2a_protocol.py:45:    def from_dict(cls, payload: dict[str, Any]) -> AgentCard:
+- ./services/orchestrator/app/core/a2a_protocol.py:68:    def __init__(self, backend: AgentRegistryBackend | None = None) -> None:
+- ./services/orchestrator/app/core/a2a_protocol.py:148:    def __init__(self) -> None:
+- ./services/orchestrator/app/core/a2a_protocol.py:203:    def __init__(self, path: str | Path) -> None:
+- ./services/orchestrator/app/core/a2a_protocol.py:208:        def _load() -> list[AgentCard]:
+- ./services/orchestrator/app/core/a2a_protocol.py:220:        def _write() -> None:
+- ./services/orchestrator/app/core/a2a_protocol.py:239:    def __init__(self, registry: AgentRegistry) -> None:
+- ./services/orchestrator/app/startup/outbox_publisher_startup.py:22:    def __init__(self, app: FastAPI):
+- ./services/orchestrator/app/startup/outbox_publisher_startup.py:26:    def setup_event_handlers(self) -> None:
+- ./services/orchestrator/app/startup/outbox_publisher_startup.py:61:def setup_outbox_publisher(app: FastAPI) -> None:
+- ./services/common/observability.py:25:    def __init__(
+- ./services/common/observability.py:51:    def setup_tracing(self) -> None:
+- ./services/common/observability.py:74:    def setup_metrics(self) -> None:
+- ./services/common/observability.py:93:    def instrument_fastapi(self, app) -> None:
+- ./services/common/observability.py:97:    def setup_all(self, app=None) -> None:
+- ./services/common/observability.py:106:def get_meter(name: str) -> metrics.Meter:
+- ./services/common/observability.py:110:def get_tracer(name: str) -> trace.Tracer:
+- ./services/common/observability.py:114:def setup_observability(
+- ./services/common/config/settings.py:24:def get_settings() -> BaseConfig:
+- ./services/common/config/settings.py:42:def get_common_settings() -> BaseConfig:
+- ./services/workflow-engine/app/workflows/graph_engine.py:23:    def __init__(self):
+- ./services/workflow-engine/app/workflows/graph_engine.py:186:    def __init__(self):
+- ./services/task_capsule_repo/app/repository.py:17:    def __init__(self, session: AsyncSession):
+- ./services/orchestrator/app/main.py:48:def build_app() -> FastAPI:
+- ./services/orchestrator/app/main.py:88:    def _routes(app: FastAPI) -> None:
+- ./services/orchestrator/app/main.py:154:def create_app(*args: Any, **kwargs: Any) -> FastAPI:  # pragma: no cover
+- ./services/orchestrator/app/repository/outbox_event_repository.py:21:    def __init__(self, session: AsyncSession):
+- ./services/task_capsule_repo/app/database.py:49:def get_session_factory() -> sessionmaker:
+- ./services/common/config/base_settings.py:36:    def is_dev(self) -> bool:
+- ./services/common/config/base_settings.py:40:    def is_prod(self) -> bool:
+- ./services/common/config/base_settings.py:44:def resolve_env(name: str, default: Any | None = None) -> Any:
+- ./services/common/config/base_settings.py:57:def load_settings(cls: type[BaseServiceSettings]) -> BaseServiceSettings:
+- ./services/common/config/base_settings.py:67:def apply_log_level(logger_name: str, level: str) -> None:
+- ./services/task_capsule_repo/app/main.py:40:def metrics() -> Response:
+- ./services/tool-service/tool_registry.py:52:                    def __init__(self, *args, **kwargs) -> None:  # pragma: no cover - structural
+- ./services/tool-service/tool_registry.py:55:                    def __repr__(self) -> str:  # pragma: no cover - structural
+- ./services/tool-service/tool_registry.py:59:                    def health_check(self) -> Any:  # noqa: D401 - simple contract
+- ./services/tool-service/tool_registry.py:71:                        def __init__(self, adapters_dir: str = "services/tool-service/adapters"):
+- ./services/tool-service/tool_registry.py:79:                            def _discover_adapters(self) -> None:
+- ./services/tool-service/tool_registry.py:86:                                def _register_builtin_adapters(self) -> None:
+- ./services/tool-service/tool_registry.py:306:            def register(self, tool_info: ToolInfo) -> None:
+- ./services/tool-service/tool_registry.py:311:            def get_adapter(
+- ./services/tool-service/tool_registry.py:361:                                            def list_tools(self, category: str | None = None) -> list[ToolInfo]:
+- ./services/tool-service/tool_registry.py:378:                                                            def get_capabilities(self, tool_name: str) -> list[ToolCapability]:
+- ./services/tool-service/tool_registry.py:385:                                                                    def invoke(
+- ./services/tool-service/tool_registry.py:417:                                                                                def health_check(
+- ./services/task_capsule_repo/alembic/env.py:42:def run_migrations_offline() -> None:
+- ./services/task_capsule_repo/alembic/env.py:66:def do_run_migrations(connection: Connection) -> None:
+- ./services/orchestrator/app/repository/build_run.py:39:    def __init__(self, session: AsyncSession):
+- ./services/common/config/service_config.py:27:    def __post_init__(self):
+- ./services/common/config/service_config.py:59:    def __post_init__(self):
+- ./services/common/config/service_config.py:75:    def __post_init__(self):
+- ./services/common/config/service_config.py:98:    def __post_init__(self):
+- ./services/common/config/service_config.py:146:def register_service_config(service_name: str, config_class: type) -> None:
+- ./services/common/config/service_config.py:151:def get_service_config_class(service_name: str) -> type | None:
+- ./services/common/config/service_config.py:156:def get_service_config(service_name: str, base_config: BaseConfig) -> ServiceConfig:
+- ./services/common/config/service_config.py:181:def create_gateway_config(base_config: BaseConfig) -> GatewayServiceConfig:
+- ./services/common/config/service_config.py:186:def create_orchestrator_config(base_config: BaseConfig) -> OrchestratorServiceConfig:
+- ./services/common/config/service_config.py:191:def create_builder_config(base_config: BaseConfig) -> BuilderServiceConfig:
+- ./services/common/config/service_config.py:196:def create_capsule_registry_config(base_config: BaseConfig) -> CapsuleRegistryConfig:
+- ./services/common/config/service_config.py:201:def create_agent_manager_config(base_config: BaseConfig) -> AgentManagerConfig:
+- ./services/llm-hub/app/main.py:15:def healthcheck() -> dict[str, str]:
+- ./services/llm-hub/app/main.py:20:def metrics() -> Response:
+- ./services/orchestrator/app/persona/exporter.py:84:    def __init__(self, dependencies: PersonaExporterDependencies | None = None) -> None:
+- ./services/orchestrator/app/persona/exporter.py:114:    def _build_manifest(self, request: PersonaExportRequest) -> PersonaManifest:
+- ./services/orchestrator/app/persona/exporter.py:129:    def _persist_manifest(self, manifest: PersonaManifest, destination: Path) -> Path:
+- ./services/common/health_standard.py:102:    def __init__(
+- ./services/common/health_standard.py:121:    def set_ready(self, ready: bool = True) -> None:
+- ./services/common/health_standard.py:220:def create_health_router(
+- ./services/common/health_standard.py:279:def get_health_checker(
+- ./services/task_capsule_repo/app/api/routes.py:41:    def from_orm(cls, capsule: Capsule) -> CapsuleResponse:
+- ./services/common/config/env_resolver.py:18:def resolve_env(name: str, default: Any = None, prefix: str = ENV_PREFIX) -> Any:
+- ./services/common/config/env_resolver.py:65:def get_env_var(name: str, default: Any = None, required: bool = False) -> Any:
+- ./services/common/config/env_resolver.py:95:def get_bool_env(name: str, default: bool = False) -> bool:
+- ./services/common/config/env_resolver.py:122:def get_int_env(name: str, default: int = 0) -> int:
+- ./services/common/config/env_resolver.py:146:def get_float_env(name: str, default: float = 0.0) -> float:
+- ./services/common/config/env_resolver.py:167:def get_list_env(
+- ./services/common/config/env_resolver.py:204:def get_dict_env(name: str, default: dict[str, Any] = None) -> dict[str, Any]:
+- ./services/common/config/env_resolver.py:239:def get_service_url(service_name: str, default_port: int = 8000) -> str:
+- ./services/common/config/env_resolver.py:273:def get_database_url(service_name: str = None) -> str:
+- ./services/common/config/env_resolver.py:313:def get_redis_url(service_name: str = None) -> str:
+- ./services/common/config/env_resolver.py:353:def clear_env_cache() -> None:
+- ./services/common/config/env_resolver.py:362:def get_all_env_vars(prefix: str = ENV_PREFIX) -> dict[str, str]:
+- ./services/common/config/env_resolver.py:384:def validate_required_env_vars(required_vars: list[str]) -> list[str]:
+- ./services/tool-service/app/main.py:23:def healthcheck() -> dict[str, str]:
+- ./services/tool-service/app/main.py:29:def metrics() -> Response:
+- ./services/llm-hub/app/config.py:26:def _get_api_key(env_name: str, vault_key: str) -> str:
+- ./services/llm-hub/app/config.py:63:def get_settings():
+- ./services/orchestrator/app/persona/manifest.py:110:    def _check_score(cls, value: float) -> float:  # noqa: D401
+- ./services/orchestrator/app/persona/manifest.py:250:def _load_data_from_source(
+- ./services/orchestrator/app/persona/manifest.py:269:def _load_data_from_bytes(data: bytes) -> dict[str, Any]:
+- ./services/orchestrator/app/persona/manifest.py:282:def validate_persona_manifest(
+- ./services/orchestrator/app/persona/manifest.py:294:def load_persona_manifest(source: str | Path | bytes) -> ManifestIO:
+- ./services/orchestrator/app/persona/manifest.py:304:def dump_persona_manifest(manifest: PersonaManifest, destination: str | Path) -> Path:
+- ./services/common/config/runtime.py:15:def runtime_default(primary: T, secondary: T) -> T:
+- ./services/common/config/runtime.py:41:def default_otlp_grpc_endpoint() -> str:
+- ./services/orchestrator/app/repository/capsule_repository.py:26:    def __init__(self, session: AsyncSession):
+- ./services/mao-engine/workflows/marketing_campaign.py:87:    def __init__(self) -> None:
+- ./services/orchestrator/app/persona/signing.py:28:    def __init__(self, config: ManifestSigningConfig) -> None:
+- ./services/orchestrator/app/persona/signing.py:52:def build_signing_client() -> ManifestSigningClient | None:
+- ./services/orchestrator/app/repository/interfaces.py:10:    def create(self, br: BuildRun) -> BuildRun: ...
+- ./services/orchestrator/app/repository/interfaces.py:12:    def get(self, build_run_id: uuid.UUID) -> BuildRun | None: ...
+- ./services/common/kafka_client.py:23:    def __init__(
+- ./services/common/kafka_client.py:203:def get_kafka_client() -> KafkaClient:
+- ./services/pricing-service/tests/test_live_endpoint.py:19:def test_live_basic():
+- ./services/pricing-service/tests/test_live_endpoint.py:27:def test_filter_gpu_model():
+- ./services/pricing-service/tests/test_live_endpoint.py:35:def test_budget_evaluation():
+- ./services/tool-service/app/api/routes.py:86:                    def list_adapters_route(
+- ./services/tool-service/app/api/routes.py:166:            def provision_resources(
+- ./services/orchestrator/app/repository/agent_instance.py:17:    def __init__(self, session: AsyncSession):
+- ./services/orchestrator/app/observability.py:29:    def __init__(
+- ./services/orchestrator/app/observability.py:56:    def setup_tracing(self) -> None:
+- ./services/orchestrator/app/observability.py:81:    def setup_metrics(self) -> None:
+- ./services/orchestrator/app/observability.py:108:    def instrument_fastapi(self, app) -> None:
+- ./services/orchestrator/app/observability.py:113:    def _setup_loki_logging(self) -> None:
+- ./services/orchestrator/app/observability.py:137:    def setup_all(self, app=None) -> None:
+- ./services/orchestrator/app/observability.py:151:def get_meter(name: str) -> metrics.Meter:
+- ./services/orchestrator/app/observability.py:156:def get_tracer(name: str) -> trace.Tracer:
+- ./services/orchestrator/app/observability.py:162:def setup_observability(
+- ./services/common/config/base_config.py:189:    def default_service_name(cls, v: Any) -> str:
+- ./services/common/config/base_config.py:209:    def lowercase_deployment_mode(cls, v: Any) -> Any:
+- ./services/common/config/base_config.py:216:    def is_dev(self) -> bool:
+- ./services/common/config/base_config.py:221:    def is_prod(self) -> bool:
+- ./services/common/config/base_config.py:226:    def is_prod_ha(self) -> bool:
+- ./services/common/config/base_config.py:230:    def get_database_config(self) -> DatabaseConfig:
+- ./services/common/config/base_config.py:258:    def get_redis_config(self) -> RedisConfig:
+- ./services/common/config/base_config.py:284:    def get_kafka_config(self) -> KafkaConfig:
+- ./services/common/config/base_config.py:295:    def get_security_config(self) -> SecurityConfig:
+- ./services/common/config/base_config.py:319:    def get_observability_config(self) -> ObservabilityConfig:
+- ./services/common/config/base_config.py:330:    def get_service_config(self) -> ServiceConfig:
+- ./services/common/config/base_config.py:340:    def load_from_file(cls, config_path: Path) -> BaseConfig:
+- ./services/common/config/base_config.py:352:    def save_to_file(self, config_path: Path) -> None:
+- ./services/common/config/base_config.py:365:def get_config() -> BaseConfig:
+- ./services/common/config/base_config.py:373:def set_config(config: BaseConfig) -> None:
+- ./services/mao-engine/core/orchestrator.py:75:    def __init__(
+- ./services/mao-engine/core/orchestrator.py:244:    def create_saga(self, saga_id: str) -> Saga:
+- ./services/mao-engine/core/orchestrator.py:317:    def get_workflow_info(self, workflow_name: str, version: str | None = None) -> dict[str, Any]:
+- ./services/mao-engine/core/orchestrator.py:347:    def get_activity_info(self, activity_name: str, version: str | None = None) -> dict[str, Any]:
+- ./services/mao-engine/core/orchestrator.py:383:    def get_orchestrator_status(self) -> dict[str, Any]:
+- ./services/mao-engine/core/orchestrator.py:411:    def discover_workflows(
+- ./services/mao-engine/core/orchestrator.py:447:    def discover_activities(
+- ./services/mao-engine/core/orchestrator.py:487:    def health_check(self) -> dict[str, Any]:
+- ./services/mao-engine/core/orchestrator.py:523:    def get_unified_orchestrator() -> UnifiedOrchestrator:
+- ./services/tool-service/app/core/otel.py:18:def configure_otel(app: FastAPI, service_name: str, endpoint: str | None = None) -> None:
+- ./services/common/config/__init__.py:26:def get_service_settings(service_name: str):
+- ./services/common/config/__init__.py:42:    def _load() -> BaseConfig:
+- ./services/common/tenant/tenant_manager.py:54:    def __init__(self):
+- ./services/tool-service/app/core/sandbox.py:25:    def __init__(self, base_path: str) -> None:
+- ./services/orchestrator/app/workflows/vc_reasoning_workflow.py:179:    def __init__(self) -> None:
+- ./services/mao-engine/core/workflow_registry.py:115:    def __init__(self):
+- ./services/mao-engine/core/workflow_registry.py:122:    def register_workflow(
+- ./services/mao-engine/core/workflow_registry.py:151:    def decorator(workflow_class: Type) -> Type:
+- ./services/mao-engine/core/workflow_registry.py:185:    def get_workflow_definition(self, name: str) -> Optional[WorkflowDefinition]:
+- ./services/mao-engine/core/workflow_registry.py:189:    def get_workflow_class(self, name: str) -> Optional[Type]:
+- ./services/mao-engine/core/workflow_registry.py:193:    def get_workflow_task_queue(self, name: str) -> Optional[str]:
+- ./services/mao-engine/core/workflow_registry.py:197:    def list_workflows(
+- ./services/mao-engine/core/workflow_registry.py:231:    def create_workflow_instance(
+- ./services/mao-engine/core/workflow_registry.py:269:    def update_workflow_instance(
+- ./services/mao-engine/core/workflow_registry.py:301:    def get_workflow_instance(self, workflow_id: str) -> Optional[WorkflowInstance]:
+- ./services/mao-engine/core/workflow_registry.py:305:    def get_workflow_instances(
+- ./services/mao-engine/core/workflow_registry.py:335:    def validate_workflow_input(self, workflow_name: str, input_data: Dict[str, Any]) -> bool:
+- ./services/mao-engine/core/workflow_registry.py:352:    def get_workflow_dependencies(self, workflow_name: str) -> List[str]:
+- ./services/mao-engine/core/workflow_registry.py:371:    def get_statistics(self) -> Dict[str, Any]:
+- ./services/tool-service/app/core/registry.py:11:        def _build_registry(settings: Settings) -> dict[str, dict]:
+- ./services/tool-service/app/core/registry.py:83:                    def get_registry(settings: Settings | None = None) -> dict[str, dict]:
+- ./services/tool-service/app/core/registry.py:90:                            def list_adapters(settings: Settings | None = None) -> list[dict]:
+- ./services/tool-service/app/core/registry.py:94:                                def get_adapter(adapter_id: str, settings: Settings | None = None) -> dict | None:
+- ./services/pricing-service/app/main.py:107:def healthz():
+- ./services/pricing-service/app/main.py:112:def health():
+- ./services/pricing-service/app/main.py:117:def get_live_pricing(
+- ./services/pricing-service/app/main.py:135:    def keep(o: PricingOffer) -> bool:
+- ./services/pricing-service/app/main.py:203:def create_snapshot():
+- ./services/pricing-service/app/main.py:275:def get_snapshot(snapshot_id: str):
+- ./services/pricing-service/app/main.py:339:def evaluate_budget(
+- ./services/pricing-service/app/main.py:369:def _opa_decide(payload: dict) -> dict | None:
+- ./services/pricing-service/app/main.py:383:def _select_offer(
+- ./services/pricing-service/app/main.py:419:def pricing_live_summary(req: PricingLiveRequest):  # type: ignore[valid-type]
+- ./services/pricing-service/app/main.py:502:def pricing_reconcile(req: PricingReconcileRequest):  # type: ignore[valid-type]
+- ./services/pricing-service/app/main.py:583:def evaluate_budget_with_policy(
+- ./services/tool-service/app/core/metrics.py:27:    def record_execution(adapter_id: str, tenant_id: str, status: str, duration_seconds: float) -> None:
+- ./services/tool-service/app/core/metrics.py:33:    def record_rate_limit(adapter_id: str, tenant_id: str) -> None:
+- ./services/tool-service/app/core/ratelimit.py:18:    def __str__(self) -> str:  # pragma: no cover - human readable message
+- ./services/tool-service/app/core/ratelimit.py:26:    def __init__(self, default_limit: int, window_seconds: int = 60) -> None:
+- ./services/tool-service/app/core/ratelimit.py:31:    def _prune(self, bucket: deque[float], now: float) -> None:
+- ./services/tool-service/app/core/ratelimit.py:36:    def check(self, key: str, override_limit: int | None = None) -> int:
+- ./services/tool-service/app/core/ratelimit.py:51:    def current(self, key: str) -> int:
+- ./services/orchestrator/app/api/routes/tenants.py:17:def get_tenant_service(db: AsyncSession = Depends(get_session)) -> TenantService:
+- ./services/orchestrator/app/workflows/unified_multi_agent.py:30:    def __init__(self) -> None:
+- ./services/orchestrator/app/metrics/queue.py:26:def set_queue_length(queue_name: str, length: int) -> None:
+- ./services/mao-engine/core/activity_registry.py:116:    def __init__(self):
+- ./services/mao-engine/core/activity_registry.py:122:    def register_activity(
+- ./services/mao-engine/core/activity_registry.py:153:    def decorator(activity_func: Callable) -> Callable:
+- ./services/mao-engine/core/activity_registry.py:185:    def get_activity_definition(self, name: str) -> Optional[ActivityDefinition]:
+- ./services/mao-engine/core/activity_registry.py:189:    def get_activity_function(self, name: str) -> Optional[Callable]:
+- ./services/mao-engine/core/activity_registry.py:193:    def list_activities(
+- ./services/mao-engine/core/activity_registry.py:227:    def create_activity_instance(
+- ./services/mao-engine/core/activity_registry.py:265:    def update_activity_instance(
+- ./services/mao-engine/core/activity_registry.py:302:    def get_activity_instance(self, activity_id: str) -> Optional[ActivityInstance]:
+- ./services/mao-engine/core/activity_registry.py:306:    def get_activity_instances(
+- ./services/mao-engine/core/activity_registry.py:336:    def validate_activity_input(self, activity_name: str, input_data: Dict[str, Any]) -> bool:
+- ./services/mao-engine/core/activity_registry.py:353:    def get_activity_dependencies(self, activity_name: str) -> List[str]:
+- ./services/mao-engine/core/activity_registry.py:372:    def get_statistics(self) -> Dict[str, Any]:
+- ./services/tool-service/app/core/config.py:26:    def get_settings() -> Settings:
+- ./services/tool-service/app/core/security.py:12:        def _canonical_json(obj: Any) -> bytes:
+- ./services/tool-service/app/core/security.py:20:            def compute_manifest_digest(manifest: Any) -> str:
+- ./services/tool-service/app/core/security.py:26:                def compute_release_signature(
+- ./services/tool-service/app/core/security.py:42:                    def verify_release_signature(adapter_metadata: dict[str, Any], secret: str) -> bool:
+- ./services/orchestrator/app/api/roles.py:25:def get_role_service(db: AsyncSession = Depends(get_session)) -> RoleService:
+- ./services/orchestrator/app/static_templates/engine.py:53:def _iter_files(base: Path) -> Iterable[Path]:
+- ./services/orchestrator/app/static_templates/engine.py:59:def _is_text_file(path: Path) -> bool:
+- ./services/orchestrator/app/static_templates/engine.py:66:def validate_tokens(
+- ./services/orchestrator/app/static_templates/engine.py:78:def substitute_tokens(content: str, provided: Mapping[str, str]) -> str:
+- ./services/orchestrator/app/static_templates/engine.py:79:    def _repl(match: re.Match[str]) -> str:
+- ./services/orchestrator/app/static_templates/engine.py:86:def render_template_set(
+- ./services/orchestrator/app/static_templates/engine.py:151:def build_default_tokens(
+- ./services/orchestrator/app/worker.py:58:def main() -> None:
+- ./services/pricing-service/app/refresh.py:14:def _ingest_offers(offers: list[PricingOffer]) -> None:
+- ./services/pricing-service/app/refresh.py:59:def _refresh_task():
+- ./services/pricing-service/app/refresh.py:73:def start_refresh_loop():
+- ./services/pricing-service/app/refresh.py:83:def stop_refresh_loop():
+- ./services/mao-engine/core/unified_orchestrator.py:98:                def __init__(self, temporal_client: Optional[Client] = None):
+- ./services/mao-engine/core/unified_orchestrator.py:176:                def _get_all_activities(self) -> List[object]:
+- ./services/mao-engine/core/unified_orchestrator.py:349:            def create_saga_builder(self) -> SagaBuilder:
+- ./services/mao-engine/core/unified_orchestrator.py:358:                def get_workflow_status(self, workflow_id: str) -> Optional[WorkflowInstance]:
+- ./services/mao-engine/core/unified_orchestrator.py:370:                            def get_activity_status(self, activity_id: str) -> Optional[ActivityInstance]:
+- ./services/mao-engine/core/unified_orchestrator.py:382:                                        def list_workflows(
+- ./services/mao-engine/core/unified_orchestrator.py:402:                                                    def list_activities(
+- ./services/mao-engine/core/unified_orchestrator.py:425:                    def get_circuit_breaker_status(self, service_name: str) -> Dict[str, Any]:
+- ./services/mao-engine/core/unified_orchestrator.py:438:                    def get_engine_statistics(self) -> Dict[str, Any]:
+- ./services/orchestrator/app/api/tasks.py:25:def get_task_service(db: AsyncSession = Depends(get_session)) -> TaskService:
+- ./services/orchestrator/app/api/memory.py:25:def get_memory_service(db: AsyncSession = Depends(get_session)) -> MemoryService:
+- ./services/orchestrator/app/api/hitl.py:25:def get_hitl_service(db: AsyncSession = Depends(get_session)) -> HITLService:
+- ./services/orchestrator/app/workflows/marketing_activities.py:110:    def __init__(self):
+- ./services/orchestrator/app/workflows/marketing_activities.py:189:    def __init__(self):
+- ./services/orchestrator/app/workflows/marketing_activities.py:261:    def __init__(self):
+- ./services/orchestrator/app/workflows/marketing_campaign.py:125:    def __init__(self):
+- ./services/orchestrator/app/workflows/marketing_campaign.py:134:    def update_content(self, content_id: str, new_content: str) -> None:
+- ./services/orchestrator/app/workflows/marketing_campaign.py:147:    def approve_campaign(self) -> None:
+- ./services/orchestrator/app/workflows/marketing_campaign.py:157:    def get_progress(self) -> dict[str, Any]:
+- ./services/settings-service/app/main.py:15:def healthcheck() -> dict[str, str]:
+- ./services/settings-service/app/main.py:20:def metrics() -> Response:
+- ./services/settings-service/app/main.py:25:def root():
+- ./services/settings-service/app/main.py:31:def get_user_settings(user_id: str):
+- ./services/settings-service/app/main.py:39:def update_user_settings(user_id: str, settings: dict):
+- ./services/settings-service/app/main.py:48:def get_system_settings():
+- ./services/orchestrator/app/api/router.py:203:def _normalize_result(result_obj: Any) -> dict[str, Any] | None:
+- ./services/orchestrator/app/api/evaluations.py:26:def get_evaluation_service(
+- ./services/orchestrator/app/api/rl.py:29:def get_rl_service(db: AsyncSession = Depends(get_session)) -> RLService:
+- ./services/orchestrator/app/workflows/session.py:79:def _identity_endpoint(base_url: str) -> str:
+- ./services/orchestrator/app/workflows/session.py:85:def _policy_endpoint(base_url: str) -> str:
+- ./services/orchestrator/app/workflows/session.py:149:def run_llm_completion(request: HubInferenceRequest) -> dict[str, Any]:
+- ./services/orchestrator/app/workflows/session.py:163:    def _generate_completion(
+- ./services/orchestrator/app/api/tools.py:26:def get_tool_service(db: AsyncSession = Depends(get_session)) -> ToolService:
+- ./services/orchestrator/app/api/blueprints.py:26:def get_blueprint_service(db: AsyncSession = Depends(get_session)) -> BlueprintService:
+- ./services/mao-engine/core/patterns/circuit_breaker.py:57:    def __init__(self, service_name: str, opened_at: datetime):
+- ./services/mao-engine/core/patterns/circuit_breaker.py:99:    def __init__(
+- ./services/mao-engine/core/patterns/circuit_breaker.py:162:    def _on_success(self) -> None:
+- ./services/mao-engine/core/patterns/circuit_breaker.py:184:    def _on_failure(self, error: Exception) -> None:
+- ./services/mao-engine/core/patterns/circuit_breaker.py:214:    def _should_attempt_reset(self) -> bool:
+- ./services/mao-engine/core/patterns/circuit_breaker.py:222:    def _transition_to(self, new_state: CircuitState) -> None:
+- ./services/mao-engine/core/patterns/circuit_breaker.py:241:    def get_status(self) -> dict[str, Any]:
+- ./services/mao-engine/core/patterns/circuit_breaker.py:280:    def get_circuit_breaker(
+- ./services/mao-engine/core/patterns/circuit_breaker.py:300:    def get_all_circuit_breakers() -> dict[str, CircuitBreaker]:
+- ./services/mao-engine/core/patterns/circuit_breaker.py:305:    def reset_all_circuit_breakers() -> None:
+- ./services/pricing-service/app/clickhouse.py:8:def get_client() -> Client:
+- ./services/pricing-service/app/bootstrap.py:9:def ensure_tables():
+- ./services/pricing-service/app/config.py:28:def get_settings():
+- ./services/settings-service/app/api/routes.py:28:def _tenant_or_404(tenant_id: str) -> TenantSettings:
+- ./services/settings-service/app/api/routes.py:38:def list_tenants() -> list[TenantSummary]:
+- ./services/settings-service/app/api/routes.py:50:def upsert_tenant(tenant_id: str, payload: TenantSettings) -> TenantSettings:
+- ./services/settings-service/app/api/routes.py:56:def get_tenant(tenant_id: str) -> TenantSettings:
+- ./services/settings-service/app/api/routes.py:61:def list_model_profiles(tenant_id: str) -> list[ModelProfile]:
+- ./services/settings-service/app/api/routes.py:71:def update_model_profile(tenant_id: str, profile: ModelProfile) -> ModelProfile:
+- ./services/settings-service/app/api/routes.py:83:def create_model_profile(tenant_id: str, profile: ModelProfile) -> ModelProfile:
+- ./services/settings-service/app/api/routes.py:108:def get_notification_prefs(tenant_id: str) -> NotificationPreferences:
+- ./services/settings-service/app/api/routes.py:119:def update_notification_prefs(
+- ./services/settings-service/app/api/routes.py:130:def get_model_profile_by_name(tenant_id: str, profile_name: str) -> ModelProfile:
+- ./services/settings-service/app/api/routes.py:149:def delete_model_profile(tenant_id: str, profile_name: str) -> None:
+- ./services/pricing-service/app/providers/base.py:8:    def name(self) -> str: ...
+- ./services/pricing-service/app/providers/base.py:9:    def fetch(self) -> list[PricingOffer]: ...
+- ./services/pricing-service/app/providers/base.py:11:    def _now():
+- ./services/pricing-service/app/providers/base.py:16:    def __init__(self, name: str, rows: list[dict]):
+- ./services/pricing-service/app/providers/base.py:20:    def name(self) -> str:
+- ./services/pricing-service/app/providers/base.py:23:    def fetch(self) -> list[PricingOffer]:
+- ./services/pricing-service/app/providers/gpubroker_adapter.py:10:    def __init__(self, base_url: str):
+- ./services/pricing-service/app/providers/gpubroker_adapter.py:13:    def name(self) -> str:
+- ./services/pricing-service/app/providers/gpubroker_adapter.py:16:    def fetch(self) -> list[PricingOffer]:
+- ./services/pricing-service/app/providers/gpubroker_adapter.py:73:    def get_gpubroker_adapter():
+- ./services/mao-engine/core/patterns/saga.py:83:    def __init__(self, saga_id: str):
+- ./services/mao-engine/core/patterns/saga.py:250:    def _extract_compensation_args(
+- ./services/mao-engine/core/patterns/saga.py:308:    def __init__(self, saga_id: str):
+- ./services/mao-engine/core/patterns/saga.py:312:    def add_step(
+- ./services/mao-engine/core/patterns/saga.py:346:    def build(self) -> Saga:
+- ./services/pricing-service/app/aggregator.py:18:def fetch_live_offers() -> list[PricingOffer]:
+- ./services/_path_setup.py:30:def ensure_repo_root() -> None:  # pragma: no cover
+- ./services/settings-service/app/core/compliance.py:13:def run_compliance_lint(request: CapsuleSubmissionRequest) -> ComplianceReport:
+- ./services/settings-service/app/core/compliance.py:50:def attestation_is_fresh(issued_at: datetime, tolerance_hours: int = 48) -> bool:
