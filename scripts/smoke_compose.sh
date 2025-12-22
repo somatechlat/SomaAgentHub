@@ -11,7 +11,7 @@ SERVICES=(
   policy-engine
   identity-service
   orchestrator
-  orchestrator-worker
+  worker
   gateway-api
 )
 
@@ -64,5 +64,25 @@ wait_http "orchestrator" "http://127.0.0.1:${ORCHESTRATOR_PORT:-10001}/ready"
 wait_http "identity-service" "http://127.0.0.1:${IDENTITY_SERVICE_PORT:-10002}/health"
 wait_http "policy-engine" "http://127.0.0.1:${POLICY_ENGINE_PORT:-10020}/health"
 wait_port "temporal-server" "127.0.0.1" "${TEMPORAL_PORT:-7233}"
+
+# Minimal session flow (start -> status)
+echo "[run] Starting session via orchestrator"
+SESSION_PAYLOAD='{"tenant":"dev-tenant","user":"smoke-user","prompt":"hello","model":"somagent-demo"}'
+SESSION_RESPONSE="$(curl -fsS -X POST "http://127.0.0.1:${ORCHESTRATOR_PORT:-10001}/v1/sessions/start" \
+  -H "Content-Type: application/json" \
+  -d "$SESSION_PAYLOAD")"
+WORKFLOW_ID="$(python - <<'PY'
+import json, sys
+resp = json.loads(sys.stdin.read())
+print(resp.get("workflow_id",""))
+PY <<<"$SESSION_RESPONSE")"
+
+if [ -z "$WORKFLOW_ID" ]; then
+  echo "[fail] session start did not return workflow_id"
+  exit 1
+fi
+
+echo "[run] Checking session status for $WORKFLOW_ID"
+curl -fsS "http://127.0.0.1:${ORCHESTRATOR_PORT:-10001}/v1/sessions/${WORKFLOW_ID}" >/dev/null
 
 echo "[done] Smoke stack is healthy."
