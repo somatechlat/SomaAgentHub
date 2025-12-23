@@ -8,7 +8,9 @@ Sprint-6 Observability: Export to Prometheus in observability namespace.
 from __future__ import annotations
 
 import logging
+from pathlib import Path
 
+import grpc
 from opentelemetry import metrics, trace
 from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import OTLPSpanExporter
 from opentelemetry.exporter.prometheus import PrometheusMetricReader
@@ -61,9 +63,8 @@ class OpenTelemetryConfig:
         if self.enable_otlp:
             from services.common.config.base_settings import resolve_env
 
-            otlp_endpoint = resolve_env(
-                "OTEL_EXPORTER_OTLP_ENDPOINT", default_otlp_grpc_endpoint()
-            )
+            otlp_endpoint = resolve_env("OTEL_EXPORTER_OTLP_ENDPOINT", default_otlp_grpc_endpoint())
+            certificate_file = resolve_env("OTEL_EXPORTER_OTLP_CERTIFICATE")
             insecure = str(resolve_env("OTEL_INSECURE", "false")).lower() == "true"
             if insecure:
                 logger.warning(
@@ -71,7 +72,25 @@ class OpenTelemetryConfig:
                 )
             else:
                 logger.info("OTLP trace exporter using secure channel")
-            otlp_exporter = OTLPSpanExporter(endpoint=otlp_endpoint, insecure=insecure)
+
+            credentials = None
+            if certificate_file:
+                try:
+                    ca_bytes = Path(certificate_file).read_bytes()
+                    credentials = grpc.ssl_channel_credentials(root_certificates=ca_bytes)
+                    logger.info(f"OTLP exporter using TLS with custom CA at {certificate_file}")
+                except FileNotFoundError:
+                    logger.error(
+                        f"OTLP certificate file not found: {certificate_file}. Falling back to default trust store."
+                    )
+
+            exporter_kwargs = {"endpoint": otlp_endpoint}
+            if credentials:
+                exporter_kwargs["credentials"] = credentials
+            else:
+                exporter_kwargs["insecure"] = insecure
+
+            otlp_exporter = OTLPSpanExporter(**exporter_kwargs)
             trace_provider.add_span_processor(BatchSpanProcessor(otlp_exporter))
             logger.info(f"OTLP trace exporter enabled: {otlp_endpoint}")
 
@@ -86,17 +105,13 @@ class OpenTelemetryConfig:
         if self.enable_prometheus:
             prometheus_reader = PrometheusMetricReader()
             readers.append(prometheus_reader)
-            logger.info(
-                f"Prometheus metrics reader enabled on port {self.prometheus_port}"
-            )
+            logger.info(f"Prometheus metrics reader enabled on port {self.prometheus_port}")
 
         # OTLP metrics exporter if enabled
         if self.enable_otlp:
             from services.common.config.base_settings import resolve_env
 
-            otlp_endpoint = resolve_env(
-                "OTEL_EXPORTER_OTLP_ENDPOINT", default_otlp_grpc_endpoint()
-            )
+            otlp_endpoint = resolve_env("OTEL_EXPORTER_OTLP_ENDPOINT", default_otlp_grpc_endpoint())
             # Note: For metrics export, use PeriodicExportingMetricReader in a full setup
             # Leaving just a log line to indicate configuration for now
             logger.info(f"OTLP metrics exporter configured: {otlp_endpoint}")
@@ -183,8 +198,7 @@ def setup_observability(
         service_version=service_version,
         environment=env,
         enable_prometheus=True,
-        enable_otlp=str(resolve_env("ENABLE_OTLP", "false")).lower()
-        in {"1", "true", "yes", "on"},
+        enable_otlp=str(resolve_env("ENABLE_OTLP", "false")).lower() in {"1", "true", "yes", "on"},
     )
 
     config.setup_all(app)

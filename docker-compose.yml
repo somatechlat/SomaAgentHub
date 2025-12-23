@@ -1,3 +1,5 @@
+# yamllint disable rule:brackets
+---
 # docker-compose.yml
 # CANONICAL Docker Compose file for SomaAgentHub
 # All services use the 10000+ port range for consistency
@@ -19,9 +21,14 @@ services:
       - SOMA_AGENT_HUB_REDIS_URL=redis://redis:6379/0
       - SOMA_AGENT_HUB_GATEWAY_ORCHESTRATOR_URL=http://orchestrator:8000
       - SOMA_AGENT_HUB_IDENTITY_SERVICE_URL=http://identity-service:10002
-      - SOMA_AGENT_HUB_OTLP_ENDPOINT=http://otel-collector:4317
+      - SOMA_AGENT_HUB_OTLP_ENDPOINT=https://otel-collector:4317
+      - OTEL_EXPORTER_OTLP_ENDPOINT=https://otel-collector:4317
+      - OTEL_EXPORTER_OTLP_CERTIFICATE=/etc/otel/certs/ca.pem
+      - OTEL_INSECURE=false
       - WEB_CONCURRENCY=1
       - PYTHONOPTIMIZE=1
+    volumes:
+      - ./infra/observability/certs/ca.pem:/etc/otel/certs/ca.pem:ro
     depends_on:
       orchestrator:
         condition: service_healthy
@@ -32,7 +39,7 @@ services:
     deploy:
       resources:
         limits:
-          memory: 256M
+          memory: 192M
     healthcheck:
       test: [ "CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://127.0.0.1:10000/ready', timeout=3)\"" ]
       interval: 10s
@@ -56,17 +63,31 @@ services:
       - SOMA_AGENT_HUB_TEMPORAL_ENABLED=${TEMPORAL_ENABLED:-true}
       - SOMA_AGENT_HUB_DATABASE_URL=postgresql+asyncpg://${APP_POSTGRES_USER:-somaagent}:${APP_POSTGRES_PASSWORD:-somaagent}@app-postgres:5432/${APP_POSTGRES_DB:-somaagent}
       - SOMA_AGENT_HUB_CAPSULE_REPO_URL=http://capsule-repo:8002/v1/capsules
-      - SOMA_AGENT_HUB_OTLP_ENDPOINT=http://otel-collector:4317
+      - SOMA_AGENT_HUB_OTLP_ENDPOINT=https://otel-collector:4317
+      - OTEL_EXPORTER_OTLP_ENDPOINT=https://otel-collector:4317
+      - OTEL_EXPORTER_OTLP_CERTIFICATE=/etc/otel/certs/ca.pem
+      - OTEL_INSECURE=false
+      - KAFKA_BOOTSTRAP_SERVERS=
       - WEB_CONCURRENCY=2
       - PYTHONOPTIMIZE=1
+    volumes:
+      - ./infra/observability/certs/ca.pem:/etc/otel/certs/ca.pem:ro
     deploy:
       resources:
         limits:
-          memory: 1G
+          memory: 384M
+    depends_on:
+      temporal-server:
+        condition: service_healthy
+      temporal-postgres:
+        condition: service_healthy
+      app-postgres:
+        condition: service_healthy
     healthcheck:
       test: [ "CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/ready', timeout=3)\"" ]
       interval: 10s
       timeout: 5s
+      start_period: 60s
       retries: 6
     networks:
       - somaagenthub-network
@@ -74,15 +95,19 @@ services:
   worker:
     build:
       context: .
-      dockerfile: services/workflow-engine/Dockerfile
+      dockerfile: services/orchestrator/Dockerfile
     container_name: somaagenthub_worker
+    command: [ "python", "-m", "services.orchestrator.temporal_worker" ]
     restart: unless-stopped
     environment:
       - SOMA_AGENT_HUB_TEMPORAL_HOST=temporal-server:7233
       - SOMA_AGENT_HUB_TEMPORAL_NAMESPACE=${TEMPORAL_NAMESPACE:-default}
       - SOMA_AGENT_HUB_TEMPORAL_TASK_QUEUE=${TEMPORAL_TASK_QUEUE:-somagent.session.workflows}
       - SOMA_AGENT_HUB_DATABASE_URL=postgresql+asyncpg://${APP_POSTGRES_USER:-somaagent}:${APP_POSTGRES_PASSWORD:-somaagent}@app-postgres:5432/${APP_POSTGRES_DB:-somaagent}
-      - SOMA_AGENT_HUB_OTLP_ENDPOINT=http://otel-collector:4317
+      - SOMA_AGENT_HUB_OTLP_ENDPOINT=https://otel-collector:4317
+      - OTEL_EXPORTER_OTLP_ENDPOINT=https://otel-collector:4317
+      - OTEL_EXPORTER_OTLP_CERTIFICATE=/etc/otel/certs/ca.pem
+      - OTEL_INSECURE=false
       - PYTHONOPTIMIZE=1
     depends_on:
       orchestrator:
@@ -92,7 +117,9 @@ services:
     deploy:
       resources:
         limits:
-          memory: 512M
+          memory: 384M
+    volumes:
+      - ./infra/observability/certs/ca.pem:/etc/otel/certs/ca.pem:ro
     networks:
       - somaagenthub-network
 
@@ -108,7 +135,10 @@ services:
       - SOMA_AGENT_HUB_REDIS_URL=redis://redis:6379/0
       - SOMA_AGENT_HUB_OIDC_ISSUER_URL=http://identity-service:10002
       - SOMA_AGENT_HUB_OIDC_JWKS_URI=http://identity-service:10002/.well-known/jwks.json
-      - SOMA_AGENT_HUB_OTLP_ENDPOINT=http://otel-collector:4317
+      - SOMA_AGENT_HUB_OTLP_ENDPOINT=https://otel-collector:4317
+      - OTEL_EXPORTER_OTLP_ENDPOINT=https://otel-collector:4317
+      - OTEL_EXPORTER_OTLP_CERTIFICATE=/etc/otel/certs/ca.pem
+      - OTEL_INSECURE=false
       - WEB_CONCURRENCY=1
       - PYTHONOPTIMIZE=1
     depends_on:
@@ -117,7 +147,9 @@ services:
     deploy:
       resources:
         limits:
-          memory: 512M
+          memory: 192M
+    volumes:
+      - ./infra/observability/certs/ca.pem:/etc/otel/certs/ca.pem:ro
     healthcheck:
       test: [ "CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://127.0.0.1:10002/health', timeout=3)\"" ]
       interval: 10s
@@ -136,14 +168,17 @@ services:
     ports:
       - "${POLICY_ENGINE_PORT:-10020}:10020"
     environment:
-      - SOMA_AGENT_HUB_OTLP_ENDPOINT=http://otel-collector:4317
+      - SOMA_AGENT_HUB_OTLP_ENDPOINT=https://otel-collector:4317
+      - OTEL_EXPORTER_OTLP_ENDPOINT=https://otel-collector:4317
+      - OTEL_EXPORTER_OTLP_CERTIFICATE=/etc/otel/certs/ca.pem
+      - OTEL_INSECURE=false
       - SOMA_AGENT_HUB_KAFKA_BOOTSTRAP_SERVERS=${KAFKA_BOOTSTRAP_SERVERS:-}
       - WEB_CONCURRENCY=1
       - PYTHONOPTIMIZE=1
     deploy:
       resources:
         limits:
-          memory: 256M
+          memory: 192M
     healthcheck:
       test: [ "CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://127.0.0.1:10020/health', timeout=3)\"" ]
       interval: 10s
@@ -152,6 +187,8 @@ services:
     depends_on:
       redis:
         condition: service_healthy
+    volumes:
+      - ./infra/observability/certs/ca.pem:/etc/otel/certs/ca.pem:ro
     networks:
       - somaagenthub-network
 
@@ -170,7 +207,7 @@ services:
     deploy:
       resources:
         limits:
-          memory: 256M
+          memory: 192M
     healthcheck:
       test: [ "CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://127.0.0.1:10024/health', timeout=3)\"" ]
       interval: 10s
@@ -188,13 +225,16 @@ services:
     ports:
       - "${MEMORY_GATEWAY_PORT:-10021}:8000"
     environment:
-      - SOMA_AGENT_HUB_OTLP_ENDPOINT=http://otel-collector:4317
+      - SOMA_AGENT_HUB_OTLP_ENDPOINT=https://otel-collector:4317
+      - OTEL_EXPORTER_OTLP_ENDPOINT=https://otel-collector:4317
+      - OTEL_EXPORTER_OTLP_CERTIFICATE=/etc/otel/certs/ca.pem
+      - OTEL_INSECURE=false
       - WEB_CONCURRENCY=1
       - PYTHONOPTIMIZE=1
     deploy:
       resources:
         limits:
-          memory: 256M
+          memory: 192M
     healthcheck:
       test: [ "CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=3)\"" ]
       interval: 10s
@@ -203,6 +243,8 @@ services:
     depends_on:
       redis:
         condition: service_healthy
+    volumes:
+      - ./infra/observability/certs/ca.pem:/etc/otel/certs/ca.pem:ro
     networks:
       - somaagenthub-network
 
@@ -215,13 +257,18 @@ services:
     ports:
       - "${TOOL_SERVICE_PORT:-10028}:8000"
     environment:
-      - SOMA_AGENT_HUB_OTLP_ENDPOINT=http://otel-collector:4317
+      - SOMA_AGENT_HUB_OTLP_ENDPOINT=https://otel-collector:4317
+      - OTEL_EXPORTER_OTLP_ENDPOINT=https://otel-collector:4317
+      - OTEL_EXPORTER_OTLP_CERTIFICATE=/etc/otel/certs/ca.pem
+      - OTEL_INSECURE=false
       - WEB_CONCURRENCY=1
       - PYTHONOPTIMIZE=1
     deploy:
       resources:
         limits:
-          memory: 256M
+          memory: 192M
+    volumes:
+      - ./infra/observability/certs/ca.pem:/etc/otel/certs/ca.pem:ro
     networks:
       - somaagenthub-network
 
@@ -241,7 +288,7 @@ services:
     deploy:
       resources:
         limits:
-          memory: 256M
+          memory: 192M
     depends_on:
       app-postgres:
         condition: service_healthy
@@ -266,16 +313,21 @@ services:
       - SOMA_AGENT_HUB_CLICKHOUSE_HTTP_PORT=8123
       - SOMA_AGENT_HUB_CLICKHOUSE_USER=${CLICKHOUSE_USER:-default}
       - SOMA_AGENT_HUB_CLICKHOUSE_PASSWORD=${CLICKHOUSE_PASSWORD:-}
-      - SOMA_AGENT_HUB_OTLP_ENDPOINT=http://otel-collector:4317
+      - SOMA_AGENT_HUB_OTLP_ENDPOINT=https://otel-collector:4317
+      - OTEL_EXPORTER_OTLP_ENDPOINT=https://otel-collector:4317
+      - OTEL_EXPORTER_OTLP_CERTIFICATE=/etc/otel/certs/ca.pem
+      - OTEL_INSECURE=false
       - WEB_CONCURRENCY=1
       - PYTHONOPTIMIZE=1
     deploy:
       resources:
         limits:
-          memory: 256M # Reduced from plan default (covered in misc)
+          memory: 256M  # Reduced from plan default (covered in misc)
     depends_on:
       clickhouse:
         condition: service_healthy
+    volumes:
+      - ./infra/observability/certs/ca.pem:/etc/otel/certs/ca.pem:ro
     healthcheck:
       test: [ "CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://127.0.0.1:10026/health', timeout=3)\"" ]
       interval: 10s
@@ -292,7 +344,10 @@ services:
     restart: unless-stopped
     environment:
       - SOMA_AGENT_HUB_NOTIFICATION_USE_KAFKA=false
-      - SOMA_AGENT_HUB_OTLP_ENDPOINT=http://otel-collector:4317
+      - SOMA_AGENT_HUB_OTLP_ENDPOINT=https://otel-collector:4317
+      - OTEL_EXPORTER_OTLP_ENDPOINT=https://otel-collector:4317
+      - OTEL_EXPORTER_OTLP_CERTIFICATE=/etc/otel/certs/ca.pem
+      - OTEL_INSECURE=false
       - WEB_CONCURRENCY=1
       - PYTHONOPTIMIZE=1
     ports:
@@ -300,7 +355,7 @@ services:
     deploy:
       resources:
         limits:
-          memory: 256M
+          memory: 192M
     healthcheck:
       test: [ "CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://127.0.0.1:10026/health', timeout=3)\"" ]
       interval: 10s
@@ -308,6 +363,8 @@ services:
       retries: 6
     networks:
       - somaagenthub-network
+    volumes:
+      - ./infra/observability/certs/ca.pem:/etc/otel/certs/ca.pem:ro
 
   # --- Infrastructure Services ---
   app-postgres:
@@ -368,22 +425,24 @@ services:
       - "7233:7233"
     environment:
       - DB=postgresql
+      - DB_PORT=5432
       - POSTGRES_SEEDS=temporal-postgres
       - POSTGRES_USER=temporal
-      - POSTGRES_PASSWORD=temporal
-      - POSTGRES_PASSWORD=temporal
+      - POSTGRES_PWD=temporal
+      - POSTGRES_DB=temporal
     depends_on:
       temporal-postgres:
         condition: service_healthy
+    healthcheck:
+      test: [ "CMD-SHELL", "bash -lc 'IP=$(hostname -i | awk \"{print $1}\"); echo > /dev/tcp/$${IP}/7233'" ]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
     deploy:
       resources:
         limits:
-          memory: 1G # Reduced from 2G for budget compliance
-    healthcheck:
-      test: [ "CMD-SHELL", "echo 'health' | nc -w 1 localhost 7233" ]
-      interval: 30s
-      timeout: 10s
-      retries: 3
+          memory: 768M
     networks:
       - somaagenthub-network
 
@@ -420,7 +479,7 @@ services:
     deploy:
       resources:
         limits:
-          memory: 1G
+          memory: 768M
     healthcheck:
       test: [ "CMD-SHELL", "curl -f http://127.0.0.1:6333/healthz || exit 1" ]
       interval: 15s
@@ -440,7 +499,7 @@ services:
     deploy:
       resources:
         limits:
-          memory: 1G
+          memory: 768M
     healthcheck:
       test: [ "CMD-SHELL", "wget -qO- http://127.0.0.1:8123/ping || exit 1" ]
       interval: 15s
@@ -465,7 +524,7 @@ services:
     deploy:
       resources:
         limits:
-          memory: 512M
+          memory: 384M
     healthcheck:
       test: [ "CMD-SHELL", "curl -f http://127.0.0.1:9000/minio/health/live || exit 1" ]
       interval: 15s
@@ -494,7 +553,7 @@ services:
     deploy:
       resources:
         limits:
-          memory: 512M
+          memory: 384M
     healthcheck:
       test: [ "CMD-SHELL", "wget -qO- http://127.0.0.1:9090/-/healthy | grep -q Healthy || exit 1" ]
       interval: 10s
@@ -509,14 +568,17 @@ services:
     restart: unless-stopped
     command: [ "--config=/etc/otel-collector-config.yaml" ]
     ports:
-      - "${OTEL_COLLECTOR_OTLP_PORT:-10015}:4317" # OTLP gRPC
-      - "${OTEL_COLLECTOR_OTLP_HTTP_PORT:-10016}:4318" # OTLP HTTP
+      - "${OTEL_COLLECTOR_OTLP_PORT:-10015}:4317"  # OTLP gRPC
+      - "${OTEL_COLLECTOR_OTLP_HTTP_PORT:-10016}:4318"  # OTLP HTTP
     volumes:
       - ./infra/observability/otel-collector-config.yaml:/etc/otel-collector-config.yaml:ro
+      - ./infra/observability/certs/otel-collector.pem:/etc/otel/certs/otel-collector.pem:ro
+      - ./infra/observability/certs/otel-collector.key:/etc/otel/certs/otel-collector.key:ro
+      - ./infra/observability/certs/ca.pem:/etc/otel/certs/ca.pem:ro
     deploy:
       resources:
         limits:
-          memory: 256M
+          memory: 192M
     healthcheck:
       test: [ "CMD-SHELL", "wget -qO- http://127.0.0.1:4318 || exit 1" ]
       interval: 15s

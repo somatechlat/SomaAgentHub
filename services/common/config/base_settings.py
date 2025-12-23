@@ -44,15 +44,15 @@ class BaseServiceSettings(BaseSettings):
 
 
 def resolve_env(name: str, default: Any | None = None) -> Any:
-    """Resolve an environment variable using ONLY the canonical prefix.
+    """Resolve an environment variable preferring the canonical prefix.
 
-    Reads `SOMA_AGENT_HUB_<NAME>` and returns its value if present,
-    otherwise returns `default`.
+    Reads `SOMA_AGENT_HUB_<NAME>` first, then falls back to the raw `<NAME>`
+    for compatibility with upstream libraries and tooling.
     """
     import os as _os
 
     key = f"SOMA_AGENT_HUB_{name}"
-    return _os.environ.get(key, default)
+    return _os.environ.get(key, _os.environ.get(name, default))
 
 
 @lru_cache(maxsize=32)

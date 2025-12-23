@@ -31,7 +31,11 @@ class OutboxPublisherStartup:
     async def start_publisher(self) -> None:
         """Start the outbox publisher service on startup."""
         try:
-            kafka_servers = resolve_env("KAFKA_BOOTSTRAP_SERVERS", "localhost:9092")
+            # Skip when Kafka is not configured; prevents startup hangs in dev.
+            kafka_servers = resolve_env("KAFKA_BOOTSTRAP_SERVERS", "")
+            if not kafka_servers:
+                logger.info("Outbox publisher disabled: KAFKA_BOOTSTRAP_SERVERS not set")
+                return
             session_factory = get_session_factory()
 
             self.publisher_service = await create_outbox_publisher_service(
@@ -40,9 +44,7 @@ class OutboxPublisherStartup:
             )
 
             await self.publisher_service.start()
-            logger.info(
-                f"Outbox publisher service started successfully (bootstrap={kafka_servers})"
-            )
+            logger.info(f"Outbox publisher service started successfully (bootstrap={kafka_servers})")
 
         except Exception as e:
             logger.error(f"Failed to start outbox publisher service: {e}")

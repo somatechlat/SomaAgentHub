@@ -1,11 +1,16 @@
+---
 receivers:
   otlp:
     protocols:
       grpc:
         endpoint: 0.0.0.0:4317
+        tls:
+          cert_file: /etc/otel/certs/otel-collector.pem
+          key_file: /etc/otel/certs/otel-collector.key
+          # Client certs are not required; clients must trust ca.pem
       http:
         endpoint: 0.0.0.0:4318
-  
+
   prometheus:
     config:
       scrape_configs:
@@ -18,12 +23,12 @@ processors:
   batch:
     send_batch_size: 1024
     timeout: 5s
-  
+
   memory_limiter:
     check_interval: 1s
     limit_mib: 200
     spike_limit_mib: 64
-  
+
   resource:
     attributes:
       - key: environment
@@ -38,10 +43,10 @@ exporters:
     endpoint: tempo:4317
     tls:
       insecure: true
-  
+
   logging:
     loglevel: debug
-  
+
   loki:
     endpoint: http://loki:3100/loki/api/v1/push
 
@@ -54,12 +59,12 @@ service:
       receivers: [otlp]
       processors: [memory_limiter, batch, resource]
       exporters: [otlp, logging]
-    
+
     metrics:
       receivers: [otlp, prometheus]
       processors: [memory_limiter, batch, resource]
       exporters: [prometheus]
-    
+
     logs:
       receivers: [otlp]
       processors: [memory_limiter, batch, resource]

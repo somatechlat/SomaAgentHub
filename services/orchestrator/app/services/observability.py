@@ -18,6 +18,7 @@ from contextvars import ContextVar
 from typing import Any
 from uuid import uuid4
 
+import grpc
 from fastapi import Request
 from opentelemetry import trace
 from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import OTLPSpanExporter
@@ -92,8 +93,29 @@ def setup_opentelemetry(service_name: str, service_version: str) -> None:
 
     # OTLP exporter
     otlp_endpoint = resolve_env("OTEL_EXPORTER_OTLP_ENDPOINT")
+    certificate_file = resolve_env("OTEL_EXPORTER_OTLP_CERTIFICATE")
+    insecure = str(resolve_env("OTEL_INSECURE", "false")).lower() == "true"
     if otlp_endpoint:
-        exporter = OTLPSpanExporter(endpoint=otlp_endpoint)
+        credentials = None
+        if certificate_file:
+            try:
+                import pathlib
+
+                ca_bytes = pathlib.Path(certificate_file).read_bytes()
+                credentials = grpc.ssl_channel_credentials(root_certificates=ca_bytes)
+                logger.info(f"OTLP exporter using TLS with custom CA at {certificate_file}")
+            except FileNotFoundError:
+                logger.error(
+                    f"OTLP certificate file not found: {certificate_file}. Falling back to default trust store."
+                )
+
+        exporter_kwargs = {"endpoint": otlp_endpoint}
+        if credentials:
+            exporter_kwargs["credentials"] = credentials
+        else:
+            exporter_kwargs["insecure"] = insecure
+
+        exporter = OTLPSpanExporter(**exporter_kwargs)
         span_processor = BatchSpanProcessor(exporter)
         provider.add_span_processor(span_processor)
 
@@ -257,9 +279,7 @@ class BusinessMetrics:
     """Helper class for business-level metrics."""
 
     @staticmethod
-    def record_event(
-        event_type: str, status: str, metadata: dict[str, Any] | None = None
-    ):
+    def record_event(event_type: str, status: str, metadata: dict[str, Any] | None = None):
         """Record a business event."""
         business_metric_total.labels(
             event_type=event_type,
@@ -286,9 +306,7 @@ class BusinessMetrics:
         ).observe(duration)
 
     @staticmethod
-    def record_external_service_call(
-        service_name: str, endpoint: str, status: str, duration: float
-    ):
+    def record_external_service_call(service_name: str, endpoint: str, status: str, duration: float):
         """Record external service call metrics."""
         external_service_duration.labels(
             service_name=service_name,
@@ -349,9 +367,7 @@ def setup_observability(app):
     main_app = app
 
     # Setup OpenTelemetry
-    tracer = setup_opentelemetry(
-        service_name="orchestrator-service", service_version="0.1.0"
-    )
+    tracer = setup_opentelemetry(service_name="orchestrator-service", service_version="0.1.0")
 
     # Setup logging
     setup_logging()
