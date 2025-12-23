@@ -112,15 +112,6 @@ groups:
           summary: "Kafka consumer lag is high"
           description: "Consumer {{ $labels.consumer_group }} on topic {{ $labels.topic }} has lag of {{ $value }} messages."
 
-      - alert: QdrantDown
-        expr: up{job="qdrant"} == 0
-        for: 2m
-        labels:
-          severity: critical
-        annotations:
-          summary: "Qdrant vector database is down"
-          description: "Qdrant has been down for more than 2 minutes."
-
       - alert: ClickHouseDown
         expr: up{job="clickhouse"} == 0
         for: 2m

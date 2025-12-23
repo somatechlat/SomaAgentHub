@@ -1,342 +1,87 @@
-        or store integration for semantic search and RAG.
+"""Vector store abstraction (Milvus-backed with in-memory fallback)."""
 
-        orts multiple vector database backends:
-            - Pinecone (cloud)
-            - Qdrant (self-hosted)
-            - ChromaDB (local)
-            """
+from __future__ import annotations
 
-            import logging
-            import os
-            from dataclasses import dataclass
-            from enum import Enum
-            from typing import Any
-            from services.common.config.base_settings import resolve_env
+import logging
+from collections.abc import Sequence
+from dataclasses import dataclass
+from enum import Enum
+from typing import Any
 
-            logger = logging.getLogger(__name__)
+from services.common.config.base_settings import resolve_env
+from services.common.milvus_client import MilvusClient
+
+logger = logging.getLogger(__name__)
 
 
-            class VectorBackend(str, Enum):
-            """Supported vector database backends."""
-
-            PINECONE = "pinecone"
-            QDRANT = "qdrant"
-            CHROMA = "chroma"
+class VectorBackend(str, Enum):
+    MILVUS = "milvus"
+    MEMORY = "memory"
 
 
-            @dataclass
-            class VectorDocument:
-                """Document with embedding."""
-
-                id: str
-                content: str
-                embedding: list[float]
-                metadata: dict[str, Any]
-                score: float = 0.0  # Similarity score
+@dataclass
+class VectorDocument:
+    id: str
+    embedding: list[float]
+    metadata: dict[str, Any]
 
 
-                class VectorStore:
-                    """Unified interface for vector databases."""
+class VectorStore:
+    """Minimal vector store wrapper supporting upsert and search."""
 
-                    def __init__(
-                    self,
-                    backend: VectorBackend = VectorBackend.QDRANT,
-                    collection_name: str = "somaagent-vectors",
-                    dimension: int = 1536,  # OpenAI ada-002 dimension
-                    ):
-                        """
-                        Initialize vector store.
+    def __init__(self, backend: VectorBackend = VectorBackend.MILVUS):
+        self.backend = backend
+        self._memory: dict[str, VectorDocument] = {}
+        if self.backend == VectorBackend.MILVUS:
+            host = resolve_env("MILVUS_HOST", "milvus")
+            port = int(resolve_env("MILVUS_PORT", "19530"))
+            collection = resolve_env("MILVUS_COLLECTION", "experiences")
+            self.client = MilvusClient(host=host, port=port, collection=collection)
+        else:
+            self.client = None
 
-                        Args:
-                            backend: Vector database backend
-                            collection_name: Collection/index name
-                            dimension: Embedding dimension
-                            """
-                            self.backend = backend
-                            self.collection_name = collection_name
-                            self.dimension = dimension
-                            self.client = self._init_client()
+    def upsert(self, documents: Sequence[VectorDocument]) -> None:
+        if not documents:
+            return
+        if self.backend == VectorBackend.MILVUS and self.client:
+            points = [{"id": doc.id, "vector": doc.embedding, "payload": doc.metadata} for doc in documents]
+            self.client.upsert(points)
+            return
+        for doc in documents:
+            self._memory[doc.id] = doc
 
-                            def _init_client(self) -> Any:
-                                """Initialize backend client."""
-                                if self.backend == VectorBackend.PINECONE:
-                                    import pinecone
-
-                                    api_key = resolve_env("PINECONE_API_KEY")
-                                    environment = resolve_env("PINECONE_ENVIRONMENT", "us-west1-gcp")
-
-                                    pinecone.init(api_key=api_key, environment=environment)
-
-                                    eate index if not exists
-                                    if self.collection_name not in pinecone.list_indexes():
-                                        pinecone.create_index(
-                                        self.collection_name, dimension=self.dimension, metric="cosine"
-                                        )
-
-                                        return pinecone.Index(self.collection_name)
-
-                                        elif self.backend == VectorBackend.QDRANT:
-            from qdrant_client import QdrantClient
-            from qdrant_client.models import Distance, VectorParams
-
-            host = resolve_env("QDRANT_HOST", "localhost")
-            port = int(resolve_env("QDRANT_PORT", 6333))
-
-            client = QdrantClient(host=host, port=port)
-
-            eate collection if not exists
-            try:
-                client.get_collection(self.collection_name)
-                except Exception:
-                    client.create_collection(
-                    collection_name=self.collection_name,
-                    vectors_config=VectorParams(
-            size=self.dimension, distance=Distance.COSINE
-            ),
-            )
-
-            return client
-
-            elif self.backend == VectorBackend.CHROMA:
-            import chromadb
-
-            client = chromadb.Client()
-            collection = client.get_or_create_collection(self.collection_name)
-            return collection
-
-            else:
-                raise ValueError(f"Unsupported backend: {self.backend}")
-
-                def upsert(self, documents: list[VectorDocument]) -> None:
-                    """
-                    Insert or update documents.
-
-                    Args:
-                        documents: List of documents to upsert
-                        """
-                        if self.backend == VectorBackend.PINECONE:
-                            vectors = [(doc.id, doc.embedding, doc.metadata) for doc in documents]
-                            self.client.upsert(vectors=vectors)
-
-                            elif self.backend == VectorBackend.QDRANT:
-                                from qdrant_client.models import PointStruct
-
-                                points = [
-                                PointStruct(
-                                id=doc.id,
-                                vector=doc.embedding,
-                                payload={**doc.metadata, "content": doc.content},
-                                )
-                                for doc in documents
-                                ]
-
-                                self.client.upsert(collection_name=self.collection_name, points=points)
-
-                                elif self.backend == VectorBackend.CHROMA:
-            self.client.add(
-            ids=[doc.id for doc in documents],
-            embeddings=[doc.embedding for doc in documents],
-            metadatas=[doc.metadata for doc in documents],
-            documents=[doc.content for doc in documents],
-            )
-
-            logger.info(f"Upserted {len(documents)} documents to {self.backend}")
-
-            def search(
-            self,
-            query_embedding: list[float],
-            top_k: int = 10,
-            filters: dict[str, Any] | None = None,
-            ) -> list[VectorDocument]:
-                """
-                Search for similar vectors.
-
-                Args:
-                    query_embedding: Query embedding vector
-                    top_k: Number of results to return
-                    filters: Optional metadata filters
-
-                    Returns:
-                        List of similar documents with scores
-                        """
-                        if self.backend == VectorBackend.PINECONE:
-                            results = self.client.query(
-                            vector=query_embedding,
-                            top_k=top_k,
-                            filter=filters,
-                            include_metadata=True,
-                            )
-
-                            return [
-                            VectorDocument(
-                            id=match.id,
-                            content=match.metadata.get("content", ""),
-                            embedding=[],  # Not returned by Pinecone
-                            metadata=match.metadata,
-                            score=match.score,
-                            )
-                            for match in results.matches
-                            ]
-
-                            elif self.backend == VectorBackend.QDRANT:
-            from qdrant_client.models import FieldCondition, Filter, MatchValue
-
-            ild filter
-            query_filter = None
-            if filters:
-                conditions = [
-                FieldCondition(key=k, match=MatchValue(value=v))
-                for k, v in filters.items()
-                ]
-                query_filter = Filter(must=conditions)
-
-                results = self.client.search(
-                collection_name=self.collection_name,
-                query_vector=query_embedding,
-                limit=top_k,
-                query_filter=query_filter,
-                )
-
-                return [
+    def search(self, embedding: list[float], top_k: int = 5) -> list[VectorDocument]:
+        if self.backend == VectorBackend.MILVUS and self.client:
+            hits = self.client.search(query_vector=embedding, limit=top_k)
+            return [
                 VectorDocument(
-                id=str(hit.id),
-                content=hit.payload.get("content", ""),
-                embedding=[],
-                metadata={k: v for k, v in hit.payload.items() if k != "content"},
-                score=hit.score,
+                    id=str(hit["id"]),
+                    embedding=embedding,
+                    metadata=hit.get("payload", {}),
                 )
-                for hit in results
-                ]
+                for hit in hits
+            ]
 
-                elif self.backend == VectorBackend.CHROMA:
-            results = self.client.query(
-            query_embeddings=[query_embedding], n_results=top_k, where=filters
-            )
+        # naive cosine similarity for memory fallback
+        def _cos(a: list[float], b: list[float]) -> float:
+            import math
 
-            documents = []
-            for i in range(len(results["ids"][0])):
-                documents.append(
-                VectorDocument(
-            id=results["ids"][0][i],
-            content=results["documents"][0][i],
-            embedding=[],
-            metadata=results["metadatas"][0][i],
-            score=1
-            - results["distances"][0][i],  # Convert distance to similarity
-            )
-            )
+            dot = sum(x * y for x, y in zip(a, b))
+            na = math.sqrt(sum(x * x for x in a))
+            nb = math.sqrt(sum(y * y for y in b))
+            return dot / (na * nb + 1e-9)
 
-            return documents
-
-            return []
-
-            def delete(self, ids: list[str]) -> None:
-            """
-            Delete documents by IDs.
-
-            Args:
-                ids: List of document IDs to delete
-                """
-                if self.backend == VectorBackend.PINECONE:
-                    self.client.delete(ids=ids)
-
-                    elif self.backend == VectorBackend.QDRANT:
-                        self.client.delete(
-                        collection_name=self.collection_name, points_selector=ids
-                        )
-
-                        elif self.backend == VectorBackend.CHROMA:
-                            self.client.delete(ids=ids)
-
-                            logger.info(f"Deleted {len(ids)} documents from {self.backend}")
-
-                            def get_collection_stats(self) -> dict[str, Any]:
-                                """
-                                Get collection statistics.
-
-                                Returns:
-                                    Statistics dictionary
-                                    """
-                                    if self.backend == VectorBackend.PINECONE:
-                                        stats = self.client.describe_index_stats()
-                                        return {
-                                        "total_vectors": stats.total_vector_count,
-                                        "dimension": stats.dimension,
-                                        }
-
-                                        elif self.backend == VectorBackend.QDRANT:
-                                            info = self.client.get_collection(self.collection_name)
-                                            return {
-                                            "total_vectors": info.points_count,
-                                            "dimension": info.config.params.vectors.size,
-                                            }
-
-                                            elif self.backend == VectorBackend.CHROMA:
-                                                count = self.client.count()
-                                                return {"total_vectors": count, "dimension": self.dimension}
-
-                                                return {}
+        scored = [(_cos(embedding, doc.embedding), doc) for doc in self._memory.values()]
+        scored.sort(key=lambda t: t[0], reverse=True)
+        return [doc for _, doc in scored[:top_k]]
 
 
-                                                class HybridSearch:
-                                                    """Hybrid search combining vector and keyword search."""
-
-                                                    def __init__(self, vector_store: VectorStore):
-                                                        """
-                                                        Initialize hybrid search.
-
-                                                        Args:
-                                                            vector_store: Vector store instance
-                                                            """
-                                                            self.vector_store = vector_store
-
-                                                            def search(
-                                                            self,
-                                                            query_embedding: list[float],
-                                                            query_text: str,
-                                                            top_k: int = 10,
-                                                            vector_weight: float = 0.7,
-                                                            ) -> list[VectorDocument]:
-                                                                """
-                                                                Hybrid search with vector and text.
-
-                                                                Args:
-                                                                    query_embedding: Query embedding
-                                                                    query_text: Query text for keyword matching
-                                                                    top_k: Number of results
-                                                                    vector_weight: Weight for vector similarity (0-1)
-
-                                                                    Returns:
-                                                                        Ranked results combining both methods
-                                                                        """
-                                                                        ctor search
-                                                                        vector_results = self.vector_store.search(query_embedding, top_k=top_k * 2)
-
-                                                                        yword boosting
-                                                                        keyword_weight = 1 - vector_weight
-                                                                        query_terms = set(query_text.lower().split())
-
-                                                                        for doc in vector_results:
-                                                                            lculate keyword match score
-                                                                            doc_terms = set(doc.content.lower().split())
-                                                                            keyword_score = len(query_terms & doc_terms) / max(len(query_terms), 1)
-
-                                                                            mbine scores
-                                                                            doc.score = vector_weight * doc.score + keyword_weight * keyword_score
-
-                                                                            -rank and return top_k
-                                                                            vector_results.sort(key=lambda x: x.score, reverse=True)
-                                                                            return vector_results[:top_k]
+_vector_store: VectorStore | None = None
 
 
-                                                                            obal vector store instance
-                                                                            _vector_store: VectorStore | None = None
-
-
-                                                                            def get_vector_store() -> VectorStore:
-                                                                                """Get or create global vector store."""
-                                                                                global _vector_store
-                                                                                if _vector_store is None:
-                                                                                    backend = VectorBackend(resolve_env("VECTOR_BACKEND", "qdrant"))
-                                                                                    _vector_store = VectorStore(backend=backend)
-                                                                                    return _vector_store
+def get_vector_store() -> VectorStore:
+    global _vector_store
+    if _vector_store is None:
+        backend = VectorBackend(resolve_env("VECTOR_BACKEND", "milvus"))
+        _vector_store = VectorStore(backend=backend)
+    return _vector_store
