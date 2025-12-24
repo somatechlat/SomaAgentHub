@@ -145,6 +145,28 @@ async def start_workflow_example(
     return result
 
 
+def _env_host() -> str:
+    """Resolve Temporal host with support for both legacy and SOMA env keys."""
+    host = resolve_env("TEMPORAL_HOST")
+    if host:
+        return host
+    return resolve_env("SOMA_AGENT_HUB_TEMPORAL_HOST", "localhost:10009")
+
+
+def _env_namespace() -> str:
+    ns = resolve_env("TEMPORAL_NAMESPACE")
+    if ns:
+        return ns
+    return resolve_env("SOMA_AGENT_HUB_TEMPORAL_NAMESPACE", "default")
+
+
+def _env_task_queue() -> str:
+    tq = resolve_env("TEMPORAL_TASK_QUEUE")
+    if tq:
+        return tq
+    return resolve_env("SOMA_AGENT_HUB_TEMPORAL_TASK_QUEUE", "kamachiq-tasks")
+
+
 async def main():
     """
     Main entry point for Temporal worker.
@@ -154,10 +176,11 @@ async def main():
         - TEMPORAL_NAMESPACE: Namespace (default: default)
         - TEMPORAL_TASK_QUEUE: Task queue (default: kamachiq-tasks)
         - RUN_EXAMPLE: If "true", run example workflow (default: false)
+    Also supports SOMA_AGENT_HUB_* equivalents for containerized deployments.
     """
-    temporal_host = resolve_env("TEMPORAL_HOST", "localhost:10009")
-    namespace = resolve_env("TEMPORAL_NAMESPACE", "default")
-    task_queue = resolve_env("TEMPORAL_TASK_QUEUE", "kamachiq-tasks")
+    temporal_host = _env_host()
+    namespace = _env_namespace()
+    task_queue = _env_task_queue()
     run_example = str(resolve_env("RUN_EXAMPLE", "false")).lower() == "true"
 
     if run_example:
