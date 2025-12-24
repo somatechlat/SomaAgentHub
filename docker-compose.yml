@@ -469,7 +469,7 @@ services:
       - somaagenthub-network
 
   milvus:
-    image: milvusdb/milvus-lite:2.4.4
+    image: milvusdb/milvus:v2.4.4
     container_name: somaagenthub_milvus
     restart: unless-stopped
     command: ["milvus", "run", "standalone"]

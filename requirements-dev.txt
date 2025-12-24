@@ -3,6 +3,14 @@ mypy
 pytest
 pytest-asyncio
 httpx
+django>=5.0,<6
+django-ninja>=0.23.0
+channels>=4.0.0
+channels-redis>=4.1.0
+daphne>=4.0.0
+psycopg[binary]>=3.1.0
+pyjwt>=2.9.0
+prometheus-client>=0.20.0
 types-requests
 types-PyYAML
 pyautogen>=0.2.0
